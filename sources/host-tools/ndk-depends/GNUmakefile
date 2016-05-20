@@ -26,7 +26,7 @@ all: $(EXECUTABLE)
 
 # The rest should be left alone
 EXTRA_CFLAGS := -Wall -Werror -fno-exceptions -fno-rtti
-EXTRA_LDFLAGS := -lstdc++
+EXTRA_LDFLAGS := -lstdc++ -static
 
 ifneq (,$(strip $(DEBUG)))
   CFLAGS += -O0 -g
