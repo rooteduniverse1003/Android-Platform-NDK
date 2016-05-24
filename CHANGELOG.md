@@ -5,6 +5,14 @@ Report issues to [GitHub].
 
 [GitHub]: https://github.com/android-ndk/ndk/issues
 
+Announcements
+-------------
+
+ * `ndk-build` will default to using Clang in r13. GCC will be removed in a
+   later release.
+ * `make-standalone-toolchain.sh` will be removed in r13. Make sure
+   `make_standalone_toolchain.py` suits your needs.
+
 NDK
 ---
  * Removed support for the armeabi-v7a-hard ABI. See the explanation in the
@@ -34,12 +42,16 @@ NDK
  * Precompiled headers should work better:
    https://github.com/android-ndk/ndk/issues/14 and
    https://github.com/android-ndk/ndk/issues/16.
+ * Unreachable ARM (non-thumb) STL libraries have been removed.
+ * Added Vulkan support to android-24.
+ * Added Choreographer API to android-24.
+ * Added `libcamera2` APIs to android-24.
 
 Clang
 -----
 
- * Clang has been updated to 3.8svn (r256229, build 2690385).
-     * Note that Clang packaged in the Windows 64 NDK is actually 32-bit.
+ * Clang has been updated to 3.8svn (r256229, build 2812033).
+     * Note that Clang packaged in the Windows 64-bit NDK is actually 32-bit.
  * `__thread` should work for real this time.
 
 GCC
@@ -67,6 +79,7 @@ GDB
 ---
 
  * Updated to GDB 7.11: https://www.gnu.org/software/gdb/news/.
+ * Some bugfixes for `ndk-gdb.py`.
 
 Known Issues
 ------------
@@ -81,7 +94,3 @@ Known Issues
    headers and libraries (not a regression from r11).
  * RenderScript tools are not present (not a regression from r11):
    https://github.com/android-ndk/ndk/issues/7.
- * r12 will most likely not work with Android Studio/Gradle right away. The
-   Gradle plugin will need to be updated to match the build changes we made in
-   `ndk-build`.
- * We've regressed on http://b.android.com/41770.
