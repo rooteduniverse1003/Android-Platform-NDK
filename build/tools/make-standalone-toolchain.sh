@@ -481,21 +481,26 @@ copy_stl_libs () {
         ABI_SRC_DIR=$ABI/`basename $DEST_DIR`
     fi
 
+    LIBDIR="lib"
+    if [ "$ABI" = "mips64" -o "$ABI" = "x86_64" ]; then
+        LIBDIR="lib64"
+    fi
+
     case $STL in
         gnustl)
-            copy_file_list "$GNUSTL_LIBS/$ABI_SRC_DIR" "$ABI_STL/lib/$DEST_DIR" "libgnustl_shared.so"
-            copy_file_list "$GNUSTL_LIBS/$ABI_SRC_DIR" "$ABI_STL/lib/$DEST_DIR" "libsupc++.a"
-            cp -p "$GNUSTL_LIBS/$ABI_SRC_DIR/libgnustl_static.a" "$ABI_STL/lib/$DEST_DIR/libstdc++.a"
+            copy_file_list "$GNUSTL_LIBS/$ABI_SRC_DIR" "$ABI_STL/$LIBDIR/$DEST_DIR" "libgnustl_shared.so"
+            copy_file_list "$GNUSTL_LIBS/$ABI_SRC_DIR" "$ABI_STL/$LIBDIR/$DEST_DIR" "libsupc++.a"
+            cp -p "$GNUSTL_LIBS/$ABI_SRC_DIR/libgnustl_static.a" "$ABI_STL/$LIBDIR/$DEST_DIR/libstdc++.a"
             ;;
         libcxx|libc++)
             copy_file_list "$LIBCXX_LIBS/$ABI_SRC_DIR" \
-                "$ABI_STL/lib/$DEST_DIR" "libc++_shared.so"
+                "$ABI_STL/$LIBDIR/$DEST_DIR" "libc++_shared.so"
             cp -p "$LIBCXX_LIBS/$ABI_SRC_DIR/libc++_static.a" \
-                "$ABI_STL/lib/$DEST_DIR/libstdc++.a"
+                "$ABI_STL/$LIBDIR/$DEST_DIR/libstdc++.a"
             ;;
         stlport)
-            copy_file_list "$STLPORT_LIBS/$ABI_SRC_DIR" "$ABI_STL/lib/$DEST_DIR" "libstlport_shared.so"
-            cp -p "$STLPORT_LIBS/$ABI_SRC_DIR/libstlport_static.a" "$ABI_STL/lib/$DEST_DIR/libstdc++.a"
+            copy_file_list "$STLPORT_LIBS/$ABI_SRC_DIR" "$ABI_STL/$LIBDIR/$DEST_DIR" "libstlport_shared.so"
+            cp -p "$STLPORT_LIBS/$ABI_SRC_DIR/libstlport_static.a" "$ABI_STL/$LIBDIR/$DEST_DIR/libstdc++.a"
             ;;
         *)
             dump "ERROR: Unsupported STL: $STL"
