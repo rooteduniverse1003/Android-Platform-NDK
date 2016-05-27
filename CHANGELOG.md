@@ -45,7 +45,11 @@ NDK
  * Unreachable ARM (non-thumb) STL libraries have been removed.
  * Added Vulkan support to android-24.
  * Added Choreographer API to android-24.
- * Added `libcamera2` APIs to android-24.
+ * Added `libcamera2` APIs for devices with
+   `INFO_SUPPORTED_HARDWARE_LEVEL_LIMITED` or above (see [Camera
+   Characteristics]).
+
+[Camera Characteristics]: https://developer.android.com/reference/android/hardware/camera2/CameraCharacteristics.html#INFO_SUPPORTED_HARDWARE_LEVEL
 
 Clang
 -----
