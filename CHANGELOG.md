@@ -98,3 +98,7 @@ Known Issues
    headers and libraries (not a regression from r11).
  * RenderScript tools are not present (not a regression from r11):
    https://github.com/android-ndk/ndk/issues/7.
+ * In NdkCameraMetadataTags.h, the camera metadata tag enum value
+   `ACAMERA_STATISTICS_LENS_SHADING_CORRECTION_MAP` was listed by accident and
+   will be removed in next release. Use `ACAMERA_STATISTICS_LENS_SHADING_MAP`
+   instead.
