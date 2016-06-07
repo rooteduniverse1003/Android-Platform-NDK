@@ -89,7 +89,7 @@ Known Issues
 ------------
 
  * This is not intended to be a comprehensive list of all outstanding bugs.
- * x86 ASAN still does work. See discussion on
+ * x86 ASAN still does not work. See discussion on
    https://android-review.googlesource.com/#/c/186276/
  * Exception unwinding with `c++_shared` still does not work for ARM on
    Gingerbread or Ice Cream Sandwich.
