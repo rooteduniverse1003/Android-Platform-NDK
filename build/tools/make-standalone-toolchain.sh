@@ -493,10 +493,30 @@ copy_stl_libs () {
             cp -p "$GNUSTL_LIBS/$ABI_SRC_DIR/libgnustl_static.a" "$ABI_STL/$LIBDIR/$DEST_DIR/libstdc++.a"
             ;;
         libcxx|libc++)
+            # libc++ is different from the other STLs. It has a libc++.(a|so)
+            # that is a linker script which automatically pulls in the
+            # necessary libraries. This way users don't have to do
+            # `-lc++abi -lunwind -landroid_support` on their own.
+            #
+            # As with the other STLs, we still copy this as libstdc++.a so the
+            # compiler will pick it up by default.
+            #
+            # Unlike the other STLs, also copy libc++.so (another linker
+            # script) over as libstdc++.so.  Since it's a linker script, the
+            # linker will still get the right DT_NEEDED from the SONAME of the
+            # actual linked object.
+            FILES="libc++.so libc++.a libc++_shared.so libc++_static.a libc++abi.a"
+            case $ABI in
+                armeabi*)
+                    FILES=$FILES" libunwind.a"
+                    ;;
+            esac
             copy_file_list "$LIBCXX_LIBS/$ABI_SRC_DIR" \
-                "$ABI_STL/$LIBDIR/$DEST_DIR" "libc++_shared.so"
-            cp -p "$LIBCXX_LIBS/$ABI_SRC_DIR/libc++_static.a" \
+                "$ABI_STL/$LIBDIR/$DEST_DIR" "$FILES"
+            cp -p "$LIBCXX_LIBS/$ABI_SRC_DIR/libc++.a" \
                 "$ABI_STL/$LIBDIR/$DEST_DIR/libstdc++.a"
+            cp -p "$LIBCXX_LIBS/$ABI_SRC_DIR/libc++.so" \
+                "$ABI_STL/$LIBDIR/$DEST_DIR/libstdc++.so"
             ;;
         stlport)
             copy_file_list "$STLPORT_LIBS/$ABI_SRC_DIR" "$ABI_STL/$LIBDIR/$DEST_DIR" "libstlport_shared.so"
