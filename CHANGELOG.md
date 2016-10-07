@@ -58,6 +58,15 @@ Changes
        `-DANDROID_ARM_NEON=false` to CMake.
      * Alternatively, use the Play Console to [blacklist CPUs] without NEON to
        disallow your app from being installed on those devices.
+ * Added `APP_STRIP_MODE` and `LOCAL_STRIP_MODE` to ndk-build.
+     * Allows the user to specify the strip mode used for their modules.
+     * The option is passed directly to the strip command. See the [strip
+       documentation](https://sourceware.org/binutils/docs/binutils/strip.html)
+       for details.
+     * If set to "none", strip will not be run.
+     * Defaults to "--strip-unneeded". This is the same behavior as previous
+       NDKs.
+     * `LOCAL_STRIP_MODE` always overrides `APP_STRIP_MODE` when set.
 
 [Issue 490]: https://github.com/android-ndk/ndk/issues/490
 [Issue 573]: https://github.com/android-ndk/ndk/issues/573
