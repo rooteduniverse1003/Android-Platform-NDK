@@ -216,6 +216,20 @@ else
         $(eval APP_WRAP_SH_$(_abi) := $(APP_WRAP_SH)))
 endif
 
+# Stripping can be configured both at the app (APP_STRIP_MODE) and module level
+# (LOCAL_STRIP_MODE). The module setting always overrides the application
+# setting.
+#
+# This value is passed as-is as the flag to the strip command except when it is
+# set to the special value "none". If set to "none", the binary will not be
+# stripped at all.
+ifeq ($(APP_STRIP_MODE),)
+    # The strip command is only used for shared libraries and executables. It is
+    # thus safe to use --strip-unneeded, which is only dangerous when applied to
+    # static libraries or object files.
+    APP_STRIP_MODE := --strip-unneeded
+endif
+
 $(if $(call get,$(_map),defined),\
   $(call __ndk_info,Weird, the application $(_app) is already defined by $(call get,$(_map),defined))\
   $(call __ndk_error,Aborting)\
