@@ -59,6 +59,7 @@ ALL_MODULES = {
     'ndk_helper',
     'platforms',
     'python-packages',
+    'renderscript',
     'shader_tools',
     'simpleperf',
     'stlport',
@@ -759,6 +760,10 @@ def build_simpleperf(out_dir, dist_dir, _args):
 
     build_support.make_package('simpleperf', install_dir, dist_dir)
 
+def build_renderscript(out_dir, dist_dir, args):
+    print('Building RenderScript...')
+    invoke_build('build-renderscript.py', common_build_args(out_dir, dist_dir, args))
+
 
 def launch_build(build_name, build_func, out_dir, dist_dir, args, log_dir):
     log_path = os.path.join(log_dir, build_name) + '.log'
@@ -803,6 +808,7 @@ def main():
             'host-tools',
             'ndk-build',
             'python-packages',
+            'renderscript',
             'shader_tools',
             'simpleperf',
         }
@@ -860,6 +866,7 @@ def main():
         ('ndk_helper', build_ndk_helper),
         ('platforms', build_platforms),
         ('python-packages', build_python_packages),
+        ('renderscript', build_renderscript),
         ('shader_tools', build_shader_tools),
         ('simpleperf', build_simpleperf),
         ('stlport', build_stlport),
