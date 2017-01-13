@@ -67,7 +67,7 @@ Known Issues
 
  * This is not intended to be a comprehensive list of all outstanding bugs.
  * Gradle does not yet support unified headers.
- * RenderScript tools are not present (not a regression from r11):
+ * RenderScript tools do not work on Windows:
    https://github.com/android-ndk/ndk/issues/7.
 
 Won't Fix
