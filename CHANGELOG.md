@@ -61,6 +61,14 @@ Clang/LLVM
 
  * The x86 ASAN issues noted since r11 appear to have been emulator specific.
    Up to date emulators no longer have this issue.
+ * LTO with Clang now builds without errors on Linux and Darwin. This fixes
+   https://github.com/android-ndk/ndk/issues/108.
+
+RenderScript
+------------
+
+ * The RenderScript tools are now included in the NDK once again. This fixes
+   https://github.com/android-ndk/ndk/issues/7.
 
 Known Issues
 ------------
