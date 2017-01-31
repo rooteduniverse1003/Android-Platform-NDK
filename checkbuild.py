@@ -466,6 +466,9 @@ class Platforms(ndk.builds.InvokeBuildModule):
     path = 'platforms'
     script = 'build-platforms.py'
 
+    def additional_args(self, args):
+        return ['--build-number', args.build_number]
+
 
 class LibShaderc(ndk.builds.Module):
     name = 'libshaderc'
