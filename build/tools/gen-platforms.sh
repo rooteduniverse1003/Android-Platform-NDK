@@ -378,26 +378,13 @@ gen_crt_objects ()
         exit 1
     fi
 
-    # Substitute the "%NDK_VERSION%" and "%NDK_BUILD_NUMBER%" literal with the real version
-    # and build number according to the configuration.
     NDK_VERSION=`python $NDK_DIR/config.py`
-    NDK_RESERVED_SIZE=64
-    CRTBRAND_S=$DST_DIR/crtbrand.s
-    CRTBRAND_C=$DST_DIR/crtbrand.c
-    log "Generating platform $API crtbrand assembly code: $CRTBRAND_S"
-    (cd "$COMMON_SRC_DIR" && cat crtbrand.c | sed -e 's/%NDK_VERSION%/'"$NDK_VERSION"'/' | \
-        sed -e 's/%NDK_BUILD_NUMBER%/'"$NDK_BUILD_NUMBER"'/' > "$CRTBRAND_C")
-    (cd "$COMMON_SRC_DIR" && mkdir -p `dirname $CRTBRAND_S` && $CC -DPLATFORM_SDK_VERSION=$API -fpic -S -o - "$CRTBRAND_C" | \
-        sed -e '/\.note\.ABI-tag/s/progbits/note/' > "$CRTBRAND_S")
-
-    if [ $? != 0 ]; then
-        dump "ERROR: Could not generate $CRTBRAND_S from $COMMON_SRC_DIR/crtbrand.c"
-        exit 1
-    fi
+    CRTBRAND_S="$NDK_DIR/sources/crt/crtbrand.S"
 
     for SRC_FILE in $(cd "$SRC_DIR" && ls crt*.[cS]); do
         DST_FILE=${SRC_FILE%%.c}
         DST_FILE=${DST_FILE%%.S}.o
+        CHECK_NOTE=false
         COPY_CRTBEGIN=false
 
         case "$DST_FILE" in
@@ -409,15 +396,17 @@ gen_crt_objects ()
                 DST_FILE=crtend_android.o
                 ;;
             "crtbegin_dynamic.o"|"crtbegin_static.o")
-                # Add .note.ABI-tag section
+                # Add .note.android.ident section
                 SRC_FILE=$SRC_FILE" $CRTBRAND_S"
+                CHECK_NOTE=true
                 ;;
             "crtbegin.o")
                 # If we have a single source for both crtbegin_static.o and
                 # crtbegin_dynamic.o we generate one and make a copy later.
                 DST_FILE=crtbegin_dynamic.o
-                # Add .note.ABI-tag section
+                # Add .note.android.ident section
                 SRC_FILE=$SRC_FILE" $CRTBRAND_S"
+                CHECK_NOTE=true
                 COPY_CRTBEGIN=true
                 ;;
         esac
@@ -428,17 +417,25 @@ gen_crt_objects ()
                  -I$SRCDIR/../../bionic/libc/arch-common/bionic \
                  -I$SRCDIR/../../bionic/libc/arch-$ARCH/include \
                  -DPLATFORM_SDK_VERSION=$API \
+                 -DABI_NDK_VERSION=\"$NDK_VERSION\" \
+                 -DABI_NDK_BUILD_NUMBER=\"$NDK_BUILD_NUMBER\" \
                  -O2 -fpic -Wl,-r -nostdlib -o "$DST_DIR/$DST_FILE" $SRC_FILE)
         if [ $? != 0 ]; then
             dump "ERROR: Could not generate $DST_FILE from $SRC_DIR/$SRC_FILE"
             exit 1
+        fi
+        if [ \( `$CHECK_NOTE` \) -a \( "`which readelf`" != "" \) ]; then
+            readelf --notes $DST_DIR/$DST_FILE | grep -q Android
+            if [ $? != 0 ]; then
+                dump "ERROR: Generated $DST_DIR/$DST_FILE doesn't have our ELF note"
+                exit 1
+            fi
         fi
         if [ "$COPY_CRTBEGIN" = "true" ]; then
             dump "cp $DST_DIR/crtbegin_dynamic.o $DST_DIR/crtbegin_static.o"
             cp "$DST_DIR/crtbegin_dynamic.o" "$DST_DIR/crtbegin_static.o"
         fi
     done
-    rm -f "$CRTBRAND_S"
 }
 
 # $1: platform number
