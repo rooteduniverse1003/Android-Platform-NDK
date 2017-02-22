@@ -35,6 +35,15 @@ Announcements
 
 [Unified Headers]: docs/UnifiedHeaders.md
 
+APIs
+----
+
+ * `_BSD_SOURCE` will never be defined by the NDK when using unified headers;
+   the user's setting will be obeyed. When using the deprecated headers, whether
+   or not this was defined depended on which headers you included. To continue
+   using `_BSD_SOURCE`, `#define` it in your source files or pass it on the
+   command line as you would for typical Linux code.
+
 ndk-build
 ---------
 
