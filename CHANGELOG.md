@@ -35,6 +35,18 @@ Announcements
 
 [Unified Headers]: docs/UnifiedHeaders.md
 
+r14b
+====
+
+ * Fixed issue of XSI `strerror_r` not being available until android-23 with
+   unified headers: https://github.com/android-ndk/ndk/issues/324.
+ * Fixed issue of `__ANDROID_API__` not being set for standalone toolchains with
+   unified headers on Windows: https://github.com/android-ndk/ndk/issues/321.
+ * Fixed issue of not being able to find gnustl headers with standalone
+   toolchains for mips32: https://github.com/android-ndk/ndk/issues/310.
+ * Removed accidentally exposed non-NDK API Vulkan headers. The functions in the
+   non-API headers themselves weren't exposed, so these weren't usable anyways.
+
 APIs
 ----
 
