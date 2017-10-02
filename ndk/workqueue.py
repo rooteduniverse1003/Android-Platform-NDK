@@ -20,7 +20,6 @@ import collections
 import logging
 import multiprocessing
 import os
-import Queue
 import signal
 import sys
 import traceback
@@ -33,15 +32,6 @@ def logger():
 def worker_sigterm_handler(_signum, _frame):
     """Raises SystemExit so atexit/finally handlers can be executed."""
     sys.exit()
-
-
-def _flush_queue(queue):
-    """Flushes all pending items from a Queue."""
-    try:
-        while True:
-            queue.get_nowait()
-    except Queue.Empty:
-        pass
 
 
 class TaskError(Exception):
@@ -58,36 +48,82 @@ class TaskError(Exception):
         super(TaskError, self).__init__(trace)
 
 
-def worker_main(task_queue, result_queue):
-    """Main loop for worker processes.
+class Worker(object):
+    IDLE_STATUS = 'IDLE'
+    EXCEPTION_STATUS = 'EXCEPTION'
 
-    Args:
-        task_queue: A multiprocessing.Queue of Tasks to retrieve work from.
-        result_queue: A multiprocessing.Queue to push results to.
-    """
-    os.setpgrp()
-    signal.signal(signal.SIGTERM, worker_sigterm_handler)
-    try:
-        while True:
-            logger().debug('worker %d waiting for work', os.getpid())
-            task = task_queue.get()
-            logger().debug('worker %d running task', os.getpid())
-            result = task.run()
-            logger().debug('worker %d putting result', os.getpid())
-            result_queue.put(result)
-    except SystemExit:
-        pass
-    except:  # pylint: disable=bare-except
-        logger().debug('worker %d raised exception', os.getpid())
-        trace = ''.join(traceback.format_exception(*sys.exc_info()))
-        result_queue.put(TaskError(trace))
-    finally:
-        # multiprocessing.Process.terminate() doesn't kill our descendents.
-        signal.signal(signal.SIGTERM, signal.SIG_IGN)
-        logger().debug('worker %d killing process group', os.getpid())
-        os.kill(0, signal.SIGTERM)
-        signal.signal(signal.SIGTERM, signal.SIG_DFL)
-    logger().debug('worker %d exiting', os.getpid())
+    def __init__(self, data, task_queue, result_queue, manager):
+        """Creates a Worker object.
+
+        Args:
+            task_queue: A multiprocessing.Queue of Tasks to retrieve work from.
+            result_queue: A multiprocessing.Queue to push results to.
+        """
+        self.data = data
+        self.task_queue = task_queue
+        self.result_queue = result_queue
+        # For multiprocess.Manager.Value, the type is actually ignored.
+        # https://stackoverflow.com/a/21290961/632035
+        self._status = manager.Value('', self.IDLE_STATUS)
+        self._status_lock = manager.Lock()
+        self.process = multiprocessing.Process(target=self.main)
+
+    @property
+    def status(self):
+        with self._status_lock:
+            return self._status.value
+
+    @status.setter
+    def status(self, value):
+        with self._status_lock:
+            self._status.value = value
+
+    def put_result(self, result, status):
+        with self._status_lock:
+            self._status.value = status
+        self.result_queue.put(result)
+
+    @property
+    def pid(self):
+        return self.process.pid
+
+    def is_alive(self):
+        return self.process.is_alive()
+
+    def start(self):
+        self.process.start()
+
+    def terminate(self):
+        self.process.terminate()
+
+    def join(self, timeout=None):
+        self.process.join(timeout)
+
+    def main(self):
+        """Main loop for worker processes."""
+        os.setpgrp()
+        signal.signal(signal.SIGTERM, worker_sigterm_handler)
+        try:
+            while True:
+                logger().debug('worker %d waiting for work', os.getpid())
+                task = self.task_queue.get()
+                logger().debug('worker %d running task', os.getpid())
+                result = task.run(self)
+                logger().debug('worker %d putting result', os.getpid())
+                self.put_result(result, self.IDLE_STATUS)
+        except SystemExit:
+            pass
+        except:  # pylint: disable=bare-except
+            logger().debug('worker %d raised exception', os.getpid())
+            trace = ''.join(traceback.format_exception(*sys.exc_info()))
+            self.put_result(TaskError(trace), self.EXCEPTION_STATUS)
+        finally:
+            # multiprocessing.Process.terminate() doesn't kill our descendents.
+            signal.signal(signal.SIGTERM, signal.SIG_IGN)
+            logger().debug('worker %d killing process group', os.getpid())
+            os.kill(0, signal.SIGTERM)
+            signal.signal(signal.SIGTERM, signal.SIG_DFL)
+        logger().debug('worker %d exiting', os.getpid())
 
 
 class Task(object):
@@ -104,9 +140,9 @@ class Task(object):
         self.args = args
         self.kwargs = kwargs
 
-    def run(self):
+    def run(self, worker_data):
         """Invokes the task."""
-        return self.func(*self.args, **self.kwargs)
+        return self.func(worker_data, *self.args, **self.kwargs)
 
 
 class ProcessPoolWorkQueue(object):
@@ -114,7 +150,8 @@ class ProcessPoolWorkQueue(object):
 
     join_timeout = 8  # Timeout for join before trying SIGKILL.
 
-    def __init__(self, num_workers=multiprocessing.cpu_count()):
+    def __init__(self, num_workers=multiprocessing.cpu_count(),
+                 task_queue=None, result_queue=None, worker_data=None):
         """Creates a WorkQueue.
 
         Worker threads are spawned immediately and remain live until both
@@ -122,6 +159,14 @@ class ProcessPoolWorkQueue(object):
 
         Args:
             num_workers: Number of worker processes to spawn.
+            task_queue: multiprocessing.Queue for tasks. Allows multiple work
+                queues to share a single task queue. If None, the work queue
+                creates its own.
+            result_queue: multiprocessing.Queue for results. Allows multiple
+                work queues to share a single result queue. If None, the work
+                queue creates its own.
+            worker_data: Data to be passed to every task run by this work
+                queue.
         """
         if sys.platform == 'win32':
             # TODO(danalbert): Port ProcessPoolWorkQueue to Windows.
@@ -129,8 +174,22 @@ class ProcessPoolWorkQueue(object):
             # groups, which are not supported on Windows.
             raise NotImplementedError
 
-        self.task_queue = multiprocessing.Queue()
-        self.result_queue = multiprocessing.Queue()
+        self.manager = multiprocessing.Manager()
+
+        self.task_queue = task_queue
+        self.owns_task_queue = False
+        if task_queue is None:
+            self.task_queue = self.manager.Queue()
+            self.owns_task_queue = True
+
+        self.result_queue = result_queue
+        self.owns_result_queue = False
+        if result_queue is None:
+            self.result_queue = self.manager.Queue()
+            self.owns_result_queue = True
+
+        self.worker_data = worker_data
+
         self.workers = []
         # multiprocessing.JoinableQueue's join isn't able to implement
         # finished() because it doesn't come in a non-blocking flavor.
@@ -164,20 +223,6 @@ class ProcessPoolWorkQueue(object):
         for worker in self.workers:
             logger().debug('terminating %d', worker.pid)
             worker.terminate()
-        self._flush()
-
-    def _flush(self):
-        """Flushes all pending tasks and results.
-
-        If there are still items pending in the queues when terminate is
-        called, the subsequent join will hang waiting for the queues to be
-        emptied.
-
-        We call _flush after all workers have been terminated to ensure that we
-        can exit cleanly.
-        """
-        _flush_queue(self.task_queue)
-        _flush_queue(self.result_queue)
 
     def join(self):
         """Waits for all worker processes to exit."""
@@ -202,8 +247,9 @@ class ProcessPoolWorkQueue(object):
             num_workers: Number of worker proceeses to spawn.
         """
         for _ in range(num_workers):
-            worker = multiprocessing.Process(
-                target=worker_main, args=(self.task_queue, self.result_queue))
+            worker = Worker(
+                self.worker_data, self.task_queue, self.result_queue,
+                self.manager)
             worker.start()
             self.workers.append(worker)
 
@@ -214,9 +260,10 @@ class DummyWorkQueue(object):
     Useful for debugging when trying to determine if an issue is being caused
     by multiprocess specific behavior.
     """
-    def __init__(self):
+    def __init__(self, worker_data=None):
         """Creates a SerialWorkQueue."""
         self.task_queue = collections.deque()
+        self.worker_data = worker_data
 
     def add_task(self, func, *args, **kwargs):
         """Queues up a new task for execution.
@@ -234,7 +281,7 @@ class DummyWorkQueue(object):
         """Executes a task and returns the result."""
         task = self.task_queue.popleft()
         try:
-            return task.run()
+            return task.run(self.worker_data)
         except:
             trace = ''.join(traceback.format_exception(*sys.exc_info()))
             raise TaskError(trace)

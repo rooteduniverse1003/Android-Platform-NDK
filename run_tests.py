@@ -20,6 +20,7 @@ from __future__ import print_function
 import argparse
 import json
 import logging
+import multiprocessing
 import os
 import posixpath
 import random
@@ -30,6 +31,7 @@ import time
 import traceback
 
 import build.lib.build_support
+import ndk.ansi
 import ndk.notify
 import ndk.paths
 import ndk.subprocess
@@ -38,6 +40,8 @@ import ndk.test.devices
 import ndk.test.report
 import ndk.test.result
 import ndk.test.spec
+import ndk.test.ui
+import ndk.ui
 import ndk.timer
 import ndk.workqueue
 
@@ -142,7 +146,15 @@ class LibcxxTestCase(TestCase):
     with ".exe") or test data (always suffixed with ".dat").
     """
     def __init__(self, suite, executable, config, device_dir):
-        name = posixpath.join(suite, executable)
+        # Tests in the top level don't need any mangling to match the filters.
+        if suite == 'libc++':
+            filter_name = executable
+        else:
+            filter_name = os.path.join(suite[len('libc++/'):], executable)
+
+        # The executable name ends with .exe. Remove that so it matches the
+        # filter that would be used to build the test.
+        name = '.'.join(['libc++', filter_name[:-4]])
         super(LibcxxTestCase, self).__init__(
             name, config, 'libc++', device_dir)
 
@@ -183,10 +195,10 @@ class LibcxxTestCase(TestCase):
 
 
 class TestRun(object):
-    """A test case mapped to the device it will run on."""
-    def __init__(self, test_case, device):
+    """A test case mapped to the device group it will run on."""
+    def __init__(self, test_case, device_group):
         self.test_case = test_case
-        self.device = device
+        self.device_group = device_group
 
     @property
     def name(self):
@@ -200,17 +212,17 @@ class TestRun(object):
     def config(self):
         return self.test_case.config
 
-    def make_result(self, adb_result_tuple):
+    def make_result(self, adb_result_tuple, device):
         status, out, _ = adb_result_tuple
         if status == 0:
             result = ndk.test.result.Success(self)
         else:
-            out = '\n'.join([str(self.device), out])
+            out = '\n'.join([str(device), out])
             result = ndk.test.result.Failure(self, out)
-        return self.fixup_xfail(result)
+        return self.fixup_xfail(result, device)
 
-    def fixup_xfail(self, result):
-        config, bug = self.test_case.check_broken(self.device)
+    def fixup_xfail(self, result, device):
+        config, bug = self.test_case.check_broken(device)
         if config is not None:
             if result.failed():
                 return ndk.test.result.ExpectedFailure(self, config, bug)
@@ -219,12 +231,12 @@ class TestRun(object):
             raise ValueError('Test result must have either failed or passed.')
         return result
 
-    def run(self):
-        config = self.test_case.check_unsupported(self.device)
+    def run(self, device):
+        config = self.test_case.check_unsupported(device)
         if config is not None:
             message = 'test unsupported for {}'.format(config)
             return ndk.test.result.Skipped(self, message)
-        return self.make_result(self.test_case.run(self.device))
+        return self.make_result(self.test_case.run(device), device)
 
 
 def build_tests(ndk_dir, out_dir, clean, printer, config, test_filter):
@@ -276,8 +288,28 @@ def enumerate_libcxx_tests(out_dir_base, build_cfg, build_system, test_filter):
             test_relpath = os.path.relpath(root, out_dir_base)
             device_dir = posixpath.join(DEVICE_TEST_BASE_DIR, test_relpath)
             suite_name = os.path.relpath(root, tests_dir)
-            name = '/'.join([suite_name, test_file])
-            if not test_filter.filter(name):
+
+            # Our file has a .exe extension, but the name should match the
+            # source file for the filters to work.
+            test_name = test_file[:-4]
+
+            # Tests in the top level don't need any mangling to match the
+            # filters.
+            if not suite_name == 'libc++':
+                if not suite_name.startswith('libc++/'):
+                    raise ValueError(suite_name)
+                assert suite_name.startswith('libc++/')
+                # According to the test runner, these are all part of the
+                # "libc++" test, and the rest of the data is the subtest name.
+                # i.e.  libc++/foo/bar/baz.cpp.exe is actually
+                # libc++.foo/bar/baz.cpp.  Matching this expectation here
+                # allows us to use the same filter string for running the tests
+                # as for building the tests.
+                test_path = suite_name[len('libc++/'):]
+                test_name = '/'.join([test_path, test_name])
+
+            filter_name = '.'.join(['libc++', test_name])
+            if not test_filter.filter(filter_name):
                 continue
             tests.append(LibcxxTestCase(
                 suite_name, test_file, build_cfg, device_dir))
@@ -320,7 +352,7 @@ def enumerate_tests(test_dir, test_filter, config_filter):
     return tests
 
 
-def clear_test_directory(device):
+def clear_test_directory(_worker, device):
     print('Clearing test directory on {}.'.format(device))
     cmd = ['rm', '-r', DEVICE_TEST_BASE_DIR]
     logger().info('%s: shell_nocheck "%s"', device.name, cmd)
@@ -328,8 +360,9 @@ def clear_test_directory(device):
 
 
 def clear_test_directories(workqueue, fleet):
-    for device in fleet.get_unique_devices():
-        workqueue.add_task(clear_test_directory, device)
+    for group in fleet.get_unique_device_groups():
+        for device in group.devices:
+            workqueue.add_task(clear_test_directory, device)
 
     while not workqueue.finished():
         workqueue.get_result()
@@ -344,8 +377,9 @@ def adb_has_feature(feature):
     return feature in features
 
 
-def push_tests_to_device(src_dir, dest_dir, config, device, use_sync):
-    print('Pushing {} tests to {}.'.format(config, device))
+def push_tests_to_device(worker, src_dir, dest_dir, config, device,
+                         use_sync):
+    worker.status = 'Pushing {} tests to {}.'.format(config, device)
     logger().info('%s: mkdir %s', device.name, dest_dir)
     device.shell_nocheck(['mkdir', dest_dir])
     logger().info(
@@ -356,17 +390,30 @@ def push_tests_to_device(src_dir, dest_dir, config, device, use_sync):
         device.shell(['chmod', '-R', '777', dest_dir])
 
 
-def push_tests_to_devices(workqueue, test_dir, devices_for_config, use_sync):
-    for config, devices in devices_for_config.items():
-        src_dir = os.path.join(test_dir, str(config))
-        dest_dir = DEVICE_TEST_BASE_DIR
-        for device in devices:
-            workqueue.add_task(
-                push_tests_to_device, src_dir, dest_dir, config, device,
-                use_sync)
+def finish_workqueue_with_ui(workqueue):
+    console = ndk.ansi.get_console()
+    ui = ndk.ui.get_work_queue_ui(console, workqueue)
+    with ndk.ansi.disable_terminal_echo(sys.stdin):
+        with console.cursor_hide_context():
+            ui.draw()
+            while not workqueue.finished():
+                workqueue.get_result()
+                ui.draw()
+            ui.clear()
 
-    while not workqueue.finished():
-        workqueue.get_result()
+
+def push_tests_to_devices(workqueue, test_dir, groups_for_config, use_sync):
+    dest_dir = DEVICE_TEST_BASE_DIR
+    for config, groups in groups_for_config.items():
+        src_dir = os.path.join(test_dir, str(config))
+        for group in groups:
+            for device in group.devices:
+                workqueue.add_task(
+                    push_tests_to_device, src_dir, dest_dir, config, device,
+                    use_sync)
+
+    finish_workqueue_with_ui(workqueue)
+    print('Finished pushing tests')
 
 
 def disable_verity_and_wait_for_reboot(device):
@@ -412,27 +459,35 @@ def asan_device_setup(ndk_path, device):
             device, out))
 
 
-def setup_asan_for_device(ndk_path, device):
-    print('Performing ASAN setup for {}'.format(device))
+def setup_asan_for_device(worker, ndk_path, device):
+    worker.status = 'Performing ASAN setup for {}'.format(device)
     disable_verity_and_wait_for_reboot(device)
     asan_device_setup(ndk_path, device)
 
 
-def perform_asan_setup(workqueue, ndk_path, devices):
+def perform_asan_setup(workqueue, ndk_path, groups_for_config):
     # asan_device_setup is a shell script, so no asan there.
     if os.name == 'nt':
         return
+
+    devices = []
+    for groups in groups_for_config.values():
+        for group in groups:
+            devices.extend(group.devices)
+    devices = sorted(list(set(devices)))
 
     for device in devices:
         if device.can_use_asan():
             workqueue.add_task(setup_asan_for_device, ndk_path, device)
 
-    while not workqueue.finished():
-        workqueue.get_result()
+    finish_workqueue_with_ui(workqueue)
+    print('Finished ASAN setup')
 
 
-def run_test(test):
-    return test.run()
+def run_test(worker, test):
+    device = worker.data[0]
+    worker.status = 'Running {}'.format(test.name)
+    return test.run(device)
 
 
 def print_test_stats(test_groups):
@@ -459,39 +514,52 @@ def verify_have_all_requested_devices(fleet):
     return True
 
 
-def find_configs_with_no_device(devices_for_config):
-    return [c for c, ds in devices_for_config.items() if not ds]
+def find_configs_with_no_device(groups_for_config):
+    return [c for c, gs in groups_for_config.items() if not gs]
 
 
-def match_configs_to_devices(fleet, configs):
-    devices_for_config = {config: [] for config in configs}
+def match_configs_to_device_groups(fleet, configs):
+    groups_for_config = {config: [] for config in configs}
     for config in configs:
-        for device in fleet.get_unique_devices():
+        for group in fleet.get_unique_device_groups():
+            # All devices in the group are identical.
+            device = group.devices[0]
             if not device.can_run_build_config(config):
                 continue
-            devices_for_config[config].append(device)
+            groups_for_config[config].append(group)
 
-    return devices_for_config
+    return groups_for_config
 
 
-def create_test_runs(test_groups, devices_for_config):
+def pair_test_runs(test_groups, groups_for_config):
     """Creates a TestRun object for each device/test case pairing."""
     test_runs = []
     for config, test_cases in test_groups.items():
-        for device in devices_for_config[config]:
-            test_runs.extend([TestRun(tc, device) for tc in test_cases])
+        if not test_cases:
+            continue
+
+        for group in groups_for_config[config]:
+            test_runs.extend([TestRun(tc, group) for tc in test_cases])
     return test_runs
 
 
 def wait_for_results(report, workqueue, printer):
-    while not workqueue.finished():
-        result = workqueue.get_result()
-        suite = result.test.build_system
-        report.add_result(suite, result)
-        if logger().isEnabledFor(logging.INFO):
-            printer.print_result(result)
-        elif result.failed():
-            printer.print_result(result)
+    console = ndk.ansi.get_console()
+    ui = ndk.test.ui.get_test_progress_ui(console, workqueue)
+    with ndk.ansi.disable_terminal_echo(sys.stdin):
+        with console.cursor_hide_context():
+            while not workqueue.finished():
+                result = workqueue.get_result()
+                suite = result.test.build_system
+                report.add_result(suite, result)
+                if logger().isEnabledFor(logging.INFO):
+                    ui.clear()
+                    printer.print_result(result)
+                elif result.failed():
+                    ui.clear()
+                    printer.print_result(result)
+                ui.draw()
+            ui.clear()
 
 
 def flake_filter(result):
@@ -506,7 +574,7 @@ def flake_filter(result):
     # These libc++ tests expect to complete in a specific amount of time,
     # and commonly fail under high load.
     name = result.test.name
-    if 'libc++/libcxx/thread' in name or 'libc++/std/thread' in name:
+    if 'libc++.libcxx/thread' in name or 'libc++.std/thread' in name:
         return True
 
     return False
@@ -524,7 +592,8 @@ def restart_flaky_tests(report, workqueue):
 
     for flaky_report in rerun_tests:
         logger().warning('Flaky test failure: %s', flaky_report.result)
-        workqueue.add_task(run_test, flaky_report.result.test)
+        group = flaky_report.result.test.device_group
+        workqueue.add_task(group, run_test, flaky_report.result.test)
 
 
 def get_config_dict(config, abis, toolchains, pie):
@@ -628,6 +697,47 @@ class ConfigFilter(object):
         return config_tuple in self.config_tuples
 
 
+class ShardingWorkQueue(object):
+    def __init__(self, device_groups, procs_per_device):
+        self.manager = multiprocessing.Manager()
+        self.result_queue = self.manager.Queue()
+        self.task_queues = {}
+        self.work_queues = []
+        self.num_tasks = 0
+        for group in device_groups:
+            self.task_queues[group] = self.manager.Queue()
+            for device in group.devices:
+                self.work_queues.append(
+                    ndk.workqueue.WorkQueue(
+                        procs_per_device, task_queue=self.task_queues[group],
+                        result_queue=self.result_queue, worker_data=[device]))
+
+    def add_task(self, group, func, *args, **kwargs):
+        self.task_queues[group].put(
+            ndk.workqueue.Task(func, args, kwargs))
+        self.num_tasks += 1
+
+    def get_result(self):
+        """Gets a result from the queue, blocking until one is available."""
+        result = self.result_queue.get()
+        if type(result) == ndk.workqueue.TaskError:
+            raise result
+        self.num_tasks -= 1
+        return result
+
+    def terminate(self):
+        for work_queue in self.work_queues:
+            work_queue.terminate()
+
+    def join(self):
+        for work_queue in self.work_queues:
+            work_queue.join()
+
+    def finished(self):
+        """Returns True if all tasks have completed execution."""
+        return self.num_tasks == 0
+
+
 def main():
     total_timer = ndk.timer.Timer()
     total_timer.start()
@@ -711,16 +821,10 @@ def main():
         if args.require_all_devices and not have_all_devices:
             sys.exit('Some requested devices were not available. Quitting.')
 
-        devices_for_config = match_configs_to_devices(
+        groups_for_config = match_configs_to_device_groups(
             fleet, test_groups.keys())
-        for config in find_configs_with_no_device(devices_for_config):
+        for config in find_configs_with_no_device(groups_for_config):
             logger().warning('No device found for %s.', config)
-        test_runs = create_test_runs(test_groups, devices_for_config)
-
-        all_used_devices = []
-        for devices in devices_for_config.values():
-            all_used_devices.extend(devices)
-        all_used_devices = sorted(list(set(all_used_devices)))
 
         report = ndk.test.report.Report()
         clean_device_timer = ndk.timer.Timer()
@@ -731,29 +835,38 @@ def main():
         push_timer = ndk.timer.Timer()
         with push_timer:
             push_tests_to_devices(
-                workqueue, test_dist_dir, devices_for_config, can_use_sync)
+                workqueue, test_dist_dir, groups_for_config, can_use_sync)
 
         asan_setup_timer = ndk.timer.Timer()
         with asan_setup_timer:
-            perform_asan_setup(workqueue, args.ndk, all_used_devices)
+            perform_asan_setup(workqueue, args.ndk, groups_for_config)
+    finally:
+        workqueue.terminate()
+        workqueue.join()
+
+    shard_queue = ShardingWorkQueue(fleet.get_unique_device_groups(), 4)
+    try:
+        # Need an input queue per device group, a single result queue, and a
+        # pool of threads per device.
 
         # Shuffle the test runs to distribute the load more evenly. These are
         # ordered by (build config, device, test), so most of the tests running
         # at any given point in time are all running on the same device.
+        test_runs = pair_test_runs(test_groups, groups_for_config)
         random.shuffle(test_runs)
         test_run_timer = ndk.timer.Timer()
         with test_run_timer:
-            for test in test_runs:
-                workqueue.add_task(run_test, test)
+            for test_run in test_runs:
+                shard_queue.add_task(test_run.device_group, run_test, test_run)
 
-            wait_for_results(report, workqueue, printer)
-            restart_flaky_tests(report, workqueue)
-            wait_for_results(report, workqueue, printer)
+            wait_for_results(report, shard_queue, printer)
+            restart_flaky_tests(report, shard_queue)
+            wait_for_results(report, shard_queue, printer)
 
         printer.print_summary(report)
     finally:
-        workqueue.terminate()
-        workqueue.join()
+        shard_queue.terminate()
+        shard_queue.join()
 
     total_timer.finish()
 

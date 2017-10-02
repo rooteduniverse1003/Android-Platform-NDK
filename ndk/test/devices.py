@@ -180,6 +180,66 @@ class Device(adb.AndroidDevice):
     def __eq__(self, other):
         return self.serial == other.serial
 
+    def __hash__(self):
+        return hash(self.serial)
+
+
+class DeviceShardingGroup(object):
+    """A collection of devices that should be identical for testing purposes.
+
+    For the moment, devices are only identical for testing purposes if they are
+    the same hardware running the same build.
+    """
+    def __init__(self, first_device):
+        self.devices = [first_device]
+        self.abis = first_device.abis
+        self.version = first_device.version
+        self.is_emulator = first_device.is_emulator
+        self.is_release = first_device.is_release
+        self.is_debuggable = first_device.is_debuggable
+
+    def add_device(self, device):
+        if not self.device_matches(device):
+            raise ValueError('{} does not match this device group.'.format(
+                device))
+
+        self.devices.append(device)
+
+    def device_matches(self, device):
+        if self.version != device.version:
+            return False
+        if self.abis != device.abis:
+            return False
+        if self.is_emulator != device.is_emulator:
+            return False
+        if self.is_release != device.is_release:
+            return False
+        if self.is_debuggable != device.is_debuggable:
+            return False
+        return True
+
+    def __eq__(self, other):
+        if self.version != other.version:
+            return False
+        if self.abis != other.abis:
+            return False
+        if self.is_emulator != other.is_emulator:
+            return False
+        if self.is_release != other.is_release:
+            return False
+        if self.is_debuggable != other.is_debuggable:
+            return False
+        if self.devices != other.devices:
+            print 'devices not equal: {}, {}'.format(
+                self.devices, other.devices)
+            return False
+        return True
+
+    def __hash__(self):
+        return hash((
+            self.version, self.is_emulator, self.is_release,
+            self.is_debuggable, tuple(self.abis), tuple(self.devices)))
+
 
 class DeviceFleet(object):
     """A collection of devices that can be used for testing."""
@@ -206,7 +266,7 @@ class DeviceFleet(object):
             return
 
         same_version = self.devices[device.version]
-        for abi, current_device in same_version.iteritems():
+        for abi, current_group in same_version.iteritems():
             # This device can't fulfill this ABI.
             if abi not in device.abis:
                 continue
@@ -216,31 +276,35 @@ class DeviceFleet(object):
                 continue
 
             # Anything is better than nothing.
-            if current_device is None:
-                self.devices[device.version][abi] = device
+            if current_group is None:
+                self.devices[device.version][abi] = DeviceShardingGroup(device)
+                continue
+
+            if current_group.device_matches(device):
+                current_group.add_device(device)
                 continue
 
             # The emulator images have actually been changed over time, so the
             # devices are more trustworthy.
-            if current_device.is_emulator and not device.is_emulator:
-                self.devices[device.version][abi] = device
+            if current_group.is_emulator and not device.is_emulator:
+                self.devices[device.version][abi] = DeviceShardingGroup(device)
 
             # Trust release builds over pre-release builds, but don't block
             # pre-release because sometimes that's all there is.
-            if not current_device.is_release and device.is_release:
-                self.devices[device.version][abi] = device
+            if not current_group.is_release and device.is_release:
+                self.devices[device.version][abi] = DeviceShardingGroup(device)
 
-    def get_unique_devices(self):
-        devices = set()
+    def get_unique_device_groups(self):
+        groups = set()
         for version in self.get_versions():
             for abi in self.get_abis(version):
-                device = self.get_device(version, abi)
-                if device is not None:
-                    devices.add(device)
-        return devices
+                group = self.get_device_group(version, abi)
+                if group is not None:
+                    groups.add(group)
+        return groups
 
-    def get_device(self, version, abi):
-        """Returns the device associated with the given API and ABI."""
+    def get_device_group(self, version, abi):
+        """Returns the device group associated with the given API and ABI."""
         if version not in self.devices:
             return None
         if abi not in self.devices[version]:
@@ -251,8 +315,8 @@ class DeviceFleet(object):
         """Describes desired configurations without available deices."""
         missing = []
         for version, abis in self.devices.iteritems():
-            for abi, device in abis.iteritems():
-                if device is None:
+            for abi, group in abis.iteritems():
+                if group is None:
                     missing.append('android-{} {}'.format(version, abi))
         return missing
 
@@ -263,6 +327,10 @@ class DeviceFleet(object):
     def get_abis(self, version):
         """Returns a list of all ABIs for the given API level in this fleet."""
         return self.devices[version].keys()
+
+
+def create_device(_worker, serial, precache):
+    return Device(serial, precache)
 
 
 def get_all_attached_devices(workqueue):
@@ -295,7 +363,7 @@ def get_all_attached_devices(workqueue):
 
         # Caching all the device details via getprop can actually take quite a
         # bit of time. Do it in parallel to minimize the cost.
-        workqueue.add_task(Device, serial, True)
+        workqueue.add_task(create_device, serial, True)
 
     devices = []
     while not workqueue.finished():

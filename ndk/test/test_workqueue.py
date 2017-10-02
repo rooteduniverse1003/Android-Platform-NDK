@@ -24,7 +24,7 @@ import unittest
 import ndk.workqueue
 
 
-def put(i):
+def put(_worker, i):
     """Returns an the passed argument."""
     return i
 
@@ -34,13 +34,20 @@ class Functor(object):
     def __init__(self, value):
         self.value = value
 
-    def __call__(self):
+    def __call__(self, _worker):
         return self.value
 
 
-def block_on_event(event):
+def block_on_event(_worker, event):
     """Blocks until the event is signalled."""
     event.wait()
+
+
+def update_status(worker, ready_event, finish_event, new_status):
+    """Updates the worker's status and waits for an event before finishing."""
+    worker.status = new_status
+    ready_event.set()
+    finish_event.wait()
 
 
 def sigterm_handler(_signum, _trace):
@@ -58,7 +65,7 @@ def sleep_until_sigterm(pid_queue):
         pid_queue.put(os.getpid())
 
 
-def spawn_child(pid_queue):
+def spawn_child(_worker, pid_queue):
     """Spawns a child process to check behavior of terminate().
 
     The PIDs of both processes are returned via the pid_queue, and then both
@@ -126,6 +133,26 @@ class WorkQueueTest(unittest.TestCase):
         workqueue.terminate()
         workqueue.join()
         self.assertTrue(workqueue.finished())
+
+    def test_status(self):
+        """Tests that worker status can be accessed from the parent."""
+        workqueue = ndk.workqueue.WorkQueue(1)
+
+        manager = multiprocessing.Manager()
+        ready_event = manager.Event()
+        finish_event = manager.Event()
+        self.assertEqual(
+            ndk.workqueue.Worker.IDLE_STATUS, workqueue.workers[0].status)
+        workqueue.add_task(update_status, ready_event, finish_event, 'working')
+        ready_event.wait()
+        self.assertEqual('working', workqueue.workers[0].status)
+        finish_event.set()
+        workqueue.get_result()
+        self.assertEqual(
+            ndk.workqueue.Worker.IDLE_STATUS, workqueue.workers[0].status)
+
+        workqueue.terminate()
+        workqueue.join()
 
     def test_subprocesses_killed(self):
         """Tests that terminate() kills descendents of worker processes."""

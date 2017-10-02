@@ -14,7 +14,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-"""Builds ndk-stack."""
+"""Builds ndk-depends."""
 from __future__ import print_function
 
 import os
@@ -38,7 +38,10 @@ def main(args):
     if args.host != 'windows':
         build_cmd.append('--try-64')
 
-    build_support.build(build_cmd, args, intermediate_package=True)
+    build_cmd.append(
+        '--build-dir=' + os.path.join(args.out_dir, 'ndk-depends'))
+
+    build_support.build(build_cmd, args)
 
 if __name__ == '__main__':
     build_support.run(main)

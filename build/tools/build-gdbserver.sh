@@ -38,10 +38,8 @@ NOTE: The --platform option is ignored if --sysroot is used."
 
 VERBOSE=no
 
-OPTION_BUILD_OUT=
-BUILD_OUT=$TMPDIR/build/gdbserver
-register_option "--build-out=<path>" do_build_out "Set temporary build directory"
-do_build_out () { OPTION_BUILD_OUT="$1"; }
+BUILD_OUT=
+register_var_option "--build-out=<path>" BUILD_OUT "Set temporary build directory"
 
 SYSROOT=
 register_var_option "--sysroot=<path>" SYSROOT "Specify sysroot directory directly"
@@ -61,7 +59,13 @@ register_try64_option
 
 extract_parameters "$@"
 
-setup_default_log_file
+if [ -z "$BUILD_OUT" ]; then
+  echo "ERROR: --build-out is required"
+  exit 1
+fi
+
+INSTALL_DIR=$BUILD_OUT/install
+BUILD_OUT=$BUILD_OUT/build
 
 set_parameters ()
 {
@@ -166,9 +170,6 @@ PLATFORM="android-$LATEST_API_LEVEL"
 fix_sysroot "$SYSROOT"
 log "Using sysroot: $SYSROOT"
 
-if [ -n "$OPTION_BUILD_OUT" ] ; then
-    BUILD_OUT="$OPTION_BUILD_OUT"
-fi
 log "Using build directory: $BUILD_OUT"
 run rm -rf "$BUILD_OUT"
 run mkdir -p "$BUILD_OUT"
@@ -244,7 +245,7 @@ run $SRC_DIR/configure \
 --host=$GDBSERVER_HOST \
 $CONFIGURE_FLAGS
 if [ $? != 0 ] ; then
-    dump "Could not configure gdbserver build. See $TMPLOG"
+    dump "Could not configure gdbserver build."
     exit 1
 fi
 
@@ -267,30 +268,15 @@ if [ "$NOTHREADS" = "yes" ] ; then
 else
     DSTFILE="gdbserver"
 fi
+
 dump "Install  : $ARCH $DSTFILE."
-INSTALL_DIR=`mktemp -d $TMPDIR/gdbserver.XXXXXX`
-GDBSERVER_SUBDIR="gdbserver-$ARCH"
-DEST=$INSTALL_DIR/$GDBSERVER_SUBDIR
-mkdir -p $DEST &&
-run ${TOOLCHAIN_PREFIX}objcopy --strip-unneeded $BUILD_OUT/gdbserver $DEST/$DSTFILE
-if [ $? != 0 ] ; then
-    dump "Could not install $DSTFILE. See $TMPLOG"
-    exit 1
-fi
+mkdir -p $INSTALL_DIR &&
+run ${TOOLCHAIN_PREFIX}objcopy --strip-unneeded \
+  $BUILD_OUT/gdbserver $INSTALL_DIR/$DSTFILE
+fail_panic "Could not install $DSTFILE."
 
-if [ "$PACKAGE_DIR" ]; then
-    make_repo_prop "$INSTALL_DIR/$GDBSERVER_SUBDIR"
-    cp "$SRC_DIR/../../COPYING" "$DEST/NOTICE"
-    fail_panic "Could not copy license file!"
-
-    ARCHIVE=gdbserver-$ARCH.zip
-    dump "Packaging: $ARCHIVE"
-    pack_archive "$PACKAGE_DIR/$ARCHIVE" "$INSTALL_DIR" "$GDBSERVER_SUBDIR"
-fi
-
-log "Cleaning up."
-if [ -z "$OPTION_BUILD_OUT" ] ; then
-    run rm -rf $BUILD_OUT
-fi
+make_repo_prop "$INSTALL_DIR"
+cp "$SRC_DIR/../../COPYING" "$INSTALL_DIR/NOTICE"
+fail_panic "Could not copy license file!"
 
 dump "Done."

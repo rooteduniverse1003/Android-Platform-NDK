@@ -23,7 +23,9 @@ from __future__ import absolute_import
 from __future__ import print_function
 
 import argparse
+import copy
 import distutils.spawn
+import errno
 import inspect
 import json
 import logging
@@ -39,12 +41,14 @@ import traceback
 
 import config
 import build.lib.build_support as build_support
+import ndk.ansi
 import ndk.builds
 import ndk.notify
 import ndk.paths
 import ndk.test.builder
 import ndk.test.spec
 import ndk.timer
+import ndk.ui
 import ndk.workqueue
 
 import tests.printers
@@ -392,14 +396,6 @@ class HostTools(ndk.builds.Module):
     def build(self, out_dir, dist_dir, args):
         build_args = common_build_args(out_dir, dist_dir, args)
 
-        print('Building ndk-stack...')
-        invoke_external_build(
-            'ndk/sources/host-tools/ndk-stack/build.py', build_args)
-
-        print('Building ndk-depends...')
-        invoke_external_build(
-            'ndk/sources/host-tools/ndk-depends/build.py', build_args)
-
         print('Building make...')
         invoke_external_build(
             'ndk/sources/host-tools/make-3.81/build.py', build_args)
@@ -418,58 +414,116 @@ class HostTools(ndk.builds.Module):
         print('Building YASM...')
         invoke_external_build('toolchain/yasm/build.py', build_args)
 
-        package_host_tools(out_dir, dist_dir, args.system)
+    def install(self, out_dir, _dist_dir, args):
+        install_dir = self.get_install_path(out_dir, args.system)
+
+        try:
+            os.makedirs(install_dir)
+        except OSError as ex:
+            # Another build might be trying to create this simultaneously,
+            # which we can safely ignore.
+            if ex.errno != errno.EEXIST:
+                raise
+
+        packages = [
+            'gdb-multiarch-7.11',
+            'ndk-make',
+            'ndk-python',
+            'ndk-yasm',
+        ]
+
+        files = [
+            'ndk-gdb',
+            'ndk-gdb.py',
+            'ndk-which',
+        ]
+
+        if args.system in ('windows', 'windows64'):
+            packages.append('toolbox')
+            files.append('ndk-gdb.cmd')
+
+        host_tag = build_support.host_to_tag(args.system)
+
+        package_names = [p + '-' + host_tag + '.tar.bz2' for p in packages]
+        for package_name in package_names:
+            package_path = os.path.join(out_dir, package_name)
+            subprocess.check_call(
+                ['tar', 'xf', package_path, '-C', install_dir,
+                 '--strip-components=1'])
+
+        for f in files:
+            shutil.copy2(f, os.path.join(install_dir, 'bin'))
+
+        build_support.merge_license_files(
+            os.path.join(install_dir, 'NOTICE'), [
+                build_support.android_path('toolchain/gdb/gdb-7.11/COPYING'),
+                build_support.ndk_path(
+                    'sources/host-tools/ndk-depends/NOTICE'),
+                build_support.ndk_path('sources/host-tools/make-3.81/COPYING'),
+                build_support.android_path(
+                    'toolchain/python/Python-2.7.5/LICENSE'),
+                build_support.ndk_path('sources/host-tools/ndk-stack/NOTICE'),
+                build_support.ndk_path('sources/host-tools/toolbox/NOTICE'),
+                build_support.android_path('toolchain/yasm/COPYING'),
+                build_support.android_path('toolchain/yasm/BSD.txt'),
+                build_support.android_path('toolchain/yasm/Artistic.txt'),
+                build_support.android_path('toolchain/yasm/GNU_GPL-2.0'),
+                build_support.android_path('toolchain/yasm/GNU_LGPL-2.0'),
+            ])
+
+        build_support.make_repo_prop(install_dir)
+
+        self.validate_notice(install_dir)
 
 
-def package_host_tools(out_dir, dist_dir, host):
-    packages = [
-        'gdb-multiarch-7.11',
-        'ndk-depends',
-        'ndk-make',
-        'ndk-python',
-        'ndk-stack',
-        'ndk-yasm',
-    ]
+def install_exe(out_dir, install_dir, name, system):
+    is_win = system.startswith('windows')
+    ext = '.exe' if is_win else ''
+    exe_name = name + ext
+    src = os.path.join(out_dir, exe_name)
+    dst = os.path.join(install_dir, exe_name)
 
-    files = [
-        'ndk-gdb',
-        'ndk-gdb.py',
-        'ndk-which',
-    ]
+    try:
+        os.makedirs(install_dir)
+    except OSError as ex:
+        # Another build might be trying to create this simultaneously,
+        # which we can safely ignore.
+        if ex.errno != errno.EEXIST:
+            raise
 
-    if host in ('windows', 'windows64'):
-        packages.append('toolbox')
-        files.append('ndk-gdb.cmd')
+    shutil.copy2(src, dst)
 
-    host_tag = build_support.host_to_tag(host)
 
-    package_names = [p + '-' + host_tag + '.tar.bz2' for p in packages]
-    for package_name in package_names:
-        package_path = os.path.join(out_dir, package_name)
-        subprocess.check_call(['tar', 'xf', package_path, '-C', out_dir])
+class NdkDepends(ndk.builds.InvokeExternalBuildModule):
+    name = 'ndk-depends'
+    path = 'prebuilt/{host}/bin'
+    script = 'ndk/sources/host-tools/ndk-depends/build.py'
 
-    for f in files:
-        shutil.copy2(f, os.path.join(out_dir, 'host-tools/bin'))
+    def install(self, out_dir, _dist_dir, args):
+        src = os.path.join(out_dir, self.name)
+        install_dir = self.get_install_path(out_dir, args.system)
+        install_exe(src, install_dir, self.name, args.system)
 
-    build_support.merge_license_files(
-        os.path.join(out_dir, 'host-tools/NOTICE'), [
-            build_support.android_path('toolchain/gdb/gdb-7.11/COPYING'),
-            build_support.ndk_path('sources/host-tools/ndk-depends/NOTICE'),
-            build_support.ndk_path('sources/host-tools/make-3.81/COPYING'),
-            build_support.android_path(
-                'toolchain/python/Python-2.7.5/LICENSE'),
-            build_support.ndk_path('sources/host-tools/ndk-stack/NOTICE'),
-            build_support.ndk_path('sources/host-tools/toolbox/NOTICE'),
-            build_support.android_path('toolchain/yasm/COPYING'),
-            build_support.android_path('toolchain/yasm/BSD.txt'),
-            build_support.android_path('toolchain/yasm/Artistic.txt'),
-            build_support.android_path('toolchain/yasm/GNU_GPL-2.0'),
-            build_support.android_path('toolchain/yasm/GNU_LGPL-2.0'),
-        ])
+    def validate_notice(self, _install_base):
+        # ndk-depends shares a directory with many other components. Its
+        # license is merged with the others as part of HostTools.
+        pass
 
-    package_name = 'host-tools-' + host_tag
-    path = os.path.join(out_dir, 'host-tools')
-    build_support.make_package(package_name, path, dist_dir)
+
+class NdkStack(ndk.builds.InvokeExternalBuildModule):
+    name = 'ndk-stack'
+    path = 'prebuilt/{host}/bin'
+    script = 'ndk/sources/host-tools/ndk-stack/build.py'
+
+    def install(self, out_dir, _dist_dir, args):
+        src = os.path.join(out_dir, self.name)
+        install_dir = self.get_install_path(out_dir, args.system)
+        install_exe(src, install_dir, self.name, args.system)
+
+    def validate_notice(self, _install_base):
+        # ndk-stack shares a directory with many other components. Its license
+        # is merged with the others as part of HostTools.
+        pass
 
 
 class GdbServer(ndk.builds.InvokeBuildModule):
@@ -477,27 +531,44 @@ class GdbServer(ndk.builds.InvokeBuildModule):
     path = 'prebuilt/android-{arch}/gdbserver'
     script = 'build-gdbserver.py'
     arch_specific = True
-
-
-class Gnustl(ndk.builds.InvokeExternalBuildModule):
-    name = 'gnustl'
-    path = 'sources/cxx-stl/gnu-libstdc++/4.9'
-    script = 'ndk/sources/cxx-stl/gnu-libstdc++/build.py'
-    arch_specific = True
+    split_build_by_arch = True
 
     def install(self, out_dir, dist_dir, args):
-        super(Gnustl, self).install(out_dir, dist_dir, args)
+        src_dir = os.path.join(out_dir, self.name, self.build_arch, 'install')
+        install_path = self.get_install_path(
+            out_dir, args.system, self.build_arch)
+        if os.path.exists(install_path):
+            shutil.rmtree(install_path)
+        shutil.copytree(src_dir, install_path)
+
+        self.validate_notice(install_path)
+
+
+class Gnustl(ndk.builds.Module):
+    name = 'gnustl'
+    path = 'sources/cxx-stl/gnu-libstdc++/4.9'
+    script = 'prebuilts/ndk/gnu-libstdc++'
+
+    def build(self, _build_dir, _dist_dir, _args):
+        pass
+
+    def install(self, out_dir, dist_dir, args):
+        src_dir = build_support.android_path('prebuilts/ndk/gnu-libstdc++')
+        install_path = self.get_install_path(out_dir, args.system)
+        if os.path.exists(install_path):
+            shutil.rmtree(install_path)
+        shutil.copytree(src_dir, install_path)
 
         # NDK r10 had most of gnustl installed to gnu-libstdc++/4.9, but the
         # Android.mk was one directory up from that. To remain compatible, we
         # extract the gnustl package to sources/cxx-stl/gnu-libstdc++/4.9. As
         # such, the Android.mk ends up in the 4.9 directory. We need to pull it
         # up a directory.
-        install_base = ndk.paths.get_install_path(out_dir)
-        new_dir = os.path.dirname(self.path)
         os.rename(
-            os.path.join(install_base, self.path, 'Android.mk'),
-            os.path.join(install_base, new_dir, 'Android.mk'))
+            os.path.join(install_path, 'Android.mk'),
+            os.path.join(os.path.dirname(install_path), 'Android.mk'))
+
+        self.validate_notice(install_path)
 
 
 class Libcxx(ndk.builds.InvokeExternalBuildModule):
@@ -522,6 +593,12 @@ class Platforms(ndk.builds.Module):
     # directories would be identical to the previous extant API level, so they
     # are not included in the NDK to save space.
     skip_apis = (10, 11, 20, 25)
+
+    # We still need a numeric API level for codenamed API levels because
+    # ABI_ANDROID_API in crtbrand is an integer. We start counting the
+    # codenamed releases from 9000 and increment for each additional release.
+    # This is filled by get_apis.
+    codename_api_map = {}
 
     def prebuilt_path(self, *args):  # pylint: disable=no-self-use
         return build_support.android_path('prebuilts/ndk/platform', *args)
@@ -548,13 +625,22 @@ class Platforms(ndk.builds.Module):
             return 'lib'
 
     def get_apis(self):
+        codenamed_apis = []
         apis = []
         for name in os.listdir(self.prebuilt_path('platforms')):
             if not name.startswith('android-'):
                 continue
 
             _, api_str = name.split('-')
-            apis.append(int(api_str))
+            try:
+                apis.append(int(api_str))
+            except ValueError:
+                # Codenamed release like android-O, android-O-MR1, etc.
+                apis.append(api_str)
+                codenamed_apis.append(api_str)
+
+        for api_num, api_str in enumerate(sorted(codenamed_apis), start=9000):
+            self.codename_api_map[api_str] = api_num
         return sorted(apis)
 
     def get_arches(self, api):  # pylint: disable=no-self-use
@@ -596,7 +682,15 @@ class Platforms(ndk.builds.Module):
                 '{} does not contain NDK ELF note'.format(obj_file))
 
     def build_crt_object(self, dst, srcs, api, arch, build_number, defines):
-        cc_args = self.get_build_cmd(dst, srcs, api, arch, build_number)
+        try:
+            # No-op for stable releases.
+            api_num = int(api)
+        except ValueError:
+            # ValueError means this was a codenamed release. We need the
+            # integer matching this release for ABI_ANDROID_API in crtbrand.
+            api_num = self.codename_api_map[api]
+
+        cc_args = self.get_build_cmd(dst, srcs, api_num, arch, build_number)
         cc_args.extend(defines)
 
         subprocess.check_call(cc_args)
@@ -1131,7 +1225,7 @@ class SimplePerf(ndk.builds.Module):
     name = 'simpleperf'
     path = 'simpleperf'
 
-    def build(self, out_dir, dist_dir, _args):
+    def build(self, out_dir, dist_dir, args):
         print('Building simpleperf...')
         install_dir = os.path.join(out_dir, 'simpleperf')
         if os.path.exists(install_dir):
@@ -1139,20 +1233,27 @@ class SimplePerf(ndk.builds.Module):
         os.makedirs(install_dir)
 
         simpleperf_path = build_support.android_path('prebuilts/simpleperf')
-        for d in ['bin', 'doc', 'inferno']:
+        dirs = ['doc', 'inferno', 'bin/android']
+        is_win = args.system.startswith('windows')
+        host_bin_dir = 'windows' if is_win else args.system
+        dirs.append(os.path.join('bin/', host_bin_dir))
+        for d in dirs:
             shutil.copytree(os.path.join(simpleperf_path, d),
                             os.path.join(install_dir, d))
 
         for item in os.listdir(simpleperf_path):
             should_copy = False
-            if item.endswith('.py') and item != 'update.py' and item != 'test.py':
+            if item.endswith('.py') and item not in ['update.py', 'test.py']:
                 should_copy = True
-            elif item == 'inferno.sh' or item == 'inferno.bat':
+            elif item == 'inferno.sh' and not is_win:
+                should_copy = True
+            elif item == 'inferno.bat' and is_win:
                 should_copy = True
             if should_copy:
                 shutil.copy2(os.path.join(simpleperf_path, item), install_dir)
 
-        shutil.copy2(os.path.join(simpleperf_path, 'NOTICE'), install_dir)
+        for f in ['NOTICE', 'ChangeLog']:
+            shutil.copy2(os.path.join(simpleperf_path, f), install_dir)
 
         build_support.make_package('simpleperf', install_dir, dist_dir)
 
@@ -1277,23 +1378,42 @@ class SourceProperties(ndk.builds.Module):
             ])
 
 
-def launch_build(module, out_dir, dist_dir, args, log_dir):
-    log_path = os.path.join(log_dir, module.name) + '.log'
-    tee = subprocess.Popen(["tee", log_path], stdin=subprocess.PIPE)
-    try:
-        os.dup2(tee.stdin.fileno(), sys.stdout.fileno())
-        os.dup2(tee.stdin.fileno(), sys.stderr.fileno())
-
+def launch_build(worker, module, out_dir, dist_dir, args, log_dir):
+    log_path = os.path.join(log_dir, module.log_file)
+    with open(log_path, 'w') as log_file:
+        os.dup2(log_file.fileno(), sys.stdout.fileno())
+        os.dup2(log_file.fileno(), sys.stderr.fileno())
         try:
-            print('Building {}...'.format(module.name))
+            worker.status = 'Building {}...'.format(module)
             module.build(out_dir, dist_dir, args)
-            return module.name, True, log_path
+            return module, True, log_path
         except Exception:  # pylint: disable=broad-except
             traceback.print_exc()
-            return module.name, False, log_path
-    finally:
-        tee.terminate()
-        tee.wait()
+            return module, False, log_path
+
+
+def do_install(worker, module, out_dir, dist_dir, args):
+    worker.status = 'Installing {}...'.format(module)
+    module.install(out_dir, dist_dir, args)
+
+
+def split_module_by_arch(module, arches):
+    if module.split_build_by_arch:
+        for arch in arches:
+            build_module = copy.deepcopy(module)
+            build_module.build_arch = arch
+            yield build_module
+    else:
+        yield module
+
+
+def get_modules_to_build(module_names, arches):
+    modules = []
+    for module in ALL_MODULES:
+        if module.name in module_names:
+            for build_module in split_module_by_arch(module, arches):
+                modules.append(build_module)
+    return modules
 
 
 ALL_MODULES = [
@@ -1315,9 +1435,11 @@ ALL_MODULES = [
     NativeAppGlue(),
     NdkBuild(),
     NdkBuildShortcut(),
+    NdkDepends(),
     NdkDependsShortcut(),
     NdkGdbShortcut(),
     NdkHelper(),
+    NdkStack(),
     NdkStackShortcut(),
     NdkWhichShortcut(),
     Platforms(),
@@ -1366,14 +1488,14 @@ def parse_args():
 
     test_group = parser.add_mutually_exclusive_group()
     test_group.add_argument(
-        '--test', action='store_true', dest='test', default=True,
+        '--build-tests', action='store_true', dest='build_tests', default=True,
         help=textwrap.dedent("""\
-        Run host tests when finished. --package is required. Not supported
+        Build tests when finished. --package is required. Not supported
         when targeting Windows.
         """))
     test_group.add_argument(
-        '--no-test', action='store_false', dest='test',
-        help='Do not run host tests when finished.')
+        '--no-build-tests', action='store_false', dest='build_tests',
+        help='Skip building tests after building the NDK.')
 
     parser.add_argument(
         '--build-number', default='dev',
@@ -1399,6 +1521,52 @@ def parse_args():
     return parser.parse_args()
 
 
+def log_build_failure(log_path, dist_dir):
+    with open(log_path, 'r') as log_file:
+        contents = log_file.read()
+        print(contents)
+
+        # The build server has a build_error.log file that is supposed to be
+        # the short log of the failure that stopped the build. Append our
+        # failing log to that.
+        build_error_log = os.path.join(dist_dir, 'logs/build_error.log')
+        with open(build_error_log, 'a') as error_log:
+            error_log.write('\n')
+            error_log.write(contents)
+
+
+def wait_for_build(workqueue, dist_dir):
+    console = ndk.ansi.get_console()
+    ui = ndk.ui.get_build_progress_ui(console, workqueue)
+    with ndk.ansi.disable_terminal_echo(sys.stdin):
+        with console.cursor_hide_context():
+            while not workqueue.finished():
+                module, result, log_path = workqueue.get_result()
+                if not result:
+                    ui.clear()
+                    print('Build failed: {}'.format(module))
+                    log_build_failure(log_path, dist_dir)
+                    sys.exit(1)
+                elif not console.smart_console:
+                    ui.clear()
+                    print('Build succeeded: {}'.format(module))
+                ui.draw()
+            ui.clear()
+            print('Build finished')
+
+
+def wait_for_install(workqueue):
+    console = ndk.ansi.get_console()
+    ui = ndk.ui.get_build_progress_ui(console, workqueue)
+    with ndk.ansi.disable_terminal_echo(sys.stdin):
+        with console.cursor_hide_context():
+            while not workqueue.finished():
+                workqueue.get_result()
+                ui.draw()
+            ui.clear()
+            print('Install finished')
+
+
 def main():
     logging.basicConfig()
 
@@ -1414,12 +1582,12 @@ def main():
     args = parse_args()
 
     if args.modules is None:
-        modules = get_all_module_names()
+        module_names = get_all_module_names()
     else:
-        modules = args.modules
+        module_names = args.modules
 
     if args.host_only:
-        modules = [
+        module_names = [
             'clang',
             'gcc',
             'host-tools',
@@ -1431,7 +1599,7 @@ def main():
         ]
 
     required_package_modules = set(get_all_module_names())
-    have_required_modules = required_package_modules <= set(modules)
+    have_required_modules = required_package_modules <= set(module_names)
     if (args.package and have_required_modules) or args.force_package:
         do_package = True
     else:
@@ -1441,7 +1609,7 @@ def main():
     # We're building the Windows packages from Linux, so we can't actually run
     # any of the tests from here.
     if args.system.startswith('windows') or not do_package:
-        args.test = False
+        args.build_tests = False
 
     # Disable buffering on stdout so the build output doesn't hide all of our
     # "Building..." messages.
@@ -1464,78 +1632,57 @@ def main():
 
     out_dir = build_support.get_out_dir()
     dist_dir = build_support.get_dist_dir(out_dir)
-    tmp_dir = os.path.join(out_dir, 'build')
-    if os.path.exists(tmp_dir):
-        shutil.rmtree(tmp_dir)
-    os.mkdir(tmp_dir)
-
-    os.environ['TMPDIR'] = tmp_dir
 
     print('Cleaning up...')
     invoke_build('dev-cleanup.sh')
 
-    print('Building modules: {}'.format(' '.join(modules)))
+    print('Building modules: {}'.format(' '.join(module_names)))
     print('Machine has {} CPUs'.format(multiprocessing.cpu_count()))
+
+    arches = build_support.ALL_ARCHITECTURES
+    if args.arch is not None:
+        arches = [args.arch]
+    modules = get_modules_to_build(module_names, arches)
 
     log_dir = os.path.join(dist_dir, 'logs')
     if not os.path.exists(log_dir):
         os.makedirs(log_dir)
 
     build_timer = ndk.timer.Timer()
-    with build_timer:
-        workqueue = ndk.workqueue.WorkQueue(args.jobs)
-        try:
-            for module in ALL_MODULES:
-                if module.name in modules:
-                    workqueue.add_task(
-                        launch_build, module, out_dir, dist_dir, args, log_dir)
+    workqueue = ndk.workqueue.WorkQueue(args.jobs)
+    try:
+        with build_timer:
+            for module in modules:
+                workqueue.add_task(
+                    launch_build, module, out_dir, dist_dir, args, log_dir)
 
-            while not workqueue.finished():
-                build_name, result, log_path = workqueue.get_result()
-                if result:
-                    print('BUILD SUCCESSFUL: ' + build_name)
-                else:
-                    # Kill all the children so the error we print appears last.
-                    workqueue.terminate()
-                    workqueue.join()
+            wait_for_build(workqueue, dist_dir)
 
-                    print('BUILD FAILED: ' + build_name)
-                    with open(log_path, 'r') as log_file:
-                        contents = log_file.read()
-                        print(contents)
+        ndk_dir = ndk.paths.get_install_path(out_dir)
+        install_timer = ndk.timer.Timer()
+        with install_timer:
+            if not os.path.exists(ndk_dir):
+                os.makedirs(ndk_dir)
+            for module in modules:
+                workqueue.add_task(
+                    do_install, module, out_dir, dist_dir, args)
 
-                        # The build server has a build_error.log file that is
-                        # supposed to be the short log of the failure that
-                        # stopped the build. Append our failing log to that.
-                        build_error_log = os.path.join(
-                            dist_dir, 'logs/build_error.log')
-                        with open(build_error_log, 'a') as error_log:
-                            error_log.write('\n')
-                            error_log.write(contents)
-                    sys.exit(1)
-        finally:
-            workqueue.terminate()
-            workqueue.join()
-
-    ndk_dir = ndk.paths.get_install_path(out_dir)
-    install_timer = ndk.timer.Timer()
-    with install_timer:
-        if not os.path.exists(ndk_dir):
-            os.makedirs(ndk_dir)
-        for module in ALL_MODULES:
-            if module.name in modules:
-                module.install(out_dir, dist_dir, args)
+            wait_for_install(workqueue)
+    finally:
+        workqueue.terminate()
+        workqueue.join()
 
     package_timer = ndk.timer.Timer()
     with package_timer:
         if do_package:
+            print('Packaging NDK...')
             host_tag = build_support.host_to_tag(args.system)
             package_ndk(ndk_dir, dist_dir, host_tag, args.build_number)
 
     good = True
     test_timer = ndk.timer.Timer()
     with test_timer:
-        if args.test:
+        if args.build_tests:
             good = build_ndk_tests(out_dir, dist_dir, args)
             print()  # Blank line between test results and timing data.
 

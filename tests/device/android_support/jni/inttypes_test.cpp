@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2013 The Android Open Source Project
+ * Copyright (C) 2012 The Android Open Source Project
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,9 +26,18 @@
  * SUCH DAMAGE.
  */
 
-#include <stdlib.h>
+#include <gtest/gtest.h>
 
-long double strtold(const char* nptr, char** endptr) {
-  static_assert(sizeof(double) == sizeof(long double), "double != long double");
-  return strtod(nptr, endptr);
+#include <inttypes.h>
+
+// https://github.com/android-ndk/ndk/issues/502
+TEST(inttypes, imaxabs) {
+  ASSERT_EQ(INTMAX_MAX, imaxabs(-INTMAX_MAX));
+}
+
+// https://github.com/android-ndk/ndk/issues/502
+TEST(inttypes, imaxdiv) {
+  imaxdiv_t r = imaxdiv(-5, 3);
+  ASSERT_EQ(-1, r.quot);
+  ASSERT_EQ(-2, r.rem);
 }

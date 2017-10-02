@@ -26,9 +26,32 @@
  * SUCH DAMAGE.
  */
 
-#include <stdlib.h>
-#include <unistd.h>
+#include <gtest/gtest.h>
 
-void _Exit(int status) {
-  _exit(status);
+#include <math.h>
+
+// https://github.com/android-ndk/ndk/issues/502
+TEST(math, frexp) {
+  int exp;
+  double dr = frexp(1024.0, &exp);
+  ASSERT_DOUBLE_EQ(1024.0, scalbn(dr, exp));
+}
+
+// https://github.com/android-ndk/ndk/issues/502
+TEST(math, frexpf) {
+  int exp;
+  float fr = frexpf(1024.0f, &exp);
+  ASSERT_FLOAT_EQ(1024.0f, scalbnf(fr, exp));
+}
+
+// https://github.com/android-ndk/ndk/issues/502
+TEST(math, frexpl) {
+  int exp;
+  long double ldr = frexpl(1024.0L, &exp);
+  ASSERT_DOUBLE_EQ(1024.0L, scalbnl(ldr, exp));
+}
+
+// https://github.com/android-ndk/ndk/issues/502
+TEST(math, log2f) {
+  ASSERT_FLOAT_EQ(12.0f, log2f(4096.0f));
 }
