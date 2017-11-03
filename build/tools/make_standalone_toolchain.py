@@ -571,6 +571,11 @@ def main():
     elif args.verbose >= 2:
         logging.basicConfig(level=logging.DEBUG)
 
+    if args.arch.startswith('mips'):
+        logger().warning(
+            '%s is deprecated and will be removed in the next release.',
+            args.arch)
+
     check_ndk_or_die()
 
     lp32 = args.arch in ('arm', 'mips', 'x86')
