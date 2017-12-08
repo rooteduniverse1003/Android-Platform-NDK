@@ -18,7 +18,7 @@ Announcements
    `libc++`. Note that ndk-build still defaults to no STL. For more details, see
    [this blog post](https://android-developers.googleblog.com/2017/09/introducing-android-native-development.html).
 
- * gnustl and stlport are deprecated and will be removed in NDK r18.
+ * gnustl, gabi++, and stlport have been removed.
 
  * Support for ARMv5 (armeabi), MIPS, and MIPS64 has been removed. Attempting to
    build any of these ABIs will result in an error.

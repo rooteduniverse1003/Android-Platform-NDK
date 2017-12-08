@@ -664,44 +664,10 @@ class GdbServer(ndk.builds.InvokeBuildModule):
         self.validate_notice(install_path)
 
 
-class Gnustl(ndk.builds.Module):
-    name = 'gnustl'
-    path = 'sources/cxx-stl/gnu-libstdc++/4.9'
-    script = 'prebuilts/ndk/gnu-libstdc++'
-
-    def build(self, _build_dir, _dist_dir, _args):
-        pass
-
-    def install(self, out_dir, dist_dir, args):
-        src_dir = build_support.android_path('prebuilts/ndk/gnu-libstdc++')
-        install_path = self.get_install_path(out_dir, args.system)
-        if os.path.exists(install_path):
-            shutil.rmtree(install_path)
-        shutil.copytree(src_dir, install_path)
-
-        # NDK r10 had most of gnustl installed to gnu-libstdc++/4.9, but the
-        # Android.mk was one directory up from that. To remain compatible, we
-        # extract the gnustl package to sources/cxx-stl/gnu-libstdc++/4.9. As
-        # such, the Android.mk ends up in the 4.9 directory. We need to pull it
-        # up a directory.
-        os.rename(
-            os.path.join(install_path, 'Android.mk'),
-            os.path.join(os.path.dirname(install_path), 'Android.mk'))
-
-        self.validate_notice(install_path)
-
-
 class Libcxx(ndk.builds.InvokeExternalBuildModule):
     name = 'libc++'
     path = 'sources/cxx-stl/llvm-libc++'
     script = 'ndk/sources/cxx-stl/llvm-libc++/build.py'
-    arch_specific = True
-
-
-class Stlport(ndk.builds.InvokeExternalBuildModule):
-    name = 'stlport'
-    path = 'sources/cxx-stl/stlport'
-    script = 'ndk/sources/cxx-stl/stlport/build.py'
     arch_specific = True
 
 
@@ -1295,13 +1261,6 @@ class PythonPackages(ndk.builds.Module):
             shutil.rmtree(temp_dir)
 
 
-class Gabixx(ndk.builds.PackageModule):
-    name = 'gabi++'
-    path = 'sources/cxx-stl/gabi++'
-    src = build_support.ndk_path('sources/cxx-stl/gabi++')
-    create_repo_prop = True
-
-
 class SystemStl(ndk.builds.PackageModule):
     name = 'system-stl'
     path = 'sources/cxx-stl/system'
@@ -1545,10 +1504,8 @@ ALL_MODULES = [
     Changelog(),
     Clang(),
     CpuFeatures(),
-    Gabixx(),
     Gcc(),
     GdbServer(),
-    Gnustl(),
     Gtest(),
     HostTools(),
     LibAndroidSupport(),
@@ -1576,7 +1533,6 @@ ALL_MODULES = [
     ShaderTools(),
     SimplePerf(),
     SourceProperties(),
-    Stlport(),
     Sysroot(),
     SystemStl(),
     Vulkan(),
