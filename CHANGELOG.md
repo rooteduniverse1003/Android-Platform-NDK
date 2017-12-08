@@ -11,7 +11,7 @@ For Android Studio issues, follow the docs on the [Android Studio site].
 Announcements
 -------------
 
- * GCC is no longer supported. It will be removed in NDK r18.
+ * GCC has been removed.
 
  * `libc++` is now the default STL for CMake and standalone toolchains. If you
    manually selected a different STL, we strongly encourage you to move to
