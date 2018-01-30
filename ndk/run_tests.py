@@ -609,13 +609,12 @@ def restart_flaky_tests(report, workqueue):
         workqueue.add_task(group, run_test, flaky_report.result.test)
 
 
-def get_config_dict(config, abis, toolchains, pie):
+def get_config_dict(config, abis, pie):
     with open(config) as test_config_file:
         test_config = json.load(test_config_file)
+    test_config['toolchains'] = ['clang']
     if abis is not None:
         test_config['abis'] = abis
-    if toolchains is not None:
-        test_config['toolchains'] = toolchains
     if pie is not None:
         test_config['pie'] = pie
     return test_config
@@ -641,9 +640,6 @@ def parse_args():
     config_options.add_argument(
         '--abi', action='append', choices=ndk.abis.ALL_ABIS,
         help='Test only the given APIs.')
-    config_options.add_argument(
-        '--toolchain', action='append', choices=('clang', 'gcc'),
-        help='Test only the given toolchains.')
     config_options.add_argument(
         '--pie', action='append', choices=(True, False), type=str_to_bool,
         help='Test only the given PIE configurations.')
@@ -796,8 +792,7 @@ def run_tests(args):
             sys.exit('Test output directory does not exist: {}'.format(
                 args.test_dir))
 
-    test_config = get_config_dict(
-        args.config, args.abi, args.toolchain, args.pie)
+    test_config = get_config_dict(args.config, args.abi, args.pie)
 
     printer = printers.StdoutPrinter(show_all=args.show_all)
 

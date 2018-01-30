@@ -40,7 +40,7 @@ def logger():
 def test_spec_from_config(test_config):
     """Returns a TestSpec based on the test config file."""
     abis = test_config.get('abis', ndk.abis.ALL_ABIS)
-    toolchains = test_config.get('toolchains', ['clang', '4.9'])
+    toolchains = test_config.get('toolchains', ['clang'])
     pie_configs = test_config.get('pie', [True, False])
     suites = test_config.get('suites', testlib.ALL_SUITES)
 
