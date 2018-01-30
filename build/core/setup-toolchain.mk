@@ -23,6 +23,9 @@ $(call assert-defined,NDK_APPS NDK_APP_STL)
 # Check that we have a toolchain that supports the current ABI.
 # NOTE: If NDK_TOOLCHAIN is defined, we're going to use it.
 ifndef NDK_TOOLCHAIN
+    # TODO: Remove all the multiple-toolchain configuration stuff. We only have
+    # Clang.
+
     # This is a sorted list of toolchains that support the given ABI. For older
     # NDKs this was a bit more complicated, but now we just have the GCC and the
     # Clang toolchains with GCC being first (named "*-4.9", whereas clang is
@@ -30,7 +33,7 @@ ifndef NDK_TOOLCHAIN
     TARGET_TOOLCHAIN_LIST := \
         $(strip $(sort $(NDK_ABI.$(TARGET_ARCH_ABI).toolchains)))
 
-    ifneq ($(words $(TARGET_TOOLCHAIN_LIST)),2)
+    ifneq ($(words $(TARGET_TOOLCHAIN_LIST)),1)
         $(call __ndk_error,Expected two items in TARGET_TOOLCHAIN_LIST, \
             found "$(TARGET_TOOLCHAIN_LIST)")
     endif
@@ -45,26 +48,10 @@ ifndef NDK_TOOLCHAIN
     # We default to using Clang, which is the last item in the list.
     TARGET_TOOLCHAIN := $(lastword $(TARGET_TOOLCHAIN_LIST))
 
-    # If NDK_TOOLCHAIN_VERSION is defined, we replace the toolchain version
-    # suffix with it.
-    ifdef NDK_TOOLCHAIN_VERSION
-        # We assume the toolchain name uses dashes (-) as separators and doesn't
-        # contain any space. The following is a bit subtle, but essentially
-        # does the following:
-        #
-        #   1/ Use 'subst' to convert dashes into spaces, this generates a list
-        #   2/ Use 'chop' to remove the last element of the list
-        #   3/ Use 'subst' again to convert the spaces back into dashes
-        #
-        # So it TARGET_TOOLCHAIN is 'foo-bar-zoo-xxx', then
-        # TARGET_TOOLCHAIN_BASE will be 'foo-bar-zoo'
-        #
-        TARGET_TOOLCHAIN_BASE := \
-            $(subst $(space),-,$(call chop,$(subst -,$(space),$(TARGET_TOOLCHAIN))))
-        # if TARGET_TOOLCHAIN_BASE is llvm, remove clang from NDK_TOOLCHAIN_VERSION
-        VERSION := $(NDK_TOOLCHAIN_VERSION)
-        TARGET_TOOLCHAIN := $(TARGET_TOOLCHAIN_BASE)-$(VERSION)
-        $(call ndk_log,Using target toolchain '$(TARGET_TOOLCHAIN)' for '$(TARGET_ARCH_ABI)' ABI (through NDK_TOOLCHAIN_VERSION))
+    ifeq ($(NDK_TOOLCHAIN_VERSION),4.9)
+        $(call __ndk_error,Invalid NDK_TOOLCHAIN_VERSION value: \
+            $(NDK_TOOLCHAIN_VERSION). GCC is no longer supported. See \
+            https://android.googlesource.com/platform/ndk/+/master/docs/ClangMigration.md.)
     else
         $(call ndk_log,Using target toolchain '$(TARGET_TOOLCHAIN)' for '$(TARGET_ARCH_ABI)' ABI)
     endif
