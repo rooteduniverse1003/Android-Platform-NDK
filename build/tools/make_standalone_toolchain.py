@@ -586,7 +586,7 @@ def main():
     check_ndk_or_die()
 
     lp32 = args.arch in ('arm', 'x86')
-    min_api = 14 if lp32 else 21
+    min_api = 16 if lp32 else 21
     api = args.api
     if api is None:
         logger().warning(
