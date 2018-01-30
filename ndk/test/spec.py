@@ -40,10 +40,9 @@ class TestOptions(object):
 
 class TestSpec(object):
     """Configuration for which tests should be run."""
-    def __init__(self, abis, toolchains, pie_config, suites):
+    def __init__(self, abis, toolchains, suites):
         self.abis = abis
         self.toolchains = toolchains
-        self.pie_config = pie_config
         self.suites = suites
 
 
@@ -53,11 +52,10 @@ class BuildConfiguration(object):
     A TestSpec describes which BuildConfigurations should be included in a test
     run.
     """
-    def __init__(self, abi, api, toolchain, force_pie):
+    def __init__(self, abi, api, toolchain):
         self.abi = abi
         self.api = api
         self.toolchain = toolchain
-        self.force_pie = force_pie
 
     def __eq__(self, other):
         if self.abi != other.abi:
@@ -66,17 +64,10 @@ class BuildConfiguration(object):
             return False
         if self.toolchain != other.toolchain:
             return False
-        if self.force_pie != other.force_pie:
-            return False
         return True
 
     def __str__(self):
-        pie_option = 'default-pie'
-        if self.force_pie:
-            pie_option = 'force-pie'
-
-        return '{}-{}-{}-{}'.format(
-            self.abi, self.api, self.toolchain, pie_option)
+        return '{}-{}-{}'.format(self.abi, self.api, self.toolchain)
 
     def __hash__(self):
         return hash(str(self))
@@ -102,34 +93,17 @@ class BuildConfiguration(object):
             abi += '-v8a'
             _, _, rest = rest.partition('-')
 
-        api_str, _, rest = rest.partition('-')
+        api_str, _, toolchain = rest.partition('-')
         api = int(api_str)
 
-        toolchain, _, rest = rest.partition('-')
-
-        if rest.startswith('default-pie'):
-            force_pie = False
-            _, _, rest = rest.partition('-')
-            _, _, rest = rest.partition('-')
-        elif rest.startswith('force-pie'):
-            force_pie = True
-            _, _, rest = rest.partition('-')
-            _, _, rest = rest.partition('-')
-        else:
-            raise ValueError('Invalid PIE config: {}'.format(config_string))
-
-        return BuildConfiguration(abi, api, toolchain, force_pie)
+        return BuildConfiguration(abi, api, toolchain)
 
     def get_extra_ndk_build_flags(self):
         extra_flags = []
-        if self.force_pie:
-            extra_flags.append('APP_PIE=true')
         extra_flags.append('V=1')
         return extra_flags
 
     def get_extra_cmake_flags(self):
         extra_flags = []
-        if self.force_pie:
-            extra_flags.append('-DANDROID_PIE=TRUE')
         extra_flags.append('-DCMAKE_VERBOSE_MAKEFILE=ON')
         return extra_flags

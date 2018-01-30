@@ -175,20 +175,23 @@ endif()
 # Default values for configurable variables.
 if(NOT ANDROID_TOOLCHAIN)
   set(ANDROID_TOOLCHAIN clang)
+elseif(ANDROID_TOOLCHAIN STREQUAL gcc)
+  message(FATAL_ERROR "GCC is no longer supported. See "
+  "https://android.googlesource.com/platform/ndk/+/master/docs/ClangMigration.md.")
 endif()
 if(NOT ANDROID_ABI)
   set(ANDROID_ABI armeabi-v7a)
 endif()
-if(ANDROID_PLATFORM MATCHES "^android-([0-9]|1[0-3])$")
+if(ANDROID_PLATFORM MATCHES "^android-([0-9]|1[0-5])$")
   message(WARNING "${ANDROID_PLATFORM} is unsupported. Using minimum supported "
-                  "version android-14")
-  set(ANDROID_PLATFORM android-14)
+                  "version android-16")
+  set(ANDROID_PLATFORM android-16)
 elseif(ANDROID_PLATFORM STREQUAL android-20)
   set(ANDROID_PLATFORM android-19)
 elseif(ANDROID_PLATFORM STREQUAL android-25)
   set(ANDROID_PLATFORM android-24)
 elseif(NOT ANDROID_PLATFORM)
-  set(ANDROID_PLATFORM android-14)
+  set(ANDROID_PLATFORM android-16)
 endif()
 string(REPLACE "android-" "" ANDROID_PLATFORM_LEVEL ${ANDROID_PLATFORM})
 if(ANDROID_ABI MATCHES "64(-v8a)?$" AND ANDROID_PLATFORM_LEVEL LESS 21)
@@ -204,20 +207,13 @@ if("${ANDROID_STL}" STREQUAL "gnustl_shared" OR
     "${ANDROID_STL}" STREQUAL "gnustl_static" OR
     "${ANDROID_STL}" STREQUAL "stlport_shared" OR
     "${ANDROID_STL}" STREQUAL "stlport_static")
-  message(WARNING
-    "${ANDROID_STL} is deprecated and will be removed in the next release. "
-    "Please switch to either c++_shared or c++_static. See "
-    "https://developer.android.com/ndk/guides/cpp-support.html for more "
-    "information.")
+  message(FATAL_ERROR "\
+${ANDROID_STL} is no longer supported. Please switch to either c++_shared or \
+c++_static. See https://developer.android.com/ndk/guides/cpp-support.html \
+for more information.")
 endif()
 
-if(NOT DEFINED ANDROID_PIE)
-  if(ANDROID_PLATFORM_LEVEL LESS 16)
-    set(ANDROID_PIE FALSE)
-  else()
-    set(ANDROID_PIE TRUE)
-  endif()
-endif()
+set(ANDROID_PIE TRUE)
 if(NOT ANDROID_ARM_MODE)
   set(ANDROID_ARM_MODE thumb)
 endif()

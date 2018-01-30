@@ -38,105 +38,64 @@ class MockDevice(ndk.test.devices.Device):
 
 
 class MockConfig(ndk.test.spec.BuildConfiguration):
-    def __init__(self, abi, api, force_pie):
-        super(MockConfig, self).__init__(
-            abi, api, 'clang', force_pie, False)
+    def __init__(self, abi, api):
+        super(MockConfig, self).__init__(abi, api, 'clang')
 
 
 class DeviceTest(unittest.TestCase):
     def test_can_run_build_config(self):
-        ics_arm = MockDevice(15, ['armeabi', 'armeabi-v7a'])
-        jb_arm = MockDevice(16, ['armeabi', 'armeabi-v7a'])
-        n_arm = MockDevice(25, ['armeabi', 'armeabi-v7a', 'arm64-v8a'])
+        jb_arm = MockDevice(16, ['armeabi-v7a'])
+        n_arm = MockDevice(25, ['armeabi-v7a', 'arm64-v8a'])
         n_intel = MockDevice(25, ['x86', 'x86_64'])
 
-        ics_arm5_default_pie = MockConfig('armeabi', 14, False)
-        self.assertTrue(ics_arm.can_run_build_config(ics_arm5_default_pie))
-        # Non-PIE supported, but we run the PIE executables instead.
-        self.assertFalse(jb_arm.can_run_build_config(ics_arm5_default_pie))
-        # Requires PIE.
-        self.assertFalse(n_arm.can_run_build_config(ics_arm5_default_pie))
-        # Wrong ABI.
-        self.assertFalse(n_intel.can_run_build_config(ics_arm5_default_pie))
-
-        ics_arm7_default_pie = MockConfig('armeabi-v7a', 14, False)
-        self.assertTrue(ics_arm.can_run_build_config(ics_arm7_default_pie))
-        # Non-PIE supported, but we run the PIE executables instead.
-        self.assertFalse(jb_arm.can_run_build_config(ics_arm7_default_pie))
-        # Requires PIE.
-        self.assertFalse(n_arm.can_run_build_config(ics_arm7_default_pie))
-        # Wrong ABI.
-        self.assertFalse(n_intel.can_run_build_config(ics_arm7_default_pie))
-
-        ics_arm7_force_pie = MockConfig('armeabi-v7a', 14, True)
-        # No PIE support.
-        self.assertFalse(ics_arm.can_run_build_config(ics_arm7_force_pie))
-        self.assertTrue(jb_arm.can_run_build_config(ics_arm7_force_pie))
-        self.assertTrue(n_arm.can_run_build_config(ics_arm7_force_pie))
-        # Wrong ABI.
-        self.assertFalse(n_intel.can_run_build_config(ics_arm7_force_pie))
-
-        jb_arm7_default_pie = MockConfig('armeabi-v7a', 16, False)
+        jb_arm7 = MockConfig('armeabi-v7a', 16)
         # Too old, no PIE support.
-        self.assertFalse(ics_arm.can_run_build_config(jb_arm7_default_pie))
-        self.assertTrue(jb_arm.can_run_build_config(jb_arm7_default_pie))
-        self.assertTrue(n_arm.can_run_build_config(jb_arm7_default_pie))
+        self.assertTrue(jb_arm.can_run_build_config(jb_arm7))
+        self.assertTrue(n_arm.can_run_build_config(jb_arm7))
         # Wrong ABI.
-        self.assertFalse(n_intel.can_run_build_config(jb_arm7_default_pie))
+        self.assertFalse(n_intel.can_run_build_config(jb_arm7))
 
-        l_arm7_default_pie = MockConfig('armeabi-v7a', 21, False)
-        # Too old, no PIE support.
-        self.assertFalse(ics_arm.can_run_build_config(l_arm7_default_pie))
+        l_arm7 = MockConfig('armeabi-v7a', 21)
         # Too old.
-        self.assertFalse(jb_arm.can_run_build_config(l_arm7_default_pie))
-        self.assertTrue(n_arm.can_run_build_config(l_arm7_default_pie))
+        self.assertFalse(jb_arm.can_run_build_config(l_arm7))
+        self.assertTrue(n_arm.can_run_build_config(l_arm7))
         # Wrong ABI.
-        self.assertFalse(n_intel.can_run_build_config(l_arm7_default_pie))
+        self.assertFalse(n_intel.can_run_build_config(l_arm7))
 
-        l_arm64_default_pie = MockConfig('arm64-v8a', 21, False)
-        # Too old, no PIE support, wrong ABI.
-        self.assertFalse(ics_arm.can_run_build_config(l_arm64_default_pie))
+        l_arm64 = MockConfig('arm64-v8a', 21)
         # Too old, wrong ABI.
-        self.assertFalse(jb_arm.can_run_build_config(l_arm64_default_pie))
-        self.assertTrue(n_arm.can_run_build_config(l_arm64_default_pie))
+        self.assertFalse(jb_arm.can_run_build_config(l_arm64))
+        self.assertTrue(n_arm.can_run_build_config(l_arm64))
         # Wrong ABI.
-        self.assertFalse(n_intel.can_run_build_config(l_arm64_default_pie))
+        self.assertFalse(n_intel.can_run_build_config(l_arm64))
 
-        l_intel_default_pie = MockConfig('x86_64', 21, False)
-        # Too old, no PIE support, wrong ABI.
-        self.assertFalse(ics_arm.can_run_build_config(l_intel_default_pie))
+        l_intel = MockConfig('x86_64', 21)
         # Too old, wrong ABI.
-        self.assertFalse(jb_arm.can_run_build_config(l_intel_default_pie))
+        self.assertFalse(jb_arm.can_run_build_config(l_intel))
         # Wrong ABI.
-        self.assertFalse(n_arm.can_run_build_config(l_intel_default_pie))
-        self.assertTrue(n_intel.can_run_build_config(l_intel_default_pie))
+        self.assertFalse(n_arm.can_run_build_config(l_intel))
+        self.assertTrue(n_intel.can_run_build_config(l_intel))
 
-        o_arm7_default_pie = MockConfig('armeabi-v7a', 26, False)
-        # Too old, no PIE support.
-        self.assertFalse(ics_arm.can_run_build_config(o_arm7_default_pie))
+        o_arm7 = MockConfig('armeabi-v7a', 26)
         # Too old.
-        self.assertFalse(jb_arm.can_run_build_config(o_arm7_default_pie))
+        self.assertFalse(jb_arm.can_run_build_config(o_arm7))
         # Too old.
-        self.assertFalse(n_arm.can_run_build_config(o_arm7_default_pie))
+        self.assertFalse(n_arm.can_run_build_config(o_arm7))
         # Too old, wrong ABI.
-        self.assertFalse(n_intel.can_run_build_config(o_arm7_default_pie))
+        self.assertFalse(n_intel.can_run_build_config(o_arm7))
 
-        o_arm64_default_pie = MockConfig('arm64-v8a', 26, False)
-        # Too old, no PIE support.
-        self.assertFalse(ics_arm.can_run_build_config(o_arm64_default_pie))
+        o_arm64 = MockConfig('arm64-v8a', 26)
         # Too old.
-        self.assertFalse(jb_arm.can_run_build_config(o_arm64_default_pie))
+        self.assertFalse(jb_arm.can_run_build_config(o_arm64))
         # Too old.
-        self.assertFalse(n_arm.can_run_build_config(o_arm64_default_pie))
+        self.assertFalse(n_arm.can_run_build_config(o_arm64))
         # Too old, wrong ABI.
-        self.assertFalse(n_intel.can_run_build_config(o_arm64_default_pie))
+        self.assertFalse(n_intel.can_run_build_config(o_arm64))
 
-        o_intel_default_pie = MockConfig('x86_64', 26, False)
-        # Too old, no PIE support, wrong ABI.
-        self.assertFalse(ics_arm.can_run_build_config(o_intel_default_pie))
+        o_intel = MockConfig('x86_64', 26)
         # Too old, wrong ABI.
-        self.assertFalse(jb_arm.can_run_build_config(o_intel_default_pie))
+        self.assertFalse(jb_arm.can_run_build_config(o_intel))
         # Too old, wrong ABI.
-        self.assertFalse(n_arm.can_run_build_config(o_intel_default_pie))
+        self.assertFalse(n_arm.can_run_build_config(o_intel))
         # Too old.
-        self.assertFalse(n_intel.can_run_build_config(o_intel_default_pie))
+        self.assertFalse(n_intel.can_run_build_config(o_intel))

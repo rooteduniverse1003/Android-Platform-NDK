@@ -21,36 +21,31 @@ import ndk.test.spec
 class BuildConfigurationTest(unittest.TestCase):
     def test_from_string(self):
         config = ndk.test.spec.BuildConfiguration.from_string(
-            'armeabi-14-clang-default-pie')
+            'armeabi-14-clang')
         self.assertEqual('armeabi', config.abi)
         self.assertEqual(14, config.api)
         self.assertEqual('clang', config.toolchain)
-        self.assertEqual(False, config.force_pie)
 
         config = ndk.test.spec.BuildConfiguration.from_string(
-            'armeabi-v7a-14-gcc-force-pie')
+            'armeabi-v7a-14-gcc')
         self.assertEqual('armeabi-v7a', config.abi)
         self.assertEqual(14, config.api)
         self.assertEqual('gcc', config.toolchain)
-        self.assertEqual(True, config.force_pie)
 
         config = ndk.test.spec.BuildConfiguration.from_string(
-            'arm64-v8a-21-clang-default-pie')
+            'arm64-v8a-21-clang')
         self.assertEqual('arm64-v8a', config.abi)
         self.assertEqual(21, config.api)
         self.assertEqual('clang', config.toolchain)
-        self.assertEqual(False, config.force_pie)
 
         config = ndk.test.spec.BuildConfiguration.from_string(
-            'x86-14-clang-default-pie')
+            'x86-14-clang')
         self.assertEqual('x86', config.abi)
         self.assertEqual(14, config.api)
         self.assertEqual('clang', config.toolchain)
-        self.assertEqual(False, config.force_pie)
 
         config = ndk.test.spec.BuildConfiguration.from_string(
-            'x86_64-21-clang-default-pie')
+            'x86_64-21-clang')
         self.assertEqual('x86_64', config.abi)
         self.assertEqual(21, config.api)
         self.assertEqual('clang', config.toolchain)
-        self.assertEqual(False, config.force_pie)

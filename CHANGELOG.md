@@ -23,6 +23,9 @@ Announcements
  * Support for ARMv5 (armeabi), MIPS, and MIPS64 has been removed. Attempting to
    build any of these ABIs will result in an error.
 
+ * Support for ICS (android-14 and android-15) has been removed. Apps using
+   executables no longer need to provide both a PIE and non-PIE executable.
+
  * The Play Store will require 64-bit support when uploading an APK beginning in
    August 2019. Start porting now to avoid surprises when the time comes. For
    more information, see [this blog post](https://android-developers.googleblog.com/2017/12/improving-app-security-and-performance.html).

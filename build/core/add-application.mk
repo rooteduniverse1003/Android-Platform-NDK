@@ -62,18 +62,7 @@ endif
 
 include $(BUILD_SYSTEM)/setup-app-platform.mk
 
-# If APP_PIE isn't defined, set it to true for android-$(NDK_FIRST_PIE_PLATFORM_LEVEL) and above
-#
-APP_PIE := $(strip $(APP_PIE))
-$(call ndk_log,  APP_PIE is $(APP_PIE))
-ifndef APP_PIE
-    ifneq (,$(call gte,$(APP_PLATFORM_LEVEL),$(NDK_FIRST_PIE_PLATFORM_LEVEL)))
-        APP_PIE := true
-        $(call ndk_log,  Enabling -fPIE)
-    else
-        APP_PIE := false
-    endif
-endif
+APP_PIE := true
 
 # Check that the value of APP_ABI corresponds to known ABIs
 # 'all' is a special case that means 'all supported ABIs'
@@ -191,9 +180,8 @@ else
 endif
 
 ifneq ($(filter $(APP_STL),gnustl_static gnustl_shared stlport_static stlport_shared),)
-    $(call __ndk_info,WARNING: APP_STL $(APP_STL) is deprecated and will be \
-        removed in the next release. Please switch to either c++_static or \
-        c++_shared. See \
+    $(call __ndk_error,APP_STL $(APP_STL) is no longer supported. Please \
+        switch to either c++_static or c++_shared. See \
         https://developer.android.com/ndk/guides/cpp-support.html for more \
         information.)
 endif

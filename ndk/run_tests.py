@@ -609,14 +609,12 @@ def restart_flaky_tests(report, workqueue):
         workqueue.add_task(group, run_test, flaky_report.result.test)
 
 
-def get_config_dict(config, abis, pie):
+def get_config_dict(config, abis):
     with open(config) as test_config_file:
         test_config = json.load(test_config_file)
     test_config['toolchains'] = ['clang']
     if abis is not None:
         test_config['abis'] = abis
-    if pie is not None:
-        test_config['pie'] = pie
     return test_config
 
 
@@ -640,9 +638,6 @@ def parse_args():
     config_options.add_argument(
         '--abi', action='append', choices=ndk.abis.ALL_ABIS,
         help='Test only the given APIs.')
-    config_options.add_argument(
-        '--pie', action='append', choices=(True, False), type=str_to_bool,
-        help='Test only the given PIE configurations.')
     config_options.add_argument(
         '--config', type=os.path.realpath, default='qa_config.json',
         help='Path to the config file describing the test run.')
@@ -704,14 +699,12 @@ class ConfigFilter(object):
 
         self.config_tuples = list(itertools.product(
             test_spec.abis,
-            test_spec.toolchains,
-            test_spec.pie_config))
+            test_spec.toolchains))
 
     def filter(self, build_config):
         config_tuple = (
             build_config.abi,
-            build_config.toolchain,
-            build_config.force_pie
+            build_config.toolchain
         )
 
         return config_tuple in self.config_tuples
@@ -792,7 +785,7 @@ def run_tests(args):
             sys.exit('Test output directory does not exist: {}'.format(
                 args.test_dir))
 
-    test_config = get_config_dict(args.config, args.abi, args.pie)
+    test_config = get_config_dict(args.config, args.abi)
 
     printer = printers.StdoutPrinter(show_all=args.show_all)
 

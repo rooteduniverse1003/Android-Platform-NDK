@@ -81,12 +81,6 @@ class TestScanner(object):
         """
         raise NotImplementedError
 
-def test_is_superfluous(test):
-    # Special case: don't bother building default PIE LP32 tests for target
-    # APIs over 16.
-    non_pie = test.abi in ndk.abis.LP32_ABIS and not test.config.force_pie
-    return test.api >= 16 and non_pie
-
 
 class BuildTestScanner(TestScanner):
     def __init__(self, ndk_path, dist=True):
@@ -94,9 +88,9 @@ class BuildTestScanner(TestScanner):
         self.dist = dist
         self.build_configurations = set()
 
-    def add_build_configuration(self, abi, api, toolchain, force_pie):
+    def add_build_configuration(self, abi, api, toolchain):
         self.build_configurations.add(ndk.test.spec.BuildConfiguration(
-            abi, api, toolchain, force_pie))
+            abi, api, toolchain))
 
     def find_tests(self, path, name):
         # If we have a build.sh, that takes precedence over the Android.mk.
@@ -124,32 +118,28 @@ class BuildTestScanner(TestScanner):
         tests = []
         for config in self.build_configurations:
             test = ShellBuildTest(name, path, config, self.ndk_path)
-            if not test_is_superfluous(test):
-                tests.append(test)
+            tests.append(test)
         return tests
 
     def make_test_py_tests(self, path, name):
         tests = []
         for config in self.build_configurations:
             test = PythonBuildTest(name, path, config, self.ndk_path)
-            if not test_is_superfluous(test):
-                tests.append(test)
+            tests.append(test)
         return tests
 
     def make_ndk_build_tests(self, path, name):
         tests = []
         for config in self.build_configurations:
             test = NdkBuildTest(name, path, config, self.ndk_path, self.dist)
-            if not test_is_superfluous(test):
-                tests.append(test)
+            tests.append(test)
         return tests
 
     def make_cmake_tests(self, path, name):
         tests = []
         for config in self.build_configurations:
             test = CMakeBuildTest(name, path, config, self.ndk_path, self.dist)
-            if not test_is_superfluous(test):
-                tests.append(test)
+            tests.append(test)
         return tests
 
 
@@ -161,9 +151,9 @@ class LibcxxTestScanner(TestScanner):
         self.build_configurations = set()
         LibcxxTestScanner.find_all_libcxx_tests(self.ndk_path)
 
-    def add_build_configuration(self, abi, api, toolchain, force_pie):
+    def add_build_configuration(self, abi, api, toolchain):
         self.build_configurations.add(ndk.test.spec.BuildConfiguration(
-            abi, api, toolchain, force_pie))
+            abi, api, toolchain))
 
     def find_tests(self, path, name):
         tests = []
@@ -719,7 +709,7 @@ class PythonBuildTest(BuildTest):
         if api is None:
             api = ndk.abis.min_api_for_abi(config.abi)
         config = ndk.test.spec.BuildConfiguration(
-            config.abi, api, config.toolchain, config.force_pie)
+            config.abi, api, config.toolchain)
         super(PythonBuildTest, self).__init__(name, test_dir, config, ndk_path)
 
         if self.abi not in ndk.abis.ALL_ABIS:
@@ -763,7 +753,7 @@ class ShellBuildTest(BuildTest):
         if api is None:
             api = ndk.abis.min_api_for_abi(config.abi)
         config = ndk.test.spec.BuildConfiguration(
-            config.abi, api, config.toolchain, config.force_pie)
+            config.abi, api, config.toolchain)
         super(ShellBuildTest, self).__init__(name, test_dir, config, ndk_path)
 
     def get_build_dir(self, out_dir):
@@ -846,7 +836,7 @@ class NdkBuildTest(BuildTest):
     def __init__(self, name, test_dir, config, ndk_path, dist):
         api = _get_or_infer_app_platform(config.api, test_dir, config.abi)
         config = ndk.test.spec.BuildConfiguration(
-            config.abi, api, config.toolchain, config.force_pie)
+            config.abi, api, config.toolchain)
         super(NdkBuildTest, self).__init__(name, test_dir, config, ndk_path)
         self.dist = dist
 
@@ -873,7 +863,7 @@ class CMakeBuildTest(BuildTest):
     def __init__(self, name, test_dir, config, ndk_path, dist):
         api = _get_or_infer_app_platform(config.api, test_dir, config.abi)
         config = ndk.test.spec.BuildConfiguration(
-            config.abi, api, config.toolchain, config.force_pie)
+            config.abi, api, config.toolchain)
         super(CMakeBuildTest, self).__init__(name, test_dir, config, ndk_path)
         self.dist = dist
 
@@ -981,7 +971,6 @@ class LibcxxTest(Test):
         host_tag = ndk.hosts.get_host_tag(self.ndk_path)
         triple = ndk.abis.arch_to_triple(arch)
         toolchain = ndk.abis.arch_to_toolchain(arch)
-        pie = self.config.force_pie or self.abi in ndk.abis.LP64_ABIS
 
         replacements = [
             ('abi', self.abi),
@@ -990,7 +979,7 @@ class LibcxxTest(Test):
             ('host_tag', host_tag),
             ('toolchain', toolchain),
             ('triple', triple),
-            ('use_pie', pie),
+            ('use_pie', True),
             ('build_dir', build_dir),
         ]
         lit_cfg_args = []

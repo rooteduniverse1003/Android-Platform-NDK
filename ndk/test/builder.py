@@ -41,48 +41,35 @@ def test_spec_from_config(test_config):
     """Returns a TestSpec based on the test config file."""
     abis = test_config.get('abis', ndk.abis.ALL_ABIS)
     toolchains = test_config.get('toolchains', ['clang'])
-    pie_configs = test_config.get('pie', [True, False])
     suites = test_config.get('suites', testlib.ALL_SUITES)
 
-    return ndk.test.spec.TestSpec(abis, toolchains, pie_configs, suites)
+    return ndk.test.spec.TestSpec(abis, toolchains, suites)
 
 
 def build_test_runner(test_spec, test_options, printer):
     runner = testlib.TestRunner(printer)
 
-    build_configs = itertools.product(
-        test_spec.abis,
-        test_spec.toolchains,
-        test_spec.pie_config)
+    build_configs = itertools.product(test_spec.abis, test_spec.toolchains)
 
     scanner = testlib.BuildTestScanner(test_options.ndk_path)
     nodist_scanner = testlib.BuildTestScanner(
         test_options.ndk_path, dist=False)
     libcxx_scanner = testlib.LibcxxTestScanner(test_options.ndk_path)
-    for abi, toolchain, pie_config in build_configs:
-        if pie_config and abi in ndk.abis.LP64_ABIS:
-            # We don't need to build both PIE configurations for LP64 ABIs
-            # since all of them support PIE. Just build the default
-            # configuration.
-            continue
-
+    for abi, toolchain in build_configs:
         scanner.add_build_configuration(
             abi,
             None,  # Build API level, always default.
-            toolchain,
-            pie_config)
+            toolchain)
 
         nodist_scanner.add_build_configuration(
             abi,
             None,  # Build API level, always default.
-            toolchain,
-            pie_config)
+            toolchain)
 
         libcxx_scanner.add_build_configuration(
             abi,
             None,  # Build API level, always default.
-            toolchain,
-            pie_config)
+            toolchain)
 
     if 'build' in test_spec.suites:
         test_src = os.path.join(test_options.src_dir, 'build')

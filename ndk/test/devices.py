@@ -124,15 +124,6 @@ class Device(adb.AndroidDevice):
             # Device is too old for this test.
             return False
 
-        # PIE is enabled by default iff our target version is 16 or newer.
-        is_pie = config.force_pie or config.api >= 16
-        if not is_pie and self.supports_pie:
-            # Don't bother running non-PIE tests on anything that supports PIE.
-            return False
-        elif is_pie and not self.supports_pie:
-            # Can't run PIE on devices older than android-16.
-            return False
-
         if config.abi not in self.abis:
             return False
 
