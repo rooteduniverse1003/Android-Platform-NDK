@@ -39,7 +39,7 @@ class MockDevice(ndk.test.devices.Device):
 
 class MockConfig(ndk.test.spec.BuildConfiguration):
     def __init__(self, abi, api):
-        super(MockConfig, self).__init__(abi, api, 'clang')
+        super(MockConfig, self).__init__(abi, api)
 
 
 class DeviceTest(unittest.TestCase):

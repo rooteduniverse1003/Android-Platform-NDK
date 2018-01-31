@@ -88,9 +88,9 @@ class BuildTestScanner(TestScanner):
         self.dist = dist
         self.build_configurations = set()
 
-    def add_build_configuration(self, abi, api, toolchain):
+    def add_build_configuration(self, abi, api):
         self.build_configurations.add(ndk.test.spec.BuildConfiguration(
-            abi, api, toolchain))
+            abi, api))
 
     def find_tests(self, path, name):
         # If we have a build.sh, that takes precedence over the Android.mk.
@@ -151,9 +151,9 @@ class LibcxxTestScanner(TestScanner):
         self.build_configurations = set()
         LibcxxTestScanner.find_all_libcxx_tests(self.ndk_path)
 
-    def add_build_configuration(self, abi, api, toolchain):
+    def add_build_configuration(self, abi, api):
         self.build_configurations.add(ndk.test.spec.BuildConfiguration(
-            abi, api, toolchain))
+            abi, api))
 
     def find_tests(self, path, name):
         tests = []
@@ -386,7 +386,7 @@ class TestConfig(object):
 
         # pylint: disable=unused-argument
         @staticmethod
-        def build_broken(abi, platform, toolchain):
+        def build_broken(abi, platform):
             """Tests if a given configuration is known broken.
 
             A broken test is a known failing test that should be fixed.
@@ -403,7 +403,7 @@ class TestConfig(object):
             return None, None
 
         @staticmethod
-        def build_unsupported(abi, platform, toolchain):
+        def build_unsupported(abi, platform):
             """Tests if a given configuration is unsupported.
 
             An unsupported test is a test that do not make sense to run for a
@@ -440,7 +440,7 @@ class TestConfig(object):
                     return True
 
 
-                def build_broken(abi, api, toolchain):
+                def build_broken(abi, api):
                     if abi == 'armeabi':
                         return abi, bug_url
                     return None, None
@@ -500,11 +500,11 @@ class DeviceTestConfig(TestConfig):
     class NullTestConfig(TestConfig.NullTestConfig):
         # pylint: disable=unused-argument
         @staticmethod
-        def run_broken(abi, device_api, toolchain, subtest):
+        def run_broken(abi, device_api, subtest):
             return None, None
 
         @staticmethod
-        def run_unsupported(abi, device_api, toolchain, subtest):
+        def run_unsupported(abi, device_api, subtest):
             return None
 
         @staticmethod
@@ -539,7 +539,7 @@ class DeviceTestConfig(TestConfig):
 
 
 def _run_build_sh_test(test, build_dir, test_dir, ndk_path, ndk_build_flags,
-                       abi, platform, toolchain):
+                       abi, platform):
     _prep_build_dir(test_dir, build_dir)
     with util.cd(build_dir):
         build_cmd = ['bash', 'build.sh'] + _get_jobs_args() + ndk_build_flags
@@ -548,8 +548,6 @@ def _run_build_sh_test(test, build_dir, test_dir, ndk_path, ndk_build_flags,
         if abi is not None:
             test_env['APP_ABI'] = abi
         test_env['APP_PLATFORM'] = 'android-{}'.format(platform)
-        assert toolchain is not None
-        test_env['NDK_TOOLCHAIN_VERSION'] = toolchain
         rc, out = ndk.ext.subprocess.call_output(build_cmd, env=test_env)
         if rc == 0:
             return Success(test)
@@ -558,12 +556,11 @@ def _run_build_sh_test(test, build_dir, test_dir, ndk_path, ndk_build_flags,
 
 
 def _run_ndk_build_test(test, obj_dir, dist_dir, test_dir, ndk_path,
-                        ndk_build_flags, abi, platform, toolchain):
+                        ndk_build_flags, abi, platform):
     _prep_build_dir(test_dir, obj_dir)
     with util.cd(obj_dir):
         args = [
             'APP_ABI=' + abi,
-            'NDK_TOOLCHAIN_VERSION=' + toolchain,
             'NDK_LIBS_OUT=' + dist_dir,
         ]
         args.extend(_get_jobs_args())
@@ -577,7 +574,7 @@ def _run_ndk_build_test(test, obj_dir, dist_dir, test_dir, ndk_path,
 
 
 def _run_cmake_build_test(test, obj_dir, dist_dir, test_dir, ndk_path,
-                          cmake_flags, abi, platform, toolchain):
+                          cmake_flags, abi, platform):
     _prep_build_dir(test_dir, obj_dir)
 
     # Add prebuilts to PATH.
@@ -602,14 +599,11 @@ def _run_cmake_build_test(test, obj_dir, dist_dir, test_dir, ndk_path,
                                   'android.toolchain.cmake')
     objs_dir = os.path.join(obj_dir, abi)
     libs_dir = os.path.join(dist_dir, abi)
-    if toolchain != 'clang':
-        toolchain = 'gcc'
     args = [
         '-H' + obj_dir,
         '-B' + objs_dir,
         '-DCMAKE_TOOLCHAIN_FILE=' + toolchain_file,
         '-DANDROID_ABI=' + abi,
-        '-DANDROID_TOOLCHAIN=' + toolchain,
         '-DCMAKE_RUNTIME_OUTPUT_DIRECTORY=' + libs_dir,
         '-DCMAKE_LIBRARY_OUTPUT_DIRECTORY=' + libs_dir
     ]
@@ -652,10 +646,6 @@ class BuildTest(Test):
         return self.api
 
     @property
-    def toolchain(self):
-        return self.config.toolchain
-
-    @property
     def ndk_build_flags(self):
         flags = self.config.get_extra_ndk_build_flags()
         if flags is None:
@@ -673,12 +663,11 @@ class BuildTest(Test):
         raise NotImplementedError
 
     def check_broken(self):
-        return self.get_test_config().build_broken(
-            self.abi, self.platform, self.toolchain)
+        return self.get_test_config().build_broken(self.abi, self.platform)
 
     def check_unsupported(self):
         return self.get_test_config().build_unsupported(
-            self.abi, self.platform, self.toolchain)
+            self.abi, self.platform)
 
     def is_negative_test(self):
         return self.get_test_config().is_negative_test()
@@ -700,7 +689,6 @@ class PythonBuildTest(BuildTest):
 
     abi: ABI to test as a string.
     platform: Platform to build against as a string.
-    toolchain: Toolchain to use as a string.
     ndk_build_flags: Additional build flags that should be passed to ndk-build
                      if invoked as a list of strings.
     """
@@ -708,8 +696,7 @@ class PythonBuildTest(BuildTest):
         api = config.api
         if api is None:
             api = ndk.abis.min_api_for_abi(config.abi)
-        config = ndk.test.spec.BuildConfiguration(
-            config.abi, api, config.toolchain)
+        config = ndk.test.spec.BuildConfiguration(config.abi, api)
         super(PythonBuildTest, self).__init__(name, test_dir, config, ndk_path)
 
         if self.abi not in ndk.abis.ALL_ABIS:
@@ -720,10 +707,6 @@ class PythonBuildTest(BuildTest):
         except ValueError:
             raise ValueError(
                 '{} is not a valid platform number'.format(self.platform))
-
-        if self.toolchain != 'clang' and self.toolchain != '4.9':
-            raise ValueError(
-                '{} is not a valid toolchain name'.format(self.toolchain))
 
         # Not a ValueError for this one because it should be impossible. This
         # is actually a computed result from the config we're passed.
@@ -739,8 +722,7 @@ class PythonBuildTest(BuildTest):
         with util.cd(build_dir):
             module = imp.load_source('test', 'test.py')
             success, failure_message = module.run_test(
-                self.ndk_path, self.abi, self.platform, self.toolchain,
-                self.ndk_build_flags)
+                self.ndk_path, self.abi, self.platform, self.ndk_build_flags)
             if success:
                 return Success(self), []
             else:
@@ -752,8 +734,7 @@ class ShellBuildTest(BuildTest):
         api = config.api
         if api is None:
             api = ndk.abis.min_api_for_abi(config.abi)
-        config = ndk.test.spec.BuildConfiguration(
-            config.abi, api, config.toolchain)
+        config = ndk.test.spec.BuildConfiguration(config.abi, api)
         super(ShellBuildTest, self).__init__(name, test_dir, config, ndk_path)
 
     def get_build_dir(self, out_dir):
@@ -768,7 +749,7 @@ class ShellBuildTest(BuildTest):
         else:
             result = _run_build_sh_test(
                 self, build_dir, self.test_dir, self.ndk_path,
-                self.ndk_build_flags, self.abi, self.platform, self.toolchain)
+                self.ndk_build_flags, self.abi, self.platform)
             return result, []
 
 
@@ -835,8 +816,7 @@ def _get_or_infer_app_platform(platform_from_user, test_dir, abi):
 class NdkBuildTest(BuildTest):
     def __init__(self, name, test_dir, config, ndk_path, dist):
         api = _get_or_infer_app_platform(config.api, test_dir, config.abi)
-        config = ndk.test.spec.BuildConfiguration(
-            config.abi, api, config.toolchain)
+        config = ndk.test.spec.BuildConfiguration(config.abi, api)
         super(NdkBuildTest, self).__init__(name, test_dir, config, ndk_path)
         self.dist = dist
 
@@ -855,15 +835,14 @@ class NdkBuildTest(BuildTest):
         dist_dir = self.get_dist_dir(obj_dir, dist_dir)
         result = _run_ndk_build_test(
             self, obj_dir, dist_dir, self.test_dir, self.ndk_path,
-            self.ndk_build_flags, self.abi, self.platform, self.toolchain)
+            self.ndk_build_flags, self.abi, self.platform)
         return result, []
 
 
 class CMakeBuildTest(BuildTest):
     def __init__(self, name, test_dir, config, ndk_path, dist):
         api = _get_or_infer_app_platform(config.api, test_dir, config.abi)
-        config = ndk.test.spec.BuildConfiguration(
-            config.abi, api, config.toolchain)
+        config = ndk.test.spec.BuildConfiguration(config.abi, api)
         super(CMakeBuildTest, self).__init__(name, test_dir, config, ndk_path)
         self.dist = dist
 
@@ -882,7 +861,7 @@ class CMakeBuildTest(BuildTest):
         logger().info('Building test: %s', self.name)
         result = _run_cmake_build_test(
             self, obj_dir, dist_dir, self.test_dir, self.ndk_path,
-            self.cmake_flags, self.abi, self.platform, self.toolchain)
+            self.cmake_flags, self.abi, self.platform)
         return result, []
 
 
@@ -955,10 +934,6 @@ class LibcxxTest(Test):
     @property
     def api(self):
         return self.config.api
-
-    @property
-    def toolchain(self):
-        return self.config.toolchain
 
     def get_build_dir(self, out_dir):
         return os.path.join(out_dir, str(self.config), 'libcxx', self.name)
@@ -1091,25 +1066,6 @@ class LibcxxTest(Test):
         return None, None
 
     def check_unsupported(self):
-        # The NDK's libc++ support has always come with a big scary beta label
-        # on it. The tests have never been 100% passing. We're going to only
-        # enable it for a handful of configurations as support falls in to
-        # place.
-        if self.toolchain == '4.9':
-            return '4.9'
-
-        supported_abis = (
-            'arm64-v8a',
-            'armeabi-v7a',
-            'x86',
-            'x86_64',
-        )
-
-        if self.abi not in supported_abis:
-            # The ABI case is something we will eventually support, but don't
-            # bother wasting time running them until we get to that point.
-            return self.abi
-
         return None
 
     def is_negative_test(self):
@@ -1125,19 +1081,19 @@ class LibcxxTestConfig(DeviceTestConfig):
     class NullTestConfig(TestConfig.NullTestConfig):
         # pylint: disable=unused-argument,arguments-differ
         @staticmethod
-        def build_unsupported(abi, api, toolchain, name):
+        def build_unsupported(abi, api, name):
             return None
 
         @staticmethod
-        def build_broken(abi, api, toolchain, name):
+        def build_broken(abi, api, name):
             return None, None
 
         @staticmethod
-        def run_unsupported(abi, device_api, toolchain, name):
+        def run_unsupported(abi, device_api, name):
             return None
 
         @staticmethod
-        def run_broken(abi, device_api, toolchain, name):
+        def run_broken(abi, device_api, name):
             return None, None
         # pylint: enable=unused-argument,arguments-differ
 
@@ -1203,7 +1159,7 @@ class XunitResult(Test):
     def check_broken(self):
         name = os.path.splitext(os.path.basename(self.name))[0]
         config, bug = self.get_test_config().build_broken(
-            self.config.abi, self.config.api, self.config.toolchain, name)
+            self.config.abi, self.config.api, name)
         if config is not None:
             return config, bug
         return None, None

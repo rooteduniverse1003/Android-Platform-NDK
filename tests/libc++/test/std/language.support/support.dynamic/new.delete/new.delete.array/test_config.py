@@ -1,4 +1,4 @@
-def run_broken(abi, device_api, toolchain, name):
+def run_broken(abi, device_api, name):
     failing_tests = [
         'new_array_nothrow_replace.pass',
     ]

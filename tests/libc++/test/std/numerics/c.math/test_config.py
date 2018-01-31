@@ -1,4 +1,4 @@
-def build_broken(abi, api, toolchain, name):
+def build_broken(abi, api, name):
     if name == 'cmath_isnan.pass':
         return 'all', 'http://b/34724220'
     if name == 'cmath_isinf.pass' and api >= 21:

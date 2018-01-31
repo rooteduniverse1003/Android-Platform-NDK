@@ -1,6 +1,4 @@
-def build_unsupported(abi, platform, toolchain):
+def build_unsupported(abi, _platform):
     if abi != 'armeabi-v7a':
         return abi
-    if toolchain != '4.9':
-        return toolchain
-    return None
+    return 'clang'

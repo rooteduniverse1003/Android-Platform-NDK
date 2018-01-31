@@ -23,7 +23,7 @@ import subprocess
 import sys
 
 
-def run_test(ndk_path, abi, platform, toolchain, build_flags):
+def run_test(ndk_path, abi, platform, build_flags):
     """Checks ndk-build V=1 output for mstackrealign flag."""
     ndk_build = os.path.join(ndk_path, 'ndk-build')
     if sys.platform == 'win32':
@@ -32,7 +32,6 @@ def run_test(ndk_path, abi, platform, toolchain, build_flags):
     ndk_args = build_flags + [
         'APP_ABI=' + abi,
         'APP_PLATFORM=android-{}'.format(platform),
-        'NDK_TOOLCHAIN_VERSION=' + toolchain,
         'V=1',
     ]
     proc = subprocess.Popen([ndk_build, '-C', project_path] + ndk_args,
