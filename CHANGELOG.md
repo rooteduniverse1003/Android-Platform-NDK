@@ -33,7 +33,7 @@ Announcements
 NDK
 ---
 
- * Updated Clang to build 4393122 based on ???
+ * Updated Clang to build 4579689.
  * AArch64 now uses gold by default, matching the other architectures.
  * Updated gtest to upstream revision 0fe96607d85cf3a25ac40da369db62bbee2939a5.
  * Fixed parsing of the NDK revision in CMake. NDK version information is now
