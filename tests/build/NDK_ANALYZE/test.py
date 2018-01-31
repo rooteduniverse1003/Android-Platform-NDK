@@ -17,7 +17,7 @@ import os
 import subprocess
 
 
-def run_test(ndk_path, abi, platform, _toolchain, build_flags):
+def run_test(ndk_path, abi, platform, build_flags):
     """Runs the static analyzer on a sample project."""
     ndk_build = os.path.join(ndk_path, 'ndk-build')
     project_path = 'project'

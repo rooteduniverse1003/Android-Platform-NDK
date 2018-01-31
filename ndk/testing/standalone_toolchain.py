@@ -60,20 +60,8 @@ def make_standalone_toolchain(ndk_path, arch, api, extra_args, install_dir):
     return rc == 0, out
 
 
-def test_standalone_toolchain(arch, toolchain, install_dir, test_source,
-                              flags):
-    if toolchain == '4.9':
-        triple = ndk.abis.arch_to_triple(arch)
-        # x86 toolchain names are dumb: http://b/25800583
-        if arch == 'x86':
-            triple = 'i686-linux-android'
-        elif arch == 'arm':
-            # This is added by default for Clang, but we don't wrap the GCC
-            # compilers.
-            flags.append('-march=armv7-a')
-        compiler_name = triple + '-g++'
-    elif toolchain == 'clang':
-        compiler_name = 'clang++'
+def test_standalone_toolchain(install_dir, test_source, flags):
+    compiler_name = 'clang++'
 
     compiler = os.path.join(install_dir, 'bin', compiler_name)
     cmd = [compiler, test_source, '-Wl,--no-undefined', '-Wl,--fatal-warnings']
@@ -86,7 +74,7 @@ def test_standalone_toolchain(arch, toolchain, install_dir, test_source,
     return rc == 0, out
 
 
-def run_test(ndk_path, abi, api, toolchain, test_source, extra_args, flags):
+def run_test(ndk_path, abi, api, test_source, extra_args, flags):
     arch = ndk.abis.abi_to_arch(abi)
 
     install_dir = tempfile.mkdtemp()
@@ -95,7 +83,6 @@ def run_test(ndk_path, abi, api, toolchain, test_source, extra_args, flags):
             ndk_path, arch, api, extra_args, install_dir)
         if not success:
             return success, out
-        return test_standalone_toolchain(
-            arch, toolchain, install_dir, test_source, flags)
+        return test_standalone_toolchain(install_dir, test_source, flags)
     finally:
         shutil.rmtree(install_dir)

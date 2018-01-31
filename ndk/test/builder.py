@@ -16,7 +16,6 @@
 """APIs for enumerating and building NDK tests."""
 from __future__ import absolute_import
 
-import itertools
 import json
 import logging
 import multiprocessing
@@ -40,36 +39,24 @@ def logger():
 def test_spec_from_config(test_config):
     """Returns a TestSpec based on the test config file."""
     abis = test_config.get('abis', ndk.abis.ALL_ABIS)
-    toolchains = test_config.get('toolchains', ['clang'])
     suites = test_config.get('suites', testlib.ALL_SUITES)
 
-    return ndk.test.spec.TestSpec(abis, toolchains, suites)
+    return ndk.test.spec.TestSpec(abis, suites)
 
 
 def build_test_runner(test_spec, test_options, printer):
     runner = testlib.TestRunner(printer)
 
-    build_configs = itertools.product(test_spec.abis, test_spec.toolchains)
-
     scanner = testlib.BuildTestScanner(test_options.ndk_path)
     nodist_scanner = testlib.BuildTestScanner(
         test_options.ndk_path, dist=False)
     libcxx_scanner = testlib.LibcxxTestScanner(test_options.ndk_path)
-    for abi, toolchain in build_configs:
-        scanner.add_build_configuration(
-            abi,
-            None,  # Build API level, always default.
-            toolchain)
+    for abi in test_spec.abis:
+        build_api_level = None  # Always use the default.
 
-        nodist_scanner.add_build_configuration(
-            abi,
-            None,  # Build API level, always default.
-            toolchain)
-
-        libcxx_scanner.add_build_configuration(
-            abi,
-            None,  # Build API level, always default.
-            toolchain)
+        scanner.add_build_configuration(abi, build_api_level)
+        nodist_scanner.add_build_configuration(abi, build_api_level)
+        libcxx_scanner.add_build_configuration(abi, build_api_level)
 
     if 'build' in test_spec.suites:
         test_src = os.path.join(test_options.src_dir, 'build')

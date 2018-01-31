@@ -25,7 +25,7 @@ import subprocess
 import sys
 
 
-def run_test(ndk_path, abi, platform, toolchain, build_flags):
+def run_test(ndk_path, abi, platform, build_flags):
     """Checks ndk-build V=1 output for mstackrealign flag."""
     ndk_build = os.path.join(ndk_path, 'ndk-build')
     if sys.platform == 'win32':
@@ -34,7 +34,6 @@ def run_test(ndk_path, abi, platform, toolchain, build_flags):
     ndk_args = build_flags + [
         'APP_ABI=' + abi,
         'APP_PLATFORM=android-{}'.format(platform),
-        'NDK_TOOLCHAIN_VERSION=' + toolchain,
         'V=1',
     ]
     proc = subprocess.Popen([ndk_build, '-C', project_path] + ndk_args,
@@ -45,15 +44,8 @@ def run_test(ndk_path, abi, platform, toolchain, build_flags):
 
     search_text = '-mstack-protector-guard=global'
     out_words = out.split(' ')
-    if abi == 'x86' and platform < 17 and toolchain == '4.9':
-        if search_text in out_words:
-            return True, out
-        else:
-            out = 'Did not find {} in output:\n{}'.format(search_text, out)
-            return False, out
+    if search_text in out_words:
+        print 'Found unexpceted {} in output:\n{}'.format(search_text, out)
+        return False, out
     else:
-        if search_text in out_words:
-            print 'Found unexpceted {} in output:\n'.format(search_text, out)
-            return False, out
-        else:
-            return True, out
+        return True, out

@@ -1,4 +1,4 @@
-def build_unsupported(abi, platform, toolchain):
-    if (abi == 'x86' and platform < 17) or (abi == 'mips' and platform < 12):
+def build_unsupported(abi, platform):
+    if abi == 'x86' and platform < 17:
         return abi
     return None

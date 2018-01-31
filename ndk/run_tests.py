@@ -120,13 +120,11 @@ class BasicTestCase(TestCase):
 
     def check_unsupported(self, device):
         return self.get_test_config().run_unsupported(
-            self.config.abi, device.version, self.config.toolchain,
-            self.executable)
+            self.config.abi, device.version, self.executable)
 
     def check_broken(self, device):
         return self.get_test_config().run_broken(
-            self.config.abi, device.version, self.config.toolchain,
-            self.executable)
+            self.config.abi, device.version, self.executable)
 
     def run(self, device):
         config = self.check_unsupported(device)
@@ -174,7 +172,7 @@ class LibcxxTestCase(TestCase):
         # Executable is foo.pass.cpp.exe, we want foo.pass.
         name = os.path.splitext(os.path.splitext(self.executable)[0])[0]
         config = self.get_test_config().run_unsupported(
-            self.config.abi, device.version, self.config.toolchain, name)
+            self.config.abi, device.version, name)
         if config is not None:
             return config
         return None
@@ -183,7 +181,7 @@ class LibcxxTestCase(TestCase):
         # Executable is foo.pass.cpp.exe, we want foo.pass.
         name = os.path.splitext(os.path.splitext(self.executable)[0])[0]
         config, bug = self.get_test_config().run_broken(
-            self.config.abi, device.version, self.config.toolchain, name)
+            self.config.abi, device.version, name)
         if config is not None:
             return config, bug
         return None, None
@@ -612,7 +610,6 @@ def restart_flaky_tests(report, workqueue):
 def get_config_dict(config, abis):
     with open(config) as test_config_file:
         test_config = json.load(test_config_file)
-    test_config['toolchains'] = ['clang']
     if abis is not None:
         test_config['abis'] = abis
     return test_config
@@ -694,20 +691,11 @@ def parse_args():
 
 class ConfigFilter(object):
     def __init__(self, test_config):
-        import itertools
         test_spec = ndk.test.builder.test_spec_from_config(test_config)
-
-        self.config_tuples = list(itertools.product(
-            test_spec.abis,
-            test_spec.toolchains))
+        self.config_abis = test_spec.abis
 
     def filter(self, build_config):
-        config_tuple = (
-            build_config.abi,
-            build_config.toolchain
-        )
-
-        return config_tuple in self.config_tuples
+        return build_config.abi in self.config_abis
 
 
 class ShardingWorkQueue(object):

@@ -1,4 +1,4 @@
-def run_broken(abi, device_api, toolchain, name):
+def run_broken(abi, device_api, name):
     lp64_abis = ('arm64-v8a', 'mips64', 'x86_64')
     failing_tests = (
         'get_long_double.pass',

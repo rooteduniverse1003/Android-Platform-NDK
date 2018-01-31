@@ -37,12 +37,6 @@ $(foreach _plat,3 4 5 8 9 10 11 12 13 14 15 16 17 18 19 20,\
 endif
 
 TARGET_PLATFORM_LEVEL := $(strip $(subst android-,,$(TARGET_PLATFORM)))
-ifneq (,$(call gte,$(TARGET_PLATFORM_LEVEL),$(NDK_FIRST_PIE_PLATFORM_LEVEL)))
-    TARGET_PIE := true
-    $(call ndk_log,  Enabling -fPIE for TARGET_PLATFORM $(TARGET_PLATFORM))
-else
-    TARGET_PIE := false
-endif
 
 # Separate the debug and release objects. This prevents rebuilding
 # everything when you switch between these two modes. For projects

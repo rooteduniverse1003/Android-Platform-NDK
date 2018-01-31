@@ -62,8 +62,6 @@ endif
 
 include $(BUILD_SYSTEM)/setup-app-platform.mk
 
-APP_PIE := true
-
 # Check that the value of APP_ABI corresponds to known ABIs
 # 'all' is a special case that means 'all supported ABIs'
 #

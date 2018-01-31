@@ -45,7 +45,7 @@ def build(ndk_dir, abi, platform, build_flags):
     return proc.returncode == 0, out
 
 
-def run_test(ndk_path, abi, _platform, _toolchain, build_flags):
+def run_test(ndk_path, abi, _platform, build_flags):
     """Checks ndk-build V=1 output for correct compiler."""
     min_api = None
     max_api = None

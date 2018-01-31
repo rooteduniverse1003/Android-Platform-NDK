@@ -40,9 +40,8 @@ class TestOptions(object):
 
 class TestSpec(object):
     """Configuration for which tests should be run."""
-    def __init__(self, abis, toolchains, suites):
+    def __init__(self, abis, suites):
         self.abis = abis
-        self.toolchains = toolchains
         self.suites = suites
 
 
@@ -52,22 +51,19 @@ class BuildConfiguration(object):
     A TestSpec describes which BuildConfigurations should be included in a test
     run.
     """
-    def __init__(self, abi, api, toolchain):
+    def __init__(self, abi, api):
         self.abi = abi
         self.api = api
-        self.toolchain = toolchain
 
     def __eq__(self, other):
         if self.abi != other.abi:
             return False
         if self.api != other.api:
             return False
-        if self.toolchain != other.toolchain:
-            return False
         return True
 
     def __str__(self):
-        return '{}-{}-{}'.format(self.abi, self.api, self.toolchain)
+        return '{}-{}'.format(self.abi, self.api)
 
     def __hash__(self):
         return hash(str(self))
@@ -93,10 +89,10 @@ class BuildConfiguration(object):
             abi += '-v8a'
             _, _, rest = rest.partition('-')
 
-        api_str, _, toolchain = rest.partition('-')
+        api_str = rest
         api = int(api_str)
 
-        return BuildConfiguration(abi, api, toolchain)
+        return BuildConfiguration(abi, api)
 
     def get_extra_ndk_build_flags(self):
         extra_flags = []

@@ -1,4 +1,4 @@
-def build_unsupported(abi, api, toolchain):
+def build_unsupported(abi, api):
     if abi != 'armeabi-v7a':
         return abi
     return None
