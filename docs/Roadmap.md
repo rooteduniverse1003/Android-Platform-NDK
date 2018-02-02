@@ -83,6 +83,8 @@ already be a standalone toolchain. The NDK toolchain would Just Work regardless
 of build system, and the logic contained in each build system could be greatly
 reduced.
 
+Related to this (but maybe occurring in a later release), we'll want to
+switch from `libgcc` to `libcompiler-rt` and our own unwinder.
 
 NDK r20+
 --------
