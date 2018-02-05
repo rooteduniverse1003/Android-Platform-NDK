@@ -2041,61 +2041,9 @@ ndk-stl-add-dependencies = \
         $(NDK_STL.$1.SHARED_LIBS),\
         $(NDK_STL.$1.LDLIBS))
 
-#
-#
+$(call ndk-stl-register,none,cxx-stl/system)
+$(call ndk-stl-register,system,cxx-stl/system,libstdc++)
 
-# Register the 'system' STL implementation
-#
-$(call ndk-stl-register,\
-    system,\
-    cxx-stl/system,\
-    libstdc++,\
-    ,\
-    \
-    )
-
-# Register the 'stlport_static' STL implementation
-#
-$(call ndk-stl-register,\
-    stlport_static,\
-    cxx-stl/stlport,\
-    stlport_static,\
-    ,\
-    \
-    )
-
-# Register the 'stlport_shared' STL implementation
-#
-$(call ndk-stl-register,\
-    stlport_shared,\
-    cxx-stl/stlport,\
-    ,\
-    stlport_shared,\
-    \
-    )
-
-# Register the 'gnustl_static' STL implementation
-#
-$(call ndk-stl-register,\
-    gnustl_static,\
-    cxx-stl/gnu-libstdc++,\
-    gnustl_static,\
-    ,\
-    \
-    )
-
-# Register the 'gnustl_shared' STL implementation
-#
-$(call ndk-stl-register,\
-    gnustl_shared,\
-    cxx-stl/gnu-libstdc++,\
-    ,\
-    gnustl_shared,\
-    \
-    )
-
-# Register the 'c++_static' STL implementation
-#
 $(call ndk-stl-register,\
     c++_static,\
     cxx-stl/llvm-libc++,\
@@ -2105,8 +2053,6 @@ $(call ndk-stl-register,\
     -std=c++11\
     )
 
-# Register the 'c++_shared' STL implementation
-#
 $(call ndk-stl-register,\
     c++_shared,\
     cxx-stl/llvm-libc++,\
@@ -2114,14 +2060,6 @@ $(call ndk-stl-register,\
     c++_shared,\
     ,\
     -std=c++11\
-    )
-
-# The 'none' APP_STL value corresponds to no C++ support at
-# all. Used by some of the STLport and GAbi++ test projects.
-#
-$(call ndk-stl-register,\
-    none,\
-    cxx-stl/system,\
     )
 
 ifneq (,$(NDK_UNIT_TESTS))
