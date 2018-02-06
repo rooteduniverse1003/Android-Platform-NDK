@@ -441,11 +441,6 @@ ifneq (,$(call module-has-c++-features,$(LOCAL_MODULE),rtti exceptions))
         LIBCXX_LIB_PATH := $(call host-path,$(NDK_ROOT)/sources/cxx-stl/llvm-libc++/libs/$(TARGET_ARCH_ABI))
         LOCAL_LDLIBS += $(LIBCXX_LIB_PATH)/libc++abi.a
 
-        # TODO(danalbert): Remove once we've dropped ICS support.
-        # We only need this with with libc++abi for posix_memalign, which we
-        # have once our minimum target is Jelly Bean.
-        LOCAL_LDLIBS += $(LIBCXX_LIB_PATH)/libandroid_support.a
-
         ifeq ($(TARGET_ARCH_ABI),armeabi-v7a)
             # And for armeabi-v7a, include the correct unwinder.
             LOCAL_LDLIBS += $(LIBCXX_LIB_PATH)/libunwind.a
