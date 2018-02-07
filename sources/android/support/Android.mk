@@ -104,7 +104,6 @@ android_support_sources := \
     $(BIONIC_PATH)/libm/upstream-freebsd/lib/msun/src/s_tan.c \
     $(BIONIC_PATH)/libm/upstream-freebsd/lib/msun/src/s_tanh.c \
     src/locale_support.cpp \
-    src/posix_memalign.cpp \
     src/swprintf.cpp \
     src/wcstox.cpp \
 
