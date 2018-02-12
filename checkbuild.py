@@ -664,10 +664,12 @@ class Platforms(ndk.builds.Module):
     name = 'platforms'
     path = 'platforms'
 
+    min_supported_api = 16
+
     # These API levels had no new native APIs. The contents of these platforms
     # directories would be identical to the previous extant API level, so they
     # are not included in the NDK to save space.
-    skip_apis = (10, 11, 20, 25)
+    skip_apis = (20, 25)
 
     # We still need a numeric API level for codenamed API levels because
     # ABI_ANDROID_API in crtbrand is an integer. We start counting the
@@ -708,7 +710,9 @@ class Platforms(ndk.builds.Module):
 
             _, api_str = name.split('-')
             try:
-                apis.append(int(api_str))
+                api = int(api_str)
+                if api >= self.min_supported_api:
+                    apis.append(api)
             except ValueError:
                 # Codenamed release like android-O, android-O-MR1, etc.
                 apis.append(api_str)
