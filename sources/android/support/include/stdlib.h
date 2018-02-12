@@ -33,10 +33,6 @@
 
 __BEGIN_DECLS
 
-#if __ANDROID_API__ < __ANDROID_API_J__
-int posix_memalign(void** memptr, size_t alignment, size_t size);
-#endif
-
 #if __ANDROID_API__ < __ANDROID_API_L__
 #undef MB_CUR_MAX
 size_t __ctype_get_mb_cur_max(void);
@@ -47,13 +43,6 @@ unsigned long long strtoull_l(const char*, char**, int, locale_t);
 int mbtowc(wchar_t*, const char*, size_t);
 int at_quick_exit(void (*)(void));
 void quick_exit(int) __noreturn;
-#endif
-
-#if __ANDROID_API__ < __ANDROID_API_O__
-double strtod_l(const char*, char**, locale_t);
-float strtof_l(const char*, char**, locale_t);
-long strtol_l(const char*, char**, int, locale_t);
-unsigned long strtoul_l(const char*, char**, int, locale_t);
 #endif
 
 __END_DECLS

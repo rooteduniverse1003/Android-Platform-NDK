@@ -358,13 +358,14 @@ def copy_stlport_libs(src_dir, dst_dir, triple, abi, thumb=False):
                  os.path.join(dst_libdir, 'libstdc++.a'))
 
 
-def copy_libcxx_libs(src_dir, dst_dir, include_libunwind):
+def copy_libcxx_libs(src_dir, dst_dir, abi, api):
     shutil.copy2(os.path.join(src_dir, 'libc++_shared.so'), dst_dir)
     shutil.copy2(os.path.join(src_dir, 'libc++_static.a'), dst_dir)
-    shutil.copy2(os.path.join(src_dir, 'libandroid_support.a'), dst_dir)
+    if api < 21:
+        shutil.copy2(os.path.join(src_dir, 'libandroid_support.a'), dst_dir)
     shutil.copy2(os.path.join(src_dir, 'libc++abi.a'), dst_dir)
 
-    if include_libunwind:
+    if abi == 'armeabi-v7a':
         shutil.copy2(os.path.join(src_dir, 'libunwind.a'), dst_dir)
 
     # libc++ is different from the other STLs. It has a libc++.(a|so) that is a
@@ -389,7 +390,7 @@ def copy_libcxx_libs(src_dir, dst_dir, include_libunwind):
 
 
 def create_toolchain(install_path, arch, api, gcc_path, clang_path,
-                     platforms_path, stl, host_tag):
+                     platforms_path, host_tag):
     """Create a standalone toolchain."""
     copy_directory_contents(gcc_path, install_path)
     copy_directory_contents(clang_path, install_path)
@@ -435,92 +436,43 @@ def create_toolchain(install_path, arch, api, gcc_path, clang_path,
 
     cxx_headers = os.path.join(install_path, 'include/c++', gcc_ver)
 
-    # Historically these were installed to the same directory as the C++
-    # headers, but with the updated libc++ we have copies of a lot of those
-    # headers in libc++ itself that we end up clobbering.
-    #
-    # This problem should go away with unified headers, but those aren't ready
-    # yet. For the time being, install the libandroid_support headers to a
-    # different builtin include path. usr/local/include seems to be the least
-    # objectionable option.
-    support_headers = os.path.join(install_path, 'sysroot/usr/local/include')
+    libcxx_dir = os.path.join(NDK_DIR, 'sources/cxx-stl/llvm-libc++')
+    libcxxabi_dir = os.path.join(NDK_DIR, 'sources/cxx-stl/llvm-libc++abi')
+    support_dir = os.path.join(NDK_DIR, 'sources/android/support')
+    copy_directory_contents(os.path.join(libcxx_dir, 'include'), cxx_headers)
 
-    if stl == 'gnustl':
-        gnustl_dir = os.path.join(NDK_DIR, 'sources/cxx-stl/gnu-libstdc++/4.9')
-        shutil.copytree(os.path.join(gnustl_dir, 'include'), cxx_headers)
-
-        for abi in get_abis(arch):
-            copy_gnustl_abi_headers(gnustl_dir, install_path, gcc_ver, triple,
-                                    abi)
-            copy_gnustl_libs(gnustl_dir, install_path, triple, abi)
-            if arch == 'arm':
-                copy_gnustl_abi_headers(gnustl_dir, install_path, gcc_ver,
-                                        triple, abi, thumb=True)
-                copy_gnustl_libs(gnustl_dir, install_path, triple, abi,
-                                 thumb=True)
-    elif stl == 'libc++':
-        libcxx_dir = os.path.join(NDK_DIR, 'sources/cxx-stl/llvm-libc++')
-        libcxxabi_dir = os.path.join(NDK_DIR, 'sources/cxx-stl/llvm-libc++abi')
-        support_dir = os.path.join(NDK_DIR, 'sources/android/support')
-        copy_directory_contents(os.path.join(libcxx_dir, 'include'),
-                                cxx_headers)
-        copy_directory_contents(os.path.join(support_dir, 'include'),
-                                support_headers)
-
-        # I have no idea why we need this, but the old one does it too.
+    if api < 21:
+        # For any libc header that is in libandroid_support, we actually have
+        # three copies of the header: one from libc, one from libc++, and one
+        # from libandroid_support.
+        #
+        # Install the libandroid_support headers to a different builtin include
+        # path. usr/local/include seems to be the least objectionable option.
         copy_directory_contents(
-            os.path.join(libcxxabi_dir, 'include'),
-            os.path.join(install_path, 'include/llvm-libc++abi/include'))
+            os.path.join(support_dir, 'include'),
+            os.path.join(install_path, 'sysroot/usr/local/include'))
 
-        headers = [
-            'cxxabi.h',
-            '__cxxabi_config.h',
-        ]
-        for header in headers:
-            shutil.copy2(
-                os.path.join(libcxxabi_dir, 'include', header),
-                os.path.join(cxx_headers, header))
+    # I have no idea why we need this, but the old one does it too.
+    copy_directory_contents(
+        os.path.join(libcxxabi_dir, 'include'),
+        os.path.join(install_path, 'include/llvm-libc++abi/include'))
 
-        for abi in get_abis(arch):
-            src_libdir = get_src_libdir(libcxx_dir, abi)
-            dest_libdir = get_dest_libdir(install_path, triple, abi)
-            include_libunwind = arch == 'arm'
-            copy_libcxx_libs(src_libdir, dest_libdir, include_libunwind)
-            if arch == 'arm':
-                thumb_libdir = os.path.join(dest_libdir, 'thumb')
-                copy_libcxx_libs(src_libdir, thumb_libdir, include_libunwind)
-    elif stl == 'stlport':
-        stlport_dir = os.path.join(NDK_DIR, 'sources/cxx-stl/stlport')
-        gabixx_dir = os.path.join(NDK_DIR, 'sources/cxx-stl/gabi++')
+    headers = [
+        'cxxabi.h',
+        '__cxxabi_config.h',
+    ]
+    for header in headers:
+        shutil.copy2(
+            os.path.join(libcxxabi_dir, 'include', header),
+            os.path.join(cxx_headers, header))
 
-        copy_directory_contents(
-            os.path.join(stlport_dir, 'stlport'), cxx_headers)
-
-        # Same as for libc++. Not sure why we have this extra directory, but
-        # keep the cruft for diff.
-        copy_directory_contents(
-            os.path.join(gabixx_dir, 'include'),
-            os.path.join(install_path, 'include/gabi++/include'))
-
-        headers = [
-            'cxxabi.h',
-            'unwind.h',
-            'unwind-arm.h',
-            'unwind-itanium.h',
-            'gabixx_config.h',
-        ]
-        for header in headers:
-            shutil.copy2(
-                os.path.join(gabixx_dir, 'include', header),
-                os.path.join(cxx_headers, header))
-
-        for abi in get_abis(arch):
-            copy_stlport_libs(stlport_dir, install_path, triple, abi)
-            if arch == 'arm':
-                copy_stlport_libs(stlport_dir, install_path, triple, abi,
-                                  thumb=True)
-    else:
-        raise ValueError(stl)
+    for abi in get_abis(arch):
+        src_libdir = get_src_libdir(libcxx_dir, abi)
+        dest_libdir = get_dest_libdir(install_path, triple, abi)
+        copy_libcxx_libs(src_libdir, dest_libdir, abi, api)
+        if arch == 'arm':
+            thumb_libdir = os.path.join(dest_libdir, 'thumb')
+            copy_libcxx_libs(src_libdir, thumb_libdir, abi, api)
 
     # Not needed for every STL, but the old one does this. Keep it for the sake
     # of diff. Done at the end so copytree works.
@@ -618,7 +570,7 @@ def main():
         install_path = os.path.join(tempdir, triple)
 
     create_toolchain(install_path, args.arch, api, gcc_path, clang_path,
-                     sysroot_path, args.stl, host_tag)
+                     sysroot_path, host_tag)
 
     if args.install_dir is None:
         if host_tag.startswith('windows'):

@@ -1,8 +1,7 @@
-def run_broken(abi, _device_api, _subtest):
-    if abi == 'armeabi-v7a':
-        # __gnu_Unwind_Find_exidx has always been broken in libc.a. We need an
-        # update to the static libraries to fix this.
-        return abi, 'https://github.com/android-ndk/ndk/issues/593'
+def build_unsupported(_abi, api):
+    # Static executables with libc++ require targeting a new enough API level
+    # to not need libandroid_support.
+    if api < 21:
+        return 'android-{}'.format(api)
 
-    # Clang doesn't pass --eh-frame-hdr to the linker for static executables.
-    return abi, 'http://b/30101473'
+    return None
