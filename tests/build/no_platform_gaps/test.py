@@ -42,7 +42,7 @@ def build(ndk_dir, abi, platform, build_flags):
     proc = subprocess.Popen([ndk_build, '-C', project_path] + ndk_args,
                             stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
     out, _ = proc.communicate()
-    return proc.returncode == 0, out
+    return proc.returncode == 0, out.decode('utf-8')
 
 
 def run_test(ndk_path, abi, _platform, build_flags):

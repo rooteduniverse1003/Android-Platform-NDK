@@ -373,7 +373,7 @@ def clear_test_directories(workqueue, fleet):
 def adb_has_feature(feature):
     cmd = ['adb', 'host-features']
     logger().info('check_output "%s"', ' '.join(cmd))
-    output = subprocess.check_output(cmd)
+    output = subprocess.check_output(cmd).decode('utf-8')
     features_line = output.splitlines()[-1]
     features = features_line.split(',')
     return feature in features
@@ -429,6 +429,7 @@ def disable_verity_and_wait_for_reboot(device):
     cmd = ['adb', '-s', device.serial, 'disable-verity']
     # disable-verity doesn't set exit status
     _, out = ndk.ext.subprocess.call_output(cmd)
+    out = out.decode('utf-8')
     logger().info('%s: disable-verity:\n%s', device, out)
     if 'disabled on /' not in out:
         raise RuntimeError('{}: adb disable-verity failed:\n{}'.format(
@@ -457,17 +458,17 @@ def asan_device_setup(ndk_path, device):
     cmd = [path, '--device', device.serial]
     logger().info('%s: asan_device_setup', device.name)
     # Use call_output to keep the call quiet unless something goes wrong.
-    result, out = ndk.ext.subprocess.call_output(cmd)
+    result, _ = ndk.ext.subprocess.call_output(cmd)
     if result != 0:
         # The script sometimes fails on the first try >:(
         logger().info(
             '%s: asan_device_setup failed once, retrying', device.name)
-        result, out = ndk.ext.subprocess.call_output(cmd)
+        result, _ = ndk.ext.subprocess.call_output(cmd)
     if result != 0:
         # The script sometimes fails on the first try >:(
         result, out = ndk.ext.subprocess.call_output(cmd)
         raise RuntimeError('{}: asan_device_setup failed:\n{}'.format(
-            device, out))
+            device, out.decode('utf-8')))
 
 
 def setup_asan_for_device(worker, ndk_path, device):
@@ -485,7 +486,7 @@ def perform_asan_setup(workqueue, ndk_path, groups_for_config):
     for groups in groups_for_config.values():
         for group in groups:
             devices.extend(group.devices)
-    devices = sorted(list(set(devices)))
+    devices = list(set(devices))
 
     for device in devices:
         if device.can_use_asan():

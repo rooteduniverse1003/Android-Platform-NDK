@@ -39,13 +39,14 @@ def run_test(ndk_path, abi, platform, build_flags):
     proc = subprocess.Popen([ndk_build, '-C', project_path] + ndk_args,
                             stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
     out, _ = proc.communicate()
+    out = out.decode('utf-8')
     if proc.returncode != 0:
         return proc.returncode == 0, out
 
     search_text = '-mstack-protector-guard=global'
     out_words = out.split(' ')
     if search_text in out_words:
-        print 'Found unexpceted {} in output:\n{}'.format(search_text, out)
+        print('Found unexpceted {} in output:\n{}'.format(search_text, out))
         return False, out
     else:
         return True, out

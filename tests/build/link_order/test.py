@@ -113,6 +113,7 @@ def run_test(ndk_path, abi, platform, build_flags):
     proc = subprocess.Popen([ndk_build, '-C', project_path] + ndk_args,
                             stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
     out, _ = proc.communicate()
+    out = out.decode('utf-8')
     if proc.returncode != 0:
         return proc.returncode == 0, out
 

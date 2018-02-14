@@ -20,7 +20,9 @@ Cleans old build artifacts, configures the required environment, determines
 build goals, and invokes the build scripts.
 """
 from __future__ import absolute_import
+from __future__ import division
 from __future__ import print_function
+from __future__ import unicode_literals
 
 import argparse
 import contextlib
@@ -120,47 +122,6 @@ def package_ndk(ndk_dir, dist_dir, host_tag, build_number):
         return _make_zip_package(package_path, base_dir, files)
     else:
         return _make_tar_package(package_path, base_dir, files)
-
-
-def group_by_test(reports):
-    """Arranges per-ABI test results into failures by name.
-
-    Args:
-        details: dict of {config_str: ndk.test.Report}.
-
-    Returns:
-        Dict of {test_name: (config_str, result)}.
-    """
-    by_test = {}
-    for config_str, report in reports.iteritems():
-        for suite, suite_report in report.by_suite().items():
-            for result in suite_report.all_failed:
-                name = '.'.join([suite, result.result.test.name])
-                if name not in by_test:
-                    by_test[name] = []
-                by_test[name].append((config_str, result.result))
-    return by_test
-
-
-def make_test_report(reports, use_color):
-    """Returns a string containing a test failure report.
-
-    Args:
-        details: dict of {config_str: ndk.test.Report}.
-        use_color: Print results with color if True.
-
-    Returns:
-        Test failure report as a string.
-    """
-    grouped_details = group_by_test(reports)
-    lines = []
-    for test_name, test_failures in grouped_details.iteritems():
-        lines.append('BEGIN TEST RESULT: ' + test_name)
-        lines.append('=' * 80)
-        for abi, result in test_failures:
-            lines.append('FAILED {}'.format(abi))
-            lines.append(result.to_string(colored=use_color))
-    return os.linesep.join(lines)
 
 
 def build_ndk_tests(out_dir, dist_dir, args):
@@ -752,7 +713,7 @@ class Platforms(ndk.builds.Module):
         # readelf is a cross platform tool, so arch doesn't matter.
         readelf = self.gcc_tool('readelf', 'arm')
         out = subprocess.check_output([readelf, '--notes', obj_file])
-        if 'Android' not in out:
+        if 'Android' not in out.decode('utf-8'):
             raise RuntimeError(
                 '{} does not contain NDK ELF note'.format(obj_file))
 
@@ -1663,10 +1624,6 @@ def main():
     if args.system.startswith('windows') or not do_package:
         args.build_tests = False
 
-    # Disable buffering on stdout so the build output doesn't hide all of our
-    # "Building..." messages.
-    sys.stdout = os.fdopen(sys.stdout.fileno(), 'w', 0)
-
     os.chdir(os.path.dirname(os.path.realpath(__file__)))
 
     # Set ANDROID_BUILD_TOP.
@@ -1723,7 +1680,7 @@ def main():
 
         install_dir = ndk.paths.get_install_path(out_dir)
         du_str = subprocess.check_output(['du', '-sm', install_dir])
-        match = re.match(r'^(\d+)', du_str)
+        match = re.match(r'^(\d+)', du_str.decode('utf-8'))
         size_str = match.group(1)
         installed_size = int(size_str)
     finally:
@@ -1738,7 +1695,7 @@ def main():
             package_path = package_ndk(
                 ndk_dir, dist_dir, host_tag, args.build_number)
             packaged_size_bytes = os.path.getsize(package_path)
-            packaged_size = packaged_size_bytes / (2 ** 20)
+            packaged_size = packaged_size_bytes // (2 ** 20)
 
     good = True
     test_timer = ndk.timer.Timer()

@@ -14,6 +14,8 @@
 # limitations under the License.
 #
 """Device wrappers and device fleet management."""
+from __future__ import print_function
+
 import logging
 import re
 import subprocess
@@ -184,7 +186,7 @@ class DeviceShardingGroup(object):
     """
     def __init__(self, first_device):
         self.devices = [first_device]
-        self.abis = first_device.abis
+        self.abis = sorted(first_device.abis)
         self.version = first_device.version
         self.is_emulator = first_device.is_emulator
         self.is_release = first_device.is_release
@@ -222,10 +224,13 @@ class DeviceShardingGroup(object):
         if self.is_debuggable != other.is_debuggable:
             return False
         if self.devices != other.devices:
-            print 'devices not equal: {}, {}'.format(
-                self.devices, other.devices)
+            print('devices not equal: {}, {}'.format(
+                self.devices, other.devices))
             return False
         return True
+
+    def __lt__(self, other):
+        return (self.version, self.abis) < (other.version, other.abis)
 
     def __hash__(self):
         return hash((
@@ -258,7 +263,7 @@ class DeviceFleet(object):
             return
 
         same_version = self.devices[device.version]
-        for abi, current_group in same_version.iteritems():
+        for abi, current_group in same_version.items():
             # This device can't fulfill this ABI.
             if abi not in device.abis:
                 continue
@@ -306,8 +311,8 @@ class DeviceFleet(object):
     def get_missing(self):
         """Describes desired configurations without available deices."""
         missing = []
-        for version, abis in self.devices.iteritems():
-            for abi, group in abis.iteritems():
+        for version, abis in self.devices.items():
+            for abi, group in abis.items():
                 if group is None:
                     missing.append('android-{} {}'.format(version, abi))
         return missing
@@ -335,6 +340,7 @@ def get_all_attached_devices(workqueue):
     # their names properly (nakasi on android-16, for example).
     p = subprocess.Popen(['adb', 'devices'], stdout=subprocess.PIPE)
     out, _ = p.communicate()
+    out = out.decode('utf-8')
     if p.returncode != 0:
         raise RuntimeError('Failed to get list of devices from adb.')
 

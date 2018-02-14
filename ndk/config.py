@@ -1,3 +1,6 @@
+from __future__ import print_function
+
+
 major = 18
 hotfix = 0
 hotfix_str = chr(ord('a') + hotfix) if hotfix else ''
@@ -7,4 +10,4 @@ canary = True
 canary_str = '-canary' if canary else ''
 release = 'r{}{}{}{}'.format(major, hotfix_str, beta_str, canary_str)
 if __name__ == '__main__':
-    print release
+    print(release)

@@ -31,6 +31,7 @@ def run_test(ndk_path, abi, platform, build_flags):
     proc = subprocess.Popen([ndk_build, '-C', project_path] + ndk_args,
                             stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
     out, _ = proc.communicate()
+    out = out.decode('utf-8')
     # We expect the analyzer to find an issue and exit with a failure.
     if proc.returncode == 0:
         return False, out

@@ -31,7 +31,11 @@ import logging
 import struct
 import subprocess
 import sys
-from StringIO import StringIO
+
+try:
+    from StringIO import StringIO
+except ImportError:
+    from io import StringIO
 
 SEC_NAME = '.note.android.ident'
 NDK_RESERVED_SIZE = 64
