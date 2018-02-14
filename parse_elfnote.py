@@ -168,7 +168,7 @@ def main():
                 dump_android_ident_note(desc)
             else:
                 logger().warning('unrecognized note (name %s, type %d)',
-                    repr(name), kind)
+                                 repr(name), kind)
 
 
 if __name__ == '__main__':
