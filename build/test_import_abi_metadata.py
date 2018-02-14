@@ -15,6 +15,8 @@
 # limitations under the License.
 #
 """Tests for import_abi_metadata.py."""
+from __future__ import print_function
+
 import unittest
 
 import build.import_abi_metadata

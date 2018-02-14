@@ -15,6 +15,8 @@
 # limitations under the License.
 #
 """Generates Make-importable code from meta/abis.json."""
+from __future__ import print_function
+
 import argparse
 import json
 import os
@@ -81,7 +83,7 @@ def main():
         abis = json.load(abis_file)
 
     abi_vars = metadata_to_make_vars(abis)
-    print generate_make_vars(abi_vars)
+    print(generate_make_vars(abi_vars))
 
 
 if __name__ == '__main__':

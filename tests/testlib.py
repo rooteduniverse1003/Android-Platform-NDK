@@ -589,7 +589,7 @@ def _run_cmake_build_test(test, obj_dir, dist_dir, test_dir, ndk_path,
     if cmake_bin is None:
         return Failure(test, 'cmake executable not found')
 
-    out = subprocess.check_output([cmake_bin, '--version'])
+    out = subprocess.check_output([cmake_bin, '--version']).decode('utf-8')
     version_pattern = r'cmake version (\d+)\.(\d+)\.'
     version = [int(v) for v in re.match(version_pattern, out).groups()]
     if version < [3, 6]:
