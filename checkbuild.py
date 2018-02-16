@@ -693,12 +693,16 @@ class Platforms(ndk.builds.Module):
         bionic_includes = build_support.android_path(
             'bionic/libc/arch-common/bionic')
 
-        # TODO: Investigate crtbegin_so.o segfaults when built with Clang.
-        cc = self.gcc_tool('gcc', arch)
+        cc = ndk.paths.android_path(
+            'prebuilts/clang/host',
+            build_support.get_default_host() + '-x86',
+            Clang.version, 'bin/clang')
 
         args = [
             cc,
+            '-target', build_support.arch_to_triple(arch),
             '--sysroot', self.prebuilt_path('sysroot'),
+            '-gcc-toolchain', self.gcc_toolchain(arch),
             '-I', bionic_includes,
             '-D__ANDROID_API__={}'.format(api),
             '-DPLATFORM_SDK_VERSION={}'.format(api),
