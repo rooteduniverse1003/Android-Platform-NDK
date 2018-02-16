@@ -295,25 +295,6 @@ def make_clang_scripts(install_dir, triple, api, windows):
                     clangbat.write(clangbat_text)
 
 
-def copy_gnustl_abi_headers(src_dir, dst_dir, gcc_ver, triple, abi,
-                            thumb=False):
-    """Copy the ABI specific headers for gnustl."""
-    abi_src_dir = os.path.join(
-        src_dir, 'libs', abi, 'include/bits')
-
-    # Most ABIs simply install to bits, but armeabi-v7a needs to be
-    # installed to armv7-a/bits.
-    bits_dst_dir = 'bits'
-    if thumb:
-        bits_dst_dir = os.path.join('thumb', bits_dst_dir)
-    if abi == 'armeabi-v7a':
-        bits_dst_dir = os.path.join('armv7-a', bits_dst_dir)
-    abi_dst_dir = os.path.join(
-        dst_dir, 'include/c++', gcc_ver, triple, bits_dst_dir)
-
-    shutil.copytree(abi_src_dir, abi_dst_dir)
-
-
 def get_src_libdir(src_dir, abi):
     """Gets the ABI specific lib directory for an NDK project."""
     return os.path.join(src_dir, 'libs', abi)
@@ -329,43 +310,6 @@ def get_dest_libdir(dst_dir, triple, abi):
     if abi.startswith('armeabi-v7a'):
         dst_libdir = os.path.join(dst_libdir, 'armv7-a')
     return dst_libdir
-
-
-def copy_gnustl_libs(src_dir, dst_dir, triple, abi, thumb=False):
-    """Copy the gnustl libraries to the toolchain."""
-    src_libdir = get_src_libdir(src_dir, abi)
-    dst_libdir = get_dest_libdir(dst_dir, triple, abi)
-    if thumb:
-        dst_libdir = os.path.join(dst_libdir, 'thumb')
-
-    logger().debug('Copying %s libs to %s', abi, dst_libdir)
-
-    if not os.path.exists(dst_libdir):
-        os.makedirs(dst_libdir)
-
-    shutil.copy2(os.path.join(src_libdir, 'libgnustl_shared.so'), dst_libdir)
-    shutil.copy2(os.path.join(src_libdir, 'libsupc++.a'), dst_libdir)
-
-    # Copy libgnustl_static.a to libstdc++.a since that's what the world
-    # expects. Can't do this reliably with libgnustl_shared.so because the
-    # SONAME is wrong.
-    shutil.copy2(os.path.join(src_libdir, 'libgnustl_static.a'),
-                 os.path.join(dst_libdir, 'libstdc++.a'))
-
-
-def copy_stlport_libs(src_dir, dst_dir, triple, abi, thumb=False):
-    """Copy the stlport libraries to the toolchain."""
-    src_libdir = get_src_libdir(src_dir, abi)
-    dst_libdir = get_dest_libdir(dst_dir, triple, abi)
-    if thumb:
-        dst_libdir = os.path.join(dst_libdir, 'thumb')
-
-    if not os.path.exists(dst_libdir):
-        os.makedirs(dst_libdir)
-
-    shutil.copy2(os.path.join(src_libdir, 'libstlport_shared.so'), dst_libdir)
-    shutil.copy2(os.path.join(src_libdir, 'libstlport_static.a'),
-                 os.path.join(dst_libdir, 'libstdc++.a'))
 
 
 def copy_libcxx_libs(src_dir, dst_dir, abi, api):
@@ -389,10 +333,6 @@ def copy_libcxx_libs(src_dir, dst_dir, abi, api):
     # Unlike the other STLs, also copy libc++.so (another linker script) over
     # as libstdc++.so.  Since it's a linker script, the linker will still get
     # the right DT_NEEDED from the SONAME of the actual linked object.
-    #
-    # TODO(danalbert): We should add linker scripts for the other STLs too
-    # since it lets the user avoid the current mess of having to always
-    # manually add `-lstlport_shared` (or whichever STL).
     shutil.copy2(os.path.join(src_dir, 'libc++.a'),
                  os.path.join(dst_dir, 'libstdc++.a'))
     shutil.copy2(os.path.join(src_dir, 'libc++.so'),
@@ -503,8 +443,7 @@ def parse_args():
         '--api', type=int,
         help='Target the given API version (example: "--api 24").')
     parser.add_argument(
-        '--stl', choices=('gnustl', 'libc++', 'stlport'), default='libc++',
-        help='C++ STL to use.')
+        '--stl', help='Ignored. Retained for compatibility until NDK r19.')
 
     parser.add_argument(
         '--force', action='store_true',
@@ -536,14 +475,6 @@ def main():
         logging.basicConfig(level=logging.INFO)
     elif args.verbose >= 2:
         logging.basicConfig(level=logging.DEBUG)
-
-    if args.stl != 'libc++':
-        logger().warning(
-            '%s is deprecated and will be removed in the next release. '
-            'Please switch to libc++. See '
-            'https://developer.android.com/ndk/guides/cpp-support.html '
-            'for more information.',
-            args.stl)
 
     check_ndk_or_die()
 
