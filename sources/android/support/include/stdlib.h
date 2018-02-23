@@ -34,9 +34,6 @@
 __BEGIN_DECLS
 
 #if __ANDROID_API__ < __ANDROID_API_L__
-#undef MB_CUR_MAX
-size_t __ctype_get_mb_cur_max(void);
-#define MB_CUR_MAX __ctype_get_mb_cur_max()
 long double strtold_l(const char*, char**, locale_t);
 long long strtoll_l(const char*, char**, int, locale_t);
 unsigned long long strtoull_l(const char*, char**, int, locale_t);
