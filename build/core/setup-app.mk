@@ -86,17 +86,28 @@ ifneq ($(_deprecated_abis),)
     $(call __ndk_warning,Support for these ABIs will be removed in a future NDK release.)
 endif
 
-# Clear all installed binaries for this application
-# This ensures that if the build fails, you're not going to mistakenly
-# package an obsolete version of it. Or if you change the ABIs you're targetting,
-# you're not going to leave a stale shared library for the old one.
+# Clear all installed binaries for this application. This ensures that if the
+# build fails or if you remove a module, you're not going to mistakenly package
+# an obsolete version.
 #
+# Historically this would clear every ABI, meaning that the following workflow
+# would leave only x86_64 present in the lib dir on completion:
+#
+#     for abi in armeabi-v7a arm64-v8a x86 x86_64; do
+#         ndk-build APP_ABI=$abi
+#     done
+#
+# This is the workflow used by gradle. They currently override NDK_ALL_ABIS (an
+# internal variable) to workaround this behavior. Changing this behavior allows
+# them to remove their workaround and stop clobbering our implementation
+# details.
 ifeq ($(NDK_APP.$(_app).cleaned_binaries),)
     NDK_APP.$(_app).cleaned_binaries := true
-    clean-installed-binaries::
-	$(hide) $(call host-rm,$(NDK_ALL_ABIS:%=$(NDK_APP_LIBS_OUT)/%/*))
-	$(hide) $(call host-rm,$(NDK_ALL_ABIS:%=$(NDK_APP_LIBS_OUT)/%/gdbserver))
-	$(hide) $(call host-rm,$(NDK_ALL_ABIS:%=$(NDK_APP_LIBS_OUT)/%/gdb.setup))
+
+clean-installed-binaries::
+	$(hide) $(call host-rm,$(NDK_APP_ABI:%=$(NDK_APP_LIBS_OUT)/%/*))
+	$(hide) $(call host-rm,$(NDK_APP_ABI:%=$(NDK_APP_LIBS_OUT)/%/gdbserver))
+	$(hide) $(call host-rm,$(NDK_APP_ABI:%=$(NDK_APP_LIBS_OUT)/%/gdb.setup))
 endif
 
 # Renderscript
