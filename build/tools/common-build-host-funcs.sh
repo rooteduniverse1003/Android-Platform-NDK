@@ -444,26 +444,17 @@ _bh_select_toolchain_for_host ()
     # directory.
     case $1 in
         linux-x86)
-            # If possible, automatically use our custom toolchain to generate
-            # 32-bit executables that work on Ubuntu 8.04 and higher.
-            _bh_try_host_fullprefix "$(dirname $ANDROID_NDK_ROOT)/prebuilts/gcc/linux-x86/host/i686-linux-glibc2.7-4.6" i686-linux
-            _bh_try_host_fullprefix "$(dirname $ANDROID_NDK_ROOT)/prebuilts/gcc/linux-x86/host/i686-linux-glibc2.7-4.4.3" i686-linux
-            _bh_try_host_fullprefix "$(dirname $ANDROID_NDK_ROOT)/prebuilt/linux-x86/toolchain/i686-linux-glibc2.7-4.4.3" i686-linux
-            _bh_try_host_prefix i686-linux-gnu
-            _bh_try_host_prefix i686-linux
-            _bh_try_host_prefix x86_64-linux-gnu -m32
-            _bh_try_host_prefix x86_64-linux -m32
+            panic "Sorry, this script does not support building 32-bit Linux binaries."
             ;;
 
         linux-x86_64)
-            # If possible, automaticaly use our custom toolchain to generate
-            # 64-bit executables that work on Ubuntu 8.04 and higher.
-            _bh_try_host_fullprefix "$(dirname $ANDROID_NDK_ROOT)/prebuilts/gcc/linux-x86/host/x86_64-linux-glibc2.11-4.8" x86_64-linux
-            _bh_try_host_fullprefix "$(dirname $ANDROID_NDK_ROOT)/prebuilts/gcc/linux-x86/host/x86_64-linux-glibc2.7-4.6" x86_64-linux
-            _bh_try_host_prefix x86_64-linux-gnu
-            _bh_try_host_prefix x84_64-linux
-            _bh_try_host_prefix i686-linux-gnu -m64
-            _bh_try_host_prefix i686-linux -m64
+            local LINUX_GLIBC_PREBUILT=x86_64-linux-glibc2.15-4.8
+            _bh_try_host_fullprefix "$(dirname $ANDROID_NDK_ROOT)/prebuilts/gcc/linux-x86/host/$LINUX_GLIBC_PREBUILT" x86_64-linux
+            if [ -z "$HOST_FULLPREFIX" ]; then
+                dump "Cannot find the x86_64 Linux-targeting compiler. Make sure the"
+                dump "$LINUX_GLIBC_PREBUILT prebuilt is checked out."
+                exit 1
+            fi
             ;;
 
         darwin-*)
