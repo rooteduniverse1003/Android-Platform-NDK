@@ -228,8 +228,6 @@ need to link your project with the proper library:
   | --------- | ---------------------------------------- |
   | arm       | `$TOOLCHAIN/arm-linux-androideabi/lib/`  |
   | arm64     | `$TOOLCHAIN/aarch64-linux-android/lib/`  |
-  | mips      | `$TOOLCHAIN/mipsel-linux-android/lib/`   |
-  | mips64    | `$TOOLCHAIN/mips64el-linux-android/lib/` |
   | x86       | `$TOOLCHAIN/i686-linux-android/lib/`     |
   | x86\_64   | `$TOOLCHAIN/x86_64-linux-android/lib/`   |
 
