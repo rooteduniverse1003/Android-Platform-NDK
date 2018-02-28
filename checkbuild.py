@@ -352,12 +352,30 @@ class Clang(ndk.builds.Module):
             shutil.rmtree(os.path.join(install_path, 'runtimes_ndk_cxx'))
 
 
-def get_gcc_prebuilt_path(host):
-    rel_prebuilt_path = 'prebuilts/ndk/current/toolchains/{}'.format(host)
+def get_gcc_prebuilt_path(host, arch):
+    host_tag = ndk.hosts.host_to_tag(host)
+    toolchain = ndk.abis.arch_to_toolchain(arch) + '-4.9'
+    rel_prebuilt_path = os.path.join(
+        'prebuilts/ndk/current/toolchains', host_tag, toolchain)
     prebuilt_path = build_support.android_path(rel_prebuilt_path)
     if not os.path.isdir(prebuilt_path):
         raise RuntimeError(
             'Could not find prebuilt GCC at {}'.format(prebuilt_path))
+    return prebuilt_path
+
+
+def get_binutils_prebuilt_path(host, arch):
+    if host == 'windows':
+        host = 'win'
+    elif host == 'windows64':
+        host = 'win64'
+
+    binutils_name = 'binutils-{}-{}'.format(arch, host)
+    prebuilt_path = ndk.paths.android_path(
+        'prebuilts/ndk', 'binutils', host, binutils_name)
+    if not os.path.isdir(prebuilt_path):
+        raise RuntimeError(
+            'Could not find prebuilt binutils at {}'.format(prebuilt_path))
     return prebuilt_path
 
 
@@ -370,8 +388,48 @@ def versioned_so(host, lib, version):
         raise ValueError('Unsupported host: {}'.format(host))
 
 
-class Gcc(ndk.builds.Module):
-    name = 'gcc'
+def install_gcc_lib(install_path, host, arch, subarch, lib_subdir, libname):
+    gcc_prebuilt = get_gcc_prebuilt_path(host, arch)
+    lib_install_dir = os.path.join(install_path, lib_subdir, subarch)
+    if not os.path.exists(lib_install_dir):
+        os.makedirs(lib_install_dir)
+    shutil.copy2(
+        os.path.join(gcc_prebuilt, lib_subdir, subarch, libname),
+        os.path.join(lib_install_dir, libname))
+
+
+def install_gcc_crtbegin(install_path, host, arch, subarch):
+    triple = ndk.abis.arch_to_triple(arch)
+    subdir = os.path.join('lib/gcc', triple, '4.9.x')
+    install_gcc_lib(install_path, host, arch, subarch, subdir, 'crtbegin.o')
+
+
+def install_libgcc(install_path, host, arch, subarch):
+    triple = ndk.abis.arch_to_triple(arch)
+    subdir = os.path.join('lib/gcc', triple, '4.9.x')
+    install_gcc_lib(install_path, host, arch, subarch, subdir, 'libgcc.a')
+
+
+def install_libatomic(install_path, host, arch, subarch):
+    triple = ndk.abis.arch_to_triple(arch)
+    subdir = os.path.join(triple, 'lib64' if arch.endswith('64') else 'lib')
+    install_gcc_lib(install_path, host, arch, subarch, subdir, 'libatomic.a')
+
+
+def get_subarches(arch):
+    if arch != 'arm':
+        return ['']
+
+    return [
+        '',
+        'thumb',
+        'armv7-a',
+        'armv7-a/thumb'
+    ]
+
+
+class Binutils(ndk.builds.Module):
+    name = 'binutils'
     path = 'toolchains/{toolchain}-4.9/prebuilt/{host}'
     notice_group = ndk.builds.NoticeGroup.TOOLCHAIN
 
@@ -379,10 +437,8 @@ class Gcc(ndk.builds.Module):
     def notices(self):
         notices = []
         for host in ndk.hosts.ALL_HOSTS:
-            host_tag = ndk.hosts.host_to_tag(host)
-            for toolchain in ndk.abis.ALL_TOOLCHAINS:
-                prebuilt_path = os.path.join(
-                    get_gcc_prebuilt_path(host_tag), toolchain + '-4.9')
+            for arch in ndk.abis.ALL_ARCHITECTURES:
+                prebuilt_path = get_gcc_prebuilt_path(host, arch)
                 notices.append(os.path.join(prebuilt_path, 'NOTICE'))
         return notices
 
@@ -398,39 +454,18 @@ class Gcc(ndk.builds.Module):
             self.install_arch(out_dir, args.system, arch)
 
     def install_arch(self, out_dir, host, arch):
-        version = '4.9'
-        toolchain = build_support.arch_to_toolchain(arch)
-        triple = build_support.arch_to_triple(arch)
-        host_tag = build_support.host_to_tag(host)
-
         install_path = self.get_install_path(out_dir, host, arch)
-
-        toolchain_name = toolchain + '-' + version
-        prebuilt_path = get_gcc_prebuilt_path(host_tag)
-        toolchain_path = os.path.join(prebuilt_path, toolchain_name)
-
+        toolchain_path = get_binutils_prebuilt_path(host, arch)
         ndk.builds.install_directory(toolchain_path, install_path)
 
-        # Gold for aarch64 currently emits broken debug info.
-        # https://issuetracker.google.com/70838247
-        gold_default_aarch64 = False
+        # We still need libgcc/libatomic. Copy them from the old GCC prebuilts.
+        for subarch in get_subarches(arch):
+            install_libgcc(install_path, host, arch, subarch)
+            install_libatomic(install_path, host, arch, subarch)
 
-        # Replace ld with ld.gold for aarch64. We should get a new binutils
-        # build that has this set by default, but this work until we get a new
-        # binutils build.
-        #
-        # We don't have prebuilts for gold for 32-bit Windows.
-        if arch == 'arm64' and host != 'windows' and gold_default_aarch64:
-            exe = '.exe' if host.startswith('windows') else ''
-            ld_bin = os.path.join(install_path, 'bin', triple + '-ld' + exe)
-            gold_bin = os.path.join(
-                install_path, 'bin', triple + '-ld.gold' + exe)
-            os.remove(ld_bin)
-            shutil.copy2(gold_bin, ld_bin)
-
-            ld_arch = os.path.join(install_path, triple, 'bin/ld' + exe)
-            gold_arch = os.path.join(install_path, triple, 'bin/ld.gold' + exe)
-            shutil.copy2(gold_arch, ld_arch)
+            # We don't actually want this, but Clang won't recognize a
+            # -gcc-toolchain without it.
+            install_gcc_crtbegin(install_path, host, arch, subarch)
 
         # Copy the LLVMgold plugin into the binutils plugin directory so ar can
         # use it.
@@ -443,6 +478,7 @@ class Gcc(ndk.builds.Module):
 
         is_win = host.startswith('windows')
         libdir_name = 'lib' if host == 'windows' else 'lib64'
+        host_tag = build_support.host_to_tag(host)
         clang_prebuilts = build_support.android_path(
             'prebuilts/ndk/current/toolchains', host_tag, 'llvm')
         clang_bin = os.path.join(clang_prebuilts, 'bin')
@@ -469,23 +505,6 @@ class Gcc(ndk.builds.Module):
         else:
             libwinpthread = os.path.join(clang_bin, 'libwinpthread-1.dll')
             shutil.copy2(libwinpthread, bfd_plugins)
-
-        # Remove the toolchain wrappers. These don't work on Windows and we
-        # don't want them anyway.
-        bin_path = os.path.join(install_path, 'bin')
-        triple = build_support.arch_to_triple(arch)
-        for name in ('gcc', 'g++'):
-            tool_name = triple + '-' + name
-            real_name = 'real-' + tool_name
-
-            # For some reason the scripts are .exe and the executables aren't.
-            if is_win:
-                tool_name += '.exe'
-
-            tool_path = os.path.join(bin_path, tool_name)
-            real_path = os.path.join(bin_path, real_name)
-            os.remove(tool_path)
-            os.rename(real_path, tool_path)
 
 
 class ShaderTools(ndk.builds.InvokeBuildModule):
@@ -1552,11 +1571,11 @@ def get_modules_to_build(module_names, arches):
 
 ALL_MODULES = [
     AdbPy(),
+    Binutils(),
     CanaryReadme(),
     Changelog(),
     Clang(),
     CpuFeatures(),
-    Gcc(),
     GdbServer(),
     Gtest(),
     HostTools(),
