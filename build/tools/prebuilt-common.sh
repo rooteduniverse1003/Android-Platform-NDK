@@ -903,10 +903,11 @@ prepare_common_build ()
             LEGACY_TOOLCHAIN_DIR="$ANDROID_BUILD_TOP/prebuilts/gcc/darwin-x86/host/i686-apple-darwin-4.2.1/bin"
             LEGACY_TOOLCHAIN_PREFIX="$LEGACY_TOOLCHAIN_DIR/i686-apple-darwin10-"
         fi
-        if [ -d "$LEGACY_TOOLCHAIN_DIR" ] ; then
-            log "Forcing generation of $HOST_OS binaries with legacy toolchain"
-            CC="${LEGACY_TOOLCHAIN_PREFIX}gcc"
-            CXX="${LEGACY_TOOLCHAIN_PREFIX}g++"
+        log "Forcing generation of $HOST_OS binaries with legacy toolchain"
+        CC="${LEGACY_TOOLCHAIN_PREFIX}gcc"
+        CXX="${LEGACY_TOOLCHAIN_PREFIX}g++"
+        if [ ! -e "${CC}" ]; then
+            panic "${CC} does not exist."
         fi
     fi
 
