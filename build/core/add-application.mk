@@ -174,14 +174,13 @@ APP_STL := $(strip $(APP_STL))
 ifndef APP_STL
     APP_STL := system
 else
+    ifneq ($(filter $(APP_STL),gnustl_static gnustl_shared stlport_static stlport_shared),)
+        $(call __ndk_error,APP_STL $(APP_STL) is no longer supported. Please \
+            switch to either c++_static or c++_shared. See \
+            https://developer.android.com/ndk/guides/cpp-support.html for more \
+            information.)
+    endif
     $(call ndk-stl-check,$(APP_STL))
-endif
-
-ifneq ($(filter $(APP_STL),gnustl_static gnustl_shared stlport_static stlport_shared),)
-    $(call __ndk_error,APP_STL $(APP_STL) is no longer supported. Please \
-        switch to either c++_static or c++_shared. See \
-        https://developer.android.com/ndk/guides/cpp-support.html for more \
-        information.)
 endif
 
 # wrap.sh files can be specified in the user's Application.mk in either an
