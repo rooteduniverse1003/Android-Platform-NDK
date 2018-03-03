@@ -381,6 +381,8 @@ modules-LOCALS := \
     ASMFLAGS \
     BUILT_MODULE_NOT_COPIED \
     CFLAGS \
+    CLANG_TIDY \
+    CLANG_TIDY_FLAGS \
     CONLYFLAGS \
     CPPFLAGS \
     CPP_EXTENSION \
@@ -1325,6 +1327,8 @@ NDK_APP_VARS_OPTIONAL := \
     APP_ASMFLAGS \
     APP_BUILD_SCRIPT \
     APP_CFLAGS \
+    APP_CLANG_TIDY \
+    APP_CLANG_TIDY_FLAGS \
     APP_CONLYFLAGS \
     APP_CPPFLAGS \
     APP_CXXFLAGS \
@@ -1806,6 +1810,138 @@ endef
 # Rationale : Setup everything required to build a single C++ source file
 # -----------------------------------------------------------------------------
 compile-cpp-source = $(eval $(call ev-compile-cpp-source,$1,$2))
+
+# clang-tidy doesn't recognize every flag that clang does. This is unlikely to
+# be a complete list, but we can populate this with the ones we know to avoid
+# issues with clang-diagnostic-unused-command-line-argument.
+CLANG_TIDY_UNKNOWN_CFLAGS := \
+    -Wa,% \
+
+sanitize_tidy_cflags = $(filter-out $(CLANG_TIDY_UNKNOWN_CFLAGS),$1)
+
+# Generates rules to check a source file with clang-tidy.
+#
+# This rule will depend on the source file, the Android.mk, the Application.mk,
+# and the object file that this source will be compiled into. The object file is
+# a dependency to ensure that we re-run clang-tidy if a header file included by
+# the source is changed, not just if the file itself changes.
+#
+# To avoid unnecessarily re-running this rule, we touch a foo.c.tidy file as the
+# output of this rule. Calling this function automatically appends the .tidy
+# file as a dependency of clang_tidy_rules, a phony rule that is a dependency of
+# the all rule.
+define ev-clang-tidy
+$$(_OUT): PRIVATE_ABI        := $$(TARGET_ARCH_ABI)
+$$(_OUT): PRIVATE_SRC        := $$(_SRC)
+$$(_OUT): PRIVATE_OUT        := $$(_OUT)
+$$(_OUT): PRIVATE_OBJ        := $$(_OBJ)
+$$(_OUT): PRIVATE_MODULE     := $$(LOCAL_MODULE)
+$$(_OUT): PRIVATE_TEXT       := $$(_TEXT)
+$$(_OUT): PRIVATE_CC         := $$(_CC)
+$$(_OUT): PRIVATE_CFLAGS     := $$(_FLAGS)
+$$(_OUT): PRIVATE_TIDY_FLAGS := $$(_TIDY_FLAGS)
+
+ifeq ($$(LOCAL_SHORT_COMMANDS),true)
+_OPTIONS_LISTFILE := $$(_OUT).cflags
+$$(_OUT): $$(call generate-list-file,$$(_FLAGS),$$(_OPTIONS_LISTFILE))
+$$(_OUT): PRIVATE_CFLAGS := @$$(call host-path,$$(_OPTIONS_LISTFILE))
+$$(_OUT): $$(_OPTIONS_LISTFILE)
+endif
+
+clang_tidy_rules: $$(_OUT)
+
+$$(call generate-file-dir,$$(_OUT))
+$$(_OUT): $$(_SRC) $$(LOCAL_MAKEFILE) $$(NDK_APP_APPLICATION_MK) $$(_OBJ)
+	$$(hide) rm -f $$(PRIVATE_OUT)
+	$$(call host-echo-build-step,$$(PRIVATE_ABI),$$(PRIVATE_TEXT)) "$$(PRIVATE_MODULE) <= $$(notdir $$(PRIVATE_SRC))"
+	$$(hide) $$(CLANG_TIDY) $$(call host-path,$$(PRIVATE_SRC)) $$(PRIVATE_TIDY_FLAGS) -- $$(PRIVATE_CFLAGS)
+	$$(hide) touch $$(call host-path,$$(PRIVATE_OUT))
+endef
+
+# -----------------------------------------------------------------------------
+# Template  : ev-clang-tidy-c
+# Arguments : 1: Single C source file name (relative to LOCAL_PATH)
+#             2: obj file for the source. Used for tracking header dependencies.
+# Returns   : None
+# Usage     : $(eval $(call ev-clang-tidy-c,<srcfile>)
+# -----------------------------------------------------------------------------
+
+define  ev-clang-tidy-c
+_SRC := $$(call local-source-file-path,$(1))
+_OUT := $$(LOCAL_OBJS_DIR:%/=%)/$(1).tidy
+_OBJ := $$(LOCAL_OBJS_DIR:%/=%)/$(2)
+_TIDY_FLAGS := $$(NDK_APP_CLANG_TIDY_FLAGS) $$(LOCAL_CLANG_TIDY_FLAGS)
+
+_FLAGS := $$(call sanitize_tidy_cflags,\
+    $$($$(my)CFLAGS) \
+    $$(call get-src-file-target-cflags,$(1)) \
+    $$(call host-c-includes,$$(LOCAL_C_INCLUDES) $$(LOCAL_PATH)) \
+    $$(NDK_APP_CFLAGS) \
+    $$(NDK_APP_CONLYFLAGS) \
+    $$(LOCAL_CFLAGS) \
+    $$(LOCAL_CONLYFLAGS) \
+    --sysroot $$(call host-path,$$(SYSROOT_INC)) \
+    $(SYSROOT_ARCH_INC_ARG) \
+    -c \
+)
+
+_TEXT := clang-tidy $$(call get-src-file-text,$1)
+
+$$(eval $$(call ev-clang-tidy))
+endef
+
+# -----------------------------------------------------------------------------
+# Function  : clang-tidy-c
+# Arguments : 1: single C source file name (relative to LOCAL_PATH)
+#             2: obj file for the source. Used for tracking header dependencies.
+# Returns   : None
+# Usage     : $(call clang-tidy-c,<srcfile>)
+# -----------------------------------------------------------------------------
+clang-tidy-c = $(eval $(call ev-clang-tidy-c,$1,$2))
+
+# -----------------------------------------------------------------------------
+# Template  : ev-clang-tidy-cpp
+# Arguments : 1: single C++ source file name (relative to LOCAL_PATH)
+#             2: obj file for the source. Used for tracking header dependencies.
+# Returns   : None
+# Usage     : $(eval $(call ev-clang-tidy-cpp,<srcfile>)
+# -----------------------------------------------------------------------------
+
+define  ev-clang-tidy-cpp
+_SRC := $$(call local-source-file-path,$(1))
+_OUT := $$(LOCAL_OBJS_DIR:%/=%)/$(1).tidy
+_OBJ := $$(LOCAL_OBJS_DIR:%/=%)/$(2)
+_TIDY_FLAGS := $$(NDK_APP_CLANG_TIDY_FLAGS) $$(LOCAL_CLANG_TIDY_FLAGS)
+
+_FLAGS := $$(call sanitize_tidy_cflags,\
+    $$($$(my)CXXFLAGS) \
+    $$(call get-src-file-target-cflags,$(1)) \
+    $$(call host-c-includes, $$(LOCAL_C_INCLUDES) $$(LOCAL_PATH)) \
+    $(STL_DEFAULT_STD_VERSION) \
+    $$(NDK_APP_CFLAGS) \
+    $$(NDK_APP_CPPFLAGS) \
+    $$(NDK_APP_CXXFLAGS) \
+    $$(LOCAL_CFLAGS) \
+    $$(LOCAL_CPPFLAGS) \
+    $$(LOCAL_CXXFLAGS) \
+    --sysroot $$(call host-path,$$(SYSROOT_INC)) \
+    $(SYSROOT_ARCH_INC_ARG) \
+    -c\
+)
+
+_TEXT := clang-tidy $$(call get-src-file-text,$1)
+
+$$(eval $$(call ev-clang-tidy))
+endef
+
+# -----------------------------------------------------------------------------
+# Function  : clang-tidy-cpp
+# Arguments : 1: single C++ source file name (relative to LOCAL_PATH)
+#             2: obj file for the source. Used for tracking header dependencies.
+# Returns   : None
+# Usage     : $(call compile-cpp-source,<srcfile>)
+# -----------------------------------------------------------------------------
+clang-tidy-cpp = $(eval $(call ev-clang-tidy-cpp,$1,$2))
 
 # -----------------------------------------------------------------------------
 # Template  : ev-compile-rs-source
