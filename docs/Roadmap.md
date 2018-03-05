@@ -97,7 +97,6 @@ The NDK has long included `gtest` and clang supports various sanitiziers,
 but there are things we can do to improve the state of testing/code quality:
 
   * Test coverage support.
-  * `clang-tidy`.
 
 ### Help building complex applications.
 

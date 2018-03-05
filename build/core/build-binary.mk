@@ -528,6 +528,18 @@ ifneq ($(filter $(all_rs_patterns),$(LOCAL_SRC_FILES)),)
         $(TARGET_OBJS)/$(LOCAL_MODULE)
 endif
 
+do_tidy := $(NDK_APP_CLANG_TIDY)
+ifdef LOCAL_CLANG_TIDY
+    do_tidy := $(LOCAL_CLANG_TIDY)
+endif
+
+ifeq ($(do_tidy),true)
+    $(foreach src,$(filter %.c,$(LOCAL_SRC_FILES)),\
+        $(call clang-tidy-c,$(src),$(call get-object-name,$(src))))
+    $(foreach src,$(filter $(all_cpp_patterns),$(LOCAL_SRC_FILES)),\
+        $(call clang-tidy-cpp,$(src),$(call get-object-name,$(src))))
+endif
+
 $(foreach src,$(filter %.c,$(LOCAL_SRC_FILES)), $(call compile-c-source,$(src),$(call get-object-name,$(src))))
 $(foreach src,$(filter %.S %.s,$(LOCAL_SRC_FILES)), $(call compile-s-source,$(src),$(call get-object-name,$(src))))
 $(foreach src,$(filter $(all_cpp_patterns),$(LOCAL_SRC_FILES)),\

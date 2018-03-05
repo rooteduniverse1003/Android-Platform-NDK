@@ -28,14 +28,19 @@ $(call assert-defined,NDK_APPS NDK_APP_OUT)
 # ====================================================================
 
 # These phony targets are used to control various stages of the build
-.PHONY: all \
-        host_libraries host_executables \
-        installed_modules \
-        executables libraries static_libraries shared_libraries \
-        clean clean-objs-dir \
-        clean-executables clean-libraries \
-        clean-installed-modules \
-        clean-installed-binaries
+.PHONY: \
+    all \
+    host_libraries \
+    host_executables \
+    installed_modules \
+    executables libraries \
+    static_libraries \
+    shared_libraries \
+    clean clean-objs-dir \
+    clean-executables clean-libraries \
+    clean-installed-modules \
+    clean-installed-binaries \
+    clang_tidy_rules \
 
 # These macros are used in Android.mk to include the corresponding
 # build script that will parse the LOCAL_XXX variable definitions.
@@ -75,7 +80,7 @@ ALL_EXECUTABLES           :=
 WANTED_INSTALLED_MODULES  :=
 
 # the first rule
-all: installed_modules host_libraries host_executables
+all: installed_modules host_libraries host_executables clang_tidy_rules
 
 
 $(foreach _app,$(NDK_APPS),\
@@ -104,6 +109,10 @@ distclean: clean
 installed_modules: clean-installed-binaries libraries $(WANTED_INSTALLED_MODULES)
 host_libraries: $(HOST_STATIC_LIBRARIES)
 host_executables: $(HOST_EXECUTABLES)
+
+# clang-tidy rules add themselves as dependencies of this phony rule in
+# ev-clang-tidy.
+clang_tidy_rules:
 
 static_libraries: $(STATIC_LIBRARIES)
 shared_libraries: $(SHARED_LIBRARIES)
