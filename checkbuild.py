@@ -1418,17 +1418,24 @@ class NdkPy(ndk.builds.PythonPackage):
 
 
 def launch_build(worker, module, out_dir, dist_dir, args, log_dir):
-    log_path = os.path.join(log_dir, module.log_file)
-    with open(log_path, 'w') as log_file:
+    result = do_build(worker, module, out_dir, dist_dir, args, log_dir)
+    if not result:
+        return result, module
+    do_install(worker, module, out_dir, dist_dir, args)
+    return True, module
+
+
+def do_build(worker, module, out_dir, dist_dir, args, log_dir):
+    with open(module.log_path(log_dir), 'w') as log_file:
         os.dup2(log_file.fileno(), sys.stdout.fileno())
         os.dup2(log_file.fileno(), sys.stderr.fileno())
         try:
             worker.status = 'Building {}...'.format(module)
             module.build(out_dir, dist_dir, args)
-            return module, True, log_path
+            return True
         except Exception:  # pylint: disable=broad-except
             traceback.print_exc()
-            return module, False, log_path
+            return False
 
 
 def do_install(worker, module, out_dir, dist_dir, args):
@@ -1582,17 +1589,18 @@ def log_build_failure(log_path, dist_dir):
             error_log.write(contents)
 
 
-def wait_for_build(workqueue, dist_dir):
+def wait_for_build(workqueue, dist_dir, log_dir):
     console = ndk.ansi.get_console()
     ui = ndk.ui.get_build_progress_ui(console, workqueue)
     with ndk.ansi.disable_terminal_echo(sys.stdin):
         with console.cursor_hide_context():
             while not workqueue.finished():
-                module, result, log_path = workqueue.get_result()
+                result, module = workqueue.get_result()
                 if not result:
                     ui.clear()
                     print('Build failed: {}'.format(module))
-                    log_build_failure(log_path, dist_dir)
+                    log_build_failure(
+                        module.log_path(log_dir), dist_dir)
                     sys.exit(1)
                 elif not console.smart_console:
                     ui.clear()
@@ -1602,16 +1610,6 @@ def wait_for_build(workqueue, dist_dir):
             print('Build finished')
 
 
-def wait_for_install(workqueue):
-    console = ndk.ansi.get_console()
-    ui = ndk.ui.get_build_progress_ui(console, workqueue)
-    with ndk.ansi.disable_terminal_echo(sys.stdin):
-        with console.cursor_hide_context():
-            while not workqueue.finished():
-                workqueue.get_result()
-                ui.draw()
-            ui.clear()
-            print('Install finished')
 
 
 def main():
@@ -1686,22 +1684,15 @@ def main():
     workqueue = ndk.workqueue.WorkQueue(args.jobs)
     try:
         with build_timer:
+            ndk_dir = ndk.paths.get_install_path(out_dir)
+            if not os.path.exists(ndk_dir):
+                os.makedirs(ndk_dir)
+
             for module in modules:
                 workqueue.add_task(
                     launch_build, module, out_dir, dist_dir, args, log_dir)
 
-            wait_for_build(workqueue, dist_dir)
-
-        ndk_dir = ndk.paths.get_install_path(out_dir)
-        install_timer = ndk.timer.Timer()
-        with install_timer:
-            if not os.path.exists(ndk_dir):
-                os.makedirs(ndk_dir)
-            for module in modules:
-                workqueue.add_task(
-                    do_install, module, out_dir, dist_dir, args)
-
-            wait_for_install(workqueue)
+            wait_for_build(workqueue, dist_dir, log_dir)
 
         install_dir = ndk.paths.get_install_path(out_dir)
         du_str = subprocess.check_output(['du', '-sm', install_dir])
@@ -1737,7 +1728,6 @@ def main():
         print('Package size: {} MiB'.format(packaged_size))
     print('Finished {}'.format('successfully' if good else 'unsuccessfully'))
     print('Build: {}'.format(build_timer.duration))
-    print('Install: {}'.format(install_timer.duration))
     print('Packaging: {}'.format(package_timer.duration))
     print('Testing: {}'.format(test_timer.duration))
     print('Total: {}'.format(total_timer.duration))
