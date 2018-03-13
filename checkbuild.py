@@ -1454,11 +1454,15 @@ def split_module_by_arch(module, arches):
 
 
 def get_modules_to_build(module_names, arches):
+    names = list(module_names)
     modules = []
     for module in ALL_MODULES:
-        if module.name in module_names:
+        if module.name in names:
+            names.remove(module.name)
             for build_module in split_module_by_arch(module, arches):
                 modules.append(build_module)
+    if names:
+        sys.exit('Unknown modules: {}'.format(', '.join(names)))
     return modules
 
 
