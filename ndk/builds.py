@@ -37,6 +37,7 @@ class ModuleValidateError(RuntimeError):
 class Module(object):
     name = None
     path = None
+    deps = set()
 
     # If split_build_by_arch is set, one workqueue task will be created for
     # each architecture. The Module object will be cloned for each arch and
@@ -124,6 +125,15 @@ class Module(object):
         if self.split_build_by_arch and self.build_arch is not None:
             return '{} [{}]'.format(self.name, self.build_arch)
         return self.name
+
+    def __hash__(self):
+        # The string representation of each module must be unique. This is true
+        # both pre- and post-arch split.
+        return hash(str(self))
+
+    def __eq__(self, other):
+        # As with hash(), the str must be unique across all modules.
+        return str(self) == str(other)
 
     @property
     def log_file(self):
