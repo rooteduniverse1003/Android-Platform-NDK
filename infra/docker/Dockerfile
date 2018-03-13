@@ -13,6 +13,7 @@ RUN apt-get install -y pbzip2
 RUN apt-get install -y python
 RUN apt-get install -y python-pip
 RUN apt-get install -y texinfo
+RUN apt-get install -y uuid-runtime
 RUN apt-get install -y zip
 
 RUN pip install setuptools
