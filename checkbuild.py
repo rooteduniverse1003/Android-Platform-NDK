@@ -660,7 +660,6 @@ class Platforms(ndk.builds.Module):
     def gcc_toolchain(self, arch):  # pylint: disable=no-self-use
         host_tag = build_support.host_to_tag(build_support.get_default_host())
         toolchain = build_support.arch_to_toolchain(arch) + '-4.9'
-        # triple = build_support.arch_to_triple(arch)
         return build_support.android_path(
             'prebuilts/ndk/current/toolchains', host_tag, toolchain)
 
