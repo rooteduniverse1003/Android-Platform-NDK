@@ -113,12 +113,12 @@ Rather than managing this yourself, we recommend using
 
 **Table 1.** NDK C++ Runtimes and Features.
 
-| Name      | Features            |
-| --------- | ------------------- |
-| [libc++]  | C++1z support.      |
-| [gnustl]  | C++11 support.      |
-| [STLport] | C++98 support.      |
-| [system]  | `new` and `delete`. |
+| Name      | Features               |
+| --------- | ---------------------- |
+| [libc++]  | C++1z support.         |
+| [gnustl]  | Partial C++11 support. |
+| [STLport] | C++98 support.         |
+| [system]  | `new` and `delete`.    |
 
 With the exception of the system library, each of these is available as both a
 static and shared library.
@@ -247,8 +247,8 @@ runtime is the libstdc++ available on a GNU/Linux system.
 
 This runtime is tightly coupled to GCC, which is no longer supported in the NDK.
 As such, it has not received updates for several releases. The version in the
-NDK only supports C++11, and some portions of this library are incompatible with
-Clang.
+NDK supports most of C++11 (see [Issue 82]), and some portions of this library
+are incompatible with Clang.
 
 Note: This library will be deprecated and removed in a [future] NDK release.
 Beginning with NDK r16, you should use [libc++](#libc) instead.
@@ -260,6 +260,8 @@ gnustl is covered by the GPLv3 license, and *not* the LGPLv2 or LGPLv3.
 For more information, see [the
 license](https://gcc.gnu.org/onlinedocs/gcc-4.9.3/libstdc++/manual/manual/license.html)
 on the GCC website.
+
+[Issue 82]: https://github.com/android-ndk/ndk/issues/82
 
 ### STLport
 <a id="stl"></a>
