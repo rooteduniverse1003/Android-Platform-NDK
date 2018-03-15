@@ -208,7 +208,7 @@ LOCAL_CPPFLAGS := -frtti
 ## Runtime Characteristics
 <a id="rc"></a>
 
-### libc++:
+### libc++
 <a id="cs"></a>
 
 [LLVM's libc++](https://libcxx.llvm.org) is the C++ standard library that has
@@ -297,6 +297,10 @@ the other options presented on this page.
 
 Note: This is the only C++ Runtime that is provided by the OS. All other
 runtimes must be included in your APK.
+
+## Additional sample code
+To download NDK samples, see
+[NDK Samples](https://github.com/googlesamples/android-ndk/).
 
 [Android.mk]: /ndk/guides/android_mk.html
 [Application.mk]: /ndk/guides/application_mk.html
