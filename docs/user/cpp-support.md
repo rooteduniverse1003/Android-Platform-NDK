@@ -208,7 +208,7 @@ LOCAL_CPPFLAGS := -frtti
 ## Runtime Characteristics
 <a id="rc"></a>
 
-### libc++:
+### libc++
 <a id="cs"></a>
 
 [LLVM's libc++](https://libcxx.llvm.org) is the C++ standard library that has
