@@ -134,6 +134,9 @@ class Module(object):
         else:
             return '{}.log'.format(self.name)
 
+    def log_path(self, log_dir):
+        return os.path.join(log_dir, self.log_file)
+
 
 class PackageModule(Module):
     src = None
