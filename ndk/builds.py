@@ -158,9 +158,9 @@ class PackageModule(Module):
     def build(self, _build_dir, _dist_dir, _args):
         pass
 
-    def install(self, build_dir, _dist_dir, args):
+    def install(self, out_dir, _dist_dir, args):
         install_paths = self.get_install_paths(
-            build_dir, args.system, ndk.abis.ALL_ARCHITECTURES)
+            out_dir, args.system, ndk.abis.ALL_ARCHITECTURES)
         assert len(install_paths) == 1
         install_path = install_paths[0]
         install_directory(self.src, install_path)

@@ -660,7 +660,6 @@ class Platforms(ndk.builds.Module):
     def gcc_toolchain(self, arch):  # pylint: disable=no-self-use
         host_tag = build_support.host_to_tag(build_support.get_default_host())
         toolchain = build_support.arch_to_toolchain(arch) + '-4.9'
-        # triple = build_support.arch_to_triple(arch)
         return build_support.android_path(
             'prebuilts/ndk/current/toolchains', host_tag, toolchain)
 
@@ -1559,14 +1558,14 @@ def parse_args():
     module_group = parser.add_mutually_exclusive_group()
 
     module_group.add_argument(
-        '--module', dest='modules', action='append',
+        '--module', dest='modules', action='append', default=[],
         choices=get_all_module_names(), help='NDK modules to build.')
 
     module_group.add_argument(
         '--host-only', action='store_true',
         help='Skip building target components.')
 
-    return parser.parse_args()
+    return parser.parse_known_args()
 
 
 def log_build_failure(log_path, dist_dir):
@@ -1621,12 +1620,10 @@ def main():
     total_timer = ndk.timer.Timer()
     total_timer.start()
 
-    args = parse_args()
-
-    if args.modules is None:
+    args, module_names = parse_args()
+    module_names.extend(args.modules)
+    if not module_names:
         module_names = get_all_module_names()
-    else:
-        module_names = args.modules
 
     if args.host_only:
         module_names = [
