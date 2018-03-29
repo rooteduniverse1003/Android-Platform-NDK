@@ -34,6 +34,7 @@ LOCAL_SRC_FILES := \
     inttypes_test.cpp \
     math_test.cpp \
     platform_version.cpp \
+    stdlib_test.cpp \
     wcstox_test.cpp \
     swprintf_test.cpp \
 
