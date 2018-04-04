@@ -47,6 +47,7 @@ import build.lib.build_support as build_support
 import ndk.ansi
 import ndk.builds
 import ndk.config
+import ndk.deps
 import ndk.ext.shutil
 import ndk.notify
 import ndk.paths
@@ -1453,17 +1454,77 @@ def split_module_by_arch(module, arches):
         yield module
 
 
+def _get_transitive_module_deps(module, deps, unknown_deps, seen):
+    seen.add(module)
+
+    for name in module.deps:
+        if name not in NAMES_TO_MODULES:
+            unknown_deps.add(name)
+            continue
+
+        dep = NAMES_TO_MODULES[name]
+        if dep in seen:
+            # Cycle detection is already handled by ndk.deps.DependencyManager.
+            # Just avoid falling into an infinite loop here and let that do the
+            # work.
+            continue
+
+        deps.add(dep)
+        _get_transitive_module_deps(dep, deps, unknown_deps, seen)
+
+
+def get_transitive_module_deps(module):
+    seen = set()
+    deps = set()
+    unknown_deps = set()
+    _get_transitive_module_deps(module, deps, unknown_deps, seen)
+    return deps, unknown_deps
+
+
 def get_modules_to_build(module_names, arches):
-    names = list(module_names)
-    modules = []
-    for module in ALL_MODULES:
-        if module.name in names:
-            names.remove(module.name)
-            for build_module in split_module_by_arch(module, arches):
-                modules.append(build_module)
-    if names:
-        sys.exit('Unknown modules: {}'.format(', '.join(names)))
-    return modules
+    """Returns a list of modules to be built given a list of module names.
+
+    The module names are those given explicitly by the user or the full list.
+    In the event that the user has passed a subset of modules, we need to also
+    return the dependencies of that module.
+    """
+    unknown_modules = set()
+    modules = set()
+    deps_only = set()
+    for name in module_names:
+        if name not in NAMES_TO_MODULES:
+            # Build a list of all the unknown modules rather than error out
+            # immediately so we can provide a complete error message.
+            unknown_modules.add(name)
+
+        module = NAMES_TO_MODULES[name]
+        modules.add(module)
+
+        deps, unknown_deps = get_transitive_module_deps(module)
+        modules.update(deps)
+
+        # --skip-deps may be passed if the user wants to avoid rebuilding a
+        # costly dependency. It's up to the user to guarantee that the
+        # dependency has actually been built. Modules are skipped by
+        # immediately completing them rather than sending them to the
+        # workqueue. As such, we need to return a list of which modules are
+        # *only* in the list because they are dependencies rather than being a
+        # part of the requested set.
+        for dep in deps:
+            if dep.name not in module_names:
+                deps_only.add(dep)
+        unknown_modules.update(unknown_deps)
+
+    if unknown_modules:
+        sys.exit('Unknown modules: {}'.format(
+            ', '.join(sorted(list(unknown_modules)))))
+
+    build_modules = []
+    for module in modules:
+        for build_module in split_module_by_arch(module, arches):
+            build_modules.append(build_module)
+
+    return sorted(list(build_modules)), deps_only
 
 
 ALL_MODULES = [
@@ -1508,6 +1569,9 @@ ALL_MODULES = [
 ]
 
 
+NAMES_TO_MODULES = {m.name: m for m in ALL_MODULES}
+
+
 def get_all_module_names():
     return [m.name for m in ALL_MODULES]
 
@@ -1532,6 +1596,11 @@ def parse_args():
         help=('Number of parallel builds to run. Note that this will not '
               'affect the -j used for make; this just parallelizes '
               'checkbuild.py. Defaults to the number of CPUs available.'))
+
+    parser.add_argument(
+        '--skip-deps', action='store_true',
+        help=('Assume that dependencies have been built and only build '
+              'explicitly named modules.'))
 
     package_group = parser.add_mutually_exclusive_group()
     package_group.add_argument(
@@ -1593,7 +1662,28 @@ def log_build_failure(log_path, dist_dir):
             error_log.write(contents)
 
 
-def wait_for_build(workqueue, dist_dir, log_dir):
+def launch_buildable(deps, workqueue, out_dir, dist_dir, log_dir, args,
+                     skip_modules):
+    # If args.skip_deps is true, we could get into a case where we just
+    # dequeued the only module that was still building and the only
+    # items in get_buildable() are modules that will be skipped.
+    # Without this outer while loop, we'd mark the skipped dependencies
+    # as complete and then complete the outer loop.  The workqueue
+    # would be out of work and we'd exit.
+    #
+    # Avoid this by making sure that we queue all possible buildable
+    # modules before we complete the loop.
+    while deps.buildable_modules:
+        for module in deps.get_buildable():
+            if args.skip_deps and module in skip_modules:
+                deps.complete(module)
+                continue
+            workqueue.add_task(
+                launch_build, module, out_dir, dist_dir, args, log_dir)
+
+
+def wait_for_build(deps, workqueue, out_dir, dist_dir, log_dir, args,
+                   skip_modules):
     console = ndk.ansi.get_console()
     ui = ndk.ui.get_build_progress_ui(console, workqueue)
     with ndk.ansi.disable_terminal_echo(sys.stdin):
@@ -1609,11 +1699,15 @@ def wait_for_build(workqueue, dist_dir, log_dir):
                 elif not console.smart_console:
                     ui.clear()
                     print('Build succeeded: {}'.format(module))
+
+                deps.complete(module)
+                launch_buildable(
+                    deps, workqueue, out_dir, dist_dir, log_dir, args,
+                    skip_modules)
+
                 ui.draw()
             ui.clear()
             print('Build finished')
-
-
 
 
 def main():
@@ -1672,13 +1766,15 @@ def main():
     print('Cleaning up...')
     ndk.builds.invoke_build('dev-cleanup.sh')
 
-    print('Building modules: {}'.format(' '.join(module_names)))
-    print('Machine has {} CPUs'.format(multiprocessing.cpu_count()))
-
     arches = build_support.ALL_ARCHITECTURES
     if args.arch is not None:
         arches = [args.arch]
-    modules = get_modules_to_build(module_names, arches)
+    modules, deps_only = get_modules_to_build(module_names, arches)
+    print('Building modules: {}'.format(' '.join(
+        [str(m) for m in modules
+         if not args.skip_deps or m not in deps_only])))
+    print('Machine has {} CPUs'.format(multiprocessing.cpu_count()))
+    deps = ndk.deps.DependencyManager(modules)
 
     log_dir = os.path.join(dist_dir, 'logs')
     if not os.path.exists(log_dir):
@@ -1692,11 +1788,15 @@ def main():
             if not os.path.exists(ndk_dir):
                 os.makedirs(ndk_dir)
 
-            for module in modules:
-                workqueue.add_task(
-                    launch_build, module, out_dir, dist_dir, args, log_dir)
+            launch_buildable(
+                deps, workqueue, out_dir, dist_dir, log_dir, args, deps_only)
+            wait_for_build(
+                deps, workqueue, out_dir, dist_dir, log_dir, args, deps_only)
 
-            wait_for_build(workqueue, dist_dir, log_dir)
+            if deps.get_buildable():
+                raise RuntimeError(
+                    'Builder stopped early. Modules are still '
+                    'buildable: {}'.format(', '.join(deps.get_buildable())))
 
         install_dir = ndk.paths.get_install_path(out_dir)
         du_str = subprocess.check_output(['du', '-sm', install_dir])
