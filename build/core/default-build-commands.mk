@@ -78,6 +78,7 @@ $(PRIVATE_CXX) \
     -shared \
     --sysroot=$(call host-path,$(PRIVATE_SYSROOT_LINK)) \
     $(PRIVATE_LINKER_OBJECTS_AND_LIBRARIES) \
+    $(GLOBAL_LDFLAGS) \
     $(PRIVATE_LDFLAGS) \
     $(PRIVATE_LDLIBS) \
     -o $(call host-path,$(LOCAL_BUILT_MODULE))
@@ -95,6 +96,7 @@ $(PRIVATE_CXX) \
     -Wl,-rpath-link=$(call host-path,$(PRIVATE_SYSROOT_LINK)/usr/lib) \
     -Wl,-rpath-link=$(call host-path,$(TARGET_OUT)) \
     $(PRIVATE_LINKER_OBJECTS_AND_LIBRARIES) \
+    $(GLOBAL_LDFLAGS) \
     $(PRIVATE_LDFLAGS) \
     $(PRIVATE_LDLIBS) \
     -o $(call host-path,$(LOCAL_BUILT_MODULE))
@@ -133,16 +135,36 @@ endif
 
 CLANG_TIDY = $(LLVM_TOOLCHAIN_PREFIX)clang-tidy$(HOST_EXEEXT)
 
-TARGET_CFLAGS   =
+GLOBAL_CFLAGS = \
+    -target $(LLVM_TRIPLE) \
+    -ffunction-sections \
+    -fdata-sections \
+    -funwind-tables \
+    -no-canonical-prefixes \
+
+# Always enable debug info. We strip binaries when needed.
+GLOBAL_CFLAGS += -g
+
+# TODO: Remove.
+GLOBAL_CFLAGS += \
+    -Wno-invalid-command-line-argument \
+    -Wno-unused-command-line-argument \
+
+GLOBAL_LDFLAGS = \
+    -target $(LLVM_TRIPLE)$(APP_PLATFORM_LEVEL) \
+    -no-canonical-prefixes \
+
+GLOBAL_CXXFLAGS = $(GLOBAL_CFLAGS) -fno-exceptions -fno-rtti
+
+TARGET_CFLAGS =
 TARGET_CONLYFLAGS =
+TARGET_CXXFLAGS = $(TARGET_CFLAGS)
 
 ifneq ($(findstring c++-analyzer,$(CXX)),)
     TARGET_CXX = $(CXX)
 else
     TARGET_CXX = $(LLVM_TOOLCHAIN_PREFIX)clang++$(HOST_EXEEXT)
 endif
-
-TARGET_CXXFLAGS = $(TARGET_CFLAGS) -fno-exceptions -fno-rtti
 
 TARGET_RS_CC    = $(RENDERSCRIPT_TOOLCHAIN_PREFIX)llvm-rs-cc
 TARGET_RS_BCC   = $(RENDERSCRIPT_TOOLCHAIN_PREFIX)bcc_compat

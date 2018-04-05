@@ -38,23 +38,11 @@ TARGET_UBSAN_BASENAME := libclang_rt.ubsan_standalone-i686-android.so
 
 TARGET_CFLAGS := \
     -gcc-toolchain $(call host-path,$(TOOLCHAIN_ROOT)) \
-    -target $(LLVM_TRIPLE) \
-    -ffunction-sections \
-    -funwind-tables \
-    -fstack-protector-strong \
     -fPIC \
-    -Wno-invalid-command-line-argument \
-    -Wno-unused-command-line-argument \
-    -no-canonical-prefixes
-
-# Always enable debug info. We strip binaries when needed.
-TARGET_CFLAGS += -g
 
 # Add and LDFLAGS for the target here
 TARGET_LDFLAGS += \
     -gcc-toolchain $(call host-path,$(TOOLCHAIN_ROOT)) \
-    -target $(LLVM_TRIPLE) \
-    -no-canonical-prefixes
 
 TARGET_x86_release_CFLAGS := \
     -O2 \
