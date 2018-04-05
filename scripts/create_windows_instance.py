@@ -157,8 +157,8 @@ def parse_args():
         '--zone', default='us-west1-b', help='Zone the VM will be created in.')
 
     parser.add_argument(
-        '--machine-type', default='n1-standard-8',
-        help='GCE machine type. Defaults to 8 cores with 30GB RAM.')
+        '--machine-type', default='n1-standard-32',
+        help='GCE machine type. Defaults to 32 cores with 120GB RAM.')
 
     parser.add_argument(
         '--disk-size', type=int, default=256, help='VM disk size.')
