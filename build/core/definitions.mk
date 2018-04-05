@@ -1652,7 +1652,7 @@ define  ev-compile-c-source
 _SRC:=$$(call local-source-file-path,$(1))
 _OBJ:=$$(LOCAL_OBJS_DIR:%/=%)/$(2)
 
-_FLAGS := $$($$(my)CFLAGS) \
+_FLAGS := $$(TARGET_CFLAGS) \
           $$(call get-src-file-target-cflags,$(1)) \
           $$(call host-c-includes,$$(LOCAL_C_INCLUDES) $$(LOCAL_PATH)) \
           $$(NDK_APP_CFLAGS) \
@@ -1680,7 +1680,7 @@ define  ev-compile-s-source
 _SRC:=$$(call local-source-file-path,$(1))
 _OBJ:=$$(LOCAL_OBJS_DIR:%/=%)/$(2)
 
-_FLAGS := $$($$(my)CFLAGS) \
+_FLAGS := $$(TARGET_CFLAGS) \
           $$(call get-src-file-target-cflags,$(1)) \
           $$(call host-c-includes,$$(LOCAL_C_INCLUDES) $$(LOCAL_PATH)) \
           $$(NDK_APP_CFLAGS) \
@@ -1782,7 +1782,7 @@ compile-asm-source = $(eval $(call ev-compile-asm-source,$1,$2))
 define  ev-compile-cpp-source
 _SRC:=$$(call local-source-file-path,$(1))
 _OBJ:=$$(LOCAL_OBJS_DIR:%/=%)/$(2)
-_FLAGS := $$($$(my)CXXFLAGS) \
+_FLAGS := $$(TARGET_CXXFLAGS) \
           $$(call get-src-file-target-cflags,$(1)) \
           $$(call host-c-includes, $$(LOCAL_C_INCLUDES) $$(LOCAL_PATH)) \
           $(STL_DEFAULT_STD_VERSION) \
@@ -1796,7 +1796,7 @@ _FLAGS := $$($$(my)CXXFLAGS) \
           $(SYSROOT_ARCH_INC_ARG) \
           -c \
 
-_CC   := $$(NDK_CCACHE) $$($$(my)CXX)
+_CC   := $$(NDK_CCACHE) $$(TARGET_CXX)
 _TEXT := Compile++ $$(call get-src-file-text,$1)
 
 $$(eval $$(call ev-build-source-file))
@@ -1874,7 +1874,7 @@ _OBJ := $$(LOCAL_OBJS_DIR:%/=%)/$(2)
 _TIDY_FLAGS := $$(NDK_APP_CLANG_TIDY_FLAGS) $$(LOCAL_CLANG_TIDY_FLAGS)
 
 _FLAGS := $$(call sanitize_tidy_cflags,\
-    $$($$(my)CFLAGS) \
+    $$(TARGET_CFLAGS) \
     $$(call get-src-file-target-cflags,$(1)) \
     $$(call host-c-includes,$$(LOCAL_C_INCLUDES) $$(LOCAL_PATH)) \
     $$(NDK_APP_CFLAGS) \
@@ -1915,7 +1915,7 @@ _OBJ := $$(LOCAL_OBJS_DIR:%/=%)/$(2)
 _TIDY_FLAGS := $$(NDK_APP_CLANG_TIDY_FLAGS) $$(LOCAL_CLANG_TIDY_FLAGS)
 
 _FLAGS := $$(call sanitize_tidy_cflags,\
-    $$($$(my)CXXFLAGS) \
+    $$(TARGET_CXXFLAGS) \
     $$(call get-src-file-target-cflags,$(1)) \
     $$(call host-c-includes, $$(LOCAL_C_INCLUDES) $$(LOCAL_PATH)) \
     $(STL_DEFAULT_STD_VERSION) \
@@ -1964,7 +1964,7 @@ _BC_SRC:=$$(LOCAL_OBJS_DIR:%/=%)/$(3)
 _BC_SO:=$(4)
 _OBJ:=$$(LOCAL_OBJS_DIR:%/=%)/$(5)
 _COMPAT := $(6)
-_CPP_FLAGS := $$($$(my)CXXFLAGS) \
+_CPP_FLAGS := $$(TARGET_CXXFLAGS) \
           $$(call get-src-file-target-cflags,$(1)) \
           $$(call host-c-includes, $$(LOCAL_C_INCLUDES) $$(LOCAL_PATH)) \
           $$(NDK_APP_CFLAGS) \
@@ -1981,15 +1981,15 @@ _CPP_FLAGS := $$($$(my)CXXFLAGS) \
 _LD_FLAGS := $$(TARGET_LDFLAGS)
 
 _RS_FLAGS := $$(call host-c-includes, $$(LOCAL_RENDERSCRIPT_INCLUDES) $$(LOCAL_PATH)) \
-          $$($$(my)RS_FLAGS) \
+          $$(TARGET_RS_FLAGS) \
           $$(LOCAL_RENDERSCRIPT_FLAGS) \
-          $$(call host-c-includes,$$($(my)RENDERSCRIPT_INCLUDES)) \
+          $$(call host-c-includes,$$(TARGET_RENDERSCRIPT_INCLUDES)) \
 
-_RS_CC  := $$(NDK_CCACHE) $$($$(my)RS_CC)
-_RS_BCC := $$(NDK_CCACHE) $$($$(my)RS_BCC)
-_CXX    := $$(NDK_CCACHE) $$($$(my)CXX)
+_RS_CC  := $$(NDK_CCACHE) $$(TARGET_RS_CC)
+_RS_BCC := $$(NDK_CCACHE) $$(TARGET_RS_BCC)
+_CXX    := $$(NDK_CCACHE) $$(TARGET_CXX)
 _TEXT   := Compile RS
-_OUT    := $$($$(my)OUT)
+_OUT    := $$(TARGET_OUT)
 
 $$(eval $$(call ev-build-rs-file))
 endef

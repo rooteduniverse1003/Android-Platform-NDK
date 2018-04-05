@@ -28,7 +28,7 @@ LOCAL_CXXFLAGS := $(__ndk_modules.$(LOCAL_MODULE).CXXFLAGS)
 # We may want to introduce support for host modules in the future
 # but that is too experimental for now.
 #
-my := TARGET_
+my := POISONED
 
 # LOCAL_MAKEFILE must also exist and name the Android.mk that
 # included the module build script.
@@ -129,9 +129,9 @@ $(cleantarget): PRIVATE_ABI         := $(TARGET_ARCH_ABI)
 $(cleantarget): PRIVATE_MODULE      := $(LOCAL_MODULE)
 ifneq ($(LOCAL_BUILT_MODULE_NOT_COPIED),true)
 $(cleantarget): PRIVATE_CLEAN_FILES := $(LOCAL_BUILT_MODULE) \
-                                       $($(my)OBJS)
+                                       $(TARGET_OBJS)
 else
-$(cleantarget): PRIVATE_CLEAN_FILES := $($(my)OBJS)
+$(cleantarget): PRIVATE_CLEAN_FILES := $(TARGET_OBJS)
 endif
 $(cleantarget)::
 	$(call host-echo-build-step,$(PRIVATE_ABI),Clean) "$(PRIVATE_MODULE) [$(PRIVATE_ABI)]"
@@ -189,27 +189,27 @@ endif
 # of a binary that uses undefined symbols.
 #
 ifneq ($(LOCAL_ALLOW_UNDEFINED_SYMBOLS),true)
-  LOCAL_LDFLAGS += $($(my)NO_UNDEFINED_LDFLAGS)
+  LOCAL_LDFLAGS += $(TARGET_NO_UNDEFINED_LDFLAGS)
 endif
 
 # Toolchain by default disallows generated code running from the heap and stack.
 # If LOCAL_DISABLE_NO_EXECUTE is true, we allow that
 #
 ifeq ($(LOCAL_DISABLE_NO_EXECUTE),true)
-  LOCAL_CFLAGS += $($(my)DISABLE_NO_EXECUTE_CFLAGS)
-  LOCAL_LDFLAGS += $($(my)DISABLE_NO_EXECUTE_LDFLAGS)
+  LOCAL_CFLAGS += $(TARGET_DISABLE_NO_EXECUTE_CFLAGS)
+  LOCAL_LDFLAGS += $(TARGET_DISABLE_NO_EXECUTE_LDFLAGS)
 else
-  LOCAL_CFLAGS += $($(my)NO_EXECUTE_CFLAGS)
-  LOCAL_LDFLAGS += $($(my)NO_EXECUTE_LDFLAGS)
+  LOCAL_CFLAGS += $(TARGET_NO_EXECUTE_CFLAGS)
+  LOCAL_LDFLAGS += $(TARGET_NO_EXECUTE_LDFLAGS)
 endif
 
 # Toolchain by default provides relro and GOT protections.
 # If LOCAL_DISABLE_RELRO is true, we disable the protections.
 #
 ifeq ($(LOCAL_DISABLE_RELRO),true)
-  LOCAL_LDFLAGS += $($(my)DISABLE_RELRO_LDFLAGS)
+  LOCAL_LDFLAGS += $(TARGET_DISABLE_RELRO_LDFLAGS)
 else
-  LOCAL_LDFLAGS += $($(my)RELRO_LDFLAGS)
+  LOCAL_LDFLAGS += $(TARGET_RELRO_LDFLAGS)
 endif
 
 # We enable shared text relocation warnings by default. These are not allowed in
@@ -226,9 +226,9 @@ endif
 # By default, we protect against format string vulnerabilities
 # If LOCAL_DISABLE_FORMAT_STRING_CHECKS is true, we disable the protections.
 ifeq ($(LOCAL_DISABLE_FORMAT_STRING_CHECKS),true)
-  LOCAL_CFLAGS += $($(my)DISABLE_FORMAT_STRING_CFLAGS)
+  LOCAL_CFLAGS += $(TARGET_DISABLE_FORMAT_STRING_CFLAGS)
 else
-  LOCAL_CFLAGS += $($(my)FORMAT_STRING_CFLAGS)
+  LOCAL_CFLAGS += $(TARGET_FORMAT_STRING_CFLAGS)
 endif
 
 # Enable PIE for dynamic executables.
