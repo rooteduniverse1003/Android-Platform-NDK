@@ -121,14 +121,6 @@ endif
 get-toolchain-root = $(call host-toolchain-path,$(NDK_TOOLCHAINS_ROOT),$1)
 
 # -----------------------------------------------------------------------------
-# Function : get-binutils-root
-# Arguments: 1: NDK root
-#            2: Toolchain name (no version number)
-# Returns  : Path to the given prebuilt binutils.
-# -----------------------------------------------------------------------------
-get-binutils-root = $1/binutils/$2
-
-# -----------------------------------------------------------------------------
 # Function : get-gcclibs-path
 # Arguments: 1: NDK root
 #            2: Toolchain name (no version number)
