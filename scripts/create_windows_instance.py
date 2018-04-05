@@ -200,11 +200,12 @@ def main():
     secrets_py = os.path.join(THIS_DIR, '..', 'secrets.py')
     logger().info('Writing connection information to %s', secrets_py)
     with open(secrets_py, 'w') as secrets_file:
+        # Write the password as a raw string in case it contains backslashes.
         secrets_file.write(textwrap.dedent("""\
-            GCE_HOST='{}'
-            GCE_USER='{}'
-            GCE_PASS='{}'
-        """.format(host, user, password)))
+            GCE_HOST = {}
+            GCE_USER = {}
+            GCE_PASS = {}
+        """.format(repr(host), repr(user), repr(password))))
     os.chmod(secrets_py, 0600)
     logger().info('Setup completed successfully.')
     logger().info('Host: %s', host)
