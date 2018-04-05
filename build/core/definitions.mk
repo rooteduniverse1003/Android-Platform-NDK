@@ -2204,8 +2204,9 @@ ndk-stl-check = \
 # $1: STL name as it appears in APP_STL (e.g. system)
 #
 ndk-stl-select = \
-    $(call import-module,$(NDK_STL.$1.IMPORT_MODULE)) \
-    $(eval STL_DEFAULT_STD_VERSION := $(strip $(NDK_STL.$1.DEFAULT_STD_VERSION)))
+    $(if $(filter none,$1),,\
+        $(call import-module,$(NDK_STL.$1.IMPORT_MODULE)) \
+        $(eval STL_DEFAULT_STD_VERSION := $(strip $(NDK_STL.$1.DEFAULT_STD_VERSION))))
 
 # Called after all Android.mk files are parsed to add
 # proper STL dependencies to every C++ module.
@@ -2217,7 +2218,7 @@ ndk-stl-add-dependencies = \
         $(NDK_STL.$1.SHARED_LIBS),\
         $(NDK_STL.$1.LDLIBS))
 
-$(call ndk-stl-register,none,cxx-stl/system)
+$(call ndk-stl-register,none)
 $(call ndk-stl-register,system,cxx-stl/system,libstdc++)
 
 $(call ndk-stl-register,\
