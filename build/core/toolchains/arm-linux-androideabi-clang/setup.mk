@@ -56,7 +56,7 @@ TARGET_LDFLAGS += \
     -gcc-toolchain $(call host-path,$(TOOLCHAIN_ROOT)) \
     -no-canonical-prefixes
 
-LLVM_TRIPLE := armv7-none-linux-androideabi$(APP_PLATFORM_LEVEL)
+LLVM_TRIPLE := armv7-none-linux-androideabi
 
 TARGET_CFLAGS += -target $(LLVM_TRIPLE) \
                  -march=armv7-a \
@@ -67,9 +67,6 @@ TARGET_LDFLAGS += -target $(LLVM_TRIPLE) \
                   -Wl,--fix-cortex-a8
 
 GCCLIB_SUBDIR := armv7-a
-
-# Append the platform level for __attribute__((availability)).
-LLVM_TRIPLE := $(LLVM_TRIPLE)$(APP_PLATFORM_LEVEL)
 
 GCCLIB_ROOT := $(call get-gcclibs-path,$(NDK_ROOT),$(TOOLCHAIN_NAME))
 
