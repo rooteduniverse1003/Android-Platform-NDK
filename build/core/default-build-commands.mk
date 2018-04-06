@@ -136,7 +136,7 @@ endif
 CLANG_TIDY = $(LLVM_TOOLCHAIN_PREFIX)clang-tidy$(HOST_EXEEXT)
 
 GLOBAL_CFLAGS = \
-    -target $(LLVM_TRIPLE) \
+    -target $(LLVM_TRIPLE)$(TARGET_PLATFORM_LEVEL) \
     -ffunction-sections \
     -fdata-sections \
     -funwind-tables \
@@ -151,7 +151,7 @@ GLOBAL_CFLAGS += \
     -Wno-unused-command-line-argument \
 
 GLOBAL_LDFLAGS = \
-    -target $(LLVM_TRIPLE) \
+    -target $(LLVM_TRIPLE)$(TARGET_PLATFORM_LEVEL) \
     -no-canonical-prefixes \
 
 GLOBAL_CXXFLAGS = $(GLOBAL_CFLAGS) -fno-exceptions -fno-rtti

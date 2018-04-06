@@ -207,8 +207,7 @@ def make_clang_scripts(install_dir, triple, api, windows):
         arch = 'armv7a'  # Target armv7, not armv5.
 
     target = '-'.join([arch, 'none', os_name, env])
-    common_flags = '-target {}'.format(target)
-    common_flags += ' -D__ANDROID_API__={}'.format(api)
+    common_flags = '-target {}{}'.format(target, api)
     if arch == 'i686':
         common_flags += ' -mstackrealign'
 
