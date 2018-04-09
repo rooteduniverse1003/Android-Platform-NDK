@@ -1652,16 +1652,18 @@ define  ev-compile-c-source
 _SRC:=$$(call local-source-file-path,$(1))
 _OBJ:=$$(LOCAL_OBJS_DIR:%/=%)/$(2)
 
-_FLAGS := $$(TARGET_CFLAGS) \
-          $$(call get-src-file-target-cflags,$(1)) \
-          $$(call host-c-includes,$$(LOCAL_C_INCLUDES) $$(LOCAL_PATH)) \
-          $$(NDK_APP_CFLAGS) \
-          $$(NDK_APP_CONLYFLAGS) \
-          $$(LOCAL_CFLAGS) \
-          $$(LOCAL_CONLYFLAGS) \
-          --sysroot $$(call host-path,$$(SYSROOT_INC)) \
-          $(SYSROOT_ARCH_INC_ARG) \
-          -c \
+_FLAGS := \
+    $$(GLOBAL_CFLAGS) \
+    $$(TARGET_CFLAGS) \
+    $$(call get-src-file-target-cflags,$(1)) \
+    $$(call host-c-includes,$$(LOCAL_C_INCLUDES) $$(LOCAL_PATH)) \
+    $$(NDK_APP_CFLAGS) \
+    $$(NDK_APP_CONLYFLAGS) \
+    $$(LOCAL_CFLAGS) \
+    $$(LOCAL_CONLYFLAGS) \
+    --sysroot $$(call host-path,$$(SYSROOT_INC)) \
+    $(SYSROOT_ARCH_INC_ARG) \
+    -c \
 
 _TEXT := Compile $$(call get-src-file-text,$1)
 _CC   := $$(NDK_CCACHE) $$(TARGET_CC)
@@ -1680,16 +1682,18 @@ define  ev-compile-s-source
 _SRC:=$$(call local-source-file-path,$(1))
 _OBJ:=$$(LOCAL_OBJS_DIR:%/=%)/$(2)
 
-_FLAGS := $$(TARGET_CFLAGS) \
-          $$(call get-src-file-target-cflags,$(1)) \
-          $$(call host-c-includes,$$(LOCAL_C_INCLUDES) $$(LOCAL_PATH)) \
-          $$(NDK_APP_CFLAGS) \
-          $$(NDK_APP_ASFLAGS) \
-          $$(LOCAL_CFLAGS) \
-          $$(LOCAL_ASFLAGS) \
-          --sysroot $$(call host-path,$$(SYSROOT_INC)) \
-          $(SYSROOT_ARCH_INC_ARG) \
-          -c \
+_FLAGS := \
+    $$(GLOBAL_CFLAGS) \
+    $$(TARGET_CFLAGS) \
+    $$(call get-src-file-target-cflags,$(1)) \
+    $$(call host-c-includes,$$(LOCAL_C_INCLUDES) $$(LOCAL_PATH)) \
+    $$(NDK_APP_CFLAGS) \
+    $$(NDK_APP_ASFLAGS) \
+    $$(LOCAL_CFLAGS) \
+    $$(LOCAL_ASFLAGS) \
+    --sysroot $$(call host-path,$$(SYSROOT_INC)) \
+    $(SYSROOT_ARCH_INC_ARG) \
+    -c \
 
 _TEXT := Compile $$(call get-src-file-text,$1)
 _CC   := $$(NDK_CCACHE) $$(TARGET_CC)
@@ -1782,19 +1786,21 @@ compile-asm-source = $(eval $(call ev-compile-asm-source,$1,$2))
 define  ev-compile-cpp-source
 _SRC:=$$(call local-source-file-path,$(1))
 _OBJ:=$$(LOCAL_OBJS_DIR:%/=%)/$(2)
-_FLAGS := $$(TARGET_CXXFLAGS) \
-          $$(call get-src-file-target-cflags,$(1)) \
-          $$(call host-c-includes, $$(LOCAL_C_INCLUDES) $$(LOCAL_PATH)) \
-          $(STL_DEFAULT_STD_VERSION) \
-          $$(NDK_APP_CFLAGS) \
-          $$(NDK_APP_CPPFLAGS) \
-          $$(NDK_APP_CXXFLAGS) \
-          $$(LOCAL_CFLAGS) \
-          $$(LOCAL_CPPFLAGS) \
-          $$(LOCAL_CXXFLAGS) \
-          --sysroot $$(call host-path,$$(SYSROOT_INC)) \
-          $(SYSROOT_ARCH_INC_ARG) \
-          -c \
+_FLAGS := \
+    $$(GLOBAL_CXXFLAGS) \
+    $$(TARGET_CXXFLAGS) \
+    $$(call get-src-file-target-cflags,$(1)) \
+    $$(call host-c-includes, $$(LOCAL_C_INCLUDES) $$(LOCAL_PATH)) \
+    $(STL_DEFAULT_STD_VERSION) \
+    $$(NDK_APP_CFLAGS) \
+    $$(NDK_APP_CPPFLAGS) \
+    $$(NDK_APP_CXXFLAGS) \
+    $$(LOCAL_CFLAGS) \
+    $$(LOCAL_CPPFLAGS) \
+    $$(LOCAL_CXXFLAGS) \
+    --sysroot $$(call host-path,$$(SYSROOT_INC)) \
+    $(SYSROOT_ARCH_INC_ARG) \
+    -c \
 
 _CC   := $$(NDK_CCACHE) $$(TARGET_CXX)
 _TEXT := Compile++ $$(call get-src-file-text,$1)
@@ -1873,7 +1879,9 @@ _OUT := $$(LOCAL_OBJS_DIR:%/=%)/$(1).tidy
 _OBJ := $$(LOCAL_OBJS_DIR:%/=%)/$(2)
 _TIDY_FLAGS := $$(NDK_APP_CLANG_TIDY_FLAGS) $$(LOCAL_CLANG_TIDY_FLAGS)
 
-_FLAGS := $$(call sanitize_tidy_cflags,\
+_FLAGS := \
+    $$(call sanitize_tidy_cflags,\
+    $$(GLOBAL_CFLAGS) \
     $$(TARGET_CFLAGS) \
     $$(call get-src-file-target-cflags,$(1)) \
     $$(call host-c-includes,$$(LOCAL_C_INCLUDES) $$(LOCAL_PATH)) \
@@ -1914,7 +1922,9 @@ _OUT := $$(LOCAL_OBJS_DIR:%/=%)/$(1).tidy
 _OBJ := $$(LOCAL_OBJS_DIR:%/=%)/$(2)
 _TIDY_FLAGS := $$(NDK_APP_CLANG_TIDY_FLAGS) $$(LOCAL_CLANG_TIDY_FLAGS)
 
-_FLAGS := $$(call sanitize_tidy_cflags,\
+_FLAGS := \
+    $$(call sanitize_tidy_cflags,\
+    $$(GLOBAL_CXXFLAGS) \
     $$(TARGET_CXXFLAGS) \
     $$(call get-src-file-target-cflags,$(1)) \
     $$(call host-c-includes, $$(LOCAL_C_INCLUDES) $$(LOCAL_PATH)) \
@@ -1964,21 +1974,25 @@ _BC_SRC:=$$(LOCAL_OBJS_DIR:%/=%)/$(3)
 _BC_SO:=$(4)
 _OBJ:=$$(LOCAL_OBJS_DIR:%/=%)/$(5)
 _COMPAT := $(6)
-_CPP_FLAGS := $$(TARGET_CXXFLAGS) \
-          $$(call get-src-file-target-cflags,$(1)) \
-          $$(call host-c-includes, $$(LOCAL_C_INCLUDES) $$(LOCAL_PATH)) \
-          $$(NDK_APP_CFLAGS) \
-          $$(NDK_APP_CPPFLAGS) \
-          $$(NDK_APP_CXXFLAGS) \
-          $$(LOCAL_CFLAGS) \
-          $$(LOCAL_CPPFLAGS) \
-          $$(LOCAL_CXXFLAGS) \
-          --sysroot $$(call host-path,$$(SYSROOT_INC)) \
-          $(SYSROOT_ARCH_INC_ARG) \
-          -fno-rtti \
-          -c \
+_CPP_FLAGS := \
+    $$(GLOBAL_CXXFLAGS) \
+    $$(TARGET_CXXFLAGS) \
+    $$(call get-src-file-target-cflags,$(1)) \
+    $$(call host-c-includes, $$(LOCAL_C_INCLUDES) $$(LOCAL_PATH)) \
+    $$(NDK_APP_CFLAGS) \
+    $$(NDK_APP_CPPFLAGS) \
+    $$(NDK_APP_CXXFLAGS) \
+    $$(LOCAL_CFLAGS) \
+    $$(LOCAL_CPPFLAGS) \
+    $$(LOCAL_CXXFLAGS) \
+    --sysroot $$(call host-path,$$(SYSROOT_INC)) \
+    $(SYSROOT_ARCH_INC_ARG) \
+    -fno-rtti \
+    -c \
 
-_LD_FLAGS := $$(TARGET_LDFLAGS)
+_LD_FLAGS := \
+    $$(GLOBAL_LDFLAGS) \
+    $$(TARGET_LDFLAGS) \
 
 _RS_FLAGS := $$(call host-c-includes, $$(LOCAL_RENDERSCRIPT_INCLUDES) $$(LOCAL_PATH)) \
           $$(TARGET_RS_FLAGS) \

@@ -41,29 +41,15 @@ TARGET_UBSAN_BASENAME := libclang_rt.ubsan_standalone-arm-android.so
 TARGET_CFLAGS := \
     -gcc-toolchain $(call host-path,$(TOOLCHAIN_ROOT)) \
     -fpic \
-    -ffunction-sections \
-    -funwind-tables \
-    -fstack-protector-strong \
-    -Wno-invalid-command-line-argument \
-    -Wno-unused-command-line-argument \
-    -no-canonical-prefixes
-
-# Always enable debug info. We strip binaries when needed.
-TARGET_CFLAGS += -g
+    -march=armv7-a \
+    -mfloat-abi=softfp \
+    -mfpu=vfpv3-d16 \
 
 TARGET_LDFLAGS += \
     -gcc-toolchain $(call host-path,$(TOOLCHAIN_ROOT)) \
-    -no-canonical-prefixes
+    -Wl,--fix-cortex-a8 \
 
 LLVM_TRIPLE := armv7-none-linux-androideabi
-
-TARGET_CFLAGS += -target $(LLVM_TRIPLE) \
-                 -march=armv7-a \
-                 -mfloat-abi=softfp \
-                 -mfpu=vfpv3-d16
-
-TARGET_LDFLAGS += -target $(LLVM_TRIPLE) \
-                  -Wl,--fix-cortex-a8
 
 GCCLIB_SUBDIR := armv7-a
 
