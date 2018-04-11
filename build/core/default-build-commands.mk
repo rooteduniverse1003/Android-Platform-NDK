@@ -151,7 +151,7 @@ GLOBAL_CFLAGS += \
     -Wno-unused-command-line-argument \
 
 GLOBAL_LDFLAGS = \
-    -target $(LLVM_TRIPLE)$(APP_PLATFORM_LEVEL) \
+    -target $(LLVM_TRIPLE) \
     -no-canonical-prefixes \
 
 GLOBAL_CXXFLAGS = $(GLOBAL_CFLAGS) -fno-exceptions -fno-rtti
