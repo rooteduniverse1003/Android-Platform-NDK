@@ -324,7 +324,14 @@ set(ANDROID_STL_LDLIBS)
 if(ANDROID_STL STREQUAL system)
   set(USE_NOSTDLIBXX FALSE)
   if(NOT "x${ANDROID_CPP_FEATURES}" STREQUAL "x")
-    set(ANDROID_STL_STATIC_LIBRARIES supc++)
+    set(ANDROID_STL_STATIC_LIBRARIES c++abi)
+    if(ANDROID_PLATFORM_LEVEL LESS 21)
+      list(APPEND ANDROID_STL_STATIC_LIBRARIES android_support)
+    endif()
+    if(ANDROID_ABI STREQUAL armeabi-v7a)
+      list(APPEND ANDROID_STL_STATIC_LIBRARIES unwind)
+      list(APPEND ANDROID_STL_LDLIBS dl)
+    endif()
   endif()
 elseif(ANDROID_STL STREQUAL c++_static)
   list(APPEND ANDROID_STL_STATIC_LIBRARIES c++_static c++abi)
@@ -511,12 +518,11 @@ if(ANDROID_ABI STREQUAL x86)
 endif()
 
 # STL specific flags.
+set(ANDROID_STL_PATH "${ANDROID_NDK}/sources/cxx-stl/llvm-libc++")
 if(ANDROID_STL STREQUAL system)
-  set(ANDROID_STL_PREFIX gnu-libstdc++/4.9)
   set(CMAKE_CXX_STANDARD_INCLUDE_DIRECTORIES
     "${ANDROID_NDK}/sources/cxx-stl/system/include")
 elseif(ANDROID_STL MATCHES "^c\\+\\+_")
-  set(ANDROID_STL_PREFIX llvm-libc++)
   if(ANDROID_ABI MATCHES "^armeabi")
     list(APPEND ANDROID_LINKER_FLAGS -Wl,--exclude-libs,libunwind.a)
   endif()
@@ -526,22 +532,22 @@ elseif(ANDROID_STL MATCHES "^c\\+\\+_")
   # Add the libc++ lib directory to the path so the linker scripts can pick up
   # the extra libraries.
   list(APPEND ANDROID_LINKER_FLAGS
-    "-L${ANDROID_NDK}/sources/cxx-stl/${ANDROID_STL_PREFIX}/libs/${ANDROID_ABI}")
+    "-L${ANDROID_STL_PATH}/libs/${ANDROID_ABI}")
 
   set(CMAKE_CXX_STANDARD_INCLUDE_DIRECTORIES
-    "${ANDROID_NDK}/sources/cxx-stl/${ANDROID_STL_PREFIX}/include"
+    "${ANDROID_STL_PATH}/include"
     "${ANDROID_NDK}/sources/android/support/include"
-    "${ANDROID_NDK}/sources/cxx-stl/${ANDROID_STL_PREFIX}abi/include")
+    "${ANDROID_STL_PATH}abi/include")
 endif()
 
 set(ANDROID_CXX_STANDARD_LIBRARIES)
 foreach(library ${ANDROID_STL_STATIC_LIBRARIES})
   list(APPEND ANDROID_CXX_STANDARD_LIBRARIES
-    "${ANDROID_NDK}/sources/cxx-stl/${ANDROID_STL_PREFIX}/libs/${ANDROID_ABI}/lib${library}.a")
+    "${ANDROID_STL_PATH}/libs/${ANDROID_ABI}/lib${library}.a")
 endforeach()
 foreach(library ${ANDROID_STL_SHARED_LIBRARIES})
   list(APPEND ANDROID_CXX_STANDARD_LIBRARIES
-    "${ANDROID_NDK}/sources/cxx-stl/${ANDROID_STL_PREFIX}/libs/${ANDROID_ABI}/lib${library}.so")
+    "${ANDROID_STL_PATH}/libs/${ANDROID_ABI}/lib${library}.so")
 endforeach()
 foreach(library ${ANDROID_STL_LDLIBS})
   list(APPEND ANDROID_CXX_STANDARD_LIBRARIES "-l${library}")
