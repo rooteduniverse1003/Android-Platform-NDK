@@ -150,7 +150,6 @@ LOCAL_RS_OBJECTS :=
 # always define ANDROID when building binaries
 #
 LOCAL_CFLAGS := -DANDROID $(LOCAL_CFLAGS)
-LOCAL_CFLAGS += -D__ANDROID_API__=$(TARGET_PLATFORM_LEVEL)
 
 #
 # Add the default system shared libraries to the build

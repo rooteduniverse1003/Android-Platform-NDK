@@ -305,6 +305,8 @@ else()
   message(FATAL_ERROR "Invalid Android ABI: ${ANDROID_ABI}.")
 endif()
 
+set(ANDROID_LLVM_TRIPLE "${ANDROID_LLVM_TRIPLE}${ANDROID_PLATFORM_LEVEL}")
+
 set(ANDROID_COMPILER_FLAGS)
 set(ANDROID_COMPILER_FLAGS_CXX)
 set(ANDROID_COMPILER_FLAGS_DEBUG)
@@ -391,8 +393,6 @@ set(CMAKE_SYSROOT_COMPILE "${CMAKE_SYSROOT}")
 # machine/ are installed to an arch-$ARCH subdirectory of the sysroot.
 list(APPEND ANDROID_COMPILER_FLAGS
   "-isystem ${CMAKE_SYSROOT}/usr/include/${ANDROID_HEADER_TRIPLE}")
-list(APPEND ANDROID_COMPILER_FLAGS
-  "-D__ANDROID_API__=${ANDROID_PLATFORM_LEVEL}")
 
 # We need different sysroots for linking and compiling, but cmake doesn't
 # support that. Pass the sysroot flag manually when linking.
