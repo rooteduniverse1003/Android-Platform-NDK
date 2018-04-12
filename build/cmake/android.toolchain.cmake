@@ -188,6 +188,13 @@ endif()
 if(NOT ANDROID_ABI)
   set(ANDROID_ABI armeabi-v7a)
 endif()
+
+if(ANDROID_ABI STREQUAL armeabi)
+  message(FATAL_ERROR "armeabi is no longer supported. Use armeabi-v7a.")
+elseif(ANDROID_ABI MATCHES "^(mips|mips64)$")
+  message(FATAL_ERROR "MIPS and MIPS64 are no longer supported.")
+endif()
+
 if(ANDROID_PLATFORM MATCHES "^android-([0-9]|1[0-5])$")
   message(WARNING "${ANDROID_PLATFORM} is unsupported. Using minimum supported "
                   "version android-16")
@@ -295,13 +302,7 @@ elseif(ANDROID_ABI STREQUAL x86_64)
   set(ANDROID_LLVM_TRIPLE x86_64-none-linux-android)
   set(ANDROID_HEADER_TRIPLE x86_64-linux-android)
 else()
-  set(ANDROID_ABI_ERROR "")
-  if(ANDROID_ABI STREQUAL armeabi)
-    set(ANDROID_ABI_ERROR " (armeabi is no longer supported. Use armeabi-v7a.)")
-  elseif(ANDROID_ABI MATCHES "^(mips|mips64)$")
-    set(ANDROID_ABI_ERROR " (MIPS and MIPS64 are no longer supported.)")
-  endif()
-  message(FATAL_ERROR "Invalid Android ABI: ${ANDROID_ABI}.${ANDROID_ABI_ERROR}")
+  message(FATAL_ERROR "Invalid Android ABI: ${ANDROID_ABI}.")
 endif()
 
 set(ANDROID_COMPILER_FLAGS)
@@ -323,19 +324,15 @@ set(ANDROID_STL_LDLIBS)
 if(ANDROID_STL STREQUAL system)
   set(USE_NOSTDLIBXX FALSE)
   if(NOT "x${ANDROID_CPP_FEATURES}" STREQUAL "x")
-    set(ANDROID_STL_STATIC_LIBRARIES supc++)
+    set(ANDROID_STL_STATIC_LIBRARIES c++abi)
+    if(ANDROID_PLATFORM_LEVEL LESS 21)
+      list(APPEND ANDROID_STL_STATIC_LIBRARIES android_support)
+    endif()
+    if(ANDROID_ABI STREQUAL armeabi-v7a)
+      list(APPEND ANDROID_STL_STATIC_LIBRARIES unwind)
+      list(APPEND ANDROID_STL_LDLIBS dl)
+    endif()
   endif()
-elseif(ANDROID_STL STREQUAL stlport_static)
-  set(USE_NOSTDLIBXX FALSE)
-  set(ANDROID_STL_STATIC_LIBRARIES stlport_static)
-elseif(ANDROID_STL STREQUAL stlport_shared)
-  set(USE_NOSTDLIBXX FALSE)
-  set(ANDROID_STL_SHARED_LIBRARIES stlport_shared)
-elseif(ANDROID_STL STREQUAL gnustl_static)
-  set(ANDROID_STL_STATIC_LIBRARIES gnustl_static)
-elseif(ANDROID_STL STREQUAL gnustl_shared)
-  set(ANDROID_STL_STATIC_LIBRARIES supc++)
-  set(ANDROID_STL_SHARED_LIBRARIES gnustl_shared)
 elseif(ANDROID_STL STREQUAL c++_static)
   list(APPEND ANDROID_STL_STATIC_LIBRARIES c++_static c++abi)
   if(ANDROID_PLATFORM_LEVEL LESS 21)
@@ -433,41 +430,36 @@ endif()
 
 set(ANDROID_HOST_PREBUILTS "${ANDROID_NDK}/prebuilt/${ANDROID_HOST_TAG}")
 
-if(ANDROID_TOOLCHAIN STREQUAL clang)
-  set(ANDROID_LLVM_TOOLCHAIN_PREFIX "${ANDROID_NDK}/toolchains/llvm/prebuilt/${ANDROID_HOST_TAG}/bin/")
-  set(ANDROID_C_COMPILER   "${ANDROID_LLVM_TOOLCHAIN_PREFIX}clang${ANDROID_TOOLCHAIN_SUFFIX}")
-  set(ANDROID_CXX_COMPILER "${ANDROID_LLVM_TOOLCHAIN_PREFIX}clang++${ANDROID_TOOLCHAIN_SUFFIX}")
-  set(ANDROID_ASM_COMPILER "${ANDROID_LLVM_TOOLCHAIN_PREFIX}clang${ANDROID_TOOLCHAIN_SUFFIX}")
-  # Clang can fail to compile if CMake doesn't correctly supply the target and
-  # external toolchain, but to do so, CMake needs to already know that the
-  # compiler is clang. Tell CMake that the compiler is really clang, but don't
-  # use CMakeForceCompiler, since we still want compile checks. We only want
-  # to skip the compiler ID detection step.
-  set(CMAKE_C_COMPILER_ID_RUN TRUE)
-  set(CMAKE_CXX_COMPILER_ID_RUN TRUE)
-  set(CMAKE_C_COMPILER_ID Clang)
-  set(CMAKE_CXX_COMPILER_ID Clang)
-  set(CMAKE_C_COMPILER_VERSION 3.8)
-  set(CMAKE_CXX_COMPILER_VERSION 3.8)
-  set(CMAKE_C_STANDARD_COMPUTED_DEFAULT 11)
-  set(CMAKE_CXX_STANDARD_COMPUTED_DEFAULT 98)
-  set(CMAKE_C_COMPILER_TARGET   ${ANDROID_LLVM_TRIPLE})
-  set(CMAKE_CXX_COMPILER_TARGET ${ANDROID_LLVM_TRIPLE})
-  set(CMAKE_ASM_COMPILER_TARGET ${ANDROID_LLVM_TRIPLE})
-  set(CMAKE_C_COMPILER_EXTERNAL_TOOLCHAIN   "${ANDROID_TOOLCHAIN_ROOT}")
-  set(CMAKE_CXX_COMPILER_EXTERNAL_TOOLCHAIN "${ANDROID_TOOLCHAIN_ROOT}")
-  set(CMAKE_ASM_COMPILER_EXTERNAL_TOOLCHAIN "${ANDROID_TOOLCHAIN_ROOT}")
-  set(ANDROID_AR "${ANDROID_TOOLCHAIN_PREFIX}ar${ANDROID_TOOLCHAIN_SUFFIX}")
-  set(ANDROID_RANLIB "${ANDROID_TOOLCHAIN_PREFIX}ranlib${ANDROID_TOOLCHAIN_SUFFIX}")
-elseif(ANDROID_TOOLCHAIN STREQUAL gcc)
-  set(ANDROID_C_COMPILER   "${ANDROID_TOOLCHAIN_PREFIX}gcc${ANDROID_TOOLCHAIN_SUFFIX}")
-  set(ANDROID_CXX_COMPILER "${ANDROID_TOOLCHAIN_PREFIX}g++${ANDROID_TOOLCHAIN_SUFFIX}")
-  set(ANDROID_ASM_COMPILER "${ANDROID_TOOLCHAIN_PREFIX}gcc${ANDROID_TOOLCHAIN_SUFFIX}")
-  set(ANDROID_AR "${ANDROID_TOOLCHAIN_PREFIX}gcc-ar${ANDROID_TOOLCHAIN_SUFFIX}")
-  set(ANDROID_RANLIB "${ANDROID_TOOLCHAIN_PREFIX}gcc-ranlib${ANDROID_TOOLCHAIN_SUFFIX}")
-else()
-  message(FATAL_ERROR "Invalid Android toolchain: ${ANDROID_TOOLCHAIN}.")
-endif()
+set(ANDROID_LLVM_TOOLCHAIN_PREFIX
+  "${ANDROID_NDK}/toolchains/llvm/prebuilt/${ANDROID_HOST_TAG}/bin/")
+set(ANDROID_C_COMPILER
+  "${ANDROID_LLVM_TOOLCHAIN_PREFIX}clang${ANDROID_TOOLCHAIN_SUFFIX}")
+set(ANDROID_CXX_COMPILER
+  "${ANDROID_LLVM_TOOLCHAIN_PREFIX}clang++${ANDROID_TOOLCHAIN_SUFFIX}")
+set(ANDROID_ASM_COMPILER
+  "${ANDROID_LLVM_TOOLCHAIN_PREFIX}clang${ANDROID_TOOLCHAIN_SUFFIX}")
+# Clang can fail to compile if CMake doesn't correctly supply the target and
+# external toolchain, but to do so, CMake needs to already know that the
+# compiler is clang. Tell CMake that the compiler is really clang, but don't
+# use CMakeForceCompiler, since we still want compile checks. We only want
+# to skip the compiler ID detection step.
+set(CMAKE_C_COMPILER_ID_RUN TRUE)
+set(CMAKE_CXX_COMPILER_ID_RUN TRUE)
+set(CMAKE_C_COMPILER_ID Clang)
+set(CMAKE_CXX_COMPILER_ID Clang)
+set(CMAKE_C_COMPILER_VERSION 3.8)
+set(CMAKE_CXX_COMPILER_VERSION 3.8)
+set(CMAKE_C_STANDARD_COMPUTED_DEFAULT 11)
+set(CMAKE_CXX_STANDARD_COMPUTED_DEFAULT 98)
+set(CMAKE_C_COMPILER_TARGET   ${ANDROID_LLVM_TRIPLE})
+set(CMAKE_CXX_COMPILER_TARGET ${ANDROID_LLVM_TRIPLE})
+set(CMAKE_ASM_COMPILER_TARGET ${ANDROID_LLVM_TRIPLE})
+set(CMAKE_C_COMPILER_EXTERNAL_TOOLCHAIN   "${ANDROID_TOOLCHAIN_ROOT}")
+set(CMAKE_CXX_COMPILER_EXTERNAL_TOOLCHAIN "${ANDROID_TOOLCHAIN_ROOT}")
+set(CMAKE_ASM_COMPILER_EXTERNAL_TOOLCHAIN "${ANDROID_TOOLCHAIN_ROOT}")
+set(ANDROID_AR "${ANDROID_TOOLCHAIN_PREFIX}ar${ANDROID_TOOLCHAIN_SUFFIX}")
+set(ANDROID_RANLIB
+  "${ANDROID_TOOLCHAIN_PREFIX}ranlib${ANDROID_TOOLCHAIN_SUFFIX}")
 
 if(NOT IS_DIRECTORY "${ANDROID_NDK}/platforms/${ANDROID_PLATFORM}")
   message(FATAL_ERROR "Invalid Android platform: ${ANDROID_PLATFORM}.")
@@ -518,15 +510,6 @@ if(ANDROID_ABI STREQUAL armeabi-v7a)
   list(APPEND ANDROID_LINKER_FLAGS
     -Wl,--fix-cortex-a8)
 endif()
-if(ANDROID_ABI STREQUAL mips)
-  list(APPEND ANDROID_COMPILER_FLAGS
-    -mips32)
-endif()
-if(ANDROID_ABI STREQUAL mips AND ANDROID_TOOLCHAIN STREQUAL clang)
-  # Help clang use mips64el multilib GCC
-  list(APPEND ANDROID_LINKER_FLAGS
-    "\"-L${ANDROID_TOOLCHAIN_ROOT}/lib/gcc/${ANDROID_TOOLCHAIN_NAME}/4.9.x/32/mips-r1\"")
-endif()
 if(ANDROID_ABI STREQUAL x86)
   # http://b.android.com/222239
   # http://b.android.com/220159 (internal http://b/31809417)
@@ -535,51 +518,36 @@ if(ANDROID_ABI STREQUAL x86)
 endif()
 
 # STL specific flags.
+set(ANDROID_STL_PATH "${ANDROID_NDK}/sources/cxx-stl/llvm-libc++")
 if(ANDROID_STL STREQUAL system)
-  set(ANDROID_STL_PREFIX gnu-libstdc++/4.9)
   set(CMAKE_CXX_STANDARD_INCLUDE_DIRECTORIES
     "${ANDROID_NDK}/sources/cxx-stl/system/include")
-elseif(ANDROID_STL MATCHES "^stlport_")
-  set(ANDROID_STL_PREFIX stlport)
-  set(CMAKE_CXX_STANDARD_INCLUDE_DIRECTORIES
-    "${ANDROID_NDK}/sources/cxx-stl/${ANDROID_STL_PREFIX}/stlport"
-    "${ANDROID_NDK}/sources/cxx-stl/gabi++/include")
-elseif(ANDROID_STL MATCHES "^gnustl_")
-  set(ANDROID_STL_PREFIX gnu-libstdc++/4.9)
-  set(CMAKE_CXX_STANDARD_INCLUDE_DIRECTORIES
-    "${ANDROID_NDK}/sources/cxx-stl/${ANDROID_STL_PREFIX}/include"
-    "${ANDROID_NDK}/sources/cxx-stl/${ANDROID_STL_PREFIX}/libs/${ANDROID_ABI}/include"
-    "${ANDROID_NDK}/sources/cxx-stl/${ANDROID_STL_PREFIX}/include/backward")
 elseif(ANDROID_STL MATCHES "^c\\+\\+_")
-  set(ANDROID_STL_PREFIX llvm-libc++)
   if(ANDROID_ABI MATCHES "^armeabi")
     list(APPEND ANDROID_LINKER_FLAGS -Wl,--exclude-libs,libunwind.a)
   endif()
-  list(APPEND ANDROID_COMPILER_FLAGS_CXX
-    -std=c++11)
-  if(ANDROID_TOOLCHAIN STREQUAL gcc)
-    list(APPEND ANDROID_COMPILER_FLAGS_CXX
-      -fno-strict-aliasing)
-  endif()
+
+  list(APPEND ANDROID_COMPILER_FLAGS_CXX -std=c++11)
 
   # Add the libc++ lib directory to the path so the linker scripts can pick up
   # the extra libraries.
   list(APPEND ANDROID_LINKER_FLAGS
-    "-L${ANDROID_NDK}/sources/cxx-stl/${ANDROID_STL_PREFIX}/libs/${ANDROID_ABI}")
+    "-L${ANDROID_STL_PATH}/libs/${ANDROID_ABI}")
 
   set(CMAKE_CXX_STANDARD_INCLUDE_DIRECTORIES
-    "${ANDROID_NDK}/sources/cxx-stl/${ANDROID_STL_PREFIX}/include"
+    "${ANDROID_STL_PATH}/include"
     "${ANDROID_NDK}/sources/android/support/include"
-    "${ANDROID_NDK}/sources/cxx-stl/${ANDROID_STL_PREFIX}abi/include")
+    "${ANDROID_STL_PATH}abi/include")
 endif()
+
 set(ANDROID_CXX_STANDARD_LIBRARIES)
 foreach(library ${ANDROID_STL_STATIC_LIBRARIES})
   list(APPEND ANDROID_CXX_STANDARD_LIBRARIES
-    "${ANDROID_NDK}/sources/cxx-stl/${ANDROID_STL_PREFIX}/libs/${ANDROID_ABI}/lib${library}.a")
+    "${ANDROID_STL_PATH}/libs/${ANDROID_ABI}/lib${library}.a")
 endforeach()
 foreach(library ${ANDROID_STL_SHARED_LIBRARIES})
   list(APPEND ANDROID_CXX_STANDARD_LIBRARIES
-    "${ANDROID_NDK}/sources/cxx-stl/${ANDROID_STL_PREFIX}/libs/${ANDROID_ABI}/lib${library}.so")
+    "${ANDROID_STL_PATH}/libs/${ANDROID_ABI}/lib${library}.so")
 endforeach()
 foreach(library ${ANDROID_STL_LDLIBS})
   list(APPEND ANDROID_CXX_STANDARD_LIBRARIES "-l${library}")
@@ -778,9 +746,7 @@ else()
 endif()
 set(ANDROID_NDK_HOST_X64 TRUE)
 set(ANDROID_NDK_LAYOUT RELEASE)
-if(ANDROID_ABI STREQUAL armeabi)
-  set(ARMEABI TRUE)
-elseif(ANDROID_ABI STREQUAL armeabi-v7a)
+if(ANDROID_ABI STREQUAL armeabi-v7a)
   set(ARMEABI_V7A TRUE)
   if(ANDROID_ARM_NEON)
     set(NEON TRUE)
@@ -791,10 +757,6 @@ elseif(ANDROID_ABI STREQUAL x86)
   set(X86 TRUE)
 elseif(ANDROID_ABI STREQUAL x86_64)
   set(X86_64 TRUE)
-elseif(ANDROID_ABI STREQUAL mips)
-  set(MIPS TRUE)
-elseif(ANDROID_ABI STREQUAL mips64)
-  set(MIPS64 TRUE)
 endif()
 set(ANDROID_NDK_HOST_SYSTEM_NAME ${ANDROID_HOST_TAG})
 set(ANDROID_NDK_ABI_NAME ${ANDROID_ABI})
@@ -809,12 +771,7 @@ endif()
 # CMake 3.7+ compatibility.
 if (CMAKE_VERSION VERSION_GREATER 3.7.0)
   set(CMAKE_ANDROID_NDK ${ANDROID_NDK})
-
-  if(ANDROID_TOOLCHAIN STREQUAL gcc)
-    set(CMAKE_ANDROID_NDK_TOOLCHAIN_VERSION 4.9)
-  else()
-    set(CMAKE_ANDROID_NDK_TOOLCHAIN_VERSION clang)
-  endif()
+  set(CMAKE_ANDROID_NDK_TOOLCHAIN_VERSION clang)
 
   set(CMAKE_ANDROID_STL_TYPE ${ANDROID_STL})
 
