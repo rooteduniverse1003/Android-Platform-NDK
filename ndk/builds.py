@@ -115,12 +115,6 @@ class Module(object):
             raise RuntimeError('{} did not install a NOTICE file at {}'.format(
                 self.name, license_file))
 
-        repo_prop_file = os.path.join(install_path, 'repo.prop')
-        if not os.path.exists(repo_prop_file):
-            raise RuntimeError(
-                '{} did not install a repo.prop file at {}'.format(
-                    self.name, repo_prop_file))
-
     def __str__(self):
         if self.split_build_by_arch and self.build_arch is not None:
             return '{} [{}]'.format(self.name, self.build_arch)

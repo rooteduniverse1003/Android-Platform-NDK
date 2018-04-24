@@ -555,8 +555,7 @@ class HostTools(ndk.builds.Module):
                 build_support.android_path('toolchain/yasm/GNU_LGPL-2.0'),
             ])
 
-        build_support.make_repo_prop(install_dir)
-
+        ndk.builds.make_repo_prop(install_dir)
         self.validate_notice(install_dir)
 
 
@@ -862,7 +861,6 @@ class Platforms(ndk.builds.Module):
             self.prebuilt_path('sysroot/NOTICE'),
             os.path.join(install_dir, 'NOTICE'))
 
-        build_support.make_repo_prop(install_dir)
         self.validate_notice(install_dir)
 
 
@@ -977,28 +975,24 @@ class CpuFeatures(ndk.builds.PackageModule):
     name = 'cpufeatures'
     path = 'sources/android/cpufeatures'
     src = build_support.ndk_path('sources/android/cpufeatures')
-    create_repo_prop = True
 
 
 class NativeAppGlue(ndk.builds.PackageModule):
     name = 'native_app_glue'
     path = 'sources/android/native_app_glue'
     src = build_support.ndk_path('sources/android/native_app_glue')
-    create_repo_prop = True
 
 
 class NdkHelper(ndk.builds.PackageModule):
     name = 'ndk_helper'
     path = 'sources/android/ndk_helper'
     src = build_support.ndk_path('sources/android/ndk_helper')
-    create_repo_prop = True
 
 
 class Gtest(ndk.builds.PackageModule):
     name = 'gtest'
     path = 'sources/third_party/googletest'
     src = ndk.paths.android_path('external/googletest/googletest')
-    create_repo_prop = True
 
 
 class Sysroot(ndk.builds.Module):
@@ -1188,7 +1182,6 @@ class NdkBuild(ndk.builds.PackageModule):
     name = 'ndk-build'
     path = 'build'
     src = build_support.ndk_path('build')
-    create_repo_prop = True
 
 
 # TODO(danalbert): Why isn't this just PackageModule?
@@ -1213,21 +1206,18 @@ class SystemStl(ndk.builds.PackageModule):
     name = 'system-stl'
     path = 'sources/cxx-stl/system'
     src = build_support.ndk_path('sources/cxx-stl/system')
-    create_repo_prop = True
 
 
 class LibAndroidSupport(ndk.builds.PackageModule):
     name = 'libandroid_support'
     path = 'sources/android/support'
     src = build_support.ndk_path('sources/android/support')
-    create_repo_prop = True
 
 
 class Libcxxabi(ndk.builds.PackageModule):
     name = 'libc++abi'
     path = 'sources/cxx-stl/llvm-libc++abi'
     src = build_support.android_path('external/libcxxabi')
-    create_repo_prop = True
 
 
 class SimplePerf(ndk.builds.Module):
@@ -1273,7 +1263,6 @@ class RenderscriptLibs(ndk.builds.PackageModule):
     name = 'renderscript-libs'
     path = 'sources/android/renderscript'
     src = build_support.ndk_path('sources/android/renderscript')
-    create_repo_prop = True
 
 
 class RenderscriptToolchain(ndk.builds.InvokeBuildModule):
