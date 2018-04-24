@@ -34,10 +34,36 @@ class ModuleValidateError(RuntimeError):
     pass
 
 
+class NoticeGroup(object):
+    """An enum describing NOTICE file groupings.
+
+    The NDK ships two NOTICE files: one for the toolchain, and one for
+    everything else.
+    """
+    BASE = 1
+    TOOLCHAIN = 2
+
+
 class Module(object):
     name = None
     path = None
     deps = set()
+
+    # In most cases a module will have only one license file, so the common
+    # interface is a single path, not a list. For the rare modules that have
+    # multiple notice files (such as yasm), the notices property should be
+    # overrided. By default this property will return `[self.notice]`.
+    notice = None
+
+    # Not all components need a notice (stub scripts, basic things like the
+    # readme and changelog, etc), but this is opt-out.
+    no_notice = False
+
+    # Indicates which NOTICE file that should contain the license text for this
+    # module. i.e. NoticeGroup.BASE will result in the license being included
+    # in $NDK/NOTICE, whereas NoticeGroup.TOOLCHAIN will result in the license
+    # text being included in NOTICE.toolchain.
+    notice_group = NoticeGroup.BASE
 
     # If split_build_by_arch is set, one workqueue task will be created for
     # each architecture. The Module object will be cloned for each arch and
@@ -47,7 +73,20 @@ class Module(object):
     build_arch = None
 
     def __init__(self):
+        if self.notice is None:
+            self.notice = self.default_notice_path()
         self.validate()
+
+    @property
+    def notices(self):
+        if self.no_notice:
+            return []
+        if self.notice is None:
+            return []
+        return [self.notice]
+
+    def default_notice_path(self):  # pylint: disable=no-self-use
+        return None
 
     def validate_error(self, msg):
         return ModuleValidateError('{}: {}'.format(self.name, msg))
@@ -57,6 +96,20 @@ class Module(object):
             raise ModuleValidateError('{} has no name'.format(self.__class__))
         if self.path is None:
             raise self.validate_error('path property not set')
+        if self.notice_group not in (NoticeGroup.BASE, NoticeGroup.TOOLCHAIN):
+            raise self.validate_error('invalid notice group')
+        self.validate_notice()
+
+    def validate_notice(self):
+        if self.no_notice:
+            return
+
+        if not self.notices:
+            raise self.validate_error('notice property not set')
+        for notice in self.notices:
+            if not os.path.exists(notice):
+                raise self.validate_error(
+                    'notice file {} does not exist'.format(notice))
 
     def build(self, build_dir, dist_dir, args):
         raise NotImplementedError
@@ -75,8 +128,6 @@ class Module(object):
             if os.path.exists(install_path):
                 shutil.rmtree(install_path)
             ndk.packaging.extract_zip(package, install_path)
-
-            self.validate_notice(install_path)
 
     def get_install_paths(self, build_dir, host, arches):
         install_subdirs = ndk.packaging.expand_paths(self.path, host, arches)
@@ -109,12 +160,6 @@ class Module(object):
 
         return install_subdirs[0]
 
-    def validate_notice(self, install_path):
-        license_file = os.path.join(install_path, 'NOTICE')
-        if not os.path.exists(license_file):
-            raise RuntimeError('{} did not install a NOTICE file at {}'.format(
-                self.name, license_file))
-
     def __str__(self):
         if self.split_build_by_arch and self.build_arch is not None:
             return '{} [{}]'.format(self.name, self.build_arch)
@@ -146,6 +191,9 @@ class PackageModule(Module):
     src = None
     create_repo_prop = False
 
+    def default_notice_path(self):
+        return os.path.join(self.src, 'NOTICE')
+
     def validate(self):
         super(PackageModule, self).validate()
 
@@ -173,7 +221,6 @@ class PackageModule(Module):
         install_directory(self.src, install_path)
         if self.create_repo_prop:
             make_repo_prop(install_path)
-        self.validate_notice(install_path)
 
 
 class InvokeExternalBuildModule(Module):
@@ -205,6 +252,9 @@ class InvokeBuildModule(InvokeExternalBuildModule):
 class FileModule(Module):
     src = None
 
+    # Used for things like the readme and the changelog. No notice needed.
+    no_notice = True
+
     def build(self, _build_dir, _dist_dir, _args):
         pass
 
@@ -220,10 +270,8 @@ class ScriptShortcutModule(Module):
     script = None
     windows_ext = None
 
-    def validate_notice(self, _install_base):
-        # These are all trivial shell scripts that we generated. No notice
-        # needed.
-        pass
+    # These are all trivial shell scripts that we generated. No notice needed.
+    no_notice = True
 
     def validate(self):
         super(ScriptShortcutModule, self).validate()
@@ -291,6 +339,10 @@ class ScriptShortcutModule(Module):
 
 
 class PythonPackage(Module):
+    def default_notice_path(self):
+        # Assume there's a NOTICE file in the same directory as the setup.py.
+        return os.path.join(os.path.dirname(self.path), 'NOTICE')
+
     def build(self, build_dir, _dist_dir, _args):
         cwd = os.path.dirname(self.path)
         subprocess.check_call(
