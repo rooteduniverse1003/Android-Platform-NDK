@@ -276,7 +276,3 @@ run ${TOOLCHAIN_PREFIX}objcopy --strip-unneeded \
 fail_panic "Could not install $DSTFILE."
 
 make_repo_prop "$INSTALL_DIR"
-cp "$SRC_DIR/../../COPYING" "$INSTALL_DIR/NOTICE"
-fail_panic "Could not copy license file!"
-
-dump "Done."

@@ -218,6 +218,16 @@ class Clang(ndk.builds.Module):
     name = 'clang'
     path = 'toolchains/llvm/prebuilt/{host}'
     version = 'clang-4691093'
+    notice_group = ndk.builds.NoticeGroup.TOOLCHAIN
+
+    @property
+    def notices(self):
+        return [
+            os.path.join(self.get_prebuilt_path('darwin'), 'NOTICE'),
+            os.path.join(self.get_prebuilt_path('linux'), 'NOTICE'),
+            os.path.join(self.get_prebuilt_path('windows'), 'NOTICE'),
+            os.path.join(self.get_prebuilt_path('windows64'), 'NOTICE'),
+        ]
 
     def get_prebuilt_path(self, host):
         # The 32-bit Windows Clang is a part of the 64-bit Clang package in
@@ -363,6 +373,18 @@ def versioned_so(host, lib, version):
 class Gcc(ndk.builds.Module):
     name = 'gcc'
     path = 'toolchains/{toolchain}-4.9/prebuilt/{host}'
+    notice_group = ndk.builds.NoticeGroup.TOOLCHAIN
+
+    @property
+    def notices(self):
+        notices = []
+        for host in ndk.hosts.ALL_HOSTS:
+            host_tag = ndk.hosts.host_to_tag(host)
+            for toolchain in ndk.abis.ALL_TOOLCHAINS:
+                prebuilt_path = os.path.join(
+                    get_gcc_prebuilt_path(host_tag), toolchain + '-4.9')
+                notices.append(os.path.join(prebuilt_path, 'NOTICE'))
+        return notices
 
     def build(self, _build_dir, _dist_dir, _args):
         pass
@@ -470,11 +492,39 @@ class ShaderTools(ndk.builds.InvokeBuildModule):
     name = 'shader-tools'
     path = 'shader-tools/{host}'
     script = 'build-shader-tools.py'
+    notice_group = ndk.builds.NoticeGroup.TOOLCHAIN
+
+    @property
+    def notices(self):
+        base = ndk.paths.android_path('external/shaderc')
+        shaderc_dir = os.path.join(base, 'shaderc')
+        spirv_dir = os.path.join(base, 'spirv-headers')
+        return [
+            os.path.join(shaderc_dir, 'LICENSE'),
+            os.path.join(shaderc_dir, 'third_party', 'LICENSE.spirv-tools'),
+            os.path.join(shaderc_dir, 'third_party', 'LICENSE.glslang'),
+            os.path.join(spirv_dir, 'LICENSE')
+        ]
 
 
 class HostTools(ndk.builds.Module):
     name = 'host-tools'
     path = 'prebuilt/{host}'
+    notice_group = ndk.builds.NoticeGroup.TOOLCHAIN
+
+    @property
+    def notices(self):
+        return [
+            ndk.paths.android_path('toolchain/gdb/gdb-7.11/COPYING'),
+            ndk.paths.android_path('toolchain/python/Python-2.7.5/LICENSE'),
+            ndk.paths.android_path('toolchain/yasm/Artistic.txt'),
+            ndk.paths.android_path('toolchain/yasm/BSD.txt'),
+            ndk.paths.android_path('toolchain/yasm/COPYING'),
+            ndk.paths.android_path('toolchain/yasm/GNU_GPL-2.0'),
+            ndk.paths.android_path('toolchain/yasm/GNU_LGPL-2.0'),
+            ndk.paths.ndk_path('sources/host-tools/make-3.81/COPYING'),
+            ndk.paths.ndk_path('sources/host-tools/toolbox/NOTICE'),
+        ]
 
     def build(self, build_dir, dist_dir, args):
         build_args = ndk.builds.common_build_args(build_dir, dist_dir, args)
@@ -538,25 +588,7 @@ class HostTools(ndk.builds.Module):
         for f in files:
             shutil.copy2(f, os.path.join(install_dir, 'bin'))
 
-        build_support.merge_license_files(
-            os.path.join(install_dir, 'NOTICE'), [
-                build_support.android_path('toolchain/gdb/gdb-7.11/COPYING'),
-                build_support.ndk_path(
-                    'sources/host-tools/ndk-depends/NOTICE'),
-                build_support.ndk_path('sources/host-tools/make-3.81/COPYING'),
-                build_support.android_path(
-                    'toolchain/python/Python-2.7.5/LICENSE'),
-                build_support.ndk_path('sources/host-tools/ndk-stack/NOTICE'),
-                build_support.ndk_path('sources/host-tools/toolbox/NOTICE'),
-                build_support.android_path('toolchain/yasm/COPYING'),
-                build_support.android_path('toolchain/yasm/BSD.txt'),
-                build_support.android_path('toolchain/yasm/Artistic.txt'),
-                build_support.android_path('toolchain/yasm/GNU_GPL-2.0'),
-                build_support.android_path('toolchain/yasm/GNU_LGPL-2.0'),
-            ])
-
         ndk.builds.make_repo_prop(install_dir)
-        self.validate_notice(install_dir)
 
 
 def install_exe(out_dir, install_dir, name, system):
@@ -581,38 +613,32 @@ class NdkDepends(ndk.builds.InvokeExternalBuildModule):
     name = 'ndk-depends'
     path = 'prebuilt/{host}/bin'
     script = 'ndk/sources/host-tools/ndk-depends/build.py'
+    notice = ndk.paths.ndk_path('sources/host-tools/ndk-depends/NOTICE')
 
     def install(self, out_dir, _dist_dir, args):
         src = os.path.join(out_dir, self.name)
         install_dir = self.get_install_path(out_dir, args.system)
         install_exe(src, install_dir, self.name, args.system)
-
-    def validate_notice(self, _install_base):
-        # ndk-depends shares a directory with many other components. Its
-        # license is merged with the others as part of HostTools.
-        pass
 
 
 class NdkStack(ndk.builds.InvokeExternalBuildModule):
     name = 'ndk-stack'
     path = 'prebuilt/{host}/bin'
     script = 'ndk/sources/host-tools/ndk-stack/build.py'
+    notice = ndk.paths.ndk_path('sources/host-tools/ndk-stack/NOTICE')
 
     def install(self, out_dir, _dist_dir, args):
         src = os.path.join(out_dir, self.name)
         install_dir = self.get_install_path(out_dir, args.system)
         install_exe(src, install_dir, self.name, args.system)
 
-    def validate_notice(self, _install_base):
-        # ndk-stack shares a directory with many other components. Its license
-        # is merged with the others as part of HostTools.
-        pass
-
 
 class GdbServer(ndk.builds.InvokeBuildModule):
     name = 'gdbserver'
     path = 'prebuilt/android-{arch}/gdbserver'
     script = 'build-gdbserver.py'
+    notice = ndk.paths.android_path('toolchain/gdb/gdb-7.11/gdb/COPYING')
+    notice_group = ndk.builds.NoticeGroup.TOOLCHAIN
     arch_specific = True
     split_build_by_arch = True
 
@@ -624,13 +650,13 @@ class GdbServer(ndk.builds.InvokeBuildModule):
             shutil.rmtree(install_path)
         shutil.copytree(src_dir, install_path)
 
-        self.validate_notice(install_path)
-
 
 class Libcxx(ndk.builds.InvokeExternalBuildModule):
     name = 'libc++'
     path = 'sources/cxx-stl/llvm-libc++'
     script = 'ndk/sources/cxx-stl/llvm-libc++/build.py'
+    notice = ndk.paths.android_path('external/libcxx/NOTICE')
+    notice_group = ndk.builds.NoticeGroup.TOOLCHAIN
     arch_specific = True
 
 
@@ -650,6 +676,12 @@ class Platforms(ndk.builds.Module):
     # codenamed releases from 9000 and increment for each additional release.
     # This is filled by get_apis.
     codename_api_map = {}
+
+    # Shared with the sysroot, though the sysroot NOTICE actually includes a
+    # lot more licenses. Platforms and Sysroot are essentially a single
+    # component that is split into two directories only temporarily, so this
+    # will be the end state when we merge the two anyway.
+    notice = ndk.paths.android_path('prebuilts/ndk/platform/sysroot/NOTICE')
 
     def prebuilt_path(self, *args):  # pylint: disable=no-self-use
         return build_support.android_path('prebuilts/ndk/platform', *args)
@@ -856,24 +888,26 @@ class Platforms(ndk.builds.Module):
                     keep_file.write(
                         'This file forces git to keep the directory.')
 
-        # TODO: This is overspecified.
-        shutil.copy2(
-            self.prebuilt_path('sysroot/NOTICE'),
-            os.path.join(install_dir, 'NOTICE'))
-
-        self.validate_notice(install_dir)
-
 
 class LibShaderc(ndk.builds.Module):
     name = 'libshaderc'
     path = 'sources/third_party/shaderc'
+    src = ndk.paths.android_path('external/shaderc')
+    notice_group = ndk.builds.NoticeGroup.TOOLCHAIN
+
+    @property
+    def notices(self):
+        shaderc_dir = os.path.join(self.src, 'shaderc')
+        return [
+            os.path.join(shaderc_dir, 'LICENSE'),
+            os.path.join(shaderc_dir, 'third_party', 'LICENSE.glslang'),
+            os.path.join(shaderc_dir, 'third_party', 'LICENSE.spirv-tools'),
+        ]
 
     def build(self, _build_dir, dist_dir, _args):
-        shaderc_root_dir = build_support.android_path('external/shaderc')
-
         copies = [
             {
-                'source_dir': os.path.join(shaderc_root_dir, 'shaderc'),
+                'source_dir': os.path.join(self.src, 'shaderc'),
                 'dest_dir': 'shaderc',
                 'files': [
                     'Android.mk', 'libshaderc/Android.mk',
@@ -888,7 +922,7 @@ class LibShaderc(ndk.builds.Module):
                 ],
             },
             {
-                'source_dir': os.path.join(shaderc_root_dir, 'spirv-tools'),
+                'source_dir': os.path.join(self.src, 'spirv-tools'),
                 'dest_dir': 'shaderc/third_party/spirv-tools',
                 'files': [
                     'utils/generate_grammar_tables.py',
@@ -901,7 +935,7 @@ class LibShaderc(ndk.builds.Module):
                 'dirs': ['include', 'source'],
             },
             {
-                'source_dir': os.path.join(shaderc_root_dir, 'spirv-headers'),
+                'source_dir': os.path.join(self.src, 'spirv-headers'),
                 'dest_dir':
                     'shaderc/third_party/spirv-tools/external/spirv-headers',
                 'dirs': ['include'],
@@ -912,7 +946,7 @@ class LibShaderc(ndk.builds.Module):
                 ],
             },
             {
-                'source_dir': os.path.join(shaderc_root_dir, 'glslang'),
+                'source_dir': os.path.join(self.src, 'glslang'),
                 'dest_dir': 'shaderc/third_party/glslang',
                 'files': ['glslang/OSDependent/osinclude.h'],
                 'dirs': [
@@ -956,16 +990,6 @@ class LibShaderc(ndk.builds.Module):
                     else:
                         print(source_dir, ':', dest_dir, ":", f, "SKIPPED")
 
-            shaderc_shaderc_dir = os.path.join(shaderc_root_dir, 'shaderc')
-            build_support.merge_license_files(
-                os.path.join(shaderc_path, 'NOTICE'), [
-                    os.path.join(shaderc_shaderc_dir, 'LICENSE'),
-                    os.path.join(shaderc_shaderc_dir,
-                                 'third_party',
-                                 'LICENSE.spirv-tools'),
-                    os.path.join(shaderc_shaderc_dir,
-                                 'third_party',
-                                 'LICENSE.glslang')])
             build_support.make_package('libshaderc', shaderc_path, dist_dir)
         finally:
             shutil.rmtree(temp_dir)
@@ -998,6 +1022,7 @@ class Gtest(ndk.builds.PackageModule):
 class Sysroot(ndk.builds.Module):
     name = 'sysroot'
     path = 'sysroot'
+    notice = ndk.paths.android_path('prebuilts/ndk/platform/sysroot/NOTICE')
 
     def build(self, _out_dir, dist_dir, args):
         temp_dir = tempfile.mkdtemp()
@@ -1091,10 +1116,12 @@ class Sysroot(ndk.builds.Module):
 class Vulkan(ndk.builds.Module):
     name = 'vulkan'
     path = 'sources/third_party/vulkan'
+    notice = ndk.paths.android_path(
+        'external/vulkan-validation-layers/LICENSE.txt')
 
     def build(self, build_dir, dist_dir, args):
         print('Constructing Vulkan validation layer source...')
-        vulkan_root_dir = build_support.android_path(
+        vulkan_root_dir = ndk.paths.android_path(
             'external/vulkan-validation-layers')
 
         copies = [
@@ -1155,10 +1182,6 @@ class Vulkan(ndk.builds.Module):
         shutil.copytree(src, dst, ignore=default_ignore_patterns)
         print('Copying finished')
 
-        build_support.merge_license_files(
-            os.path.join(base_vulkan_path, 'NOTICE'),
-            [os.path.join(vulkan_root_dir, 'LICENSE.txt')])
-
         build_cmd = [
             'bash', vulkan_path + '/build-android/android-generate.sh'
         ]
@@ -1181,25 +1204,14 @@ class Vulkan(ndk.builds.Module):
 class NdkBuild(ndk.builds.PackageModule):
     name = 'ndk-build'
     path = 'build'
-    src = build_support.ndk_path('build')
+    src = ndk.paths.ndk_path('build')
+    notice = ndk.paths.ndk_path('NOTICE')
 
 
-# TODO(danalbert): Why isn't this just PackageModule?
-class PythonPackages(ndk.builds.Module):
+class PythonPackages(ndk.builds.PackageModule):
     name = 'python-packages'
     path = 'python-packages'
-
-    def build(self, _build_dir, dist_dir, _args):
-        # Stage the files in a temporary directory to make things easier.
-        temp_dir = tempfile.mkdtemp()
-        try:
-            path = os.path.join(temp_dir, 'python-packages')
-            shutil.copytree(
-                build_support.android_path('development/python-packages'),
-                path)
-            build_support.make_package('python-packages', path, dist_dir)
-        finally:
-            shutil.rmtree(temp_dir)
+    src = ndk.paths.android_path('development/python-packages')
 
 
 class SystemStl(ndk.builds.PackageModule):
@@ -1223,6 +1235,7 @@ class Libcxxabi(ndk.builds.PackageModule):
 class SimplePerf(ndk.builds.Module):
     name = 'simpleperf'
     path = 'simpleperf'
+    notice = ndk.paths.android_path('prebuilts/simpleperf/NOTICE')
 
     def build(self, build_dir, dist_dir, args):
         print('Building simpleperf...')
@@ -1231,7 +1244,7 @@ class SimplePerf(ndk.builds.Module):
             shutil.rmtree(install_dir)
         os.makedirs(install_dir)
 
-        simpleperf_path = build_support.android_path('prebuilts/simpleperf')
+        simpleperf_path = ndk.paths.android_path('prebuilts/simpleperf')
         dirs = ['doc', 'inferno', 'bin/android']
         is_win = args.system.startswith('windows')
         host_bin_dir = 'windows' if is_win else args.system
@@ -1253,9 +1266,7 @@ class SimplePerf(ndk.builds.Module):
             if should_copy:
                 shutil.copy2(os.path.join(simpleperf_path, item), install_dir)
 
-        for f in ['NOTICE', 'ChangeLog']:
-            shutil.copy2(os.path.join(simpleperf_path, f), install_dir)
-
+        shutil.copy2(os.path.join(simpleperf_path, 'ChangeLog'), install_dir)
         build_support.make_package('simpleperf', install_dir, dist_dir)
 
 
@@ -1270,15 +1281,21 @@ class RenderscriptToolchain(ndk.builds.InvokeBuildModule):
     path = 'toolchains/renderscript/prebuilt/{host}'
     script = 'build-renderscript.py'
 
+    @property
+    def notices(self):
+        base = ndk.paths.android_path('prebuilts/renderscript/host')
+        return [
+            os.path.join(base, 'darwin-x86/current/NOTICE'),
+            os.path.join(base, 'linux-x86/current/NOTICE'),
+            os.path.join(base, 'windows-x86/current/NOTICE'),
+        ]
+
 
 class Changelog(ndk.builds.FileModule):
     name = 'changelog'
     path = 'CHANGELOG.md'
     src = build_support.ndk_path('CHANGELOG.md')
-
-    def validate_notice(self, _install_base):
-        # No license needed for the changelog.
-        pass
+    no_notice = True
 
 
 class NdkGdbShortcut(ndk.builds.ScriptShortcutModule):
@@ -1335,6 +1352,7 @@ CANARY_TEXT = textwrap.dedent("""\
 class CanaryReadme(ndk.builds.Module):
     name = 'canary-readme'
     path = 'README.canary'
+    no_notice = True
 
     def build(self, _out_dir, _dist_dir, _args):
         pass
@@ -1351,25 +1369,20 @@ class Meta(ndk.builds.PackageModule):
     name = 'meta'
     path = 'meta'
     src = build_support.ndk_path('meta')
-
-    def validate_notice(self, _install_base):
-        # No license needed for meta.
-        pass
+    no_notice = True
 
 
 class WrapSh(ndk.builds.PackageModule):
     name = 'wrap.sh'
     path = 'wrap.sh'
     src = build_support.ndk_path('wrap.sh')
-
-    def validate_notice(self, _install_base):
-        # No license needed for meta.
-        pass
+    no_notice = True
 
 
 class SourceProperties(ndk.builds.Module):
     name = 'source.properties'
     path = 'source.properties'
+    no_notice = True
 
     def build(self, _out_dir, _dist_dir, _args):
         pass
@@ -1393,18 +1406,39 @@ class SourceProperties(ndk.builds.Module):
 
 class AdbPy(ndk.builds.PythonPackage):
     name = 'adb.py'
-    path = build_support.android_path(
-        'development/python-packages/adb/setup.py')
+    path = ndk.paths.android_path('development/python-packages/adb/setup.py')
+    notice = ndk.paths.android_path('development/python-packages/NOTICE')
 
 
 class Lit(ndk.builds.PythonPackage):
     name = 'lit'
     path = build_support.android_path('external/llvm/utils/lit/setup.py')
+    notice = ndk.paths.android_path('external/llvm/NOTICE')
 
 
 class NdkPy(ndk.builds.PythonPackage):
     name = 'ndk.py'
     path = build_support.ndk_path('setup.py')
+
+
+def create_notice_file(path, for_group):
+    # Using sets here so we can perform some amount of duplicate reduction. In
+    # a lot of cases there will be minor differences that cause lots of
+    # "duplicates", but might as well catch what we can.
+    notice_files = set()
+    for module in ALL_MODULES:
+        if module.notice_group == for_group:
+            for notice in module.notices:
+                notice_files.add(notice)
+
+    licenses = set()
+    for notice_path in notice_files:
+        with open(notice_path) as notice_file:
+            licenses.add(notice_file.read())
+
+    with open(path, 'w') as output_file:
+        # Sorting the contents here to try to make things deterministic.
+        output_file.write(os.linesep.join(sorted(list(licenses))))
 
 
 def launch_build(worker, module, out_dir, dist_dir, args, log_dir):
@@ -1788,6 +1822,14 @@ def main():
                     'buildable: {}'.format(', '.join(deps.get_buildable())))
 
         install_dir = ndk.paths.get_install_path(out_dir)
+
+        create_notice_file(
+            os.path.join(install_dir, 'NOTICE'),
+            ndk.builds.NoticeGroup.BASE)
+        create_notice_file(
+            os.path.join(install_dir, 'NOTICE.toolchain'),
+            ndk.builds.NoticeGroup.TOOLCHAIN)
+
         du_str = subprocess.check_output(['du', '-sm', install_dir])
         match = re.match(r'^(\d+)', du_str.decode('utf-8'))
         size_str = match.group(1)

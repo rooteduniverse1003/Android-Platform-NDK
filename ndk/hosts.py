@@ -20,6 +20,14 @@ import os
 import sys
 
 
+ALL_HOSTS = (
+    'darwin',
+    'linux',
+    'windows',
+    'windows64',
+)
+
+
 def get_host_tag(ndk_path):
     if sys.platform.startswith('linux'):
         return 'linux-x86_64'
