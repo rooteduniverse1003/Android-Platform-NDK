@@ -291,10 +291,10 @@ class ScriptShortcutModule(Module):
 
 
 class PythonPackage(Module):
-    def build(self, _out_dir, dist_dir, _args):
+    def build(self, build_dir, _dist_dir, _args):
         cwd = os.path.dirname(self.path)
         subprocess.check_call(
-            ['python', self.path, 'sdist', '-d', dist_dir], cwd=cwd)
+            ['python', self.path, 'sdist', '-d', build_dir], cwd=cwd)
 
     def install(self, _out_dir, _dist_dir, _args):
         pass
