@@ -672,19 +672,19 @@ class GdbServer(ndk.builds.InvokeBuildModule):
 
 
 def make_linker_script(path, libs):
-    with open(path, 'w') as linker_script:
-        linker_script.write('INPUT({})\n'.format(' '.join(libs)))
+    ndk.file.write_file(path, 'INPUT({})\n'.format(' '.join(libs)))
 
 
-def create_libcxx_linker_scripts(lib_dir, abi):
+def create_libcxx_linker_scripts(lib_dir, abi, api):
     static_libs = ['-lc++_static', '-lc++abi']
     is_arm = abi == 'armeabi-v7a'
-    needs_android_support = abi in ndk.abis.LP32_ABIS
+    needs_android_support = api < 21
     if needs_android_support:
         static_libs.append('-landroid_support')
     if is_arm:
         static_libs.extend(['-lunwind', '-ldl', '-latomic'])
-    make_linker_script(os.path.join(lib_dir, 'libc++.a'), static_libs)
+    make_linker_script(
+        os.path.join(lib_dir, 'libc++.a.{}'.format(api)), static_libs)
 
     shared_libs = []
     if needs_android_support:
@@ -692,7 +692,8 @@ def create_libcxx_linker_scripts(lib_dir, abi):
     if is_arm:
         shared_libs.extend(['-lunwind', '-latomic'])
     shared_libs.append('-lc++_shared')
-    make_linker_script(os.path.join(lib_dir, 'libc++.so'), shared_libs)
+    make_linker_script(
+        os.path.join(lib_dir, 'libc++.so.{}'.format(api)), shared_libs)
 
 
 class Libcxx(ndk.builds.Module):
@@ -804,7 +805,13 @@ class Libcxx(ndk.builds.Module):
             # things properly even when we're not using ndk-build. The linker
             # will read the script in place of the library so that we link the
             # unwinder and other support libraries appropriately.
-            create_libcxx_linker_scripts(lib_dir, abi)
+            platforms_meta = json.loads(
+                ndk.file.read_file(ndk.paths.ndk_path('meta/platforms.json')))
+            for api in range(platforms_meta['min'], platforms_meta['max'] + 1):
+                if api < ndk.abis.min_api_for_abi(abi):
+                    continue
+
+                create_libcxx_linker_scripts(lib_dir, abi, api)
 
     def install_static_libs(self, lib_dir, abi):
         static_lib_dir = os.path.join(self.obj_out, 'local', abi)
