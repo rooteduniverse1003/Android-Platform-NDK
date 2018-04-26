@@ -74,6 +74,16 @@ default-c++-extensions := .cc .cp .cxx .cpp .CPP .c++ .C
 default-rs-extensions := .rs .fs
 
 # -----------------------------------------------------------------------------
+# Function : generate-empty-file
+# Arguments: 1: file path
+# Usage    : $(call generate-empty-file,<path>)
+# Rationale: This function writes an empty file. Use this function as a
+#            portable replacement for "touch" to update an empty timestamp
+#            file.
+# -----------------------------------------------------------------------------
+generate-empty-file = $(HOST_ECHO_N) "" > $1
+
+# -----------------------------------------------------------------------------
 # Function : generate-dir
 # Arguments: 1: directory path
 # Returns  : Generate a rule, but not dependency, to create a directory with
@@ -299,7 +309,7 @@ __list_file := $2
 $$(call generate-file-dir,$$(__list_file).tmp)
 
 $$(__list_file).tmp:
-	$$(hide) $$(HOST_ECHO_N) "" > $$@
+	$$(hide) $$(call generate-empty-file,$$@)
 $(call list-file-maybe-gen-1000,0,$1)
 $(call list-file-maybe-gen-1000,1,$1)
 $(call list-file-maybe-gen-1000,2,$1)
@@ -1859,10 +1869,10 @@ clang_tidy_rules: $$(_OUT)
 
 $$(call generate-file-dir,$$(_OUT))
 $$(_OUT): $$(_SRC) $$(LOCAL_MAKEFILE) $$(NDK_APP_APPLICATION_MK) $$(_OBJ)
-	$$(hide) rm -f $$(PRIVATE_OUT)
+	$$(hide) $$(call host-rm,$$(PRIVATE_OUT))
 	$$(call host-echo-build-step,$$(PRIVATE_ABI),$$(PRIVATE_TEXT)) "$$(PRIVATE_MODULE) <= $$(notdir $$(PRIVATE_SRC))"
 	$$(hide) $$(CLANG_TIDY) $$(call host-path,$$(PRIVATE_SRC)) $$(PRIVATE_TIDY_FLAGS) -- $$(PRIVATE_CFLAGS)
-	$$(hide) touch $$(call host-path,$$(PRIVATE_OUT))
+	$$(hide) $$(call generate-empty-file,$$(PRIVATE_OUT))
 endef
 
 # -----------------------------------------------------------------------------
