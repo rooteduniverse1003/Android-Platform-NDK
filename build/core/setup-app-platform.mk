@@ -81,6 +81,10 @@ else ifeq ($(APP_PLATFORM),android-N-MR1)
     override APP_PLATFORM := android-25
 else ifeq ($(APP_PLATFORM),android-O)
     override APP_PLATFORM := android-26
+else ifeq ($(APP_PLATFORM),android-O-MR1)
+    override APP_PLATFORM := android-27
+else ifeq ($(APP_PLATFORM),android-P)
+    override APP_PLATFORM := android-28
 endif
 
 endif # APP_PROJECT_PATH == null
