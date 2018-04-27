@@ -17,33 +17,7 @@
 """Generates Make-importable code from meta/abis.json."""
 from __future__ import print_function
 
-import argparse
-import json
-import os
-
-
-NEWLINE = '%NEWLINE%'
-
-
-def parse_args():
-    parser = argparse.ArgumentParser()
-
-    parser.add_argument(
-        'abis_file', metavar='ABIS_FILE', type=os.path.abspath,
-        help='Path to the abis.json file.')
-
-    return parser.parse_args()
-
-
-def generate_make_vars(abi_vars):
-    lines = []
-    for var, value in abi_vars.items():
-        lines.append('{} := {}'.format(var, value))
-    # https://www.gnu.org/software/make/manual/html_node/Shell-Function.html
-    # Make's $(shell) function replaces real newlines with spaces. Use
-    # something we can easily identify that's unlikely to appear in a variable
-    # so we can replace it in make.
-    return NEWLINE.join(lines)
+import make  # pylint: disable=relative-import
 
 
 def metadata_to_make_vars(meta):
@@ -77,14 +51,5 @@ def metadata_to_make_vars(meta):
     return abi_vars
 
 
-def main():
-    args = parse_args()
-    with open(args.abis_file) as abis_file:
-        abis = json.load(abis_file)
-
-    abi_vars = metadata_to_make_vars(abis)
-    print(generate_make_vars(abi_vars))
-
-
 if __name__ == '__main__':
-    main()
+    make.metadata_to_make(metadata_to_make_vars)
