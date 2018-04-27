@@ -23,17 +23,6 @@ import build.import_abi_metadata
 
 
 class ImportAbiMetadataTest(unittest.TestCase):
-    def test_generate_make_vars(self):
-        self.assertEqual(
-            'foo := bar',
-            build.import_abi_metadata.generate_make_vars(
-                {'foo': 'bar'}))
-        self.assertEqual(
-            build.import_abi_metadata.NEWLINE.join(
-                ['foo := bar', 'baz := qux']),
-            build.import_abi_metadata.generate_make_vars(
-                {'foo': 'bar', 'baz': 'qux'}))
-
     def test_metadata_to_make_vars(self):
         make_vars = build.import_abi_metadata.metadata_to_make_vars({
             'armeabi': {

@@ -449,23 +449,6 @@ $(foreach _platform,$(NDK_ALL_PLATFORMS),\
   $(eval include $(BUILD_SYSTEM)/add-platform.mk)\
 )
 
-# we're going to find the maximum platform number of the form android-<number>
-# ignore others, which could correspond to special and experimental cases
-NDK_ALL_PLATFORM_LEVELS := $(filter android-%,$(NDK_ALL_PLATFORMS))
-NDK_ALL_PLATFORM_LEVELS := $(patsubst android-%,%,$(NDK_ALL_PLATFORM_LEVELS))
-$(call ndk_log,Found stable platform levels: $(NDK_ALL_PLATFORM_LEVELS))
-
-NDK_MIN_PLATFORM_LEVEL := 16
-NDK_MIN_PLATFORM := android-$(NDK_MIN_PLATFORM_LEVEL)
-
-NDK_MAX_PLATFORM_LEVEL := 3
-$(foreach level,$(NDK_ALL_PLATFORM_LEVELS),\
-  $(eval NDK_MAX_PLATFORM_LEVEL := $$(call max,$$(NDK_MAX_PLATFORM_LEVEL),$$(level)))\
-)
-NDK_MAX_PLATFORM := android-$(NDK_MAX_PLATFORM_LEVEL)
-
-$(call ndk_log,Found max platform level: $(NDK_MAX_PLATFORM_LEVEL))
-
 # Allow the user to point at an alternate location for the toolchains. This is
 # particularly helpful if we want to use prebuilt toolchains for building an NDK
 # module. Specifically, we use this to build libc++ using ndk-build instead of
@@ -494,19 +477,36 @@ endif
 # the build script to include in each toolchain config.mk
 ADD_TOOLCHAIN := $(BUILD_SYSTEM)/add-toolchain.mk
 
-# ABI information is kept in meta/abis.json so it can be shared among multiple
-# build systems. Use Python to convert the JSON into make, replace the newlines
-# as necessary (make helpfully turns newlines into spaces for us...
-# https://www.gnu.org/software/make/manual/html_node/Shell-Function.html) and
-# eval the result.
-$(eval $(subst %NEWLINE%,$(newline),$(shell $(HOST_PYTHON) \
-    $(BUILD_PY)/import_abi_metadata.py $(NDK_ROOT)/meta/abis.json)))
+# Invokes a Python script that is expected to return make code and evaluates it.
+#
+# The Python script itself must use the string '%NEWLINE%' in place of actual
+# newlines because make helpfully turns newlines from $(shell) into spaces for
+# us (https://www.gnu.org/software/make/manual/html_node/Shell-Function.html).
+#
+# Args:
+#     1: Path to the script to be executed.
+#     2: Argument list.
+eval_python = \
+    $(eval $(subst %NEWLINE%,$(newline),$(shell $(HOST_PYTHON) $1 $2)))
+
+# NDK configuration metadata in JSON files in $NDK/meta so it can be shared
+# among multiple build systems. Delegate to Python rather than write a JSON
+# parser in make...
+$(call eval_python,\
+    $(BUILD_PY)/import_abi_metadata.py,$(NDK_ROOT)/meta/abis.json)
+$(call eval_python,\
+    $(BUILD_PY)/import_platforms_metadata.py,$(NDK_ROOT)/meta/platforms.json)
 
 NDK_KNOWN_DEVICE_ABIS := $(NDK_KNOWN_DEVICE_ABI64S) $(NDK_KNOWN_DEVICE_ABI32S)
 
 NDK_APP_ABI_ALL_EXPANDED := $(NDK_KNOWN_DEVICE_ABIS)
 NDK_APP_ABI_ALL32_EXPANDED := $(NDK_KNOWN_DEVICE_ABI32S)
 NDK_APP_ABI_ALL64_EXPANDED := $(NDK_KNOWN_DEVICE_ABI64S)
+
+NDK_MIN_PLATFORM := android-$(NDK_MIN_PLATFORM_LEVEL)
+NDK_MAX_PLATFORM := android-$(NDK_MAX_PLATFORM_LEVEL)
+
+$(call ndk_log,Found max platform level: $(NDK_MAX_PLATFORM_LEVEL))
 
 # the list of all toolchains in this NDK
 NDK_ALL_TOOLCHAINS :=
