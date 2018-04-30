@@ -872,6 +872,8 @@ modules-add-c++-dependencies = \
                 $(call import-module,cxx-stl/llvm-libc++)\
                 $(call import-module,cxx-stl/llvm-libc++abi)\
                 $(call module-add-c++-deps,$(__module),c++abi)\
+                $(if $(filter true,$(NDK_PLATFORM_NEEDS_ANDROID_SUPPORT)),\
+                    $(call module-add-c++-deps,$(__module),android_support))\
                 $(if $(filter armeabi-v7a,$(TARGET_ARCH_ABI)),\
                     $(call module-add-c++-deps,$(__module),unwind,,-ldl))))\
     )
