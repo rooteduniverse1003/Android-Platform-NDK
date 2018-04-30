@@ -195,45 +195,63 @@ elseif(ANDROID_ABI MATCHES "^(mips|mips64)$")
   message(FATAL_ERROR "MIPS and MIPS64 are no longer supported.")
 endif()
 
-if(ANDROID_PLATFORM MATCHES "^android-([0-9]|1[0-5])$")
-  message(WARNING "${ANDROID_PLATFORM} is unsupported. Using minimum supported "
-                  "version android-16")
-  set(ANDROID_PLATFORM android-16)
-elseif(ANDROID_PLATFORM STREQUAL android-20)
-  set(ANDROID_PLATFORM android-19)
-elseif(ANDROID_PLATFORM STREQUAL android-25)
-  set(ANDROID_PLATFORM android-24)
-elseif(ANDROID_PLATFORM STREQUAL android-J)
-  set(ANDROID_PLATFORM android-16)
-elseif(ANDROID_PLATFORM STREQUAL android-J-MR1)
-  set(ANDROID_PLATFORM android-17)
-elseif(ANDROID_PLATFORM STREQUAL android-J-MR2)
-  set(ANDROID_PLATFORM android-18)
-elseif(ANDROID_PLATFORM STREQUAL android-K)
-  set(ANDROID_PLATFORM android-19)
-elseif(ANDROID_PLATFORM STREQUAL android-L)
-  set(ANDROID_PLATFORM android-21)
-elseif(ANDROID_PLATFORM STREQUAL android-L-MR1)
-  set(ANDROID_PLATFORM android-22)
-elseif(ANDROID_PLATFORM STREQUAL android-M)
-  set(ANDROID_PLATFORM android-23)
-elseif(ANDROID_PLATFORM STREQUAL android-N)
-  set(ANDROID_PLATFORM android-24)
-elseif(ANDROID_PLATFORM STREQUAL android-N-MR1)
-  set(ANDROID_PLATFORM android-24)
-elseif(ANDROID_PLATFORM STREQUAL android-O)
-  set(ANDROID_PLATFORM android-26)
-elseif(ANDROID_PLATFORM STREQUAL android-O-MR1)
-  set(ANDROID_PLATFORM android-27)
-elseif(ANDROID_PLATFORM STREQUAL android-P)
-  set(ANDROID_PLATFORM android-28)
-elseif(NOT ANDROID_PLATFORM)
-  set(ANDROID_PLATFORM android-16)
+include(${ANDROID_NDK}/build/cmake/platforms.cmake)
+
+# If no platform version was chosen by the user, default to the minimum version
+# supported by this NDK.
+if(NOT ANDROID_PLATFORM)
+  message(STATUS "\
+ANDROID_PLATFORM not set. Defaulting to minimum supported version
+${NDK_MIN_PLATFORM_LEVEL}.")
+
+  set(ANDROID_PLATFORM "android-${NDK_MIN_PLATFORM_LEVEL}")
 endif()
+
+if(ANDROID_PLATFORM STREQUAL "latest")
+  message(STATUS
+    "Using latest available ANDROID_PLATFORM: ${NDK_MAX_PLATFORM_LEVEL}.")
+  set(ANDROID_PLATFORM "android-${NDK_MAX_PLATFORM_LEVEL}")
+  string(REPLACE "android-" "" ANDROID_PLATFORM_LEVEL ${ANDROID_PLATFORM})
+endif()
+
 string(REPLACE "android-" "" ANDROID_PLATFORM_LEVEL ${ANDROID_PLATFORM})
+
+# Aliases defined by meta/platforms.json include codename aliases for platform
+# API levels as well as cover any gaps in platforms that may not have had NDK
+# APIs.
+if(NOT "${NDK_PLATFORM_ALIAS_${ANDROID_PLATFORM_LEVEL}}" STREQUAL "")
+  message(STATUS "\
+${ANDROID_PLATFORM} is an alias for \
+${NDK_PLATFORM_ALIAS_${ANDROID_PLATFORM_LEVEL}}. Adjusting ANDROID_PLATFORM to \
+match.")
+  set(ANDROID_PLATFORM "${NDK_PLATFORM_ALIAS_${ANDROID_PLATFORM_LEVEL}}")
+  string(REPLACE "android-" "" ANDROID_PLATFORM_LEVEL ${ANDROID_PLATFORM})
+endif()
+
+# Pull up to the minimum supported version if an old API level was requested.
+if(ANDROID_PLATFORM_LEVEL LESS NDK_MIN_PLATFORM_LEVEL)
+  message(STATUS "\
+${ANDROID_PLATFORM} is unsupported. Using minimum supported version \
+${NDK_MIN_PLATFORM_LEVEL}.")
+  set(ANDROID_PLATFORM "android-${NDK_MIN_PLATFORM_LEVEL}")
+  string(REPLACE "android-" "" ANDROID_PLATFORM_LEVEL ${ANDROID_PLATFORM})
+endif()
+
+# And for LP64 we need to pull up to 21. No diagnostic is provided here because
+# minSdkVersion < 21 is valid for the project even though it may not be for this
+# ABI.
 if(ANDROID_ABI MATCHES "64(-v8a)?$" AND ANDROID_PLATFORM_LEVEL LESS 21)
   set(ANDROID_PLATFORM android-21)
   set(ANDROID_PLATFORM_LEVEL 21)
+endif()
+
+# ANDROID_PLATFORM beyond the maximum is an error. The correct way to specify
+# the latest version is ANDROID_PLATFORM=latest.
+if(ANDROID_PLATFORM_LEVEL GREATER NDK_MAX_PLATFORM_LEVEL)
+  message(SEND_ERROR "\
+${ANDROID_PLATFORM} is above the maximum supported version \
+${NDK_MAX_PLATFORM_LEVEL}. Choose a supported API level or set \
+ANDROID_PLATFORM to \"latest\".")
 endif()
 
 if(NOT ANDROID_STL)

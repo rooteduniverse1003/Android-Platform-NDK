@@ -49,6 +49,7 @@ import ndk.builds
 import ndk.config
 import ndk.deps
 import ndk.ext.shutil
+import ndk.file
 import ndk.notify
 import ndk.paths
 import ndk.test.builder
@@ -1360,11 +1361,106 @@ class Vulkan(ndk.builds.Module):
         print('Packaging Vulkan source finished')
 
 
+def make_format_value(value):
+    if isinstance(value, list):
+        return ' '.join(value)
+    return value
+
+
+def var_dict_to_make(var_dict):
+    lines = []
+    for name, value in var_dict.items():
+        lines.append('{} := {}'.format(name, make_format_value(value)))
+    return os.linesep.join(lines)
+
+
+def cmake_format_value(value):
+    if isinstance(value, list):
+        return ';'.join(value)
+    return value
+
+
+def var_dict_to_cmake(var_dict):
+    lines = []
+    for name, value in var_dict.items():
+        lines.append('set({} "{}")'.format(name, cmake_format_value(value)))
+    return os.linesep.join(lines)
+
+
+def generate_language_specific_metadata(name, install_path, json_path, func):
+    meta = json.loads(ndk.file.read_file(json_path))
+    meta_vars = func(meta)
+
+    ndk.file.write_file(
+        os.path.join(install_path, 'core/{}.mk'.format(name)),
+        var_dict_to_make(meta_vars))
+    ndk.file.write_file(
+        os.path.join(install_path, 'cmake/{}.cmake'.format(name)),
+        var_dict_to_cmake(meta_vars))
+
+
+def abis_meta_transform(metadata):
+    default_abis = []
+    deprecated_abis = []
+    lp32_abis = []
+    lp64_abis = []
+    for abi, abi_data in metadata.items():
+        bitness = abi_data['bitness']
+        if bitness == 32:
+            lp32_abis.append(abi)
+        elif bitness == 64:
+            lp64_abis.append(abi)
+        else:
+            raise ValueError('{} bitness is unsupported value: {}'.format(
+                abi, bitness))
+
+        if abi_data['default']:
+            default_abis.append(abi)
+
+        if abi_data['deprecated']:
+            deprecated_abis.append(abi)
+
+    meta_vars = {
+        'NDK_DEFAULT_ABIS': sorted(default_abis),
+        'NDK_DEPRECATED_ABIS': sorted(deprecated_abis),
+        'NDK_KNOWN_DEVICE_ABI32S': sorted(lp32_abis),
+        'NDK_KNOWN_DEVICE_ABI64S': sorted(lp64_abis),
+    }
+
+    return meta_vars
+
+
+def platforms_meta_transform(metadata):
+    meta_vars = {
+        'NDK_MIN_PLATFORM_LEVEL': metadata['min'],
+        'NDK_MAX_PLATFORM_LEVEL': metadata['max'],
+    }
+
+    for src, dst in metadata['aliases'].items():
+        name = 'NDK_PLATFORM_ALIAS_{}'.format(src)
+        value = 'android-{}'.format(dst)
+        meta_vars[name] = value
+    return meta_vars
+
+
 class NdkBuild(ndk.builds.PackageModule):
     name = 'ndk-build'
     path = 'build'
     src = ndk.paths.ndk_path('build')
     notice = ndk.paths.ndk_path('NOTICE')
+
+    def install(self, out_dir, dist_dir, args):
+        super(NdkBuild, self).install(out_dir, dist_dir, args)
+        install_path = self.get_install_path(out_dir, args.system)
+
+        abis_json = os.path.join(Meta.path, 'abis.json')
+        generate_language_specific_metadata(
+            'abis', install_path, abis_json, abis_meta_transform)
+
+        platforms_json = os.path.join(Meta.path, 'platforms.json')
+        generate_language_specific_metadata(
+            'platforms', install_path, platforms_json,
+            platforms_meta_transform)
 
 
 class PythonPackages(ndk.builds.PackageModule):
