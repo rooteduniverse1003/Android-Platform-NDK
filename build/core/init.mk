@@ -477,25 +477,9 @@ endif
 # the build script to include in each toolchain config.mk
 ADD_TOOLCHAIN := $(BUILD_SYSTEM)/add-toolchain.mk
 
-# Invokes a Python script that is expected to return make code and evaluates it.
-#
-# The Python script itself must use the string '%NEWLINE%' in place of actual
-# newlines because make helpfully turns newlines from $(shell) into spaces for
-# us (https://www.gnu.org/software/make/manual/html_node/Shell-Function.html).
-#
-# Args:
-#     1: Path to the script to be executed.
-#     2: Argument list.
-eval_python = \
-    $(eval $(subst %NEWLINE%,$(newline),$(shell $(HOST_PYTHON) $1 $2)))
-
-# NDK configuration metadata in JSON files in $NDK/meta so it can be shared
-# among multiple build systems. Delegate to Python rather than write a JSON
-# parser in make...
-$(call eval_python,\
-    $(BUILD_PY)/import_abi_metadata.py,$(NDK_ROOT)/meta/abis.json)
-$(call eval_python,\
-    $(BUILD_PY)/import_platforms_metadata.py,$(NDK_ROOT)/meta/platforms.json)
+# checkbuild.py generates these two files from the files in $NDK/meta.
+include $(BUILD_SYSTEM)/abis.mk
+include $(BUILD_SYSTEM)/platforms.mk
 
 NDK_KNOWN_DEVICE_ABIS := $(NDK_KNOWN_DEVICE_ABI64S) $(NDK_KNOWN_DEVICE_ABI32S)
 

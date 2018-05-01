@@ -26,8 +26,6 @@ android_support_cflags := \
 
 # 32-bit ABIs
 
-BIONIC_PATH := ../../../../bionic
-
 android_support_c_includes += \
     $(BIONIC_PATH)/libc \
     $(BIONIC_PATH)/libc/upstream-openbsd/android/include \

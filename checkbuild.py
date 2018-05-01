@@ -49,6 +49,7 @@ import ndk.builds
 import ndk.config
 import ndk.deps
 import ndk.ext.shutil
+import ndk.file
 import ndk.notify
 import ndk.paths
 import ndk.test.builder
@@ -670,13 +671,153 @@ class GdbServer(ndk.builds.InvokeBuildModule):
         shutil.copytree(src_dir, install_path)
 
 
-class Libcxx(ndk.builds.InvokeExternalBuildModule):
+def make_linker_script(path, libs):
+    with open(path, 'w') as linker_script:
+        linker_script.write('INPUT({})\n'.format(' '.join(libs)))
+
+
+def create_libcxx_linker_scripts(lib_dir, abi):
+    static_libs = ['-lc++_static', '-lc++abi']
+    is_arm = abi == 'armeabi-v7a'
+    needs_android_support = abi in ndk.abis.LP32_ABIS
+    if needs_android_support:
+        static_libs.append('-landroid_support')
+    if is_arm:
+        static_libs.extend(['-lunwind', '-ldl', '-latomic'])
+    make_linker_script(os.path.join(lib_dir, 'libc++.a'), static_libs)
+
+    shared_libs = []
+    if needs_android_support:
+        shared_libs.append('-landroid_support')
+    if is_arm:
+        shared_libs.extend(['-lunwind', '-latomic'])
+    shared_libs.append('-lc++_shared')
+    make_linker_script(os.path.join(lib_dir, 'libc++.so'), shared_libs)
+
+
+class Libcxx(ndk.builds.Module):
     name = 'libc++'
     path = 'sources/cxx-stl/llvm-libc++'
     script = 'ndk/sources/cxx-stl/llvm-libc++/build.py'
     notice = ndk.paths.android_path('external/libcxx/NOTICE')
     notice_group = ndk.builds.NoticeGroup.TOOLCHAIN
     arch_specific = True
+    deps = {
+        'ndk-build',
+        'ndk-build-shortcut',
+    }
+
+    def __init__(self):
+        super(Libcxx, self).__init__()
+        self.abis = None
+        self.obj_out = None
+        self.lib_out = None
+        self.libcxx_path = ndk.paths.android_path('external/libcxx')
+
+    def set_abis(self, arch):
+        if arch is None:
+            self.abis = ndk.abis.ALL_ABIS
+        else:
+            self.abis = ndk.abis.arch_to_abis(arch)
+
+    def build(self, build_dir, _dist_dir, args):
+        ndk_path = ndk.paths.get_install_path(build_dir)
+        ndk_build = os.path.join(ndk_path, 'ndk-build')
+        bionic_path = ndk.paths.android_path('bionic')
+
+        self.obj_out = os.path.join(build_dir, 'libcxx/obj')
+        self.lib_out = os.path.join(build_dir, 'libcxx/libs')
+        self.set_abis(args.arch)
+
+        android_mk = os.path.join(self.libcxx_path, 'Android.mk')
+        application_mk = os.path.join(self.libcxx_path, 'Application.mk')
+
+        prebuilt_ndk = build_support.android_path('prebuilts/ndk')
+        platform_prebuilts = os.path.join(prebuilt_ndk, 'platform')
+        platforms_root = os.path.join(prebuilt_ndk, 'current/platforms')
+        unified_sysroot_path = os.path.join(platform_prebuilts, 'sysroot')
+        toolchains_root = os.path.join(prebuilt_ndk, 'current/toolchains')
+
+        build_cmd = [
+            'bash', ndk_build, build_support.jobs_arg(), 'V=1',
+            'APP_ABI=' + ' '.join(self.abis),
+
+            'BIONIC_PATH=' + bionic_path,
+
+            # Use the prebuilt platforms and toolchains.
+            'NDK_UNIFIED_SYSROOT_PATH=' + unified_sysroot_path,
+            'NDK_PLATFORMS_ROOT=' + platforms_root,
+            'NDK_TOOLCHAINS_ROOT=' + toolchains_root,
+            'NDK_NEW_TOOLCHAINS_LAYOUT=true',
+
+            # Tell ndk-build where all of our makefiles are and where outputs
+            # should go. The defaults in ndk-build are only valid if we have a
+            # typical ndk-build layout with a jni/{Android,Application}.mk.
+            'NDK_PROJECT_PATH=null',
+            'APP_BUILD_SCRIPT=' + android_mk,
+            'NDK_APPLICATION_MK=' + application_mk,
+            'NDK_OUT=' + self.obj_out,
+            'NDK_LIBS_OUT=' + self.lib_out,
+
+            # Make sure we don't pick up a cached copy.
+            'LIBCXX_FORCE_REBUILD=true',
+        ]
+
+        print('Running: ' + ' '.join(build_cmd))
+        subprocess.check_call(build_cmd)
+
+    def install(self, out_dir, dist_dir, args):
+        ndk_path = ndk.paths.get_install_path(out_dir)
+        install_root = os.path.join(ndk_path, self.path)
+
+        if os.path.exists(install_root):
+            shutil.rmtree(install_root)
+        os.makedirs(install_root)
+
+        shutil.copy2(
+            os.path.join(self.libcxx_path, 'Android.mk'), install_root)
+        shutil.copy2(
+            os.path.join(self.libcxx_path, 'NOTICE'), install_root)
+        shutil.copytree(
+            os.path.join(self.libcxx_path, 'include'),
+            os.path.join(install_root, 'include'))
+        shutil.copytree(self.lib_out, os.path.join(install_root, 'libs'))
+
+        # TODO(danalbert): Fix the test runner to work with a separated test
+        # source and build output tree. The test runner itself works with this,
+        # but we need to do some work to separate the two when we invoke it.
+        shutil.copytree(
+            os.path.join(self.libcxx_path, 'test'),
+            os.path.join(install_root, 'test'),
+            symlinks=True)
+        shutil.copytree(
+            os.path.join(self.libcxx_path, 'utils'),
+            os.path.join(install_root, 'utils'))
+
+        for abi in self.abis:
+            lib_dir = os.path.join(install_root, 'libs', abi)
+
+            # The static libraries installed to the obj dir, not the lib dir.
+            self.install_static_libs(lib_dir, abi)
+
+            # Create linker scripts for the libraries we use so that we link
+            # things properly even when we're not using ndk-build. The linker
+            # will read the script in place of the library so that we link the
+            # unwinder and other support libraries appropriately.
+            create_libcxx_linker_scripts(lib_dir, abi)
+
+    def install_static_libs(self, lib_dir, abi):
+        static_lib_dir = os.path.join(self.obj_out, 'local', abi)
+
+        shutil.copy2(os.path.join(static_lib_dir, 'libc++abi.a'), lib_dir)
+        shutil.copy2(os.path.join(static_lib_dir, 'libc++_static.a'), lib_dir)
+
+        if abi == 'armeabi-v7a':
+            shutil.copy2(os.path.join(static_lib_dir, 'libunwind.a'), lib_dir)
+
+        if abi in ndk.abis.LP32_ABIS:
+            shutil.copy2(
+                os.path.join(static_lib_dir, 'libandroid_support.a'), lib_dir)
 
 
 class Platforms(ndk.builds.Module):
@@ -1220,11 +1361,106 @@ class Vulkan(ndk.builds.Module):
         print('Packaging Vulkan source finished')
 
 
+def make_format_value(value):
+    if isinstance(value, list):
+        return ' '.join(value)
+    return value
+
+
+def var_dict_to_make(var_dict):
+    lines = []
+    for name, value in var_dict.items():
+        lines.append('{} := {}'.format(name, make_format_value(value)))
+    return os.linesep.join(lines)
+
+
+def cmake_format_value(value):
+    if isinstance(value, list):
+        return ';'.join(value)
+    return value
+
+
+def var_dict_to_cmake(var_dict):
+    lines = []
+    for name, value in var_dict.items():
+        lines.append('set({} "{}")'.format(name, cmake_format_value(value)))
+    return os.linesep.join(lines)
+
+
+def generate_language_specific_metadata(name, install_path, json_path, func):
+    meta = json.loads(ndk.file.read_file(json_path))
+    meta_vars = func(meta)
+
+    ndk.file.write_file(
+        os.path.join(install_path, 'core/{}.mk'.format(name)),
+        var_dict_to_make(meta_vars))
+    ndk.file.write_file(
+        os.path.join(install_path, 'cmake/{}.cmake'.format(name)),
+        var_dict_to_cmake(meta_vars))
+
+
+def abis_meta_transform(metadata):
+    default_abis = []
+    deprecated_abis = []
+    lp32_abis = []
+    lp64_abis = []
+    for abi, abi_data in metadata.items():
+        bitness = abi_data['bitness']
+        if bitness == 32:
+            lp32_abis.append(abi)
+        elif bitness == 64:
+            lp64_abis.append(abi)
+        else:
+            raise ValueError('{} bitness is unsupported value: {}'.format(
+                abi, bitness))
+
+        if abi_data['default']:
+            default_abis.append(abi)
+
+        if abi_data['deprecated']:
+            deprecated_abis.append(abi)
+
+    meta_vars = {
+        'NDK_DEFAULT_ABIS': sorted(default_abis),
+        'NDK_DEPRECATED_ABIS': sorted(deprecated_abis),
+        'NDK_KNOWN_DEVICE_ABI32S': sorted(lp32_abis),
+        'NDK_KNOWN_DEVICE_ABI64S': sorted(lp64_abis),
+    }
+
+    return meta_vars
+
+
+def platforms_meta_transform(metadata):
+    meta_vars = {
+        'NDK_MIN_PLATFORM_LEVEL': metadata['min'],
+        'NDK_MAX_PLATFORM_LEVEL': metadata['max'],
+    }
+
+    for src, dst in metadata['aliases'].items():
+        name = 'NDK_PLATFORM_ALIAS_{}'.format(src)
+        value = 'android-{}'.format(dst)
+        meta_vars[name] = value
+    return meta_vars
+
+
 class NdkBuild(ndk.builds.PackageModule):
     name = 'ndk-build'
     path = 'build'
     src = ndk.paths.ndk_path('build')
     notice = ndk.paths.ndk_path('NOTICE')
+
+    def install(self, out_dir, dist_dir, args):
+        super(NdkBuild, self).install(out_dir, dist_dir, args)
+        install_path = self.get_install_path(out_dir, args.system)
+
+        abis_json = os.path.join(Meta.path, 'abis.json')
+        generate_language_specific_metadata(
+            'abis', install_path, abis_json, abis_meta_transform)
+
+        platforms_json = os.path.join(Meta.path, 'platforms.json')
+        generate_language_specific_metadata(
+            'platforms', install_path, platforms_json,
+            platforms_meta_transform)
 
 
 class PythonPackages(ndk.builds.PackageModule):
