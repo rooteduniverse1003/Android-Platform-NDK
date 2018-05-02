@@ -703,6 +703,7 @@ class Libcxx(ndk.builds.Module):
     notice_group = ndk.builds.NoticeGroup.TOOLCHAIN
     arch_specific = True
     deps = {
+        'libandroid_support',
         'ndk-build',
         'ndk-build-shortcut',
     }
