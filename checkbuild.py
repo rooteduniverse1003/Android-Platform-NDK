@@ -722,7 +722,7 @@ class Libcxx(ndk.builds.Module):
 
     def build(self, build_dir, _dist_dir, args):
         ndk_path = ndk.paths.get_install_path(build_dir)
-        ndk_build = os.path.join(ndk_path, 'ndk-build')
+        ndk_build = os.path.join(ndk_path, 'build/ndk-build')
         bionic_path = ndk.paths.android_path('bionic')
 
         self.obj_out = os.path.join(build_dir, 'libcxx/obj')
