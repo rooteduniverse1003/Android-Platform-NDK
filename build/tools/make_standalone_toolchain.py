@@ -305,19 +305,6 @@ def get_dest_libdir(dst_dir, triple, abi):
     return dst_libdir
 
 
-def fix_linker_script(path):
-    """Remove libandroid_support from the given linker script.
-
-    See https://github.com/android-ndk/ndk/issues/672 or the comment in
-    copy_libcxx_libs for more details.
-    """
-    with open(path, 'r+') as script:
-        contents = script.read()
-        script.seek(0)
-        script.write(contents.replace('-landroid_support', ''))
-        script.truncate()
-
-
 def copy_libcxx_libs(src_dir, dst_dir, abi, api):
     shutil.copy2(os.path.join(src_dir, 'libc++_shared.so'), dst_dir)
     shutil.copy2(os.path.join(src_dir, 'libc++_static.a'), dst_dir)
@@ -339,21 +326,10 @@ def copy_libcxx_libs(src_dir, dst_dir, abi, api):
     # Unlike the other STLs, also copy libc++.so (another linker script) over
     # as libstdc++.so.  Since it's a linker script, the linker will still get
     # the right DT_NEEDED from the SONAME of the actual linked object.
-    shutil.copy2(os.path.join(src_dir, 'libc++.a'),
+    shutil.copy2(os.path.join(src_dir, 'libc++.a.{}'.format(api)),
                  os.path.join(dst_dir, 'libstdc++.a'))
-    shutil.copy2(os.path.join(src_dir, 'libc++.so'),
+    shutil.copy2(os.path.join(src_dir, 'libc++.so.{}'.format(api)),
                  os.path.join(dst_dir, 'libstdc++.so'))
-
-    # TODO: Find a better fix for r18.
-    # https://github.com/android-ndk/ndk/issues/672
-    # The linker scripts in the NDK distribution are not correct for LP32 API
-    # 21+. In this case, rewrite the linker script to not link
-    # libandroid_support. We do this rather than generating our own linker
-    # scripts to avoid issues of updating one template and forgetting the
-    # other.
-    if '64' not in abi and api >= 21:
-        fix_linker_script(os.path.join(dst_dir, 'libstdc++.a'))
-        fix_linker_script(os.path.join(dst_dir, 'libstdc++.so'))
 
 
 def create_toolchain(install_path, arch, api, gcc_path, clang_path,
