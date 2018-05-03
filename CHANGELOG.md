@@ -33,11 +33,7 @@ Announcements
 Changes
 -------
 
- * Updated Clang to build 4691093, based on r316199.
-     * [Issue 313]: LTO now works on Windows.
-     * [Issue 527]: [Undefined Behavior Sanitizer] now works for NDK binaries.
-     * [Issue 593]: Clang now automatically passes `--eh-frame-hdr` to the
-       linker even for static executables, fixing exception handling.
+ * Updated Clang to build 475164, based on r328903.
  * Updated gtest to upstream revision 0fe96607d85cf3a25ac40da369db62bbee2939a5.
  * `libandroid_support` is no longer used when your NDK API level is greater
    than or equal to 21 (Lollipop). Build system maintainers: be sure to update
