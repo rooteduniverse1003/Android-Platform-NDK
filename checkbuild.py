@@ -218,7 +218,7 @@ def _install_file(src_file, dst_file):
 class Clang(ndk.builds.Module):
     name = 'clang'
     path = 'toolchains/llvm/prebuilt/{host}'
-    version = 'clang-4691093'
+    version = 'clang-r328903'
     notice_group = ndk.builds.NoticeGroup.TOOLCHAIN
 
     @property
@@ -286,7 +286,7 @@ class Clang(ndk.builds.Module):
             # but we replace symlinks with standalone copies, so remove this
             # copy to save space.
             bin_dir = os.path.join(install_path, 'bin')
-            (clang_maj_min,) = glob.glob(os.path.join(bin_dir, 'clang-?.?'))
+            (clang_maj_min,) = glob.glob(os.path.join(bin_dir, 'clang-?'))
             os.remove(clang_maj_min)
 
         # Remove LLD from the NDK. LLD isn't currently supported. If we want to
@@ -920,7 +920,7 @@ class Platforms(ndk.builds.Module):
             '-DPLATFORM_SDK_VERSION={}'.format(api),
             '-DABI_NDK_VERSION="{}"'.format(ndk.config.release),
             '-DABI_NDK_BUILD_NUMBER="{}"'.format(build_number),
-            '-O2', '-fpic', '-Wl,-r', '-nostdlib', '-o', dst,
+            '-O2', '-fpic', '-Wl,-r', '-no-pie', '-nostdlib', '-o', dst,
         ] + srcs
 
         return args
