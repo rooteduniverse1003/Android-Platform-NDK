@@ -17,7 +17,6 @@
 import unittest
 
 import ndk.test.report
-import tests.testlib
 
 
 class MockTest(object):
@@ -27,20 +26,21 @@ class MockTest(object):
 class ReportTest(unittest.TestCase):
     def test_remove_all_failing_flaky(self):
         report = ndk.test.report.Report()
-        report.add_result('build', tests.testlib.Success(MockTest()))
-        report.add_result('build', tests.testlib.Failure(MockTest(), 'failed'))
-        report.add_result('build', tests.testlib.Failure(
+        report.add_result('build', ndk.test.result.Success(MockTest()))
+        report.add_result('build', ndk.test.result.Failure(
+            MockTest(), 'failed'))
+        report.add_result('build', ndk.test.result.Failure(
             MockTest(), 'Did not receive exit status from test.'))
-        report.add_result('build', tests.testlib.Failure(
+        report.add_result('build', ndk.test.result.Failure(
             MockTest(), 'text busy'))
-        report.add_result('build', tests.testlib.Failure(
+        report.add_result('build', ndk.test.result.Failure(
             MockTest(), 'Text file busy'))
-        report.add_result('build', tests.testlib.Skipped(
+        report.add_result('build', ndk.test.result.Skipped(
             MockTest(), 'skipped'))
-        report.add_result('build', tests.testlib.ExpectedFailure(
+        report.add_result('build', ndk.test.result.ExpectedFailure(
             MockTest(), 'bug', 'config'))
-        report.add_result('build', tests.testlib.UnexpectedSuccess(
+        report.add_result('build', ndk.test.result.UnexpectedSuccess(
             MockTest(), 'bug', 'config'))
 
-        results = report.remove_all_failing_flaky(tests.testlib.flake_filter)
+        results = report.remove_all_failing_flaky(ndk.run_tests.flake_filter)
         self.assertEqual(3, len(results))
