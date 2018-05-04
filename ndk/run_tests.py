@@ -267,6 +267,8 @@ def enumerate_basic_tests(out_dir_base, test_src_dir, build_cfg, build_system,
         for test_file in os.listdir(out_dir):
             if test_file.endswith('.so'):
                 continue
+            if test_file.endswith('.sh'):
+                continue
             name = '.'.join([test_subdir, test_file])
             if not test_filter.filter(name):
                 continue
