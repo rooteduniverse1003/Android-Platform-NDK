@@ -1,4 +1,5 @@
 def extra_cmake_flags():
-    # Need -DANDROID_PIE=FALSE, because unlike ndk-build, these flags are added
-    # after the default flags are processed.
-    return ['-DANDROID_PIE=FALSE']
+    # Match the ndk-build test. Using libc++ here would require us to target a
+    # newer API level since static executables and libandroid_support don't
+    # mix.
+    return ['-DANDROID_STL=system']
