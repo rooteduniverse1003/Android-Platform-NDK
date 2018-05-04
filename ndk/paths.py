@@ -19,6 +19,7 @@ from __future__ import absolute_import
 import contextlib
 import os
 import shutil
+import sys
 
 import ndk.abis
 import ndk.config
@@ -134,3 +135,10 @@ def temp_dir_in_out(dirname, out_dir=None):
         yield abspath
     finally:
         shutil.rmtree(abspath)
+
+
+def to_posix_path(path):
+    if sys.platform == 'win32':
+        return path.replace('\\', '/')
+    else:
+        return path

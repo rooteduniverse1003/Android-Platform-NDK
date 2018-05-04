@@ -14,7 +14,7 @@
 # limitations under the License.
 #
 """Test result classes."""
-import tests.util
+import ndk.termcolor
 
 
 class TestResult(object):
@@ -46,7 +46,7 @@ class Failure(TestResult):
         return True
 
     def to_string(self, colored=False):
-        label = tests.util.maybe_color('FAIL', 'red', colored)
+        label = ndk.termcolor.maybe_color('FAIL', 'red', colored)
         return '{} {} [{}]: {}'.format(
             label, self.test.name, self.test.config, self.message)
 
@@ -59,7 +59,7 @@ class Success(TestResult):
         return False
 
     def to_string(self, colored=False):
-        label = tests.util.maybe_color('PASS', 'green', colored)
+        label = ndk.termcolor.maybe_color('PASS', 'green', colored)
         return '{} {} [{}]'.format(label, self.test.name, self.test.config)
 
 
@@ -75,7 +75,7 @@ class Skipped(TestResult):
         return False
 
     def to_string(self, colored=False):
-        label = tests.util.maybe_color('SKIP', 'yellow', colored)
+        label = ndk.termcolor.maybe_color('SKIP', 'yellow', colored)
         return '{} {} [{}]: {}'.format(
             label, self.test.name, self.test.config, self.reason)
 
@@ -93,7 +93,7 @@ class ExpectedFailure(TestResult):
         return False
 
     def to_string(self, colored=False):
-        label = tests.util.maybe_color('KNOWN FAIL', 'yellow', colored)
+        label = ndk.termcolor.maybe_color('KNOWN FAIL', 'yellow', colored)
         return '{} {} [{}]: known failure for {} ({})'.format(
             label, self.test.name, self.test.config, self.broken_config,
             self.bug)
@@ -112,7 +112,7 @@ class UnexpectedSuccess(TestResult):
         return True
 
     def to_string(self, colored=False):
-        label = tests.util.maybe_color('SHOULD FAIL', 'red', colored)
+        label = ndk.termcolor.maybe_color('SHOULD FAIL', 'red', colored)
         return '{} {} [{}]: unexpected success for {} ({})'.format(
             label, self.test.name, self.test.config, self.broken_config,
             self.bug)

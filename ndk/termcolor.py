@@ -13,9 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-import contextlib
-import os
-import sys
 
 
 def color_string(string, color):
@@ -30,20 +27,3 @@ def color_string(string, color):
 
 def maybe_color(text, color, do_color):
     return color_string(text, color) if do_color else text
-
-
-@contextlib.contextmanager
-def cd(path):
-    curdir = os.getcwd()
-    os.chdir(path)
-    try:
-        yield
-    finally:
-        os.chdir(curdir)
-
-
-def to_posix_path(path):
-    if sys.platform == 'win32':
-        return path.replace('\\', '/')
-    else:
-        return path
