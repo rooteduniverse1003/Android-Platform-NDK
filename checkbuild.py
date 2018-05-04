@@ -289,11 +289,12 @@ class Clang(ndk.builds.Module):
             (clang_maj_min,) = glob.glob(os.path.join(bin_dir, 'clang-?'))
             os.remove(clang_maj_min)
 
-        # Remove LLD from the NDK. LLD isn't currently supported. If we want to
-        # ship LLD, we should consider shipping only ld.lld to save space.
-        # b/74250510
+        # Remove LLD duplicates. We only need ld.lld.
+        # http://b/74250510
+        #
+        # Note that lld is experimental in the NDK. It is not the default for
+        # any architecture and has received only minimal testing in the NDK.
         bin_ext = '.exe' if args.system.startswith('windows') else ''
-        os.remove(os.path.join(install_path, 'bin/ld.lld' + bin_ext))
         os.remove(os.path.join(install_path, 'bin/ld64.lld' + bin_ext))
         os.remove(os.path.join(install_path, 'bin/lld' + bin_ext))
         os.remove(os.path.join(install_path, 'bin/lld-link' + bin_ext))
