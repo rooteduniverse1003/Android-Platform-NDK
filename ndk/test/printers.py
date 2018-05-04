@@ -63,9 +63,9 @@ class FilePrinter(Printer):
             stats_str = format_stats_str(suite_report, self.use_color)
             print(file=self.file)
             print('{}: {}'.format(suite, stats_str), file=self.file)
-            for report in suite_report.reports:
-                if self.show_all or report.result.failed():
-                    print(report.result.to_string(colored=self.use_color),
+            for test_report in suite_report.reports:
+                if self.show_all or test_report.result.failed():
+                    print(test_report.result.to_string(colored=self.use_color),
                           file=self.file)
 
 
