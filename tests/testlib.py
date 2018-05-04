@@ -525,8 +525,7 @@ class DeviceTestConfig(TestConfig):
         except AttributeError:
             self.run_unsupported = self.NullTestConfig.run_unsupported
 
-        try:
-            _ = self.module.is_negative_test
+        if hasattr(self.module, 'is_negative_test'):
             # If the build is expected to fail, then it should just be a build
             # test since the test should never be run.
             #
@@ -534,8 +533,6 @@ class DeviceTestConfig(TestConfig):
             # thatr case. Gtest death tests can handle the more complicated
             # cases.
             raise RuntimeError('is_negative_test is invalid for device tests')
-        except AttributeError:
-            pass
 
 
 def _run_build_sh_test(test, build_dir, test_dir, ndk_path, ndk_build_flags,
