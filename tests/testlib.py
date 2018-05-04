@@ -35,6 +35,7 @@ import ndk.ext.os
 import ndk.ext.shutil
 import ndk.ext.subprocess
 import ndk.hosts
+import ndk.ndkbuild
 import ndk.paths
 import ndk.test.report
 from ndk.test.result import (Success, Failure, Skipped, ExpectedFailure,
@@ -42,7 +43,6 @@ from ndk.test.result import (Success, Failure, Skipped, ExpectedFailure,
 import ndk.test.spec
 import ndk.test.ui
 import ndk.test.builder
-import tests.ndk as ndkbuild
 
 # pylint: disable=no-self-use
 
@@ -566,7 +566,7 @@ def _run_ndk_build_test(test, obj_dir, dist_dir, test_dir, ndk_path,
         args.extend(_get_jobs_args())
         if platform is not None:
             args.append('APP_PLATFORM=android-{}'.format(platform))
-        rc, out = ndkbuild.build(ndk_path, args + ndk_build_flags)
+        rc, out = ndk.ndkbuild.build(ndk_path, args + ndk_build_flags)
         if rc == 0:
             return Success(test)
         else:
