@@ -18,6 +18,11 @@ Announcements
    `libc++`. Note that ndk-build still defaults to no STL. For more details, see
    [this blog post](https://android-developers.googleblog.com/2017/09/introducing-android-native-development.html).
 
+ * [LLD](https://lld.llvm.org/) is now available for testing. AOSP is in the
+   process of switching to using LLD by default and the NDK will follow
+   (timeline unknown). Test LLD in your app by passing `-fuse-ld=lld` when
+   linking.
+
  * gnustl, gabi++, and stlport have been removed.
 
  * Support for ARMv5 (armeabi), MIPS, and MIPS64 has been removed. Attempting to
