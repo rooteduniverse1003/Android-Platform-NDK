@@ -20,27 +20,41 @@ import ndk.test.report
 
 
 class MockTest(object):
-    is_flaky = True
+    def __init__(self, name=''):
+        self.name = name
 
 
 class ReportTest(unittest.TestCase):
     def test_remove_all_failing_flaky(self):
         report = ndk.test.report.Report()
+        # Success. Not filtered.
         report.add_result('build', ndk.test.result.Success(MockTest()))
+
+        # Normal failure. Not filtered.
         report.add_result('build', ndk.test.result.Failure(
             MockTest(), 'failed'))
-        report.add_result('build', ndk.test.result.Failure(
-            MockTest(), 'Did not receive exit status from test.'))
-        report.add_result('build', ndk.test.result.Failure(
-            MockTest(), 'text busy'))
-        report.add_result('build', ndk.test.result.Failure(
-            MockTest(), 'Text file busy'))
+
+        # Skipped test. Not filtered.
         report.add_result('build', ndk.test.result.Skipped(
             MockTest(), 'skipped'))
+
+        # Expected failure. Not filtered.
         report.add_result('build', ndk.test.result.ExpectedFailure(
             MockTest(), 'bug', 'config'))
+
+        # Unexpected success. Not filtered.
         report.add_result('build', ndk.test.result.UnexpectedSuccess(
             MockTest(), 'bug', 'config'))
+
+        # adb didn't tell us anything. Filtered.
+        report.add_result('build', ndk.test.result.Failure(
+            MockTest(), 'Could not find exit status in shell output.'))
+
+        # Flaky libc++ tests. Filtered.
+        report.add_result('build', ndk.test.result.Failure(
+            MockTest('libc++.libcxx/thread/foo'), ''))
+        report.add_result('build', ndk.test.result.Failure(
+            MockTest('libc++.std/thread/foo'), ''))
 
         results = report.remove_all_failing_flaky(ndk.run_tests.flake_filter)
         self.assertEqual(3, len(results))

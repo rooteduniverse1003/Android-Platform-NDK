@@ -149,10 +149,6 @@ class Test(object):
         self.config = config
         self.ndk_path = ndk_path
 
-    @property
-    def is_flaky(self):
-        return False
-
     def get_test_config(self):
         return ndk.test.config.TestConfig.from_test_dir(self.test_dir)
 
@@ -661,10 +657,6 @@ class XunitResult(Test):
 
     def run(self, _out_dir, _dist_dir, _test_filters):
         raise NotImplementedError
-
-    @property
-    def is_flaky(self):
-        return True
 
     def get_test_config(self):
         test_config_dir = os.path.join(self.test_base_dir, self.test_dir)
