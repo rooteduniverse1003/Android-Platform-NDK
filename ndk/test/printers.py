@@ -18,13 +18,13 @@ from __future__ import print_function
 import os
 import sys
 
-import tests.util as util
+import ndk.termcolor
 
 
 def format_stats_str(report, use_color):
-    pass_label = util.color_string('PASS', 'green') if use_color else 'PASS'
-    fail_label = util.color_string('FAIL', 'red') if use_color else 'FAIL'
-    skip_label = util.color_string('SKIP', 'yellow') if use_color else 'SKIP'
+    pass_label = ndk.termcolor.maybe_color('PASS', 'green', use_color)
+    fail_label = ndk.termcolor.maybe_color('FAIL', 'red', use_color)
+    skip_label = ndk.termcolor.maybe_color('SKIP', 'yellow', use_color)
     return '{pl} {p}/{t} {fl} {f}/{t} {sl} {s}/{t}'.format(
         pl=pass_label, p=report.num_passed,
         fl=fail_label, f=report.num_failed,
@@ -63,9 +63,9 @@ class FilePrinter(Printer):
             stats_str = format_stats_str(suite_report, self.use_color)
             print(file=self.file)
             print('{}: {}'.format(suite, stats_str), file=self.file)
-            for report in suite_report.reports:
-                if self.show_all or report.result.failed():
-                    print(report.result.to_string(colored=self.use_color),
+            for test_report in suite_report.reports:
+                if self.show_all or test_report.result.failed():
+                    print(test_report.result.to_string(colored=self.use_color),
                           file=self.file)
 
 

@@ -31,9 +31,11 @@ import xml.etree.ElementTree
 
 import ndk.abis
 import ndk.ansi
+import ndk.ext.os
 import ndk.ext.shutil
 import ndk.ext.subprocess
 import ndk.hosts
+import ndk.ndkbuild
 import ndk.paths
 import ndk.test.report
 from ndk.test.result import (Success, Failure, Skipped, ExpectedFailure,
@@ -41,8 +43,6 @@ from ndk.test.result import (Success, Failure, Skipped, ExpectedFailure,
 import ndk.test.spec
 import ndk.test.ui
 import ndk.test.builder
-import tests.ndk as ndkbuild
-import tests.util as util
 
 # pylint: disable=no-self-use
 
@@ -175,7 +175,7 @@ class LibcxxTestScanner(TestScanner):
         for root, _dirs, files in os.walk(test_base_dir):
             for test_file in files:
                 if test_file.endswith('.cpp'):
-                    test_path = util.to_posix_path(os.path.relpath(
+                    test_path = ndk.paths.to_posix_path(os.path.relpath(
                         os.path.join(root, test_file), test_base_dir))
                     cls.ALL_TESTS.append(test_path)
 
@@ -525,8 +525,7 @@ class DeviceTestConfig(TestConfig):
         except AttributeError:
             self.run_unsupported = self.NullTestConfig.run_unsupported
 
-        try:
-            _ = self.module.is_negative_test
+        if hasattr(self.module, 'is_negative_test'):
             # If the build is expected to fail, then it should just be a build
             # test since the test should never be run.
             #
@@ -534,14 +533,12 @@ class DeviceTestConfig(TestConfig):
             # thatr case. Gtest death tests can handle the more complicated
             # cases.
             raise RuntimeError('is_negative_test is invalid for device tests')
-        except AttributeError:
-            pass
 
 
 def _run_build_sh_test(test, build_dir, test_dir, ndk_path, ndk_build_flags,
                        abi, platform):
     _prep_build_dir(test_dir, build_dir)
-    with util.cd(build_dir):
+    with ndk.ext.os.cd(build_dir):
         build_cmd = ['bash', 'build.sh'] + _get_jobs_args() + ndk_build_flags
         test_env = dict(os.environ)
         test_env['NDK'] = ndk_path
@@ -558,7 +555,7 @@ def _run_build_sh_test(test, build_dir, test_dir, ndk_path, ndk_build_flags,
 def _run_ndk_build_test(test, obj_dir, dist_dir, test_dir, ndk_path,
                         ndk_build_flags, abi, platform):
     _prep_build_dir(test_dir, obj_dir)
-    with util.cd(obj_dir):
+    with ndk.ext.os.cd(obj_dir):
         args = [
             'APP_ABI=' + abi,
             'NDK_LIBS_OUT=' + dist_dir,
@@ -566,7 +563,7 @@ def _run_ndk_build_test(test, obj_dir, dist_dir, test_dir, ndk_path,
         args.extend(_get_jobs_args())
         if platform is not None:
             args.append('APP_PLATFORM=android-{}'.format(platform))
-        rc, out = ndkbuild.build(ndk_path, args + ndk_build_flags)
+        rc, out = ndk.ndkbuild.build(ndk_path, args + ndk_build_flags)
         if rc == 0:
             return Success(test)
         else:
@@ -723,7 +720,7 @@ class PythonBuildTest(BuildTest):
         build_dir = self.get_build_dir(obj_dir)
         logger().info('Building test: %s', self.name)
         _prep_build_dir(self.test_dir, build_dir)
-        with util.cd(build_dir):
+        with ndk.ext.os.cd(build_dir):
             module = imp.load_source('test', 'test.py')
             success, failure_message = module.run_test(
                 self.ndk_path, self.abi, self.platform, self.ndk_build_flags)
@@ -1110,7 +1107,7 @@ def find_original_libcxx_test(name, ndk_path):
     name.
     """
 
-    name = util.to_posix_path(name)
+    name = ndk.paths.to_posix_path(name)
 
     # LIT special cases tests in the root of the test directory (such as
     # test/nothing_to_do.pass.cpp) as "libc++.libc++/$TEST_FILE.pass.cpp" for

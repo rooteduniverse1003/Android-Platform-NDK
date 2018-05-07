@@ -24,10 +24,10 @@ import pickle
 import shutil
 
 import ndk.abis
+import ndk.test.filters
 import ndk.test.spec
 import ndk.workqueue
 
-import tests.filters as filters
 import tests.testlib as testlib
 
 
@@ -107,7 +107,7 @@ class TestBuilder(object):
             self.clean_out_dir()
         self.make_out_dirs()
 
-        test_filters = filters.TestFilter.from_string(
+        test_filters = ndk.test.filters.TestFilter.from_string(
             self.test_options.test_filter)
         result = self.runner.run(self.obj_dir, self.dist_dir, test_filters)
         if self.test_options.build_report:

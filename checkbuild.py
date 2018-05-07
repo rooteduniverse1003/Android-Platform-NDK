@@ -53,12 +53,11 @@ import ndk.file
 import ndk.notify
 import ndk.paths
 import ndk.test.builder
+import ndk.test.printers
 import ndk.test.spec
 import ndk.timer
 import ndk.ui
 import ndk.workqueue
-
-import tests.printers
 
 
 def _make_tar_package(package_path, base_dir, path):
@@ -150,7 +149,7 @@ def build_ndk_tests(out_dir, dist_dir, args):
     test_options = ndk.test.spec.TestOptions(
         test_src_dir, ndk_dir, test_out_dir, clean=True)
 
-    printer = tests.printers.StdoutPrinter()
+    printer = ndk.test.printers.StdoutPrinter()
     with open(os.path.realpath('qa_config.json')) as config_file:
         test_config = json.load(config_file)
 
@@ -173,7 +172,7 @@ def build_ndk_tests(out_dir, dist_dir, args):
         # failure easily on the build server.
         log_path = os.path.join(dist_dir, 'logs/build_error.log')
         with open(log_path, 'a') as error_log:
-            error_log_printer = tests.printers.FilePrinter(error_log)
+            error_log_printer = ndk.test.printers.FilePrinter(error_log)
             error_log_printer.print_summary(report)
 
     return report.successful

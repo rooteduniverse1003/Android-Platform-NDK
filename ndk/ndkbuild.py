@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 #
 # Copyright (C) 2015 The Android Open Source Project
 #
@@ -14,28 +13,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-"""Interface to NDK build information."""
+"""APIs for interacting with ndk-build."""
 from __future__ import absolute_import
 
 import os
-import sys
 
 import ndk.ext.subprocess
-import ndk.hosts
-
-
-THIS_DIR = os.path.dirname(os.path.realpath(__file__))
-NDK_ROOT = os.path.realpath(os.path.join(THIS_DIR, '..'))
-
-
-def get_tool(ndk_path, tool):
-    ext = ''
-    if sys.platform == 'win32':
-        ext = '.exe'
-
-    host_tag = ndk.hosts.get_host_tag(ndk_path)
-    prebuilt_path = os.path.join(ndk_path, 'prebuilt', host_tag)
-    return os.path.join(prebuilt_path, 'bin', tool) + ext
 
 
 def build(ndk_path, build_flags):

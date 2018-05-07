@@ -21,6 +21,19 @@ import os
 
 
 @contextlib.contextmanager
+def cd(path):
+    # For some reason pylint can't detect that getcwd/chdir are in os because
+    # we're ndk.ext.os, despite the fact that os.environ is fine.
+    # pylint: disable=no-member
+    curdir = os.getcwd()
+    os.chdir(path)
+    try:
+        yield
+    finally:
+        os.chdir(curdir)
+
+
+@contextlib.contextmanager
 def replace_environ(env):
     """Replacing os.environ with env, restoring on context exit.
 

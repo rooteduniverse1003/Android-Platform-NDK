@@ -38,6 +38,8 @@ import ndk.notify
 import ndk.paths
 import ndk.test.builder
 import ndk.test.devices
+import ndk.test.filters
+import ndk.test.printers
 import ndk.test.report
 import ndk.test.result
 import ndk.test.spec
@@ -46,10 +48,7 @@ import ndk.timer
 import ndk.ui
 import ndk.workqueue
 
-import tests.filters as filters
-import tests.printers as printers
 import tests.testlib as testlib
-import tests.util as util
 
 
 DEVICE_TEST_BASE_DIR = '/data/local/tmp/tests'
@@ -263,7 +262,7 @@ def enumerate_basic_tests(out_dir_base, test_src_dir, build_cfg, build_system,
         out_dir = os.path.join(test_dir, build_cfg.abi)
         test_relpath = os.path.relpath(out_dir, out_dir_base)
         device_dir = posixpath.join(
-            DEVICE_TEST_BASE_DIR, util.to_posix_path(test_relpath))
+            DEVICE_TEST_BASE_DIR, ndk.paths.to_posix_path(test_relpath))
         for test_file in os.listdir(out_dir):
             if test_file.endswith('.so'):
                 continue
@@ -291,8 +290,9 @@ def enumerate_libcxx_tests(out_dir_base, test_src_dir, build_cfg, build_system,
                 continue
             test_relpath = os.path.relpath(root, out_dir_base)
             device_dir = posixpath.join(
-                DEVICE_TEST_BASE_DIR, util.to_posix_path(test_relpath))
-            suite_name = util.to_posix_path(os.path.relpath(root, tests_dir))
+                DEVICE_TEST_BASE_DIR, ndk.paths.to_posix_path(test_relpath))
+            suite_name = ndk.paths.to_posix_path(
+                os.path.relpath(root, tests_dir))
 
             # Our file has a .exe extension, but the name should match the
             # source file for the filters to work.
@@ -724,7 +724,7 @@ def run_tests(args):
 
     test_config = get_config_dict(args.config, args.abi)
 
-    printer = printers.StdoutPrinter(show_all=args.show_all)
+    printer = ndk.test.printers.StdoutPrinter(show_all=args.show_all)
 
     if args.test_src is None:
         args.test_src = os.path.realpath('tests')
@@ -755,7 +755,7 @@ def run_tests(args):
         return results
 
     test_dist_dir = os.path.join(args.test_dir, 'dist')
-    test_filter = filters.TestFilter.from_string(args.filter)
+    test_filter = ndk.test.filters.TestFilter.from_string(args.filter)
     # dict of {BuildConfiguration: [Test]}
     config_filter = ConfigFilter(test_config)
     test_discovery_timer = ndk.timer.Timer()
