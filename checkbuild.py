@@ -682,7 +682,7 @@ def create_libcxx_linker_scripts(lib_dir, abi, api):
     if needs_android_support:
         static_libs.append('-landroid_support')
     if is_arm:
-        static_libs.extend(['-lunwind', '-ldl', '-latomic'])
+        static_libs.extend(['-lunwind', '-latomic'])
     make_linker_script(
         os.path.join(lib_dir, 'libc++.a.{}'.format(api)), static_libs)
 
