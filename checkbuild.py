@@ -1020,6 +1020,7 @@ class LibShaderc(ndk.builds.Module):
                 'dest_dir': 'shaderc/third_party/spirv-tools',
                 'files': [
                     'utils/generate_grammar_tables.py',
+                    'utils/generate_language_headers.py',
                     'utils/generate_registry_tables.py',
                     'utils/update_build_version.py',
                     'Android.mk',
