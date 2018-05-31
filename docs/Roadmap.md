@@ -96,7 +96,11 @@ Estimated release: Q4 2018
 The NDK has long included `gtest` and clang supports various sanitiziers,
 but there are things we can do to improve the state of testing/code quality:
 
-  * Test coverage support.
+ * Test coverage support.
+ * Make the [GTest-as-JUnit] wrapper available to developers so developers can
+   integrate their C++ tests into Studio.
+ 
+[GTest-as-JUnit]: https://android-review.googlesource.com/c/platform/cts/+/683355
 
 ### Help building complex applications.
 
@@ -116,6 +120,9 @@ should investigate using [cdep] to simplify this.
 
 NDK APIs are C-only for ABI stability reasons. We should offer header-only
 C++ wrappers for NDK APIs, even if only to offer the benefits of RAII.
+
+Complaints about basic JNI handling are common. We should make libnativehelper
+or something similar available to developers.
 
 [cdep]: https://github.com/jomof/cdep
 
