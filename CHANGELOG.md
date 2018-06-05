@@ -13,20 +13,12 @@ Announcements
 
  * GCC has been removed.
 
- * `libc++` is now the default STL for CMake and standalone toolchains. If you
-   manually selected a different STL, we strongly encourage you to move to
-   `libc++`. Note that ndk-build still defaults to no STL. For more details, see
-   [this blog post](https://android-developers.googleblog.com/2017/09/introducing-android-native-development.html).
-
  * [LLD](https://lld.llvm.org/) is now available for testing. AOSP is in the
    process of switching to using LLD by default and the NDK will follow
    (timeline unknown). Test LLD in your app by passing `-fuse-ld=lld` when
    linking.
 
  * gnustl, gabi++, and stlport have been removed.
-
- * Support for ARMv5 (armeabi), MIPS, and MIPS64 has been removed. Attempting to
-   build any of these ABIs will result in an error.
 
  * Support for ICS (android-14 and android-15) has been removed. Apps using
    executables no longer need to provide both a PIE and non-PIE executable.
@@ -39,67 +31,34 @@ Changes
 -------
 
  * Updated Clang to build 475164, based on r328903.
- * Updated gtest to upstream revision 0fe96607d85cf3a25ac40da369db62bbee2939a5.
- * `libandroid_support` is no longer used when your NDK API level is greater
-   than or equal to 21 (Lollipop). Build system maintainers: be sure to update
-   your build systems to account for this.
- * The platform static libraries (libc.a, libm.a, etc.) have been updated.
-     * All NDK platforms now contain a modern version of these static libraries.
-       Previously they were all Gingerbread (perhaps even older) or Lollipop.
-     * Prior NDKs could not use the static libraries with a modern NDK API level
-       because of symbol collisions between libc.a and libandroid_support. This
-       has been solved by removing libandroid_support for modern API levels. A
-       side effect of this is that you must now target at least android-21 to
-       use the static libraries, but these binaries will still work on older
-       devices.
- * Fixed parsing of the NDK revision in CMake. NDK version information is now
-   available in the following CMake variables:
-     * `ANDROID_NDK_REVISION`: The full string in the source.properties file.
-     * `ANDROID_NDK_MAJOR`: The major revision of the NDK. For example: the 16
-       in r16b.
-     * `ANDROID_NDK_MINOR`: The minor revision of the NDK. For example: the b
-       (represented as 1) in r16b.
-     * `ANDROID_NDK_BUILD`: The build number of the NDK. This is 0 in the case
-       of a local development build.
-     * `ANDROID_NDK_BETA`: The beta version of the NDK. This is 0 for a stable
-       release.
- * Added support for `APP_WRAP_SH` to ndk-build.
-     * This variable points to a shell script (relative to your Android.mk) that
-       will be installed as a [wrap.sh] file in your APK.
-     * Available in both an ABI-generic form (`APP_WRAP_SH`), which will install
-       a single script for every ABI, and an ABI-specific form
-       (`APP_WRAP_SH_arm64-v8a`, etc) to allow for per-ABI customization of the
-       wrap.sh script.
- * [Issue 540]: ndk-build now installs sanitizer runtime libraries to your out
-   directory for inclusion in your APK. Coupled with [wrap.sh], this removes the
-   requirement of rooting your device to use sanitizers.
- * When using ASAN, ndk-build will install a wrap.sh file to set up ASAN for
-   your app if you have not specified your own wrap.sh. If you have specified
-   your own wrap.sh, you can add ASAN support to it as described
-   [here](https://github.com/google/sanitizers/wiki/AddressSanitizerOnAndroidO).
- * [Issue 614]: ndk-build and CMake no longer pass `-fno-integrated-as` for
-   arm32 by default.  If your project contains hand written assembly, you may
-   need to pass this flag.
  * Added support for clang-tidy to ndk-build.
-       * Enable application-wide with `APP_CLANG_TIDY := true`, or per-module
-         with `LOCAL_CLANG_TIDY := true`.
-       * Pass specific clang-tidy flags such as `-checks` with
-         `APP_CLANG_TIDY_FLAGS` or `LOCAL_CLANG_TIDY_FLAGS`.
-       * As usual, module settings override application settings.
-       * By default no flags are passed to clang-tidy, so only the checks
-         enabled by default in clang-tidy will be enabled. View the default list
-         with `clang-tidy -list-checks`.
-       * By default clang-tidy warnings are not errors. This behavior can be
-         changed with `-warnings-as-errors=*`.
+     * Enable application-wide with `APP_CLANG_TIDY := true`, or per-module with
+       `LOCAL_CLANG_TIDY := true`.
+     * Pass specific clang-tidy flags such as `-checks` with
+       `APP_CLANG_TIDY_FLAGS` or `LOCAL_CLANG_TIDY_FLAGS`.
+     * As usual, module settings override application settings.
+     * By default no flags are passed to clang-tidy, so only the checks enabled
+       by default in clang-tidy will be enabled. View the default list with
+       `clang-tidy -list-checks`.
+     * By default clang-tidy warnings are not errors. This behavior can be
+       changed with `-warnings-as-errors=*`.
+ * [Issue 490]: ndk-build and CMake now default to using NEON for ARM when
+   targeting android-21 (Lollipop) or newer.
+     * If your minSdkVersion is below 21 or if you were already enabling NEON
+       manually, this change does not affect you.
+     * CPUs that do not support this feature are uncommon and new devices were
+       not allowed to ship without it beginning in Lollipop, but older devices
+       that did not support NEON may have been upgraded to Lollipop.
+     * If you need to continue supporting these devices and have a minSdkVersion
+       of 21 or higher, you can disable NEON explicitly by setting
+       `LOCAL_ARM_NEON := false` in ndk-build or passing
+       `-DANDROID_ARM_NEON=false` to CMake.
+     * Alternatively, use the Play Console to [blacklist CPUs] without NEON to
+       disallow your app from being installed on those devices.
 
-[Undefined Behavior Sanitizer]: https://clang.llvm.org/docs/UndefinedBehaviorSanitizer.html
-[wrap.sh]: https://developer.android.com/ndk/guides/wrap-script.html
+[Issue 490]: https://github.com/android-ndk/ndk/issues/490
+[blacklist CPUs]: https://support.google.com/googleplay/android-developer/answer/7353455?hl=en
 [clang-tidy]: http://clang.llvm.org/extra/clang-tidy/
-[Issue 313]: https://github.com/android-ndk/ndk/issues/313
-[Issue 527]: https://github.com/android-ndk/ndk/issues/527
-[Issue 540]: https://github.com/android-ndk/ndk/issues/540
-[Issue 593]: https://github.com/android-ndk/ndk/issues/593
-[Issue 614]: https://github.com/android-ndk/ndk/issues/614
 
 Known Issues
 ------------

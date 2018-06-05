@@ -315,7 +315,10 @@ ifdef LOCAL_ARM_NEON
     $(call __ndk_info,LOCAL_ARM_NEON must be defined either to 'true' or 'false' in $(LOCAL_MAKEFILE), not '$(LOCAL_ARM_NEON)')\
     $(call __ndk_error,Aborting) \
   )
+else ifeq ($(true),$(call gte,$(TARGET_PLATFORM_LEVEL),21))
+  LOCAL_ARM_NEON := true
 endif
+
 ifeq ($(LOCAL_ARM_NEON),true)
   neon_sources += $(LOCAL_SRC_FILES:%.neon=%)
   # tag the precompiled header with 'neon' tag if it exists

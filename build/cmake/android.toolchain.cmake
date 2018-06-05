@@ -273,6 +273,12 @@ if(NOT ANDROID_ARM_MODE)
   set(ANDROID_ARM_MODE thumb)
 endif()
 
+if(ANDROID_ABI STREQUAL "armeabi-v7a" AND NOT DEFINED ANDROID_ARM_NEON)
+  if(NOT ANDROID_PLATFORM_LEVEL LESS 21)
+    set(ANDROID_ARM_NEON TRUE)
+  endif()
+endif()
+
 # Export configurable variables for the try_compile() command.
 set(CMAKE_TRY_COMPILE_PLATFORM_VARIABLES
   ANDROID_TOOLCHAIN
