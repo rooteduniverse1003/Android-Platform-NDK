@@ -42,7 +42,22 @@ Changes
        `clang-tidy -list-checks`.
      * By default clang-tidy warnings are not errors. This behavior can be
        changed with `-warnings-as-errors=*`.
+ * [Issue 490]: ndk-build and CMake now default to using NEON for ARM when
+   targeting android-21 (Lollipop) or newer.
+     * If your minSdkVersion is below 21 or if you were already enabling NEON
+       manually, this change does not affect you.
+     * CPUs that do not support this feature are uncommon and new devices were
+       not allowed to ship without it beginning in Lollipop, but older devices
+       that did not support NEON may have been upgraded to Lollipop.
+     * If you need to continue supporting these devices and have a minSdkVersion
+       of 21 or higher, you can disable NEON explicitly by setting
+       `LOCAL_ARM_NEON := false` in ndk-build or passing
+       `-DANDROID_ARM_NEON=false` to CMake.
+     * Alternatively, use the Play Console to [blacklist CPUs] without NEON to
+       disallow your app from being installed on those devices.
 
+[Issue 490]: https://github.com/android-ndk/ndk/issues/490
+[blacklist CPUs]: https://support.google.com/googleplay/android-developer/answer/7353455?hl=en
 [clang-tidy]: http://clang.llvm.org/extra/clang-tidy/
 
 Known Issues
