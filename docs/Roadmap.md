@@ -18,25 +18,6 @@ have gone according to plan until then.
 [release schedule]: https://github.com/android-ndk/ndk/wiki#release-schedule
 
 
-NDK r17
--------
-
-Estimated release: Q1 2018
-
-### Default to libc++
-
-If NDK r16 shows that libc++ with the refreshed `libandroid_support` is working
-well, the NDK will begin defaulting to using libc++. This means `ndk-build`,
-CMake, the Gradle plugin, and standalone toolchains. We don't have any control
-over other build systems :)
-
-### Bugfix Release
-
-With all the systemic NDK issues now solved (or at least pending feedback on the
-attempted fixes), we should take a look through our bug backlog and start fixing
-all the non-critical and nice-to-have issues.
-
-
 NDK r18
 -------
 
@@ -146,6 +127,12 @@ Full [history] is available, but this section summarizes major changes
 in recent releases.
 
 [history]: https://developer.android.com/ndk/downloads/revision_history.html
+
+### NDK r17
+
+Defaulted to libc++.
+
+Removed ARMv5 (armeabi), MIPS, and MIPS64.
 
 ### NDK r16
 
