@@ -707,6 +707,8 @@ class Libcxx(ndk.builds.Module):
         'libandroid_support',
         'ndk-build',
         'ndk-build-shortcut',
+        'platforms',
+        'sysroot',
     }
 
     def __init__(self):
@@ -735,9 +737,8 @@ class Libcxx(ndk.builds.Module):
         application_mk = os.path.join(self.libcxx_path, 'Application.mk')
 
         prebuilt_ndk = build_support.android_path('prebuilts/ndk')
-        platform_prebuilts = os.path.join(prebuilt_ndk, 'platform')
-        platforms_root = os.path.join(prebuilt_ndk, 'current/platforms')
-        unified_sysroot_path = os.path.join(platform_prebuilts, 'sysroot')
+        platforms_root = os.path.join(ndk_path, 'platforms')
+        unified_sysroot_path = os.path.join(ndk_path, 'sysroot')
         toolchains_root = os.path.join(prebuilt_ndk, 'current/toolchains')
 
         build_cmd = [
