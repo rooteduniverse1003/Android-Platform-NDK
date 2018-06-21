@@ -30,7 +30,8 @@ Announcements
 Changes
 -------
 
- * Updated Clang to build 475164, based on r328903.
+ * Updated Clang to build 4751641, based on r328903.
+ * Updated libc++ to revision r334917.
  * Added support for clang-tidy to ndk-build.
      * Enable application-wide with `APP_CLANG_TIDY := true`, or per-module with
        `LOCAL_CLANG_TIDY := true`.
