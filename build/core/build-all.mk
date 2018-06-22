@@ -118,6 +118,10 @@ static_libraries: $(STATIC_LIBRARIES)
 shared_libraries: $(SHARED_LIBRARIES)
 executables: $(EXECUTABLES)
 
+ifeq ($(GEN_COMPILE_COMMANDS_DB),true)
+all: $(COMPILE_COMMANDS_JSON)
+endif
+
 libraries: static_libraries shared_libraries
 
 clean-host-intermediates:

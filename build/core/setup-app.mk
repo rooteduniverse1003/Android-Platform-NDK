@@ -106,8 +106,20 @@ RENDERSCRIPT_TOOLCHAIN_PREFIX := $(RENDERSCRIPT_TOOLCHAIN_PREBUILT_ROOT)/bin/
 RENDERSCRIPT_TOOLCHAIN_HEADER := $(RENDERSCRIPT_TOOLCHAIN_PREBUILT_ROOT)/clang-include
 RENDERSCRIPT_PLATFORM_HEADER := $(RENDERSCRIPT_TOOLCHAIN_PREBUILT_ROOT)/platform/rs
 
+COMPILE_COMMANDS_JSON := $(call host-path,compile_commands.json)
+sub_commands_json :=
+
 # Each ABI
 $(foreach _abi,$(NDK_APP_ABI),\
     $(eval TARGET_ARCH_ABI := $(_abi))\
     $(eval include $(BUILD_SYSTEM)/setup-abi.mk) \
 )
+
+compile_commands_list_file := $(NDK_APP_OUT)/compile_commands.list
+$(compile_commands_list_file): $(sub_commands_json)
+$(call generate-list-file,$(sub_commands_json),$(compile_commands_list_file))
+
+$(COMPILE_COMMANDS_JSON): PRIVATE_LIST_FILE := $(compile_commands_list_file)
+$(COMPILE_COMMANDS_JSON): $(compile_commands_list_file)
+	$(hide) $(HOST_PYTHON) $(BUILD_PY)/gen_compile_db.py -o $@ \
+        $(PRIVATE_LIST_FILE)
