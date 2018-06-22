@@ -31,6 +31,8 @@ Changes
 -------
 
  * Updated Clang to build 4751641, based on r328903.
+     * With [Issue 573] fixed, -Oz is now the default optimization mode for
+       thumb.
  * Updated libc++ to revision r334917.
  * Added support for clang-tidy to ndk-build.
      * Enable application-wide with `APP_CLANG_TIDY := true`, or per-module with
@@ -58,6 +60,7 @@ Changes
        disallow your app from being installed on those devices.
 
 [Issue 490]: https://github.com/android-ndk/ndk/issues/490
+[Issue 573]: https://github.com/android-ndk/ndk/issues/573
 [blacklist CPUs]: https://support.google.com/googleplay/android-developer/answer/7353455?hl=en
 [clang-tidy]: http://clang.llvm.org/extra/clang-tidy/
 
