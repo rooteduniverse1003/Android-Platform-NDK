@@ -17,12 +17,17 @@
 $(call assert-defined,LOCAL_MODULE)
 $(call module-restore-locals,$(LOCAL_MODULE))
 
-# As in build-module.mk, eval sucks. Manually unstash the cflags variations to
+# As in build-module.mk, eval sucks. Manually unstash the flags variations to
 # preserve -Werror=#warnings.
+LOCAL_ASFLAGS := $(__ndk_modules.$(LOCAL_MODULE).ASFLAGS)
+LOCAL_ASMFLAGS := $(__ndk_modules.$(LOCAL_MODULE).ASMFLAGS)
 LOCAL_CFLAGS := $(__ndk_modules.$(LOCAL_MODULE).CFLAGS)
+LOCAL_CLANG_TIDY_FLAGS := $(__ndk_modules.$(LOCAL_MODULE).CLANG_TIDY_FLAGS)
 LOCAL_CONLYFLAGS := $(__ndk_modules.$(LOCAL_MODULE).CONLYFLAGS)
 LOCAL_CPPFLAGS := $(__ndk_modules.$(LOCAL_MODULE).CPPFLAGS)
 LOCAL_CXXFLAGS := $(__ndk_modules.$(LOCAL_MODULE).CXXFLAGS)
+LOCAL_LDFLAGS := $(__ndk_modules.$(LOCAL_MODULE).LDFLAGS)
+LOCAL_RENDERSCRIPT_FLAGS := $(__ndk_modules.$(LOCAL_MODULE).RENDERSCRIPT_FLAGS)
 
 # For now, only support target (device-specific modules).
 # We may want to introduce support for host modules in the future
