@@ -320,7 +320,7 @@ ifdef LOCAL_ARM_NEON
     $(call __ndk_info,LOCAL_ARM_NEON must be defined either to 'true' or 'false' in $(LOCAL_MAKEFILE), not '$(LOCAL_ARM_NEON)')\
     $(call __ndk_error,Aborting) \
   )
-else ifeq ($(true),$(call gte,$(TARGET_PLATFORM_LEVEL),21))
+else ifeq ($(true),$(call gte,$(TARGET_PLATFORM_LEVEL),23))
   LOCAL_ARM_NEON := true
 endif
 
