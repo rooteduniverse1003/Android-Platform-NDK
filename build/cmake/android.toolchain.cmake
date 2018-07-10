@@ -582,9 +582,16 @@ elseif(ANDROID_STL MATCHES "^c\\+\\+_")
   list(APPEND ANDROID_LINKER_FLAGS
     "-L${ANDROID_STL_PATH}/libs/${ANDROID_ABI}")
 
+  set(CMAKE_CXX_STANDARD_INCLUDE_DIRECTORIES "${ANDROID_STL_PATH}/include")
+
+  if(ANDROID_PLATFORM_LEVEL LESS 21)
+    set(CMAKE_CXX_STANDARD_INCLUDE_DIRECTORIES
+      "${CMAKE_CXX_STANDARD_INCLUDE_DIRECTORIES}"
+      "${ANDROID_NDK}/sources/android/support/include")
+  endif()
+
   set(CMAKE_CXX_STANDARD_INCLUDE_DIRECTORIES
-    "${ANDROID_STL_PATH}/include"
-    "${ANDROID_NDK}/sources/android/support/include"
+    "${CMAKE_CXX_STANDARD_INCLUDE_DIRECTORIES}"
     "${ANDROID_STL_PATH}abi/include")
 endif()
 
