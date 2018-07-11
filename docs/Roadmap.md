@@ -1,5 +1,4 @@
-NDK Roadmap
-===========
+# NDK Roadmap
 
 **Note**: If there's anything you want to see done in the NDK, [file a bug]!
 Nothing here is set in stone, and if there's something that we haven't thought
@@ -17,11 +16,11 @@ have gone according to plan until then.
 
 [release schedule]: https://github.com/android-ndk/ndk/wiki#release-schedule
 
+---
 
-NDK r18
--------
+## NDK r18
 
-Estimated release: Q2 2018
+Estimated release: Q3 2018
 
 ### Remove non-libc++ STLs
 
@@ -46,14 +45,12 @@ can be removed.
 
 ### Bugfix Release
 
-The r17 release cycle alone probably won't be enough to burn down enough of
-these issues.
+The updated clang and libc++ in r18 address many outstanding issues.
 
 
-NDK r19
--------
+## NDK r19
 
-Estimated release: Q3 2018
+Estimated release: Q4 2018
 
 ### Make standalone toolchains obsolete
 
@@ -67,10 +64,45 @@ reduced.
 Related to this (but maybe occurring in a later release), we'll want to
 switch from `libgcc` to `libcompiler-rt` and our own unwinder.
 
-NDK r20+
---------
+## NDK r20
 
 Estimated release: Q4 2018
+
+To be decided...
+
+---
+
+## Future work
+
+### Better code-completion support
+
+NDK r17 added names for all function arguments, but tools such as vim
+and Visual Studio Code need a `compile_commands.json` file.
+
+### Better documentation
+
+We should probably add basic doc comments to the bionic headers:
+
+  * One-sentence summary.
+  * One paragraph listing any Android differences. (Perhaps worth
+    upstreaming this to man7.org too.)
+  * Explain any "flags" arguments (at least giving some idea of which flags)?
+  * Explain the return value: what does a `char*` point to? Who owns
+    it? Are errors -1 (as for most functions) or `<errno.h>` values (for
+    `pthread_mutex_lock`)?
+  * A "See also" pointing to man7.org?
+
+Should these be in the NDK API reference too? If so, how will we keep
+them from swamping the "real" NDK API?
+
+vim is ready, Android Studio is almost ready bar one bug
+(https://issuetracker.google.com/110556794), and Visual Studio Code
+has nothing but feature requests.
+
+### Better samples
+
+The samples are low-quality and don't necessarily cover
+interesting/difficult topics.
 
 ### Better tools for improving code quality.
 
@@ -80,48 +112,69 @@ but there are things we can do to improve the state of testing/code quality:
  * Test coverage support.
  * Make the [GTest-as-JUnit] wrapper available to developers so developers can
    integrate their C++ tests into Studio.
- 
+
 [GTest-as-JUnit]: https://android-review.googlesource.com/c/platform/cts/+/683355
 
-### Help building complex applications.
+### Easier access to common open-source libraries
 
-There are several well-known pain points for NDK users that we should
-address.
+There are many other commonly-used libraries (such as Curl and BoringSSL)
+that are currently difficult to build/package, let alone keep updated. We
+should investigate using something like [cdep] to simplify this.
 
-The samples are low-quality and don't necessarily cover
-interesting/difficult topics.
+[cdep]: https://github.com/jomof/cdep
+
+### lld linker
+
+We should make lld available in the NDK, with a view to making it the
+default (as it already is in the platform), and long-term towards shipping
+lld as our _only_ linker. https://github.com/android-ndk/ndk/issues/683
+
+### lldb debugger
+
+We should make lldb available in the NDK. It's currently shipped as part
+of Studio.
+
+### Modules
+
+Are modules useful and is the clang implementation complete enough? How do
+we test? Is this only useful for libc/libm/libdl or for the NDK API too?
+
+### NDK API header-only C++ wrappers
+
+NDK APIs are C-only for ABI stability reasons. We should offer header-only
+C++ wrappers for NDK APIs, even if only to offer the benefits of RAII.
+
+### NDK C++ header-only JNI helpers
+
+Complaints about basic JNI handling are common. We should make libnativehelper
+or something similar available to developers.
+
+### NDK icu4c wrapper
 
 For serious i18n, `icu4c` is too big too bundle, and non-trivial to use
 the platform. We have a C API wrapper prototype, but we need to make it
 easily available for NDK users.
 
-There are many other commonly-used libraries (such as BoringSSL) that
-are currently difficult to build/package, let alone keep updated. We
-should investigate using [cdep] to simplify this.
+### More automated libc++ updates
 
-NDK APIs are C-only for ABI stability reasons. We should offer header-only
-C++ wrappers for NDK APIs, even if only to offer the benefits of RAII.
-
-Complaints about basic JNI handling are common. We should make libnativehelper
-or something similar available to developers.
-
-[cdep]: https://github.com/jomof/cdep
+We still need to update libc++ twice: once for the platform, and once
+for the NDK. We also still have two separate test runners.
 
 ### Unify CMake NDK Support Implementations
 
-CMake added their own NDK support about the same time we added our toolchain
-file. The two often conflict with each other, and a toolchain file is a messy
-way to implement this support. However, fully switching to the integrated
-support puts NDK policy deicisions (default options, NDK layout, etc) fully into
-the hands of CMake, which makes them impossible to update without the user also
-updating their CMake version.
+CMake added their own NDK support about the same time we added our
+toolchain file. The two often conflict with each other, and a toolchain
+file is a messy way to implement this support. However, fully switching to
+the integrated support puts NDK policy deicisions (default options, NDK
+layout, etc) fully into the hands of CMake, which makes them impossible
+to update without the user also updating their CMake version.
 
 We should send patches to the CMake implementation that will load as much
 information about the NDK as possible from tables we provide in the NDK.
 
+---
 
-Historical releases
--------------------
+## Historical releases
 
 Full [history] is available, but this section summarizes major changes
 in recent releases.
