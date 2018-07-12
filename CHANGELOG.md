@@ -50,8 +50,8 @@ Changes
      * If your minSdkVersion is below 23 or if you were already enabling NEON
        manually, this change does not affect you.
      * CPUs that do not support this feature are uncommon and new devices were
-       not allowed to ship without it beginning in Lollipop, but older devices
-       that did not support NEON may have been upgraded to Lollipop.
+       not allowed to ship without it beginning in Marshmallow, but older
+       devices that did not support NEON may have been upgraded to Marshmallow.
      * If you need to continue supporting these devices and have a minSdkVersion
        of 23 or higher, you can disable NEON explicitly by setting
        `LOCAL_ARM_NEON := false` in ndk-build or passing
