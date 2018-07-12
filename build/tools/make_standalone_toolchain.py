@@ -208,7 +208,12 @@ def make_clang_scripts(install_dir, triple, api, windows):
 
     target = '-'.join([arch, 'none', os_name, env])
     common_flags = '-target {}{}'.format(target, api)
-    if arch == 'i686':
+
+    # We only need mstackrealign to fix issues on 32-bit x86 pre-24. After 24,
+    # this consumes an extra register unnecessarily, which can cause issues for
+    # inline asm.
+    # https://github.com/android-ndk/ndk/issues/693
+    if arch == 'i686' and api < 24:
         common_flags += ' -mstackrealign'
 
     unix_flags = common_flags
