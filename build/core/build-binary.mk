@@ -255,7 +255,9 @@ endif
 # http://b.android.com/220159 (internal http://b/31809417)
 # x86 devices have stack alignment issues.
 ifeq ($(TARGET_ARCH_ABI),x86)
-    LOCAL_CFLAGS += -mstackrealign
+    ifneq (,$(call lt,$(APP_PLATFORM_LEVEL),24))
+        LOCAL_CFLAGS += -mstackrealign
+    endif
 endif
 
 # https://github.com/android-ndk/ndk/issues/297
