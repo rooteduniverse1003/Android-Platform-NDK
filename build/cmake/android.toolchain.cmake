@@ -558,7 +558,7 @@ if(ANDROID_ABI STREQUAL armeabi-v7a)
   list(APPEND ANDROID_LINKER_FLAGS
     -Wl,--fix-cortex-a8)
 endif()
-if(ANDROID_ABI STREQUAL x86)
+if(ANDROID_ABI STREQUAL x86 AND ANDROID_PLATFORM_LEVEL LESS 24)
   # http://b.android.com/222239
   # http://b.android.com/220159 (internal http://b/31809417)
   # x86 devices have stack alignment issues.
