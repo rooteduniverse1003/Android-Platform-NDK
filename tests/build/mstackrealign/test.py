@@ -42,7 +42,7 @@ def run_test(ndk_path, abi, platform, build_flags):
         return proc.returncode == 0, out
 
     out_words = out.split(' ')
-    if abi == 'x86':
+    if abi == 'x86' and platform < 24:
         result = '-mstackrealign' in out_words
     else:
         result = '-mstackrealign' not in out_words
