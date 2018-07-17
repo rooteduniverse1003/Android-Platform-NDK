@@ -420,7 +420,6 @@ EOF
 #
 #  DARWIN_TOOLCHAIN     -> Path to Darwin cross-toolchain (cross-compile only).
 #  DARWIN_SYSROOT       -> Path to Darwin SDK sysroot (cross-compile only).
-#  NDK_CCACHE           -> Ccache binary to use to speed up rebuilds.
 #  ANDROID_NDK_ROOT     -> Top-level NDK directory, for automatic probing
 #                          of prebuilt platform toolchains.
 #
@@ -600,13 +599,6 @@ _bh_select_toolchain_for_host ()
         HOST_CXXFLAGS=$HOST_CXXFLAGS" "$TRY_CFLAGS
     fi
 
-    # Support for ccache, to speed up rebuilds.
-    DST_PREFIX=$HOST_FULLPREFIX
-    local CCACHE=
-    if [ "$NDK_CCACHE" ]; then
-        CCACHE="--ccache=$NDK_CCACHE"
-    fi
-
     # We're going to generate a wrapper toolchain with the $HOST prefix
     # i.e. if $HOST is 'i686-linux-gnu', then we're going to generate a
     # wrapper toolchain named 'i686-linux-gnu-gcc' that will redirect
@@ -619,13 +611,12 @@ _bh_select_toolchain_for_host ()
     run mkdir -p "$BH_WRAPPERS_DIR" &&
     run $NDK_BUILDTOOLS_PATH/gen-toolchain-wrapper.sh "$BH_WRAPPERS_DIR" \
         --src-prefix="$BH_HOST_CONFIG-" \
-        --dst-prefix="$DST_PREFIX" \
+        --dst-prefix="$HOST_FULLPREFIX" \
         --cflags="$HOST_CFLAGS" \
         --cxxflags="$HOST_CXXFLAGS" \
         --ldflags="$HOST_LDFLAGS" \
         --asflags="$HOST_ASFLAGS" \
-        --windres-flags="$HOST_WINDRES_FLAGS" \
-        $CCACHE
+        --windres-flags="$HOST_WINDRES_FLAGS"
 }
 
 
