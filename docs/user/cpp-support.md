@@ -18,9 +18,9 @@ not be able to use objects written against another. This is just one example;
 the incompatibilities are numerous.
 
 Note: The exception to this rule is that "no STL" does not count as an STL. You
-can safely use C only libraries (or even the [system] runtime, since it is not
-an STL) in the same application as an STL. This rule only applies to [libc++],
-[gnustl], and [stlport].
+can safely use C only libraries (or even the [none] or [system] runtimes, since
+they're not actually STLs) in the same application as an STL. This rule only
+applies to [libc++], [gnustl], and [stlport].
 
 Warning: The linker can catch some of these issues at build time, but many of
 these issues will only manifest as a crash or odd behavior at run time.
@@ -113,15 +113,16 @@ Rather than managing this yourself, we recommend using
 
 **Table 1.** NDK C++ Runtimes and Features.
 
-| Name      | Features               |
-| --------- | ---------------------- |
-| [libc++]  | C++1z support.         |
-| [gnustl]  | Partial C++11 support. |
-| [STLport] | C++98 support.         |
-| [system]  | `new` and `delete`.    |
+| Name      | Features                                    |
+| --------- | ------------------------------------------- |
+| [libc++]  | C++17 support.                              |
+| [gnustl]  | Partial C++11 support. (Removed in r18.)    |
+| [STLport] | C++98 support. (Removed in r18.)            |
+| [system]  | `new` and `delete`. (Deprecated in r18.)    |
+| [none]    | No headers, limited C++.                    |
 
-With the exception of the system library, each of these is available as both a
-static and shared library.
+With the exception of the `none` and `system` runtimes, each of these is
+available as both a static and shared library.
 
 Warning: Using static runtimes can cause unexpected behavior. See the [static
 runtimes section](#static_runtimes) for more information.
@@ -215,11 +216,11 @@ LOCAL_CPPFLAGS := -frtti
 been used by the Android OS since Lollipop, and in the [future] will be the only
 STL available in the NDK.
 
-Until NDK r16, the NDK's libc++ is only of beta quality. Beginning with NDK r16,
-libc++ will be the preferred STL. A [future] NDK release will remove the other
-options.
+Before NDK r16, the NDK's libc++ was only of beta quality. Since NDK r16,
+libc++ has been the default STL. The NDK r18 release will remove [STLport]
+and [gnustl].
 
-The shared library for this runtime is `libc++_shared.so`, and the static
+The shared library for libc++ is `libc++_shared.so`, and the static
 library is `libc++_static.a`.
 
 libc++ is dual-licensed under both the University of Illinois "BSD-Like" license
@@ -228,15 +229,15 @@ file](https://llvm.org/svn/llvm-project/libcxx/trunk/LICENSE.TXT).
 
 #### Compatibility
 
-Prior to NDK r16, the NDK's libc++ is not stable. Not all the tests pass, and
-the test suite is not comprehensive. There is no comprehensive list of issues,
-but locales and stdio (the `sprintf` family in particular) have been known to be
-unreliable.
+Prior to NDK r16, the NDK's libc++ was not stable. Not all the tests passed,
+and the test suite was not comprehensive. There was no comprehensive list of
+issues, but locales and stdio (the `sprintf` family in particular) were known
+to be unreliable.
 
-These compatibility issues are caused by libandroid\_support, which backports
-the libc APIs necessary for libc++ to old releases. These compatibility issues
-have been fixed in NDK r16. This library has been rewritten and is much more
-thoroughly tested.
+These compatibility issues were caused by old version of libandroid\_support,
+the library that backports libc APIs necessary for libc++. These compatibility
+issues were fixed in the new libandroid\_support in NDK r16. The library has
+been rewritten and is much more thoroughly tested.
 
 ### gnustl
 <a id="gn"></a>
@@ -250,7 +251,7 @@ As such, it has not received updates for several releases. The version in the
 NDK supports most of C++11 (see [Issue 82]), and some portions of this library
 are incompatible with Clang.
 
-Note: This library will be deprecated and removed in a [future] NDK release.
+Note: This library is deprecated and will be removed in NDK r18.
 Beginning with NDK r16, you should use [libc++](#libc) instead.
 
 The shared library for this runtime is `libgnustl_shared.so`, and the static
@@ -272,7 +273,7 @@ The upstream STLport project became inactive in 2008, and as such this runtime
 does not support C++11 or newer. For modern C++ support, you should use
 [libc++](#libc).
 
-Note: This library will be deprecated and removed in a [future] NDK release.
+Note: This library is deprecated and will be removed in NDK r18.
 Beginning with NDK r16, you should use [libc++](#libc) instead.
 
 The shared library for this runtime is `libstlport_shared.so`, and the static
@@ -298,9 +299,10 @@ the other options presented on this page.
 Note: This is the only C++ Runtime that is provided by the OS. All other
 runtimes must be included in your APK.
 
-## Additional sample code
-To download NDK samples, see
-[NDK Samples](https://github.com/googlesamples/android-ndk/).
+### none
+
+There is also the option to have no STL. There are no linking or licensing
+requirements in that case.
 
 [Android.mk]: /ndk/guides/android_mk.html
 [Application.mk]: /ndk/guides/application_mk.html
