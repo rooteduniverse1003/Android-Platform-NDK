@@ -310,4 +310,5 @@ requirements in that case.
 [gnustl]: #gnustl
 [stlport]: #stlport
 [system]: #system
+[none]: #none
 [future]: https://android.googlesource.com/platform/ndk/+/master/docs/Roadmap.md
