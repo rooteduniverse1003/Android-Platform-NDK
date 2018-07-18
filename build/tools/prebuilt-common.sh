@@ -803,9 +803,6 @@ EOF
     fi
 
     DST_PREFIX=${CROSS_GCC%gcc}
-    if [ "$NDK_CCACHE" ]; then
-        DST_PREFIX="$NDK_CCACHE $DST_PREFIX"
-    fi
     $NDK_BUILDTOOLS_PATH/gen-toolchain-wrapper.sh --src-prefix=$BINPREFIX --dst-prefix="$DST_PREFIX" "$CROSS_WRAP_DIR" \
         --cflags="$HOST_CFLAGS" --cxxflags="$HOST_CFLAGS" --ldflags="$HOST_LDFLAGS"
     # generate wrappers for BUILD toolchain
@@ -843,29 +840,6 @@ handle_host ()
         HOST_BITS=32
     fi
     handle_canadian_build
-}
-
-setup_ccache ()
-{
-    # Support for ccache compilation
-    # We can't use this here when building Windows/darwin binaries on Linux with
-    # binutils 2.21, because defining CC/CXX in the environment makes the
-    # configure script fail later
-    #
-    if [ "$NDK_CCACHE" -a "$MINGW" != "yes" -a "$DARWIN" != "yes" ]; then
-        NDK_CCACHE_CC=$CC
-        NDK_CCACHE_CXX=$CXX
-        # Unfortunately, we can just do CC="$NDK_CCACHE $CC" because some
-        # configure scripts are not capable of dealing with this properly
-        # E.g. the ones used to rebuild the GCC toolchain from scratch.
-        # So instead, use a wrapper script
-        CC=$NDK_BUILDTOOLS_ABSPATH/ndk-ccache-gcc.sh
-        CXX=$NDK_BUILDTOOLS_ABSPATH/ndk-ccache-g++.sh
-        export NDK_CCACHE_CC NDK_CCACHE_CXX
-        log "Using ccache compilation"
-        log "NDK_CCACHE_CC=$NDK_CCACHE_CC"
-        log "NDK_CCACHE_CXX=$NDK_CCACHE_CXX"
-    fi
 }
 
 prepare_common_build ()
@@ -937,7 +911,7 @@ prepare_common_build ()
 EOF
     log_n "Checking whether the compiler generates 32-bit binaries..."
     log $CC $HOST_CFLAGS -c -o $TMPO $TMPC
-    $NDK_CCACHE $CC $HOST_CFLAGS -c -o $TMPO $TMPC >$TMPL 2>&1
+    $CC $HOST_CFLAGS -c -o $TMPO $TMPC >$TMPL 2>&1
     if [ $? != 0 ] ; then
         log "no"
         if [ "$TRY64" != "yes" ]; then
@@ -980,8 +954,6 @@ prepare_host_build ()
         STRIP=$ABI_CONFIGURE_HOST-strip
         export CC CXX CPP LD AR AS RANLIB STRIP
     fi
-
-    setup_ccache
 }
 
 prepare_abi_configure_build ()
@@ -1031,8 +1003,6 @@ prepare_target_build ()
             HOST_GMP_ABI=
         fi
     fi
-
-    setup_ccache
 }
 
 # $1: Toolchain name

@@ -294,7 +294,7 @@ builder_sources ()
         fi
         builder_log "${_BUILD_PREFIX}$text: $src"
         builder_command mkdir -p $(dirname "$obj")
-        builder_command $NDK_CCACHE $cc -c -o "$obj" "$srcfull" $cflags
+        builder_command $cc -c -o "$obj" "$srcfull" $cflags
         fail_panic "Could not compile ${_BUILD_PREFIX}$src"
         _BUILD_OBJECTS=$_BUILD_OBJECTS" $obj"
     done
