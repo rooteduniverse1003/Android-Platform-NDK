@@ -74,6 +74,12 @@ Known Issues
    to not call `dlclose`.
  * [Issue 70838247]: Gold emits broken debug information for AArch64. AArch64
    still uses BFD by default.
+ * This version of the NDK is incompatible with the Android Gradle plugin
+   version 3.0 or older. If you see an error like
+   `No toolchains found in the NDK toolchains folder for ABI with prefix: mips64el-linux-android`,
+   update your project file to [use plugin version 3.1 or newer]. You will also
+   need to upgrade to Android Studio 3.1 or newer.
 
 [Issue 360]: https://github.com/android-ndk/ndk/issues/360
 [Issue 70838247]: https://issuetracker.google.com/70838247
+[use plugin version 3.1 or newer]: https://developer.android.com/studio/releases/gradle-plugin#updating-plugin
