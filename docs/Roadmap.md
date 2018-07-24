@@ -172,6 +172,23 @@ to update without the user also updating their CMake version.
 We should send patches to the CMake implementation that will load as much
 information about the NDK as possible from tables we provide in the NDK.
 
+### Weak symbols for API additions
+
+iOS developers are used to using weak symbols to refer to function that
+may be present in their equivalent of `targetSdkVersion` but not in their
+`minSdkVersion`. They use a run-time null check to decide whether the
+new function is available or not. Apparently clang also has some support
+for emitting a warning if you dereference one of these symbols without
+a corresponding null check.
+
+This seems like a more convenient option than is currently available
+on Android, especially since no currently shipping version of Android
+includes a function to check which version of Android you're running on.
+
+We might not want to make this the default (because it's such a break
+with historical practice, and might be surprising), but we should offer
+this as an option.
+
 ---
 
 ## Historical releases
