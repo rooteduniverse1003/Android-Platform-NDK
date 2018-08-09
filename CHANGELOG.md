@@ -58,9 +58,22 @@ Changes
        `-DANDROID_ARM_NEON=false` to CMake.
      * Alternatively, use the Play Console to [blacklist CPUs] without NEON to
        disallow your app from being installed on those devices.
+ * Added `APP_STRIP_MODE` and `LOCAL_STRIP_MODE` to ndk-build.
+     * Allows the user to specify the strip mode used for their modules.
+     * The option is passed directly to the strip command. See the [strip
+       documentation](https://sourceware.org/binutils/docs/binutils/strip.html)
+       for details.
+     * If set to "none", strip will not be run.
+     * Defaults to "--strip-unneeded". This is the same behavior as previous
+       NDKs.
+     * `LOCAL_STRIP_MODE` always overrides `APP_STRIP_MODE` when set.
+ * [Issue 749]: The libc++_shared.so in the NDK is no longer stripped of debug
+   info. Debugging libc++ is now possible. Gradle will still strip the library
+   before packaging it in an APK.
 
 [Issue 490]: https://github.com/android-ndk/ndk/issues/490
 [Issue 573]: https://github.com/android-ndk/ndk/issues/573
+[Issue 749]: https://github.com/android-ndk/ndk/issues/749
 [blacklist CPUs]: https://support.google.com/googleplay/android-developer/answer/7353455?hl=en
 [clang-tidy]: http://clang.llvm.org/extra/clang-tidy/
 

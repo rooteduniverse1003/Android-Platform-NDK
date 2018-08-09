@@ -106,10 +106,7 @@ define cmd-build-static-library
 $(PRIVATE_AR) $(call host-path,$(LOCAL_BUILT_MODULE)) $(PRIVATE_AR_OBJECTS)
 endef
 
-# The strip command is only used for shared libraries and executables.
-# It is thus safe to use --strip-unneeded, which is only dangerous
-# when applied to static libraries or object files.
-cmd-strip = $(PRIVATE_STRIP) --strip-unneeded $(call host-path,$1)
+cmd-strip = $(PRIVATE_STRIP) $(PRIVATE_STRIP_MODE) $(call host-path,$1)
 
 # The command objcopy --add-gnu-debuglink= will be needed for Valgrind
 cmd-add-gnu-debuglink = $(PRIVATE_OBJCOPY) --add-gnu-debuglink=$(strip $(call host-path,$2)) $(call host-path,$1)
