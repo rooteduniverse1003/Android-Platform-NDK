@@ -745,6 +745,10 @@ class Libcxx(ndk.builds.Module):
             'bash', ndk_build, build_support.jobs_arg(), 'V=1',
             'APP_ABI=' + ' '.join(self.abis),
 
+            # Since nothing in this build depends on libc++_static, we need to
+            # name it to force it to build.
+            'APP_MODULES=c++_shared c++_static',
+
             'BIONIC_PATH=' + bionic_path,
 
             # Use the prebuilt platforms and toolchains.
