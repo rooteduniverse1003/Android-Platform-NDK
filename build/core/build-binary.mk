@@ -134,9 +134,9 @@ $(cleantarget): PRIVATE_ABI         := $(TARGET_ARCH_ABI)
 $(cleantarget): PRIVATE_MODULE      := $(LOCAL_MODULE)
 ifneq ($(LOCAL_BUILT_MODULE_NOT_COPIED),true)
 $(cleantarget): PRIVATE_CLEAN_FILES := $(LOCAL_BUILT_MODULE) \
-                                       $(TARGET_OBJS)
+                                       $(LOCAL_OBJS_DIR)
 else
-$(cleantarget): PRIVATE_CLEAN_FILES := $(TARGET_OBJS)
+$(cleantarget): PRIVATE_CLEAN_FILES := $(LOCAL_OBJS_DIR)
 endif
 $(cleantarget)::
 	$(call host-echo-build-step,$(PRIVATE_ABI),Clean) "$(PRIVATE_MODULE) [$(PRIVATE_ABI)]"
