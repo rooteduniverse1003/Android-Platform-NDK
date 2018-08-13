@@ -45,6 +45,10 @@ Changes
        `clang-tidy -list-checks`.
      * By default clang-tidy warnings are not errors. This behavior can be
        changed with `-warnings-as-errors=*`.
+ * ndk-build can now generate a [JSON Compilation Database].
+     * Generate with either `ndk-build compile_commands.json` (does not build)
+       or `ndk-build GEN_COMPILE_COMMANDS_DB=true` (builds and generates
+       database).
  * [Issue 490]: ndk-build and CMake now default to using NEON for ARM when
    targeting android-23 (Marshmallow) or newer.
      * If your minSdkVersion is below 23 or if you were already enabling NEON
@@ -76,6 +80,7 @@ Changes
 [Issue 749]: https://github.com/android-ndk/ndk/issues/749
 [blacklist CPUs]: https://support.google.com/googleplay/android-developer/answer/7353455?hl=en
 [clang-tidy]: http://clang.llvm.org/extra/clang-tidy/
+[JSON Compilation Database]: https://clang.llvm.org/docs/JSONCompilationDatabase.html
 
 Known Issues
 ------------
