@@ -16,7 +16,9 @@
 """UI classes for build output."""
 from __future__ import absolute_import
 from __future__ import print_function
+from __future__ import division
 
+import math
 import os
 import sys
 import time
@@ -43,9 +45,6 @@ class AnsiUiRenderer(UiRenderer):
         super(AnsiUiRenderer, self).__init__(console)
         self.last_rendered_lines = []
         self.debug_draw = debug_draw
-
-    def get_ui_lines(self):
-        raise NotImplementedError
 
     def changed_lines(self, new_lines):
         assert len(new_lines) == len(self.last_rendered_lines)
@@ -177,6 +176,23 @@ def get_work_queue_ui(console, workqueue):
         ui_renderer, show_worker_status, workqueue)
 
 
+def columnate(lines, max_width, max_height):
+    if os.name == 'nt':
+        # Not yet implemented.
+        return lines
+
+    num_columns = int(math.ceil(len(lines) / max_height))
+    if num_columns == 1:
+        return lines
+
+    # Keep the columns roughly balanced.
+    num_rows = int(math.ceil(len(lines) / num_columns))
+    rows = [lines[r::num_rows] for r in range(num_rows)]
+
+    column_width = max_width // num_columns
+    return [''.join(s.ljust(column_width) for s in row) for row in rows]
+
+
 class WorkQueueUi(Ui):
     NUM_TESTS_DIGITS = 6
 
@@ -191,6 +207,13 @@ class WorkQueueUi(Ui):
         if self.show_worker_status:
             for worker in self.workqueue.workers:
                 lines.append(worker.status)
+
+        if self.ui_renderer.console.smart_console:
+            # Keep some space at the top of the UI so we can see messages.
+            ui_height = self.ui_renderer.console.height - 10
+            if ui_height > 0:
+                lines = columnate(lines, self.ui_renderer.console.width,
+                                  ui_height)
 
         lines.append('{: >{width}} jobs remaining'.format(
             self.workqueue.num_tasks, width=self.NUM_TESTS_DIGITS))

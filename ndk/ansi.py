@@ -19,6 +19,7 @@ from __future__ import print_function
 
 import contextlib
 import os
+import subprocess
 import sys
 
 try:
@@ -81,6 +82,14 @@ def get_console(stream=sys.stdout):
         return DumbConsole(stream)
 
 
+def get_console_size_linux():
+    return [int(s) for s in subprocess.check_output(['stty', 'size']).split()]
+
+
+def get_console_size_windows():
+    raise NotImplementedError
+
+
 class Console(object):
     def __init__(self, stream):
         self.stream = stream
@@ -117,6 +126,8 @@ class AnsiConsole(Console):
     def __init__(self, stream):
         super(AnsiConsole, self).__init__(stream)
         self.smart_console = True
+        self._width = None
+        self._height = None
 
     def _do(self, cmd):
         print(cmd, end='', file=self.stream)
@@ -137,6 +148,24 @@ class AnsiConsole(Console):
 
     def show_cursor(self):
         self._do(self.SHOW_CURSOR)
+
+    def init_window_size(self):
+        if os.name == 'nt':
+            self._height, self._width = get_console_size_windows()
+        else:
+            self._height, self._width = get_console_size_linux()
+
+    @property
+    def height(self):
+        if self._height is None:
+            self.init_window_size()
+        return self._height
+
+    @property
+    def width(self):
+        if self._width is None:
+            self.init_window_size()
+        return self._width
 
 
 class DumbConsole(Console):
