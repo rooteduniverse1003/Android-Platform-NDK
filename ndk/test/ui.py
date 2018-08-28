@@ -100,6 +100,13 @@ class TestBuildProgressUi(ndk.ui.Ui):
             for worker in self.workqueue.restricted_work_queue.workers:
                 lines.append(worker.status)
 
+        if self.ui_renderer.console.smart_console:
+            # Keep some space at the top of the UI so we can see messages.
+            ui_height = self.ui_renderer.console.height - 10
+            if ui_height > 0:
+                lines = ndk.ui.columnate(lines, self.ui_renderer.console.width,
+                                         ui_height)
+
         lines.append('{: >{width}} tests remaining'.format(
             self.workqueue.num_tasks, width=self.NUM_TESTS_DIGITS))
         return lines
