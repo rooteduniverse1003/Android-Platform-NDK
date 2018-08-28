@@ -27,6 +27,7 @@ from __future__ import unicode_literals
 import argparse
 import contextlib
 import copy
+from distutils.dir_util import copy_tree
 import errno
 import glob
 import inspect
@@ -406,10 +407,39 @@ def install_gcc_crtbegin(install_path, host, arch, subarch):
     install_gcc_lib(install_path, host, arch, subarch, subdir, 'crtbegin.o')
 
 
-def install_libgcc(install_path, host, arch, subarch):
+def install_libgcc(install_path, host, arch, subarch, new_layout=False):
     triple = ndk.abis.arch_to_triple(arch)
     subdir = os.path.join('lib/gcc', triple, '4.9.x')
     install_gcc_lib(install_path, host, arch, subarch, subdir, 'libgcc.a')
+
+    if new_layout and arch == 'arm':
+        # For ARM32 we need to use LLVM's libunwind rather than libgcc.
+        # Unfortunately we still use libgcc for the compiler builtins, so we we
+        # have to link both. To make sure that the LLVM unwinder gets used, add
+        # a linker script for libgcc to make sure that libunwind is placed
+        # first whenever libgcc is used. This also necessitates linking libdl
+        # since libunwind makes use of dl_iterate_phdr.
+        #
+        # Historically we dealt with this in the libc++ linker script, but
+        # since the new toolchain setup has the toolchain link the STL for us
+        # the correct way to use the static libc++ is to use
+        # `-static-libstdc++' which will expand to `-Bstatic -lc++ -Bshared`,
+        # which results in the static libdl being used. The stub implementation
+        # of libdl.a causes the unwind to fail, so we can't link libdl there.
+        # If we don't link it at all, linking fails when building a static
+        # executable since the driver does not link libdl when building a
+        # static executable.
+        #
+        # We only do this for the new toolchain layout since build systems
+        # using the legacy toolchain already needed to handle this, and
+        # -lunwind may not be valid in those configurations (it could have been
+        # linked by a full path instead).
+        libgcc_base_path = os.path.join(install_path, subdir, subarch)
+        libgcc_path = os.path.join(libgcc_base_path, 'libgcc.a')
+        libgcc_real_path = os.path.join(libgcc_base_path, 'libgcc_real.a')
+        shutil.move(libgcc_path, libgcc_real_path)
+        with open(libgcc_path, 'w') as script:
+            script.write('INPUT(-lunwind -lgcc_real -ldl)')
 
 
 def install_libatomic(install_path, host, arch, subarch):
@@ -1344,6 +1374,147 @@ class Sysroot(ndk.builds.Module):
             shutil.rmtree(temp_dir)
 
 
+class Toolchain(ndk.builds.Module):
+    name = 'toolchain'
+    path = 'toolchain'
+    enabled = False
+    deps = {
+        'binutils',
+        'clang',
+        'libandroid_support',
+        'libc++',
+        'libc++abi',
+        'platforms',
+        'sysroot',
+        'system-stl',
+    }
+
+    @property
+    def notices(self):
+        return (Binutils().notices + Clang().notices + Libcxx().notices +
+                Libcxxabi().notices + LibAndroidSupport().notices +
+                Platforms().notices + Sysroot().notices + SystemStl().notices)
+
+    def build(self, _out_dir, _dist_dir, _args):
+        pass
+
+    def install(self, out_dir, dist_dir, args):
+        install_dir = self.get_install_path(out_dir, args.system)
+        clang_dir = Clang().get_install_path(out_dir, args.system)
+        platforms_dir = Platforms().get_install_path(out_dir, args.system)
+        sysroot_dir = Sysroot().get_install_path(out_dir, args.system)
+        libcxx_dir = Libcxx().get_install_path(out_dir, args.system)
+        libcxxabi_dir = Libcxxabi().get_install_path(out_dir, args.system)
+        system_stl_dir = SystemStl().get_install_path(out_dir, args.system)
+        libandroid_support_dir = LibAndroidSupport().get_install_path(
+            out_dir, args.system)
+
+        if os.path.exists(install_dir):
+            shutil.rmtree(install_dir)
+
+        copy_tree(clang_dir, install_dir)
+        copy_tree(sysroot_dir, os.path.join(install_dir, 'sysroot'))
+
+        arches = build_support.ALL_ARCHITECTURES
+        if args.arch is not None:
+            arches = [args.arch]
+
+        for arch in arches:
+            binutils_dir = Binutils().get_install_path(out_dir, args.system,
+                                                       arch)
+            copy_tree(binutils_dir, install_dir)
+
+            # We need to replace libgcc with linker scripts that also use
+            # libunwind on arm32. We already get libunwind from copying
+            # binutils, but re-install libgcc so we get the linker scripts.
+            for subarch in get_subarches(arch):
+                install_libgcc(
+                    install_dir, args.system, arch, subarch, new_layout=True)
+
+        for api in Platforms().get_apis():
+            if api in Platforms.skip_apis:
+                continue
+
+            platform = 'android-{}'.format(api)
+            for arch in Platforms().get_arches(api):
+                triple = ndk.abis.arch_to_triple(arch)
+                arch_name = 'arch-{}'.format(arch)
+                lib_dir = 'lib64' if arch == 'x86_64' else 'lib'
+                src_dir = os.path.join(platforms_dir, platform, arch_name,
+                                       'usr', lib_dir)
+                dst_dir = os.path.join(install_dir, 'sysroot/usr/lib', triple,
+                                       str(api))
+                shutil.copytree(src_dir, dst_dir)
+
+                # Also install a libc++.so and libc++.a linker script per API
+                # level. We need this to be done on a per-API level basis
+                # because libandroid_support is only used on pre-21 API levels.
+                static_script = ['-lc++_static', '-lc++abi']
+                shared_script = ['-lc++_shared']
+                if api < 21:
+                    static_script.append('-landroid_support')
+                    shared_script.insert(0, '-landroid_support')
+
+                libcxx_so_path = os.path.join(dst_dir, 'libc++.so')
+                with open(libcxx_so_path, 'w') as script:
+                    script.write('INPUT({})'.format(' '.join(shared_script)))
+
+                libcxx_a_path = os.path.join(dst_dir, 'libc++.a')
+                with open(libcxx_a_path, 'w') as script:
+                    script.write('INPUT({})'.format(' '.join(static_script)))
+
+        # Clang searches for libstdc++ headers at $GCC_PATH/../include/c++. It
+        # maybe be worth adding a search for the same path within the usual
+        # sysroot location to centralize these, or possibly just remove them
+        # from the NDK since they aren't particularly useful anyway.
+        system_stl_hdr_dir = os.path.join(install_dir, 'include/c++')
+        os.makedirs(system_stl_hdr_dir)
+        system_stl_inc_src = os.path.join(system_stl_dir, 'include')
+        system_stl_inc_dst = os.path.join(system_stl_hdr_dir, '4.9.x')
+        shutil.copytree(system_stl_inc_src, system_stl_inc_dst)
+
+        libcxx_hdr_dir = os.path.join(install_dir, 'sysroot/usr/include/c++')
+        os.makedirs(libcxx_hdr_dir)
+        libcxx_inc_src = os.path.join(libcxx_dir, 'include')
+        libcxx_inc_dst = os.path.join(libcxx_hdr_dir, 'v1')
+        shutil.copytree(libcxx_inc_src, libcxx_inc_dst)
+
+        libcxxabi_inc_src = os.path.join(libcxxabi_dir, 'include')
+        copy_tree(libcxxabi_inc_src, libcxx_inc_dst)
+
+        # $SYSROOT/usr/local/include comes before $SYSROOT/usr/include, so we
+        # can use that for libandroid_support's headers. Puting them here
+        # *does* mean that libandroid_support's headers get used even when
+        # we're not using libandroid_support, but they should be a no-op for
+        # android-21+ and in the case of pre-21 without libandroid_support
+        # (libstdc++), we're only degrading the UX; the user will get a linker
+        # error instead of a compiler error.
+        support_hdr_dir = os.path.join(install_dir, 'sysroot/usr/local')
+        os.makedirs(support_hdr_dir)
+        support_inc_src = os.path.join(libandroid_support_dir, 'include')
+        support_inc_dst = os.path.join(support_hdr_dir, 'include')
+        shutil.copytree(support_inc_src, support_inc_dst)
+
+        for arch in arches:
+            triple = ndk.abis.arch_to_triple(arch)
+            abi, = ndk.abis.arch_to_abis(arch)
+            libcxx_lib_dir = os.path.join(libcxx_dir, 'libs', abi)
+            sysroot_dst = os.path.join(install_dir, 'sysroot/usr/lib', triple)
+
+            libs = [
+                'libc++_shared.so',
+                'libc++_static.a',
+                'libc++abi.a',
+            ]
+            if arch == 'arm':
+                libs.append('libunwind.a')
+            if abi in ndk.abis.LP32_ABIS:
+                libs.append('libandroid_support.a')
+
+            for lib in libs:
+                shutil.copy2(os.path.join(libcxx_lib_dir, lib), sysroot_dst)
+
+
 class Vulkan(ndk.builds.Module):
     name = 'vulkan'
     path = 'sources/third_party/vulkan'
@@ -1913,6 +2084,7 @@ ALL_MODULES = [
     SourceProperties(),
     Sysroot(),
     SystemStl(),
+    Toolchain(),
     Vulkan(),
     WrapSh(),
 ]
