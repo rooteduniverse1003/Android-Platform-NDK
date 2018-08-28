@@ -118,7 +118,7 @@ endif
 # Arguments: 1: Toolchain name
 # Returns  : Path to the given prebuilt toolchain.
 # -----------------------------------------------------------------------------
-get-toolchain-root = $(call host-toolchain-path,$(NDK_TOOLCHAINS_ROOT),$1)
+get-toolchain-root = $(call host-toolchain-path,$(NDK_TOOLCHAIN_ROOT),$1)
 
 # -----------------------------------------------------------------------------
 # Function : get-gcclibs-path
@@ -453,9 +453,9 @@ $(foreach _platform,$(NDK_ALL_PLATFORMS),\
 # particularly helpful if we want to use prebuilt toolchains for building an NDK
 # module. Specifically, we use this to build libc++ using ndk-build instead of
 # the old build-cxx-stl.sh and maintaining two sets of build rules.
-NDK_TOOLCHAINS_ROOT := $(strip $(NDK_TOOLCHAINS_ROOT))
-ifndef NDK_TOOLCHAINS_ROOT
-    NDK_TOOLCHAINS_ROOT := $(strip $(NDK_ROOT)/toolchains)
+NDK_TOOLCHAIN_ROOT := $(strip $(NDK_TOOLCHAIN_ROOT))
+ifndef NDK_TOOLCHAIN_ROOT
+    NDK_TOOLCHAIN_ROOT := $(strip $(NDK_ROOT)/toolchain)
 endif
 
 # ====================================================================

@@ -182,10 +182,9 @@ LOCAL_RS_EXTENSION := $(default-rs-extensions)
 
 LOCAL_LDFLAGS += -Wl,--build-id
 
-ifeq ($(NDK_TOOLCHAIN_VERSION),clang)
-    ifeq ($(filter system stlport_shared stlport_static,$(NDK_APP_STL)),)
-        LOCAL_LDFLAGS += -nostdlib++
-    endif
+ifneq ($(NDK_APP_STL),system)
+    LOCAL_CFLAGS += -nostdinc++
+    LOCAL_LDFLAGS += -nostdlib++
 endif
 
 #
@@ -567,17 +566,6 @@ CLEAN_OBJS_DIRS     += $(LOCAL_OBJS_DIR)
 # Handle the static and shared libraries this module depends on
 #
 
-# If LOCAL_LDLIBS contains anything like -l<library> then
-# prepend a -L$(SYSROOT_LINK)/usr/lib to it to ensure that the linker
-# looks in the right location
-#
-ifneq ($(filter -l%,$(LOCAL_LDLIBS)),)
-    LOCAL_LDLIBS := -L$(call host-path,$(SYSROOT_LINK)/usr/lib) $(LOCAL_LDLIBS)
-    ifneq ($(filter x86_64 mips64,$(TARGET_ARCH_ABI)),)
-        LOCAL_LDLIBS := -L$(call host-path,$(SYSROOT_LINK)/usr/lib64) $(LOCAL_LDLIBS)
-    endif
-endif
-
 my_ldflags := $(TARGET_LDFLAGS) $(LOCAL_LDFLAGS) $(NDK_APP_LDFLAGS)
 ifneq ($(filter armeabi%,$(TARGET_ARCH_ABI)),)
     my_ldflags += $(TARGET_$(my_link_arm_mode)_LDFLAGS)
@@ -608,7 +596,7 @@ $(LOCAL_BUILT_MODULE): PRIVATE_LDLIBS  := $(LOCAL_LDLIBS) $(TARGET_LDLIBS)
 $(LOCAL_BUILT_MODULE): PRIVATE_NAME := $(notdir $(LOCAL_BUILT_MODULE))
 $(LOCAL_BUILT_MODULE): PRIVATE_CXX := $(TARGET_CXX)
 $(LOCAL_BUILT_MODULE): PRIVATE_CC := $(TARGET_CC)
-$(LOCAL_BUILT_MODULE): PRIVATE_SYSROOT_LINK := $(SYSROOT_LINK)
+$(LOCAL_BUILT_MODULE): PRIVATE_SYSROOT_API_LIB_DIR := $(SYSROOT_API_LIB_DIR)
 
 ifeq ($(call module-get-class,$(LOCAL_MODULE)),STATIC_LIBRARY)
 

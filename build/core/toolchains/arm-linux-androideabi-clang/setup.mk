@@ -13,47 +13,20 @@
 # limitations under the License.
 #
 
-# this file is used to prepare the NDK to build with the arm clang toolchain any
-# number of source files
-#
-# its purpose is to define (or re-define) templates used to build
-# various sources into target object files, libraries or executables.
-#
-# Note that this file may end up being parsed several times in future
-# revisions of the NDK.
-#
-
-#
-# Override the toolchain prefix
-#
-
 TOOLCHAIN_NAME := arm-linux-androideabi
-TOOLCHAIN_ROOT := $(call get-toolchain-root,$(TOOLCHAIN_NAME)-4.9)
-TOOLCHAIN_PREFIX := $(TOOLCHAIN_ROOT)/bin/$(TOOLCHAIN_NAME)-
-
-#
-# CFLAGS and LDFLAGS
-#
+LLVM_TRIPLE := armv7-none-linux-androideabi
 
 TARGET_ASAN_BASENAME := libclang_rt.asan-arm-android.so
 TARGET_UBSAN_BASENAME := libclang_rt.ubsan_standalone-arm-android.so
 
 TARGET_CFLAGS := \
-    -gcc-toolchain $(call host-path,$(TOOLCHAIN_ROOT)) \
     -fpic \
     -march=armv7-a \
     -mfloat-abi=softfp \
     -mfpu=vfpv3-d16 \
 
 TARGET_LDFLAGS += \
-    -gcc-toolchain $(call host-path,$(TOOLCHAIN_ROOT)) \
     -Wl,--fix-cortex-a8 \
-
-LLVM_TRIPLE := armv7-none-linux-androideabi
-
-GCCLIB_SUBDIR := armv7-a
-
-GCCLIB_ROOT := $(call get-gcclibs-path,$(NDK_ROOT),$(TOOLCHAIN_NAME))
 
 TARGET_CFLAGS.neon := -mfpu=neon
 
