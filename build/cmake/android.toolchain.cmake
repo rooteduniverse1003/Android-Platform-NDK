@@ -324,31 +324,23 @@ set(CMAKE_ANDROID_ARCH_ABI ${ANDROID_ABI})
 if(ANDROID_ABI STREQUAL armeabi-v7a)
   set(ANDROID_SYSROOT_ABI arm)
   set(ANDROID_TOOLCHAIN_NAME arm-linux-androideabi)
-  set(ANDROID_TOOLCHAIN_ROOT ${ANDROID_TOOLCHAIN_NAME})
-  set(ANDROID_HEADER_TRIPLE arm-linux-androideabi)
   set(CMAKE_SYSTEM_PROCESSOR armv7-a)
   set(ANDROID_LLVM_TRIPLE armv7-none-linux-androideabi)
 elseif(ANDROID_ABI STREQUAL arm64-v8a)
   set(ANDROID_SYSROOT_ABI arm64)
   set(CMAKE_SYSTEM_PROCESSOR aarch64)
   set(ANDROID_TOOLCHAIN_NAME aarch64-linux-android)
-  set(ANDROID_TOOLCHAIN_ROOT ${ANDROID_TOOLCHAIN_NAME})
   set(ANDROID_LLVM_TRIPLE aarch64-none-linux-android)
-  set(ANDROID_HEADER_TRIPLE aarch64-linux-android)
 elseif(ANDROID_ABI STREQUAL x86)
   set(ANDROID_SYSROOT_ABI x86)
   set(CMAKE_SYSTEM_PROCESSOR i686)
   set(ANDROID_TOOLCHAIN_NAME i686-linux-android)
-  set(ANDROID_TOOLCHAIN_ROOT ${ANDROID_ABI})
   set(ANDROID_LLVM_TRIPLE i686-none-linux-android)
-  set(ANDROID_HEADER_TRIPLE i686-linux-android)
 elseif(ANDROID_ABI STREQUAL x86_64)
   set(ANDROID_SYSROOT_ABI x86_64)
   set(CMAKE_SYSTEM_PROCESSOR x86_64)
   set(ANDROID_TOOLCHAIN_NAME x86_64-linux-android)
-  set(ANDROID_TOOLCHAIN_ROOT ${ANDROID_ABI})
   set(ANDROID_LLVM_TRIPLE x86_64-none-linux-android)
-  set(ANDROID_HEADER_TRIPLE x86_64-linux-android)
 else()
   message(FATAL_ERROR "Invalid Android ABI: ${ANDROID_ABI}.")
 endif()
@@ -367,100 +359,35 @@ list(APPEND ANDROID_LINKER_FLAGS -Wl,--exclude-libs,libgcc.a)
 list(APPEND ANDROID_LINKER_FLAGS -Wl,--exclude-libs,libatomic.a)
 
 # STL.
-set(USE_NOSTDLIBXX TRUE)
-set(ANDROID_STL_STATIC_LIBRARIES)
-set(ANDROID_STL_SHARED_LIBRARIES)
-set(ANDROID_STL_LDLIBS)
+set(ANDROID_CXX_STANDARD_LIBRARIES)
 if(ANDROID_STL STREQUAL system)
-  set(USE_NOSTDLIBXX FALSE)
+  list(APPEND ANDROID_COMPILER_FLAGS_CXX "-stdlib=libstdc++")
   if(NOT "x${ANDROID_CPP_FEATURES}" STREQUAL "x")
-    set(ANDROID_STL_STATIC_LIBRARIES c++abi)
+    list(APPEND ANDROID_CXX_STANDARD_LIBRARIES "-lc++abi")
     if(ANDROID_PLATFORM_LEVEL LESS 21)
-      list(APPEND ANDROID_STL_STATIC_LIBRARIES android_support)
-    endif()
-    if(ANDROID_ABI STREQUAL armeabi-v7a)
-      list(APPEND ANDROID_STL_STATIC_LIBRARIES unwind)
-      list(APPEND ANDROID_STL_LDLIBS dl)
+      list(APPEND ANDROID_CXX_STANDARD_LIBRARIES "-landroid_support")
     endif()
   endif()
 elseif(ANDROID_STL STREQUAL c++_static)
-  list(APPEND ANDROID_STL_STATIC_LIBRARIES c++_static c++abi)
-  if(ANDROID_PLATFORM_LEVEL LESS 21)
-    list(APPEND ANDROID_STL_STATIC_LIBRARIES android_support)
-  endif()
-  if(ANDROID_ABI STREQUAL armeabi-v7a)
-    list(APPEND ANDROID_STL_STATIC_LIBRARIES unwind)
-    list(APPEND ANDROID_STL_LDLIBS dl)
-  endif()
+  list(APPEND ANDROID_COMPILER_FLAGS_CXX "-stdlib=libc++")
+  list(APPEND ANDROID_LINKER_FLAGS "-static-libstdc++")
 elseif(ANDROID_STL STREQUAL c++_shared)
-  if(ANDROID_PLATFORM_LEVEL LESS 21)
-    list(APPEND ANDROID_STL_STATIC_LIBRARIES android_support)
-  endif()
-  if(ANDROID_ABI STREQUAL armeabi-v7a)
-    list(APPEND ANDROID_STL_STATIC_LIBRARIES unwind)
-  endif()
-  list(APPEND ANDROID_STL_SHARED_LIBRARIES c++_shared)
+  list(APPEND ANDROID_COMPILER_FLAGS_CXX "-stdlib=libc++")
 elseif(ANDROID_STL STREQUAL none)
+  list(APPEND ANDROID_COMPILER_FLAGS_CXX "-nostdinc++")
+  list(APPEND ANDROID_LINKER_FLAGS "-nostdlib++")
 else()
   message(FATAL_ERROR "Invalid Android STL: ${ANDROID_STL}.")
 endif()
 
-if(USE_NOSTDLIBXX AND ANDROID_TOOLCHAIN STREQUAL clang)
-  list(APPEND ANDROID_LINKER_FLAGS "-nostdlib++")
-endif()
-
-# Behavior of CMAKE_SYSTEM_LIBRARY_PATH and CMAKE_LIBRARY_PATH are really weird
-# when CMAKE_SYSROOT is set. The library path is appended to the sysroot even if
-# the library path is an abspath. Using a relative path from the sysroot doesn't
-# work either, because the relative path is abspath'd relative to the current
-# CMakeLists.txt file before being appended :(
-#
-# We can try to get out of this problem by providing another root path for cmake
-# to check. CMAKE_FIND_ROOT_PATH is intended for this purpose:
-# https://cmake.org/cmake/help/v3.8/variable/CMAKE_FIND_ROOT_PATH.html
-#
-# In theory this should just be our sysroot, but since we don't have a single
-# sysroot that is correct (there's only one set of headers, but multiple
-# locations for libraries that need to be handled differently).  Some day we'll
-# want to move all the libraries into ${ANDROID_NDK}/sysroot, but we'll need to
-# make some fixes to Clang, various build systems, and possibly CMake itself to
-# get that working.
-list(APPEND CMAKE_FIND_ROOT_PATH "${ANDROID_NDK}")
-
-# Sysroot.
-set(CMAKE_SYSROOT "${ANDROID_NDK}/sysroot")
-
-# CMake 3.9 tries to use CMAKE_SYSROOT_COMPILE before it gets set from
-# CMAKE_SYSROOT, which leads to using the system's /usr/include. Set this
-# manually.
-# https://github.com/android-ndk/ndk/issues/467
-set(CMAKE_SYSROOT_COMPILE "${CMAKE_SYSROOT}")
-
-# The compiler driver doesn't check any arch specific include locations (though
-# maybe we should add that). Architecture specific headers like asm/ and
-# machine/ are installed to an arch-$ARCH subdirectory of the sysroot.
-list(APPEND ANDROID_COMPILER_FLAGS
-  "-isystem ${CMAKE_SYSROOT}/usr/include/${ANDROID_HEADER_TRIPLE}")
-
-# We need different sysroots for linking and compiling, but cmake doesn't
-# support that. Pass the sysroot flag manually when linking.
-set(ANDROID_SYSTEM_LIBRARY_PATH
-  "${ANDROID_NDK}/platforms/${ANDROID_PLATFORM}/arch-${ANDROID_SYSROOT_ABI}")
-list(APPEND ANDROID_LINKER_FLAGS "--sysroot ${ANDROID_SYSTEM_LIBRARY_PATH}")
-
 # find_library searches a handful of paths as described by
-# https://cmake.org/cmake/help/v3.6/command/find_library.html.  Since libraries
-# are per-API level and headers aren't, We don't have libraries in the
-# CMAKE_SYSROOT. Set up CMAKE_SYSTEM_LIBRARY_PATH
+# https://cmake.org/cmake/help/v3.6/command/find_library.html. CMake doesn't
+# understand the Android sysroot layout, so we need to give the direct path to
+# the libraries rather than just the sysroot. Set up CMAKE_SYSTEM_LIBRARY_PATH
 # (https://cmake.org/cmake/help/v3.6/variable/CMAKE_SYSTEM_LIBRARY_PATH.html)
 # instead.
-#
-# NB: The suffix is just lib here instead of dealing with lib64 because
-# apparently CMake does some automatic rewriting of that? I've been testing by
-# building my own CMake with a bunch of logging added, and that seems to be the
-# case.
 list(APPEND CMAKE_SYSTEM_LIBRARY_PATH
-  "${ANDROID_SYSTEM_LIBRARY_PATH}/usr/lib")
+  "${ANDROID_NDK}/toolchain/sysroot/usr/lib/${ANDROID_TOOLCHAIN_NAME}/${ANDROID_PLATFORM_LEVEL}")
 
 # Toolchain.
 if(CMAKE_HOST_SYSTEM_NAME STREQUAL Linux)
@@ -470,7 +397,7 @@ elseif(CMAKE_HOST_SYSTEM_NAME STREQUAL Darwin)
 elseif(CMAKE_HOST_SYSTEM_NAME STREQUAL Windows)
   set(ANDROID_HOST_TAG windows-x86_64)
 endif()
-set(ANDROID_TOOLCHAIN_ROOT "${ANDROID_NDK}/toolchains/${ANDROID_TOOLCHAIN_ROOT}-4.9/prebuilt/${ANDROID_HOST_TAG}")
+set(ANDROID_TOOLCHAIN_ROOT "${ANDROID_NDK}/toolchain")
 set(ANDROID_TOOLCHAIN_PREFIX "${ANDROID_TOOLCHAIN_ROOT}/bin/${ANDROID_TOOLCHAIN_NAME}-")
 if(CMAKE_HOST_SYSTEM_NAME STREQUAL Windows)
   set(ANDROID_TOOLCHAIN_SUFFIX .exe)
@@ -478,14 +405,12 @@ endif()
 
 set(ANDROID_HOST_PREBUILTS "${ANDROID_NDK}/prebuilt/${ANDROID_HOST_TAG}")
 
-set(ANDROID_LLVM_TOOLCHAIN_PREFIX
-  "${ANDROID_NDK}/toolchains/llvm/prebuilt/${ANDROID_HOST_TAG}/bin/")
 set(ANDROID_C_COMPILER
-  "${ANDROID_LLVM_TOOLCHAIN_PREFIX}clang${ANDROID_TOOLCHAIN_SUFFIX}")
+  "${ANDROID_TOOLCHAIN_ROOT}/bin/clang${ANDROID_TOOLCHAIN_SUFFIX}")
 set(ANDROID_CXX_COMPILER
-  "${ANDROID_LLVM_TOOLCHAIN_PREFIX}clang++${ANDROID_TOOLCHAIN_SUFFIX}")
+  "${ANDROID_TOOLCHAIN_ROOT}/bin/clang++${ANDROID_TOOLCHAIN_SUFFIX}")
 set(ANDROID_ASM_COMPILER
-  "${ANDROID_LLVM_TOOLCHAIN_PREFIX}clang${ANDROID_TOOLCHAIN_SUFFIX}")
+  "${ANDROID_TOOLCHAIN_ROOT}/bin/clang${ANDROID_TOOLCHAIN_SUFFIX}")
 # Clang can fail to compile if CMake doesn't correctly supply the target and
 # external toolchain, but to do so, CMake needs to already know that the
 # compiler is clang. Tell CMake that the compiler is really clang, but don't
@@ -509,11 +434,11 @@ set(ANDROID_AR "${ANDROID_TOOLCHAIN_PREFIX}ar${ANDROID_TOOLCHAIN_SUFFIX}")
 set(ANDROID_RANLIB
   "${ANDROID_TOOLCHAIN_PREFIX}ranlib${ANDROID_TOOLCHAIN_SUFFIX}")
 
-if(NOT IS_DIRECTORY "${ANDROID_NDK}/platforms/${ANDROID_PLATFORM}")
-  message(FATAL_ERROR "Invalid Android platform: ${ANDROID_PLATFORM}.")
-elseif(NOT IS_DIRECTORY "${CMAKE_SYSROOT}")
-  message(FATAL_ERROR "Invalid Android sysroot: ${CMAKE_SYSROOT}.")
-endif()
+# This is unnecessary given the new toolchain layout, but Studio will not
+# recognize this as an Android build if there is no --sysroot flag.
+# TODO: Teach Studio to recognize Android builds based on --target.
+set(ANDROID_SYSROOT "${ANDROID_NDK}/toolchain/sysroot")
+list(APPEND ANDROID_COMPILER_FLAGS "--sysroot ${ANDROID_SYSROOT}")
 
 # Generic flags.
 list(APPEND ANDROID_COMPILER_FLAGS
@@ -566,47 +491,13 @@ if(ANDROID_ABI STREQUAL x86 AND ANDROID_PLATFORM_LEVEL LESS 24)
 endif()
 
 # STL specific flags.
-set(ANDROID_STL_PATH "${ANDROID_NDK}/sources/cxx-stl/llvm-libc++")
-if(ANDROID_STL STREQUAL system)
-  set(CMAKE_CXX_STANDARD_INCLUDE_DIRECTORIES
-    "${ANDROID_NDK}/sources/cxx-stl/system/include")
-elseif(ANDROID_STL MATCHES "^c\\+\\+_")
+if(ANDROID_STL MATCHES "^c\\+\\+_")
+  list(APPEND ANDROID_COMPILER_FLAGS_CXX "-std=c++11")
   if(ANDROID_ABI MATCHES "^armeabi")
-    list(APPEND ANDROID_LINKER_FLAGS -Wl,--exclude-libs,libunwind.a)
+    list(APPEND ANDROID_LINKER_FLAGS "-Wl,--exclude-libs,libunwind.a")
   endif()
-
-  list(APPEND ANDROID_COMPILER_FLAGS_CXX -std=c++11)
-
-  # Add the libc++ lib directory to the path so the linker scripts can pick up
-  # the extra libraries.
-  list(APPEND ANDROID_LINKER_FLAGS
-    "-L${ANDROID_STL_PATH}/libs/${ANDROID_ABI}")
-
-  set(CMAKE_CXX_STANDARD_INCLUDE_DIRECTORIES "${ANDROID_STL_PATH}/include")
-
-  if(ANDROID_PLATFORM_LEVEL LESS 21)
-    set(CMAKE_CXX_STANDARD_INCLUDE_DIRECTORIES
-      "${CMAKE_CXX_STANDARD_INCLUDE_DIRECTORIES}"
-      "${ANDROID_NDK}/sources/android/support/include")
-  endif()
-
-  set(CMAKE_CXX_STANDARD_INCLUDE_DIRECTORIES
-    "${CMAKE_CXX_STANDARD_INCLUDE_DIRECTORIES}"
-    "${ANDROID_STL_PATH}abi/include")
 endif()
 
-set(ANDROID_CXX_STANDARD_LIBRARIES)
-foreach(library ${ANDROID_STL_STATIC_LIBRARIES})
-  list(APPEND ANDROID_CXX_STANDARD_LIBRARIES
-    "${ANDROID_STL_PATH}/libs/${ANDROID_ABI}/lib${library}.a")
-endforeach()
-foreach(library ${ANDROID_STL_SHARED_LIBRARIES})
-  list(APPEND ANDROID_CXX_STANDARD_LIBRARIES
-    "${ANDROID_STL_PATH}/libs/${ANDROID_ABI}/lib${library}.so")
-endforeach()
-foreach(library ${ANDROID_STL_LDLIBS})
-  list(APPEND ANDROID_CXX_STANDARD_LIBRARIES "-l${library}")
-endforeach()
 set(CMAKE_C_STANDARD_LIBRARIES_INIT "-latomic -lm")
 set(CMAKE_CXX_STANDARD_LIBRARIES_INIT "${CMAKE_C_STANDARD_LIBRARIES_INIT}")
 if(ANDROID_CXX_STANDARD_LIBRARIES)
@@ -817,7 +708,6 @@ set(ANDROID_NDK_HOST_SYSTEM_NAME ${ANDROID_HOST_TAG})
 set(ANDROID_NDK_ABI_NAME ${ANDROID_ABI})
 set(ANDROID_NDK_RELEASE r${ANDROID_NDK_REVISION})
 set(ANDROID_ARCH_NAME ${ANDROID_SYSROOT_ABI})
-set(ANDROID_SYSROOT "${CMAKE_SYSROOT}")
 set(TOOL_OS_SUFFIX ${ANDROID_TOOLCHAIN_SUFFIX})
 if(ANDROID_TOOLCHAIN STREQUAL clang)
   set(ANDROID_COMPILER_IS_CLANG TRUE)
