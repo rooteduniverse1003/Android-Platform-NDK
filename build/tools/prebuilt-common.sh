@@ -1037,6 +1037,10 @@ parse_toolchain_name ()
         ARCH="arm64"
         ABI="arm64-v8a"
         ABI_CONFIGURE_TARGET="aarch64-linux-android"
+        # Reserve the platform register, x18. This should happen automatically
+        # with clang but we need to pass it manually when compiling with gcc.
+        ABI_CFLAGS_FOR_TARGET="-ffixed-x18"
+        ABI_CXXFLAGS_FOR_TARGET="-ffixed-x18"
         ;;
     x86-*)
         ARCH="x86"
