@@ -52,7 +52,7 @@ The updated clang and libc++ in r18 address many outstanding issues.
 
 Estimated release: Q4 2018
 
-### Make standalone toolchains obsolete
+### Make all toolchains be standalone toolchains
 
 Now that the NDK is down to a single compiler and STL, if we just taught the
 Clang driver to emit `-D__ANDROID_API__=foo` and to link libc.so.18 instead of
@@ -63,6 +63,10 @@ reduced.
 
 Related to this (but maybe occurring in a later release), we'll want to
 switch from `libgcc` to `libcompiler-rt` and our own unwinder.
+
+See the corresponding bug
+[make all toolchains standalone toolchains](https://github.com/android-ndk/ndk/issues/780)
+for detailed discussion of the implementation and sub-tasks.
 
 ## NDK r20
 
