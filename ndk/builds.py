@@ -49,6 +49,10 @@ class Module(object):
     path = None
     deps = set()
 
+    # Used to exclude a module from the build. If explicitly named it will
+    # still be built, but it is not included by default.
+    enabled = True
+
     # In most cases a module will have only one license file, so the common
     # interface is a single path, not a list. For the rare modules that have
     # multiple notice files (such as yasm), the notices property should be

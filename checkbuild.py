@@ -1922,7 +1922,7 @@ NAMES_TO_MODULES = {m.name: m for m in ALL_MODULES}
 
 
 def get_all_module_names():
-    return [m.name for m in ALL_MODULES]
+    return [m.name for m in ALL_MODULES if m.enabled]
 
 
 def build_number_arg(value):
@@ -1989,10 +1989,6 @@ def parse_args():
     module_group.add_argument(
         '--module', dest='modules', action='append', default=[],
         choices=get_all_module_names(), help='NDK modules to build.')
-
-    module_group.add_argument(
-        '--host-only', action='store_true',
-        help='Skip building target components.')
 
     return parser.parse_known_args()
 
@@ -2069,18 +2065,6 @@ def main():
     module_names.extend(args.modules)
     if not module_names:
         module_names = get_all_module_names()
-
-    if args.host_only:
-        module_names = [
-            'clang',
-            'gcc',
-            'host-tools',
-            'ndk-build',
-            'python-packages',
-            'renderscript-toolchain',
-            'shader-tools',
-            'simpleperf',
-        ]
 
     required_package_modules = set(get_all_module_names())
     have_required_modules = required_package_modules <= set(module_names)
