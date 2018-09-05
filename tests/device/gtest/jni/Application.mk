@@ -1,14 +1,16 @@
 APP_STL := c++_static
 APP_MODULES := \
-    gtest-filepath_test \
-    gtest-linked_ptr_test \
-    gtest-listener_test \
-    gtest-message_test \
-    gtest-options_test \
-    gtest-param-test_test \
-    gtest-port_test \
-    gtest-printers_test \
-    gtest-test-part_test \
+    googletest-death-test-test \
+    googletest-filepath-test \
+    googletest-linked-ptr-test \
+    googletest-listener-test \
+    googletest-message-test \
+    googletest-options-test \
+    googletest-param-test-test \
+    googletest-port-test \
+    googletest-printers-test \
+    googletest-test-part-test \
+    googletest-tuple-test \
     gtest-typed-test_test \
     gtest-unittest-api_test \
     gtest_environment_test \
@@ -22,5 +24,3 @@ APP_MODULES := \
     gtest_stress_test \
     gtest_unittest \
 
-# Test is disabled until https://github.com/google/googletest/pull/728 lands.
-# APP_MODULES += gtest-death-test_test
