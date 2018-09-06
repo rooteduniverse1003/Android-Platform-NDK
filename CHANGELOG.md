@@ -20,10 +20,35 @@ Announcements
    August 2019. Start porting now to avoid surprises when the time comes. For
    more information, see [this blog post](https://android-developers.googleblog.com/2017/12/improving-app-security-and-performance.html).
 
+ * [Issue 780]: [Standalone toolchains] are now unnecessary. Clang, binutils,
+   the sysroot, and other toolchain pieces are now all installed to
+   `$NDK/toolchain` and Clang will automatically find them. Instead of creating
+   a standalone toolchain for API 26 ARM, instead invoke the compiler directly
+   from the NDK:
+
+       $ $NDK/toolchain/bin/armv7a-linux-androideabi26-clang++ src.cpp
+
+   For r19 the toolchain is also installed to the old path to give build systems
+   a chance to adapt to the new layout. The old paths will be removed in r20.
+
+   The `make_standalone_toolchain.py` script will not be removed. It is now
+   unnecessary and will emit a warning with the above information, but the
+   script will remain to preserve existing workflows.
+
+   If you're using ndk-build, CMake, or a standalone toolchain, there should be
+   no change to your workflow. This change is meaningful for maintainers of
+   third-party build systems, who should now be able to delete some
+   Android-specific code. For more information, see the guide for third-party
+   build systems. TODO(danalbert): Write that guide.
+
+[Issue 780]: https://github.com/android-ndk/ndk/issues/780
+
 Changes
 -------
 
  * Updated Clang to r339409.
+ * [Issue 780]: A complete NDK toolchain is now installed to `$NDK/toolchain`.
+   See the announcements section for more information.
 
 Known Issues
 ------------

@@ -1380,7 +1380,6 @@ class Sysroot(ndk.builds.Module):
 class Toolchain(ndk.builds.Module):
     name = 'toolchain'
     path = 'toolchain'
-    enabled = False
     deps = {
         'binutils',
         'clang',
