@@ -449,15 +449,18 @@ def parse_args():
     parser.add_argument(
         '-v', '--verbose', action='count', help='Increase output verbosity.')
 
+    def path_arg(arg):
+        return os.path.realpath(os.path.expanduser(arg))
+
     output_group = parser.add_mutually_exclusive_group()
     output_group.add_argument(
-        '--package-dir', type=os.path.realpath, default=os.getcwd(),
+        '--package-dir', type=path_arg, default=os.getcwd(),
         help=('Build a tarball and install it to the given directory. If '
               'neither --package-dir nor --install-dir is specified, a '
               'tarball will be created and installed to the current '
               'directory.'))
     output_group.add_argument(
-        '--install-dir', type=os.path.realpath,
+        '--install-dir', type=path_arg,
         help='Install toolchain to the given directory instead of packaging.')
 
     return parser.parse_args()
