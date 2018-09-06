@@ -1013,7 +1013,9 @@ class Platforms(ndk.builds.Module):
             '-DPLATFORM_SDK_VERSION={}'.format(api),
             '-DABI_NDK_VERSION="{}"'.format(ndk.config.release),
             '-DABI_NDK_BUILD_NUMBER="{}"'.format(build_number),
-            '-O2', '-fpic', '-Wl,-r', '-no-pie', '-nostdlib', '-o', dst,
+            '-O2', '-fpic', '-Wl,-r', '-no-pie', '-nostdlib',
+            '-Wa,--noexecstack', '-Wl,-z,noexecstack',
+            '-o', dst,
         ] + srcs
 
         return args
