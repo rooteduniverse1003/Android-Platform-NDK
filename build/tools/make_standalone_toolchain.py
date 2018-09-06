@@ -217,6 +217,42 @@ def create_toolchain(install_path, arch, api, toolchain_path, host_tag):
     shutil.copytree(gdbserver_path, gdbserver_install)
 
 
+def warn_unnecessary(is_windows):
+    if is_windows:
+        ndk_var = '%NDK%'
+        prompt = 'C:\>'
+    else:
+        ndk_var = '$NDK'
+        prompt = '$ '
+
+    standalone_toolchain = os.path.join(ndk_var, 'build', 'tools',
+                                        'make_standalone_toolchain.py')
+    toolchain_dir = os.path.join(ndk_var, 'toolchain', 'bin')
+    old_clang = os.path.join('toolchain', 'bin', 'clang++')
+    new_clang = os.path.join(ndk_var, 'toolchain', 'bin',
+                             'armv7a-linux-androideabi21-clang++')
+
+    logger().warning(
+        textwrap.dedent("""\
+        make_standalone_toolchain.py is no longer necessary. The
+        {toolchain_dir} directory contains target-specific scripts that perform
+        the same task. For example, instead of:
+
+            {prompt}python {standalone_toolchain} \\
+                --arch arm --api 21 --install-dir toolchain
+            {prompt}{old_clang} src.cpp
+
+        Instead use:
+
+            {prompt}{new_clang} src.cpp
+        """.format(
+            toolchain_dir=toolchain_dir,
+            prompt=prompt,
+            standalone_toolchain=standalone_toolchain,
+            old_clang=old_clang,
+            new_clang=new_clang)))
+
+
 def parse_args():
     """Parse command line arguments from sys.argv."""
     parser = argparse.ArgumentParser(
@@ -265,6 +301,10 @@ def main():
     elif args.verbose >= 2:
         logging.basicConfig(level=logging.DEBUG)
 
+    host_tag = get_host_tag_or_die()
+
+    warn_unnecessary(host_tag.startswith('windows'))
+
     check_ndk_or_die()
 
     lp32 = args.arch in ('arm', 'x86')
@@ -279,7 +319,6 @@ def main():
         sys.exit('{} is less than minimum platform for {} ({})'.format(
             api, args.arch, min_api))
 
-    host_tag = get_host_tag_or_die()
     triple = get_triple(args.arch)
     toolchain_path = get_toolchain_path_or_die()
 
