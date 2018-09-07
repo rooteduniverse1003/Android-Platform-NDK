@@ -38,9 +38,10 @@ Announcements
    If you're using ndk-build, CMake, or a standalone toolchain, there should be
    no change to your workflow. This change is meaningful for maintainers of
    third-party build systems, who should now be able to delete some
-   Android-specific code. For more information, see the guide for third-party
-   build systems. TODO(danalbert): Write that guide.
+   Android-specific code. For more information, see the [Build System
+   Maintainers] guide.
 
+[Build System Maintainers]: https://android.googlesource.com/platform/ndk/+/master/docs/BuildSystemMaintainers.md
 [Issue 780]: https://github.com/android-ndk/ndk/issues/780
 
 Changes
