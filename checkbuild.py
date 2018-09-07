@@ -1448,6 +1448,8 @@ class Toolchain(ndk.builds.Module):
                 dst_dir = os.path.join(install_dir, 'sysroot/usr/lib', triple,
                                        str(api))
                 shutil.copytree(src_dir, dst_dir)
+                # TODO: Remove duplicate static libraries from this directory.
+                # We already have them in the version-generic directory.
 
                 # Also install a libc++.so and libc++.a linker script per API
                 # level. We need this to be done on a per-API level basis
