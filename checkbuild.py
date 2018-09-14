@@ -35,6 +35,7 @@ import json
 import logging
 import multiprocessing
 import os
+import pipes
 import re
 import shutil
 import site
@@ -858,7 +859,7 @@ class Libcxx(ndk.builds.Module):
             'LIBCXX_FORCE_REBUILD=true',
         ]
 
-        print('Running: ' + ' '.join(build_cmd))
+        print('Running: ' + ' '.join([pipes.quote(arg) for arg in build_cmd]))
         subprocess.check_call(build_cmd)
 
     def install(self, out_dir, dist_dir, args):
