@@ -642,19 +642,22 @@ class HostTools(ndk.builds.Module):
     path = 'prebuilt/{host}'
     notice_group = ndk.builds.NoticeGroup.TOOLCHAIN
 
+    yasm_notices = [
+        ndk.paths.android_path('toolchain/yasm/Artistic.txt'),
+        ndk.paths.android_path('toolchain/yasm/BSD.txt'),
+        ndk.paths.android_path('toolchain/yasm/COPYING'),
+        ndk.paths.android_path('toolchain/yasm/GNU_GPL-2.0'),
+        ndk.paths.android_path('toolchain/yasm/GNU_LGPL-2.0'),
+    ]
+
     @property
     def notices(self):
         return [
             ndk.paths.android_path('toolchain/gdb/gdb-7.11/COPYING'),
             ndk.paths.android_path('toolchain/python/Python-2.7.5/LICENSE'),
-            ndk.paths.android_path('toolchain/yasm/Artistic.txt'),
-            ndk.paths.android_path('toolchain/yasm/BSD.txt'),
-            ndk.paths.android_path('toolchain/yasm/COPYING'),
-            ndk.paths.android_path('toolchain/yasm/GNU_GPL-2.0'),
-            ndk.paths.android_path('toolchain/yasm/GNU_LGPL-2.0'),
             ndk.paths.ndk_path('sources/host-tools/make-3.81/COPYING'),
             ndk.paths.ndk_path('sources/host-tools/toolbox/NOTICE'),
-        ]
+        ] + self.yasm_notices
 
     def build(self):
         build_args = ndk.builds.common_build_args(self.out_dir, self.dist_dir,
@@ -1483,6 +1486,7 @@ class BaseToolchain(ndk.builds.Module):
     deps = {
         'binutils',
         'clang',
+        'host-tools',
         'libandroid_support',
         'platforms',
         'sysroot',
@@ -1491,7 +1495,8 @@ class BaseToolchain(ndk.builds.Module):
 
     @property
     def notices(self):
-        return (Binutils().notices + Clang().notices + Platforms().notices +
+        return (Binutils().notices + Clang().notices + HostTools().yasm_notices
+                + LibAndroidSupport().notices + Platforms().notices +
                 Sysroot().notices + SystemStl().notices)
 
     def build(self):
@@ -1500,6 +1505,7 @@ class BaseToolchain(ndk.builds.Module):
     def install(self):
         install_dir = self.get_install_path()
         clang_dir = self.get_dep('clang').get_install_path()
+        host_tools_dir = self.get_dep('host-tools').get_install_path()
         libandroid_support_dir = self.get_dep(
             'libandroid_support').get_install_path()
         platforms_dir = self.get_dep('platforms').get_install_path()
@@ -1511,6 +1517,11 @@ class BaseToolchain(ndk.builds.Module):
 
         copy_tree(clang_dir, install_dir)
         copy_tree(sysroot_dir, os.path.join(install_dir, 'sysroot'))
+
+        exe = '.exe' if self.host.startswith('windows') else ''
+        shutil.copy2(
+            os.path.join(host_tools_dir, 'bin', 'yasm' + exe),
+            os.path.join(install_dir, 'bin'))
 
         for arch in self.arches:
             binutils_dir = self.get_dep('binutils').get_install_path(arch=arch)
@@ -1662,8 +1673,7 @@ class Toolchain(ndk.builds.Module):
 
     @property
     def notices(self):
-        return (Libcxx().notices + Libcxxabi().notices +
-                LibAndroidSupport().notices)
+        return Libcxx().notices + Libcxxabi().notices
 
     def build(self):
         pass
