@@ -23,6 +23,8 @@ Announcements
 Changes
 -------
 
+ * Updated Clang to r339409.
+
 Known Issues
 ------------
 
