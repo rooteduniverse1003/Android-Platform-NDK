@@ -66,7 +66,7 @@ class DependencyManager(object):
         # The values of this map are the modules that the key is still waiting
         # for. When a build is complete, it is removed from all values in this
         # dict. An empty value indicates that the module is now buildable.
-        self.blocked_modules = {m: m.deps for m in all_modules if m.deps}
+        self.blocked_modules = {m: set(m.deps) for m in all_modules if m.deps}
 
         # Reverse map from a module to all of its dependents used to speed up
         # lookups.
