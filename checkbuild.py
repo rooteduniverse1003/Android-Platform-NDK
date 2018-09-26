@@ -2359,9 +2359,6 @@ def main():
     out_dir = build_support.get_out_dir()
     dist_dir = build_support.get_dist_dir(out_dir)
 
-    print('Cleaning up...')
-    ndk.builds.invoke_build('dev-cleanup.sh')
-
     arches = build_support.ALL_ARCHITECTURES
     if args.arch is not None:
         arches = [args.arch]
