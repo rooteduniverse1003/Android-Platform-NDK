@@ -1460,6 +1460,7 @@ def write_clang_wrapper(install_dir, api, triple, is_windows):
 class Toolchain(ndk.builds.Module):
     name = 'toolchain'
     path = 'toolchain'
+    notice_group = ndk.builds.NoticeGroup.TOOLCHAIN
     deps = {
         'binutils',
         'clang',
