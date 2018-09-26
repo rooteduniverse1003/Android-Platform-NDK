@@ -793,6 +793,8 @@ class Libcxx(ndk.builds.Module):
     notice_group = ndk.builds.NoticeGroup.TOOLCHAIN
     arch_specific = True
     deps = {
+        'binutils',
+        'clang',
         'libandroid_support',
         'ndk-build',
         'ndk-build-shortcut',
@@ -814,7 +816,13 @@ class Libcxx(ndk.builds.Module):
             self.abis = ndk.abis.arch_to_abis(arch)
 
     def build(self, build_dir, _dist_dir, args):
-        ndk_path = ndk.paths.get_install_path(build_dir)
+        # The build directory passed to us is for the target OS, which may not
+        # be our host OS (Windows is cross compiled from Linux). We need to use
+        # an NDK matching our host OS.
+        host_build_dir = os.path.join(
+            os.path.dirname(build_dir), ndk.hosts.get_default_host())
+        ndk_path = ndk.paths.get_install_path(host_build_dir)
+
         ndk_build = os.path.join(ndk_path, 'build/ndk-build')
         bionic_path = ndk.paths.android_path('bionic')
 
@@ -825,11 +833,6 @@ class Libcxx(ndk.builds.Module):
         android_mk = os.path.join(self.libcxx_path, 'Android.mk')
         application_mk = os.path.join(self.libcxx_path, 'Application.mk')
 
-        prebuilt_ndk = build_support.android_path('prebuilts/ndk')
-        platforms_root = os.path.join(ndk_path, 'platforms')
-        unified_sysroot_path = os.path.join(ndk_path, 'sysroot')
-        toolchains_root = os.path.join(prebuilt_ndk, 'current/toolchains')
-
         build_cmd = [
             'bash', ndk_build, build_support.jobs_arg(), 'V=1',
             'APP_ABI=' + ' '.join(self.abis),
@@ -839,12 +842,6 @@ class Libcxx(ndk.builds.Module):
             'APP_MODULES=c++_shared c++_static',
 
             'BIONIC_PATH=' + bionic_path,
-
-            # Use the prebuilt platforms and toolchains.
-            'NDK_UNIFIED_SYSROOT_PATH=' + unified_sysroot_path,
-            'NDK_PLATFORMS_ROOT=' + platforms_root,
-            'NDK_TOOLCHAINS_ROOT=' + toolchains_root,
-            'NDK_NEW_TOOLCHAINS_LAYOUT=true',
 
             # Tell ndk-build where all of our makefiles are and where outputs
             # should go. The defaults in ndk-build are only valid if we have a
