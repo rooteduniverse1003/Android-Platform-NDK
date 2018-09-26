@@ -18,36 +18,6 @@ have gone according to plan until then.
 
 ---
 
-## NDK r18
-
-Estimated release: Q3 2018
-
-### Remove non-libc++ STLs
-
-libc++ has been the default for a release and has proven to be stable. It is a
-strict improvement over the other STLs (more features, better Clang
-compatibility, Apache licensed, most reliable). The fact that the NDK supports
-multiple STLs is a common pain point for users (it's confusing for newcomers,
-and it makes sharing libraries difficult because they must all use the same
-STL).
-
-Now that we have a good choice for a single STL, we'll remove the others. We'll
-most likely move the source we have for these along with building instructions
-to a separate project so that people that need these for ABI compatibility
-reasons can continue using them, but support for these will end completely.
-
-### Remove GCC
-
-GCC is still in the NDK today because some of gnustl's C++11 features were
-written such that they do not work with Clang (threading and atomics, mostly).
-Now that libc++ is the best choice of STL, this is no longer blocking, so GCC
-can be removed.
-
-### Bugfix Release
-
-The updated clang and libc++ in r18 address many outstanding issues.
-
-
 ## NDK r19
 
 Estimated release: Q4 2018
@@ -70,7 +40,7 @@ for detailed discussion of the implementation and sub-tasks.
 
 ## NDK r20
 
-Estimated release: Q4 2018
+Estimated release: Q1 2019
 
 To be decided...
 
@@ -201,6 +171,10 @@ Full [history] is available, but this section summarizes major changes
 in recent releases.
 
 [history]: https://developer.android.com/ndk/downloads/revision_history.html
+
+### NDK r18
+
+Removed GCC and gnustl/stlport.
 
 ### NDK r17
 
