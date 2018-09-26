@@ -1377,10 +1377,92 @@ class Sysroot(ndk.builds.Module):
             shutil.rmtree(temp_dir)
 
 
+def write_clang_shell_script(wrapper_path, clang_name, flags):
+    with open(wrapper_path, 'w') as wrapper:
+        wrapper.write(textwrap.dedent("""\
+            #!/bin/bash
+            if [ "$1" != "-cc1" ]; then
+                `dirname $0`/{clang} {flags} "$@"
+            else
+                # Target is already an argument.
+                `dirname $0`/{clang} "$@"
+            fi
+        """.format(clang=clang_name, flags=' '.join(flags))))
+
+    mode = os.stat(wrapper_path).st_mode
+    os.chmod(wrapper_path, mode | stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH)
+
+
+def write_clang_batch_script(wrapper_path, clang_name, flags):
+    with open(wrapper_path, 'w') as wrapper:
+        wrapper.write(textwrap.dedent("""\
+            @echo off
+            setlocal
+            call :find_bin
+            if "%1" == "-cc1" goto :L
+
+            set "_BIN_DIR=" && %_BIN_DIR%{clang} {flags} %*
+            if ERRORLEVEL 1 exit /b 1
+            goto :done
+
+            :L
+            rem Target is already an argument.
+            set "_BIN_DIR=" && %_BIN_DIR%{clang} %*
+            if ERRORLEVEL 1 exit /b 1
+            goto :done
+
+            :find_bin
+            rem Accommodate a quoted arg0, e.g.: "clang"
+            rem https://github.com/android-ndk/ndk/issues/616
+            set _BIN_DIR=%~dp0
+            exit /b
+
+            :done
+        """.format(clang=clang_name, flags=' '.join(flags))))
+
+
+def write_clang_wrapper(install_dir, api, triple, is_windows):
+    """Writes a target-specific Clang wrapper.
+
+    This wrapper can be used to target the given architecture/API combination
+    without needing to specify -target. These obviate the need for standalone
+    toolchains.
+
+    Ideally these would be symlinks rather than wrapper scripts to avoid the
+    unnecessary indirection (Clang will infer its default target based on
+    argv[0]), but the SDK manager can't install symlinks and Windows only
+    allows administrators to create them.
+    """
+    exe_suffix = '.exe' if is_windows else ''
+
+    if triple.startswith('arm-linux'):
+        triple = 'armv7a-linux-androideabi'
+
+    wrapper_path = os.path.join(install_dir, '{}{}-clang'.format(triple, api))
+    wrapperxx_path = wrapper_path + '++'
+
+    flags = ['--target={}{}'.format(triple, api)]
+
+    # TODO: Hoist into the driver.
+    if triple.startswith('i686') and api < 24:
+        flags.append('-mstackrealign')
+
+    # TODO: Fix driver default.
+    cxx_flags = flags + ['-stdlib=libc++']
+
+    # Write shell scripts even for Windows to support WSL and Cygwin.
+    write_clang_shell_script(wrapper_path, 'clang' + exe_suffix, flags)
+    write_clang_shell_script(wrapperxx_path, 'clang++' + exe_suffix, cxx_flags)
+    if is_windows:
+        write_clang_batch_script(wrapper_path + '.cmd', 'clang' + exe_suffix,
+                                 flags)
+        write_clang_batch_script(wrapper_path + '.cmd', 'clang++' + exe_suffix,
+                                 cxx_flags)
+
+
 class Toolchain(ndk.builds.Module):
     name = 'toolchain'
     path = 'toolchain'
-    enabled = False
     deps = {
         'binutils',
         'clang',
@@ -1467,6 +1549,10 @@ class Toolchain(ndk.builds.Module):
                 libcxx_a_path = os.path.join(dst_dir, 'libc++.a')
                 with open(libcxx_a_path, 'w') as script:
                     script.write('INPUT({})'.format(' '.join(static_script)))
+
+                write_clang_wrapper(
+                    os.path.join(install_dir, 'bin'), api, triple,
+                    args.system.startswith('windows'))
 
         # Clang searches for libstdc++ headers at $GCC_PATH/../include/c++. It
         # maybe be worth adding a search for the same path within the usual

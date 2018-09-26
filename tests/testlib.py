@@ -954,7 +954,7 @@ class LibcxxTest(Test):
             ('arch', arch),
             ('host_tag', host_tag),
             ('toolchain', toolchain),
-            ('triple', triple),
+            ('triple', '{}{}'.format(triple, self.api)),
             ('use_pie', True),
             ('build_dir', build_dir),
         ]
