@@ -2318,6 +2318,69 @@ def wait_for_build(deps, workqueue, out_dir, dist_dir, log_dir, args,
             print('Build finished')
 
 
+def build_ndk(modules, deps_only, out_dir, dist_dir, args):
+    out_dir = os.path.join(out_dir, args.system)
+    deps = ndk.deps.DependencyManager(modules)
+
+    log_dir = os.path.join(dist_dir, 'logs')
+    if not os.path.exists(log_dir):
+        os.makedirs(log_dir)
+
+    workqueue = ndk.workqueue.WorkQueue(args.jobs)
+    try:
+        ndk_dir = ndk.paths.get_install_path(out_dir)
+        if not os.path.exists(ndk_dir):
+            os.makedirs(ndk_dir)
+
+        launch_buildable(
+            deps, workqueue, out_dir, dist_dir, log_dir, args, deps_only)
+        wait_for_build(
+            deps, workqueue, out_dir, dist_dir, log_dir, args, deps_only)
+
+        if deps.get_buildable():
+            raise RuntimeError(
+                'Builder stopped early. Modules are still '
+                'buildable: {}'.format(', '.join(deps.get_buildable())))
+
+        create_notice_file(
+            os.path.join(ndk_dir, 'NOTICE'),
+            ndk.builds.NoticeGroup.BASE)
+        create_notice_file(
+            os.path.join(ndk_dir, 'NOTICE.toolchain'),
+            ndk.builds.NoticeGroup.TOOLCHAIN)
+        return ndk_dir
+    finally:
+        workqueue.terminate()
+        workqueue.join()
+
+
+def build_ndk_for_cross_compile(out_dir, arches, args):
+    args = copy.deepcopy(args)
+    args.system = ndk.hosts.get_default_host()
+    if args.system != 'linux':
+        raise NotImplementedError
+    module_names = NAMES_TO_MODULES.keys()
+    modules, deps_only = get_modules_to_build(module_names, arches)
+    print('Building Linux modules: {}'.format(' '.join(
+        [str(m) for m in modules])))
+    build_ndk(modules, deps_only, out_dir, out_dir, args)
+
+
+def create_ndk_symlink(out_dir):
+    this_host_out = os.path.join(out_dir, ndk.hosts.get_default_host())
+    this_host_ndk = ndk.paths.get_install_path(this_host_out)
+    ndk_symlink = os.path.join(out_dir, os.path.basename(this_host_ndk))
+    if not os.path.exists(ndk_symlink):
+        os.symlink(this_host_ndk, ndk_symlink)
+
+
+def get_directory_size(path):
+    du_str = subprocess.check_output(['du', '-sm', path])
+    match = re.match(r'^(\d+)', du_str.decode('utf-8'))
+    size_str = match.group(1)
+    return int(size_str)
+
+
 def main():
     logging.basicConfig()
 
@@ -2356,57 +2419,33 @@ def main():
 
     os.environ['ANDROID_BUILD_TOP'] = os.path.realpath('..')
 
-    out_dir = build_support.get_out_dir()
-    dist_dir = build_support.get_dist_dir(out_dir)
-
     arches = build_support.ALL_ARCHITECTURES
     if args.arch is not None:
         arches = [args.arch]
+
+    out_dir = build_support.get_out_dir()
+    dist_dir = build_support.get_dist_dir(out_dir)
+
+    print('Machine has {} CPUs'.format(multiprocessing.cpu_count()))
+
+    if args.system.startswith('windows') and not args.skip_deps:
+        # Since the Windows NDK is cross compiled, we need to build a Linux NDK
+        # first so we can build components like libc++.
+        build_ndk_for_cross_compile(out_dir, arches, args)
+
     modules, deps_only = get_modules_to_build(module_names, arches)
     print('Building modules: {}'.format(' '.join(
         [str(m) for m in modules
          if not args.skip_deps or m not in deps_only])))
-    print('Machine has {} CPUs'.format(multiprocessing.cpu_count()))
-    deps = ndk.deps.DependencyManager(modules)
-
-    log_dir = os.path.join(dist_dir, 'logs')
-    if not os.path.exists(log_dir):
-        os.makedirs(log_dir)
 
     build_timer = ndk.timer.Timer()
-    workqueue = ndk.workqueue.WorkQueue(args.jobs)
-    try:
-        with build_timer:
-            ndk_dir = ndk.paths.get_install_path(out_dir)
-            if not os.path.exists(ndk_dir):
-                os.makedirs(ndk_dir)
+    with build_timer:
+        ndk_dir = build_ndk(modules, deps_only, out_dir, dist_dir, args)
+    installed_size = get_directory_size(ndk_dir)
 
-            launch_buildable(
-                deps, workqueue, out_dir, dist_dir, log_dir, args, deps_only)
-            wait_for_build(
-                deps, workqueue, out_dir, dist_dir, log_dir, args, deps_only)
-
-            if deps.get_buildable():
-                raise RuntimeError(
-                    'Builder stopped early. Modules are still '
-                    'buildable: {}'.format(', '.join(deps.get_buildable())))
-
-        install_dir = ndk.paths.get_install_path(out_dir)
-
-        create_notice_file(
-            os.path.join(install_dir, 'NOTICE'),
-            ndk.builds.NoticeGroup.BASE)
-        create_notice_file(
-            os.path.join(install_dir, 'NOTICE.toolchain'),
-            ndk.builds.NoticeGroup.TOOLCHAIN)
-
-        du_str = subprocess.check_output(['du', '-sm', install_dir])
-        match = re.match(r'^(\d+)', du_str.decode('utf-8'))
-        size_str = match.group(1)
-        installed_size = int(size_str)
-    finally:
-        workqueue.terminate()
-        workqueue.join()
+    # Create a symlink to the NDK usable by this host in the root of the out
+    # directory for convenience.
+    create_ndk_symlink(out_dir)
 
     package_timer = ndk.timer.Timer()
     with package_timer:
