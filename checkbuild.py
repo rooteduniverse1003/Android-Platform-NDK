@@ -47,12 +47,14 @@ import textwrap
 import traceback
 
 import build.lib.build_support as build_support
+import ndk.abis
 import ndk.ansi
 import ndk.builds
 import ndk.config
 import ndk.deps
 import ndk.ext.shutil
 import ndk.file
+import ndk.hosts
 import ndk.notify
 import ndk.paths
 import ndk.test.builder
@@ -144,7 +146,7 @@ def build_ndk_tests(out_dir, dist_dir, args):
     # packaging. This directory is not cleaned up after packaging, so we can
     # reuse that for testing.
     ndk_dir = ndk.paths.get_install_path(out_dir)
-    test_src_dir = build_support.ndk_path('tests')
+    test_src_dir = ndk.paths.ndk_path('tests')
     test_out_dir = os.path.join(out_dir, 'tests')
 
     site.addsitedir(os.path.join(ndk_dir, 'python-packages'))
@@ -157,7 +159,7 @@ def build_ndk_tests(out_dir, dist_dir, args):
         test_config = json.load(config_file)
 
     if args.arch is not None:
-        test_config['abis'] = build_support.arch_to_abis(args.arch)
+        test_config['abis'] = ndk.abis.arch_to_abis(args.arch)
 
     test_spec = ndk.test.builder.test_spec_from_config(test_config)
     builder = ndk.test.builder.TestBuilder(
@@ -363,7 +365,7 @@ def get_gcc_prebuilt_path(host, arch):
     toolchain = ndk.abis.arch_to_toolchain(arch) + '-4.9'
     rel_prebuilt_path = os.path.join(
         'prebuilts/ndk/current/toolchains', host_tag, toolchain)
-    prebuilt_path = build_support.android_path(rel_prebuilt_path)
+    prebuilt_path = ndk.paths.android_path(rel_prebuilt_path)
     if not os.path.isdir(prebuilt_path):
         raise RuntimeError(
             'Could not find prebuilt GCC at {}'.format(prebuilt_path))
@@ -516,7 +518,7 @@ class Binutils(ndk.builds.Module):
         is_win = self.host.startswith('windows')
         libdir_name = 'lib' if self.host == 'windows' else 'lib64'
         host_tag = ndk.hosts.host_to_tag(self.host)
-        clang_prebuilts = build_support.android_path(
+        clang_prebuilts = ndk.paths.android_path(
             'prebuilts/ndk/current/toolchains', host_tag, 'llvm')
         clang_bin = os.path.join(clang_prebuilts, 'bin')
         clang_libs = os.path.join(clang_prebuilts, libdir_name)
@@ -689,7 +691,7 @@ class HostTools(ndk.builds.Module):
             packages.append('toolbox')
             files.append('ndk-gdb.cmd')
 
-        host_tag = build_support.host_to_tag(self.host)
+        host_tag = ndk.hosts.host_to_tag(self.host)
 
         package_names = [p + '-' + host_tag + '.tar.bz2' for p in packages]
         for package_name in package_names:
@@ -937,20 +939,20 @@ class Platforms(ndk.builds.Module):
     notice = ndk.paths.android_path('prebuilts/ndk/platform/sysroot/NOTICE')
 
     def prebuilt_path(self, *args):  # pylint: disable=no-self-use
-        return build_support.android_path('prebuilts/ndk/platform', *args)
+        return ndk.paths.android_path('prebuilts/ndk/platform', *args)
 
     def src_path(self, *args):  # pylint: disable=no-self-use
-        return build_support.android_path('development/ndk/platforms', *args)
+        return ndk.paths.android_path('development/ndk/platforms', *args)
 
     def gcc_toolchain(self, arch):  # pylint: disable=no-self-use
-        host_tag = build_support.host_to_tag(build_support.get_default_host())
-        toolchain = build_support.arch_to_toolchain(arch) + '-4.9'
-        return build_support.android_path(
+        host_tag = ndk.hosts.host_to_tag(ndk.hosts.get_default_host())
+        toolchain = ndk.abis.arch_to_toolchain(arch) + '-4.9'
+        return ndk.paths.android_path(
             'prebuilts/ndk/current/toolchains', host_tag, toolchain)
 
     def gcc_tool(self, tool, arch):
         gcc_toolchain = self.gcc_toolchain(arch)
-        triple = build_support.arch_to_triple(arch)
+        triple = ndk.abis.arch_to_triple(arch)
         return os.path.join(gcc_toolchain, 'bin', triple + '-' + tool)
 
     def libdir_name(self, arch):  # pylint: disable=no-self-use
@@ -987,17 +989,16 @@ class Platforms(ndk.builds.Module):
         return arches
 
     def get_build_cmd(self, dst, srcs, api, arch, build_number):
-        bionic_includes = build_support.android_path(
+        bionic_includes = ndk.paths.android_path(
             'bionic/libc/arch-common/bionic')
 
-        cc = ndk.paths.android_path(
-            'prebuilts/clang/host',
-            build_support.get_default_host() + '-x86',
-            Clang.version, 'bin/clang')
+        cc = ndk.paths.android_path('prebuilts/clang/host',
+                                    ndk.hosts.get_default_host() + '-x86',
+                                    Clang.version, 'bin/clang')
 
         args = [
             cc,
-            '-target', build_support.arch_to_triple(arch),
+            '-target', ndk.abis.arch_to_triple(arch),
             '--sysroot', self.prebuilt_path('sysroot'),
             '-gcc-toolchain', self.gcc_toolchain(arch),
             '-I', bionic_includes,
@@ -1254,19 +1255,19 @@ class LibShaderc(ndk.builds.Module):
 class CpuFeatures(ndk.builds.PackageModule):
     name = 'cpufeatures'
     path = 'sources/android/cpufeatures'
-    src = build_support.ndk_path('sources/android/cpufeatures')
+    src = ndk.paths.ndk_path('sources/android/cpufeatures')
 
 
 class NativeAppGlue(ndk.builds.PackageModule):
     name = 'native_app_glue'
     path = 'sources/android/native_app_glue'
-    src = build_support.ndk_path('sources/android/native_app_glue')
+    src = ndk.paths.ndk_path('sources/android/native_app_glue')
 
 
 class NdkHelper(ndk.builds.PackageModule):
     name = 'ndk_helper'
     path = 'sources/android/ndk_helper'
-    src = build_support.ndk_path('sources/android/ndk_helper')
+    src = ndk.paths.ndk_path('sources/android/ndk_helper')
 
 
 class Gtest(ndk.builds.PackageModule):
@@ -1283,7 +1284,7 @@ class Sysroot(ndk.builds.Module):
     def build(self):
         temp_dir = tempfile.mkdtemp()
         try:
-            path = build_support.android_path('prebuilts/ndk/platform/sysroot')
+            path = ndk.paths.android_path('prebuilts/ndk/platform/sysroot')
             install_path = os.path.join(temp_dir, 'sysroot')
             shutil.copytree(path, install_path)
             if self.host != 'linux':
@@ -1606,8 +1607,7 @@ class Vulkan(ndk.builds.Module):
 
         # Copy binary validation layer libraries
         print('Copying Vulkan binary validation layers...')
-        src = build_support.android_path(
-            'prebuilts/ndk/vulkan-validation-layers')
+        src = ndk.paths.android_path('prebuilts/ndk/vulkan-validation-layers')
         dst = os.path.join(vulkan_path, 'build-android/jniLibs')
         shutil.rmtree(dst, True)
         shutil.copytree(src, dst, ignore=default_ignore_patterns)
@@ -1833,19 +1833,19 @@ class PythonPackages(ndk.builds.PackageModule):
 class SystemStl(ndk.builds.PackageModule):
     name = 'system-stl'
     path = 'sources/cxx-stl/system'
-    src = build_support.ndk_path('sources/cxx-stl/system')
+    src = ndk.paths.ndk_path('sources/cxx-stl/system')
 
 
 class LibAndroidSupport(ndk.builds.PackageModule):
     name = 'libandroid_support'
     path = 'sources/android/support'
-    src = build_support.ndk_path('sources/android/support')
+    src = ndk.paths.ndk_path('sources/android/support')
 
 
 class Libcxxabi(ndk.builds.PackageModule):
     name = 'libc++abi'
     path = 'sources/cxx-stl/llvm-libc++abi'
-    src = build_support.android_path('external/libcxxabi')
+    src = ndk.paths.android_path('external/libcxxabi')
 
 
 class SimplePerf(ndk.builds.Module):
@@ -1889,7 +1889,7 @@ class SimplePerf(ndk.builds.Module):
 class RenderscriptLibs(ndk.builds.PackageModule):
     name = 'renderscript-libs'
     path = 'sources/android/renderscript'
-    src = build_support.ndk_path('sources/android/renderscript')
+    src = ndk.paths.ndk_path('sources/android/renderscript')
 
 
 class RenderscriptToolchain(ndk.builds.InvokeBuildModule):
@@ -1910,7 +1910,7 @@ class RenderscriptToolchain(ndk.builds.InvokeBuildModule):
 class Changelog(ndk.builds.FileModule):
     name = 'changelog'
     path = 'CHANGELOG.md'
-    src = build_support.ndk_path('CHANGELOG.md')
+    src = ndk.paths.ndk_path('CHANGELOG.md')
     no_notice = True
 
 
@@ -1952,7 +1952,7 @@ class NdkBuildShortcut(ndk.builds.ScriptShortcutModule):
 class Readme(ndk.builds.FileModule):
     name = 'readme'
     path = 'README.md'
-    src = build_support.ndk_path('UserReadme.md')
+    src = ndk.paths.ndk_path('UserReadme.md')
 
 
 CANARY_TEXT = textwrap.dedent("""\
@@ -1983,14 +1983,14 @@ class CanaryReadme(ndk.builds.Module):
 class Meta(ndk.builds.PackageModule):
     name = 'meta'
     path = 'meta'
-    src = build_support.ndk_path('meta')
+    src = ndk.paths.ndk_path('meta')
     no_notice = True
 
 
 class WrapSh(ndk.builds.PackageModule):
     name = 'wrap.sh'
     path = 'wrap.sh'
-    src = build_support.ndk_path('wrap.sh')
+    src = ndk.paths.ndk_path('wrap.sh')
     no_notice = True
 
 
@@ -2026,13 +2026,13 @@ class AdbPy(ndk.builds.PythonPackage):
 
 class Lit(ndk.builds.PythonPackage):
     name = 'lit'
-    path = build_support.android_path('external/llvm/utils/lit/setup.py')
+    path = ndk.paths.android_path('external/llvm/utils/lit/setup.py')
     notice = ndk.paths.android_path('external/llvm/NOTICE')
 
 
 class NdkPy(ndk.builds.PythonPackage):
     name = 'ndk.py'
-    path = build_support.ndk_path('setup.py')
+    path = ndk.paths.ndk_path('setup.py')
 
 
 def create_notice_file(path, for_group):
@@ -2271,7 +2271,7 @@ def parse_args():
 
     parser.add_argument(
         '--system', choices=('darwin', 'linux', 'windows', 'windows64'),
-        default=build_support.get_default_host(),
+        default=ndk.hosts.get_default_host(),
         help='Build for the given OS.')
 
     module_group = parser.add_mutually_exclusive_group()
@@ -2343,7 +2343,7 @@ def wait_for_build(deps, workqueue, dist_dir, log_dir, skip_deps,
 
 
 def build_ndk(modules, deps_only, out_dir, dist_dir, args):
-    arches = build_support.ALL_ARCHITECTURES
+    arches = ndk.abis.ALL_ARCHITECTURES
     if args.arch is not None:
         arches = [args.arch]
 
@@ -2449,12 +2449,12 @@ def main():
 
     os.environ['ANDROID_BUILD_TOP'] = os.path.realpath('..')
 
-    arches = build_support.ALL_ARCHITECTURES
+    arches = ndk.abis.ALL_ARCHITECTURES
     if args.arch is not None:
         arches = [args.arch]
 
-    out_dir = build_support.get_out_dir()
-    dist_dir = build_support.get_dist_dir(out_dir)
+    out_dir = ndk.paths.get_out_dir()
+    dist_dir = ndk.paths.get_dist_dir(out_dir)
 
     print('Machine has {} CPUs'.format(multiprocessing.cpu_count()))
 
@@ -2481,7 +2481,7 @@ def main():
     with package_timer:
         if do_package:
             print('Packaging NDK...')
-            host_tag = build_support.host_to_tag(args.system)
+            host_tag = ndk.hosts.host_to_tag(args.system)
             package_path = package_ndk(
                 ndk_dir, dist_dir, host_tag, args.build_number)
             packaged_size_bytes = os.path.getsize(package_path)
