@@ -76,17 +76,6 @@ TARGET_PREBUILT_SHARED_LIBRARIES :=
 TOOLCHAIN_NAME   := $(TARGET_TOOLCHAIN)
 TOOLCHAIN_VERSION := $(call last,$(subst -,$(space),$(TARGET_TOOLCHAIN)))
 
-# Define the root path where toolchain prebuilts are stored
-TOOLCHAIN_PREBUILT_ROOT := $(call get-toolchain-root,$(TOOLCHAIN_NAME))
-
-# Do the same for TOOLCHAIN_PREFIX. Note that we must chop the version
-# number from the toolchain name, e.g. arm-eabi-4.4.0 -> path/bin/arm-eabi-
-# to do that, we split at dashes, remove the last element, then merge the
-# result. Finally, add the complete path prefix.
-#
-TOOLCHAIN_PREFIX := $(call merge,-,$(call chop,$(call split,-,$(TOOLCHAIN_NAME))))-
-TOOLCHAIN_PREFIX := $(TOOLCHAIN_PREBUILT_ROOT)/bin/$(TOOLCHAIN_PREFIX)
-
 # We expect the gdbserver binary for this toolchain to be located at its root.
 TARGET_GDBSERVER := $(NDK_ROOT)/prebuilt/android-$(TARGET_ARCH)/gdbserver/gdbserver
 
@@ -98,45 +87,35 @@ include $(BUILD_SYSTEM)/default-build-commands.mk
 
 # now call the toolchain-specific setup script
 include $(NDK_TOOLCHAIN.$(TARGET_TOOLCHAIN).setup)
+TOOLCHAIN_PREFIX := $(NDK_ROOT)/toolchain/bin/$(TOOLCHAIN_NAME)-
 
 # Setup sysroot variables.
+#
+# Note that these are not needed for the typical case of invoking Clang, as
+# Clang already knows where the sysroot is relative to itself. We still need to
+# manually refer to these in some places because other tools such as yasm and
+# the renderscript compiler don't have this knowledge.
+
 # SYSROOT_INC points to a directory that contains all public header files for a
-# given platform, and SYSROOT_LINK points to libraries and object files used for
-# linking the generated target files properly.
-SYSROOT_BASE := $(NDK_PLATFORMS_ROOT)/$(TARGET_PLATFORM)/arch-$(TARGET_ARCH)
-SYSROOT_INC := $(SYSROOT_BASE)
-
-# TODO(danalbert): Use the new libraries.
-# This still points at the old tree for the libraries. We need to either:
-#
-# 1. Add crt_begin.o, libc.a, etc. to the new sysroots.
-# 2. Replace the old stub libraries with the new ones.
-#
-# Option 1 is what we will need to do long term, but will require several more
-# Soong changes. This will likely delay the release for a handful of weeks.
-# Option 2 can be done quickly. The disadvantage is that if there's anything
-# wrong with the stub libraries, we'll break everything and not just unified
-# headers. The advantage to this is that if this does break anything, it
-# probably only breaks things that are broken (libraries reporting they have
-# things they actually don't).
-SYSROOT_LINK := $(SYSROOT_BASE)
-
+# given platform.
 ifndef NDK_UNIFIED_SYSROOT_PATH
-    NDK_UNIFIED_SYSROOT_PATH := $(NDK_ROOT)/sysroot
+    NDK_UNIFIED_SYSROOT_PATH := $(NDK_ROOT)/toolchain/sysroot
 endif
+
+# TODO: Have the driver add the library path to -rpath-link.
 SYSROOT_INC := $(NDK_UNIFIED_SYSROOT_PATH)
 
-# The compiler driver doesn't check any arch specific include locations
-# (though maybe we should add that). Architecture specific headers like asm/
-# and machine/ are installed to an arch-$ARCH subdirectory of the sysroot.
-header_triple_arm := arm-linux-androideabi
-header_triple_arm64 := aarch64-linux-android
-header_triple_mips := mipsel-linux-android
-header_triple_mips64 := mips64el-linux-android
-header_triple_x86 := i686-linux-android
-header_triple_x86_64 := x86_64-linux-android
+SYSROOT_LIB_DIR := $(NDK_UNIFIED_SYSROOT_PATH)/usr/lib/$(TOOLCHAIN_NAME)
+SYSROOT_API_LIB_DIR := $(SYSROOT_LIB_DIR)/$(TARGET_PLATFORM_LEVEL)
+
+# API-specific library directory comes first to make the linker prefer shared
+# libs over static libs.
+SYSROOT_LINK_ARG := -L $(SYSROOT_API_LIB_DIR) -L $(SYSROOT_LIB_DIR)
+
+# Architecture specific headers like asm/ and machine/ are installed to an
+# arch-$ARCH subdirectory of the sysroot.
 SYSROOT_ARCH_INC_ARG := \
-    -isystem $(SYSROOT_INC)/usr/include/$(header_triple_$(TARGET_ARCH))
+    -isystem $(SYSROOT_INC)/usr/include/$(TOOLCHAIN_NAME)
 
 clean-installed-binaries::
 

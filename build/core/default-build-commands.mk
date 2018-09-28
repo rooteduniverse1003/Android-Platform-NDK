@@ -76,7 +76,6 @@ define cmd-build-shared-library
 $(PRIVATE_CXX) \
     -Wl,-soname,$(notdir $(LOCAL_BUILT_MODULE)) \
     -shared \
-    --sysroot=$(call host-path,$(PRIVATE_SYSROOT_LINK)) \
     $(PRIVATE_LINKER_OBJECTS_AND_LIBRARIES) \
     $(GLOBAL_LDFLAGS) \
     $(PRIVATE_LDFLAGS) \
@@ -84,16 +83,15 @@ $(PRIVATE_CXX) \
     -o $(call host-path,$(LOCAL_BUILT_MODULE))
 endef
 
-# The following -rpath-link= are needed for ld.bfd (default for MIPS) when
+# The following -rpath-link= are needed for ld.bfd (default for ARM64) when
 # linking executables to supress warning about missing symbol from libraries not
-# directly needed. ld.gold (default for ARM and X86) doesn't emulate this buggy
-# behavior, and ignores -rpath-link completely.
+# directly needed. ld.gold (default for all other architectures) doesn't emulate
+# this buggy behavior.
 define cmd-build-executable
 $(PRIVATE_CXX) \
     -Wl,--gc-sections \
     -Wl,-z,nocopyreloc \
-    --sysroot=$(call host-path,$(PRIVATE_SYSROOT_LINK)) \
-    -Wl,-rpath-link=$(call host-path,$(PRIVATE_SYSROOT_LINK)/usr/lib) \
+    -Wl,-rpath-link=$(call host-path,$(PRIVATE_SYSROOT_API_LIB_DIR)) \
     -Wl,-rpath-link=$(call host-path,$(TARGET_OUT)) \
     $(PRIVATE_LINKER_OBJECTS_AND_LIBRARIES) \
     $(GLOBAL_LDFLAGS) \
@@ -121,7 +119,7 @@ TARGET_LDLIBS := -lc -lm
 # the toolchain's setup.mk script.
 #
 
-LLVM_TOOLCHAIN_PREBUILT_ROOT := $(call get-toolchain-root,llvm)
+LLVM_TOOLCHAIN_PREBUILT_ROOT := $(NDK_ROOT)/toolchain
 LLVM_TOOLCHAIN_PREFIX := $(LLVM_TOOLCHAIN_PREBUILT_ROOT)/bin/
 
 ifneq ($(findstring ccc-analyzer,$(CC)),)
@@ -138,6 +136,11 @@ GLOBAL_CFLAGS = \
     -fdata-sections \
     -funwind-tables \
     -no-canonical-prefixes \
+
+# This is unnecessary given the new toolchain layout, but Studio will not
+# recognize this as an Android build if there is no --sysroot flag.
+# TODO: Teach Studio to recognize Android builds based on --target.
+GLOBAL_CFLAGS += --sysroot $(call host-path,$(NDK_UNIFIED_SYSROOT_PATH))
 
 # Always enable debug info. We strip binaries when needed.
 GLOBAL_CFLAGS += -g
@@ -174,6 +177,8 @@ endif
 
 TARGET_ASM      = $(HOST_PREBUILT)/yasm
 TARGET_ASMFLAGS =
+
+TOOLCHAIN_PREFIX = $(NDK_TOOLCHAIN_ROOT)/bin/$(TOOLCHAIN_NAME)-
 
 TARGET_LD       = $(TOOLCHAIN_PREFIX)ld
 TARGET_LDFLAGS :=
