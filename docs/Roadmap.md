@@ -99,9 +99,9 @@ should investigate using something like [cdep] to simplify this.
 
 ### lld linker
 
-We should make lld available in the NDK, with a view to making it the
-default (as it already is in the platform), and long-term towards shipping
-lld as our _only_ linker. https://github.com/android-ndk/ndk/issues/683
+NDK r18 made lld available, but we should make it the default (as it already
+is in the platform), and long-term aim to ship lld as our _only_ linker.
+https://github.com/android-ndk/ndk/issues/683
 
 ### lldb debugger
 
@@ -174,7 +174,7 @@ in recent releases.
 
 ### NDK r18
 
-Removed GCC and gnustl/stlport.
+Removed GCC and gnustl/stlport. Added lld.
 
 ### NDK r17
 
