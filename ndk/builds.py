@@ -44,6 +44,16 @@ class NoticeGroup(object):
     TOOLCHAIN = 2
 
 
+class BuildContext(object):
+    def __init__(self, out_dir, dist_dir, modules, host, arches, build_number):
+        self.out_dir = out_dir
+        self.dist_dir = dist_dir
+        self.modules = {m.name: m for m in modules}
+        self.host = host
+        self.arches = arches
+        self.build_number = build_number
+
+
 class Module(object):
     name = None
     path = None
@@ -77,6 +87,7 @@ class Module(object):
     build_arch = None
 
     def __init__(self):
+        self.context = None
         if self.notice is None:
             self.notice = self.default_notice_path()
         self.validate()
@@ -115,30 +126,55 @@ class Module(object):
                 raise self.validate_error(
                     'notice file {} does not exist'.format(notice))
 
-    def build(self, build_dir, dist_dir, args):
+    def get_dep(self, name):
+        if name not in self.deps:
+            raise KeyError
+        return self.context.modules[name]
+
+    def get_build_host_install(self, arch=None):
+        return self.get_install_path(ndk.hosts.get_default_host(), arch)
+
+    @property
+    def out_dir(self):
+        return self.context.out_dir
+
+    @property
+    def dist_dir(self):
+        return self.context.dist_dir
+
+    @property
+    def host(self):
+        return self.context.host
+
+    @property
+    def arches(self):
+        return self.context.arches
+
+    def build(self):
         raise NotImplementedError
 
-    def install(self, out_dir, dist_dir, args):
-        arches = ndk.abis.ALL_ARCHITECTURES
-        if args.arch is not None:
-            arches = [args.arch]
+    def install(self):
         package_installs = ndk.packaging.expand_packages(
-            self.name, self.path, args.system, arches)
+            self.name, self.path, self.host, self.arches)
 
-        install_base = ndk.paths.get_install_path(out_dir)
+        install_base = ndk.paths.get_install_path(self.out_dir,
+                                                  self.host)
         for package_name, package_install in package_installs:
             install_path = os.path.join(install_base, package_install)
-            package = os.path.join(dist_dir, package_name)
+            package = os.path.join(self.context.dist_dir, package_name)
             if os.path.exists(install_path):
                 shutil.rmtree(install_path)
             ndk.packaging.extract_zip(package, install_path)
 
-    def get_install_paths(self, build_dir, host, arches):
+    def get_install_paths(self, host, arches):
         install_subdirs = ndk.packaging.expand_paths(self.path, host, arches)
-        install_base = ndk.paths.get_install_path(build_dir)
+        install_base = ndk.paths.get_install_path(self.out_dir, host)
         return [os.path.join(install_base, d) for d in install_subdirs]
 
-    def get_install_path(self, build_dir, host, arch=None):
+    def get_install_path(self, host=None, arch=None):
+        if host is None:
+            host = self.host
+
         arch_dependent = False
         if ndk.packaging.package_varies_by(self.path, 'abi'):
             arch_dependent = True
@@ -152,11 +188,13 @@ class Module(object):
         arches = None
         if arch is not None:
             arches = [arch]
+        elif self.build_arch is not None:
+            arches = [self.build_arch]
         elif arch_dependent:
             raise ValueError(
                 'get_install_path for {} requires valid arch'.format(arch))
 
-        install_subdirs = self.get_install_paths(build_dir, host, arches)
+        install_subdirs = self.get_install_paths(host, arches)
 
         if len(install_subdirs) != 1:
             raise RuntimeError(
@@ -214,12 +252,12 @@ class PackageModule(Module):
             raise self.validate_error(
                 'PackageModule cannot vary by triple')
 
-    def build(self, _build_dir, _dist_dir, _args):
+    def build(self):
         pass
 
-    def install(self, out_dir, _dist_dir, args):
-        install_paths = self.get_install_paths(
-            out_dir, args.system, ndk.abis.ALL_ARCHITECTURES)
+    def install(self):
+        install_paths = self.get_install_paths(self.host,
+                                               ndk.abis.ALL_ARCHITECTURES)
         assert len(install_paths) == 1
         install_path = install_paths[0]
         install_directory(self.src, install_path)
@@ -231,21 +269,23 @@ class InvokeExternalBuildModule(Module):
     script = None
     arch_specific = False
 
-    def build(self, build_dir, dist_dir, args):
-        build_args = common_build_args(build_dir, dist_dir, args)
+    def build(self):
+        build_args = common_build_args(self.out_dir, self.dist_dir, self.host)
         if self.split_build_by_arch:
             build_args.append('--arch={}'.format(self.build_arch))
-        elif self.arch_specific and args.arch is not None:
-            build_args.append('--arch={}'.format(args.arch))
-        build_args.extend(self.additional_args(args))
+        elif self.arch_specific and len(self.arches) == 1:
+            build_args.append('--arch={}'.format(self.arches[0]))
+        elif self.arches == ndk.abis.ALL_ARCHITECTURES:
+            pass
+        else:
+            raise NotImplementedError(
+                'Module {} can only build all architectures or none'.format(
+                    self.name))
         script = self.get_script_path()
         invoke_external_build(script, build_args)
 
     def get_script_path(self):
         return ndk.paths.android_path(self.script)
-
-    def additional_args(self, _args):  # pylint: disable=no-self-use
-        return []
 
 
 class InvokeBuildModule(InvokeExternalBuildModule):
@@ -259,15 +299,11 @@ class FileModule(Module):
     # Used for things like the readme and the changelog. No notice needed.
     no_notice = True
 
-    def build(self, _build_dir, _dist_dir, _args):
+    def build(self):
         pass
 
-    def install(self, out_dir, dist_dir, args):
-        install_base = ndk.paths.get_install_path(out_dir)
-        install_path = os.path.join(install_base, self.path)
-        if os.path.exists(install_path):
-            os.remove(install_path)
-        shutil.copy2(self.src, install_path)
+    def install(self):
+        shutil.copy2(self.src, self.get_install_path())
 
 
 class ScriptShortcutModule(Module):
@@ -296,35 +332,32 @@ class ScriptShortcutModule(Module):
             raise self.validate_error(
                 'ScriptShortcutModule requires windows_ext')
 
-    def build(self, _build_dir, _dist_dir, _args):
+    def build(self):
         pass
 
-    def install(self, out_dir, dist_dir, args):
-        if args.system.startswith('windows'):
-            self.make_cmd_helper(out_dir, args.system)
+    def install(self):
+        if self.host.startswith('windows'):
+            self.make_cmd_helper()
         else:
-            self.make_sh_helper(out_dir, args.system)
+            self.make_sh_helper()
 
-    def make_cmd_helper(self, out_dir, system):
-        script = self.get_script_path(system)
+    def make_cmd_helper(self):
+        script = self.get_script_path()
         full_path = ntpath.join(
             '%~dp0', ntpath.normpath(script) + self.windows_ext)
 
-        install_base = ndk.paths.get_install_path(out_dir)
-        install_path = os.path.join(install_base, self.path) + '.cmd'
+        install_path = self.get_install_path() + '.cmd'
         with open(os.path.join(install_path), 'w') as helper:
             helper.writelines([
                 '@echo off\n',
                 full_path + ' %*\n',
             ])
 
-    def make_sh_helper(self, out_dir, system):
-        script = self.get_script_path(system)
-
-        install_base = ndk.paths.get_install_path(out_dir)
-        install_path = os.path.join(install_base, self.path)
-
+    def make_sh_helper(self):
+        script = self.get_script_path()
         full_path = os.path.join('$DIR', script)
+
+        install_path = self.get_install_path()
         with open(install_path, 'w') as helper:
             helper.writelines([
                 '#!/bin/sh\n',
@@ -335,9 +368,9 @@ class ScriptShortcutModule(Module):
         os.chmod(install_path,
                  mode | stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH)
 
-    def get_script_path(self, system):
+    def get_script_path(self):
         scripts = ndk.packaging.expand_paths(
-            self.script, system, ndk.abis.ALL_ARCHITECTURES)
+            self.script, self.host, ndk.abis.ALL_ARCHITECTURES)
         assert len(scripts) == 1
         return scripts[0]
 
@@ -347,12 +380,12 @@ class PythonPackage(Module):
         # Assume there's a NOTICE file in the same directory as the setup.py.
         return os.path.join(os.path.dirname(self.path), 'NOTICE')
 
-    def build(self, build_dir, _dist_dir, _args):
+    def build(self):
         cwd = os.path.dirname(self.path)
         subprocess.check_call(
-            ['python', self.path, 'sdist', '-d', build_dir], cwd=cwd)
+            ['python', self.path, 'sdist', '-d', self.out_dir], cwd=cwd)
 
-    def install(self, _out_dir, _dist_dir, _args):
+    def install(self):
         pass
 
 
@@ -371,11 +404,11 @@ def invoke_external_build(script, args=None):
     _invoke_build(ndk.paths.android_path(script), args)
 
 
-def common_build_args(out_dir, dist_dir, args):
+def common_build_args(out_dir, dist_dir, host):
     return [
         '--out-dir={}'.format(out_dir),
         '--dist-dir={}'.format(dist_dir),
-        '--host={}'.format(args.system),
+        '--host={}'.format(host),
     ]
 
 
