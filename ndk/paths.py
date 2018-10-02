@@ -85,7 +85,7 @@ def path_in_out(dirname, out_dir=None):
     return os.path.join(out_dir, dirname)
 
 
-def get_install_path(out_dir=None, host=None):
+def get_install_path(out_dir=None):
     """Returns the built NDK install path.
 
     Note that the path returned might not actually contain the NDK. The NDK may
@@ -98,15 +98,12 @@ def get_install_path(out_dir=None, host=None):
     Args:
         out_dir: Optional base out directory. Inferred from $OUT_DIR if not
                  supplied.
-        host: Returns the install path for th given host.
 
     Returns:
         Directory that the built NDK should be installed to.
     """
-    if host is None:
-        host = ndk.hosts.get_default_host()
     release_name = 'android-ndk-{}'.format(ndk.config.release)
-    return path_in_out(os.path.join(host, release_name), out_dir)
+    return path_in_out(release_name, out_dir)
 
 
 @contextlib.contextmanager
