@@ -1359,28 +1359,34 @@ $$(_OBJ): $$(_SRC) $$(LOCAL_MAKEFILE) $$(NDK_APP_APPLICATION_MK) $(LOCAL_RS_OBJE
 
 _JSON_INTERMEDIATE := $$(_OBJ).commands.json
 
-_SUB_COMMANDS_LIST_FILE := $$(_OBJ).commands.list
 _COMPILE_COMMAND := \
     $$(_CC) $$(_FLAGS) \
     $$(call host-path,$$(_SRC)) \
     -o $$(call host-path,$$(_OBJ)) \
 
+_COMPILE_COMMAND_ARG := $$(_COMPILE_COMMAND)
+
+ifeq ($$(LOCAL_SHORT_COMMANDS),true)
+_SUB_COMMANDS_LIST_FILE := $$(_OBJ).commands.list
 $$(call generate-list-file,$$(_COMPILE_COMMAND),$$(_SUB_COMMANDS_LIST_FILE))
 $$(_JSON_INTERMEDIATE): $$(_SUB_COMMANDS_LIST_FILE)
+_COMPILE_COMMAND_ARG := --command-file "$$(_SUB_COMMANDS_LIST_FILE)"
+endif
 
 $$(call generate-file-dir,$$(_JSON_INTERMEDIATE))
 $$(_JSON_INTERMEDIATE): PRIVATE_CC := $$(_CC)
 $$(_JSON_INTERMEDIATE): PRIVATE_SRC := $$(_SRC)
 $$(_JSON_INTERMEDIATE): PRIVATE_OBJ := $$(_OBJ)
 $$(_JSON_INTERMEDIATE): PRIVATE_CFLAGS := $$(_FLAGS)
-$$(_JSON_INTERMEDIATE): PRIVATE_LIST_FILE := $$(_SUB_COMMANDS_LIST_FILE)
+$$(_JSON_INTERMEDIATE): PRIVATE_COMPILE_COMMAND_ARG := $$(_COMPILE_COMMAND_ARG)
+
 $$(_JSON_INTERMEDIATE): $$(LOCAL_MAKEFILE) $$(NDK_APP_APPLICATION_MK)
 	$$(hide) $$(HOST_PYTHON) $$(BUILD_PY)/dump_compile_commands.py \
         -o $$@ \
         --directory "$$(CURDIR)" \
         --file "$$(call host-path,$$(PRIVATE_SRC))" \
         --object-file "$$(PRIVATE_OBJ)" \
-        --command-file "$$(PRIVATE_LIST_FILE)"
+        $$(PRIVATE_COMPILE_COMMAND_ARG)
 
 $$(COMPILE_COMMANDS_JSON): $$(_JSON_INTERMEDIATE)
 sub_commands_json += $$(_JSON_INTERMEDIATE)
