@@ -34,6 +34,7 @@ import inspect
 import json
 import logging
 import multiprocessing
+import ntpath
 import os
 import pipes
 import re
@@ -565,7 +566,15 @@ class Binutils(ndk.builds.Module):
                 self.install_sh_clang_shortcut(gcc, clang, triple)
 
     def install_cmd_clang_shortcut(self, gcc, clang, triple):
-        clang = clang.replace('/', '\\')
+        clang = ntpath.normpath(clang)
+
+        flags = [
+            '-target',
+            triple,
+            '-gcc-toolchain',
+            '%_BIN_DIR%..',
+        ]
+
         with open(gcc, 'w') as gcc_script:
             gcc_script.write(
                 textwrap.dedent("""\
@@ -573,7 +582,7 @@ class Binutils(ndk.builds.Module):
                 setlocal
                 call :find_bin
 
-                set "_BIN_DIR=" && %_BIN_DIR%{clang} -target {triple} %*
+                set "_BIN_DIR=" && %_BIN_DIR%{clang} {flags} %*
                 if ERRORLEVEL 1 exit /b 1
                 goto :done
 
@@ -584,15 +593,22 @@ class Binutils(ndk.builds.Module):
                 exit /b
 
                 :done
-                """.format(clang=clang, triple=triple)))
+                """.format(clang=clang, flags=' '.join(flags))))
 
     def install_sh_clang_shortcut(self, gcc, clang, triple):
+        flags = [
+            '-target',
+            triple,
+            '-gcc-toolchain',
+            '`dirname $0`/..',
+        ]
+
         with open(gcc, 'w') as gcc_script:
             gcc_script.write(
                 textwrap.dedent("""\
                     #!/bin/bash
-                    exec `dirname $0`/{clang} -target {triple} "$@"
-                    """.format(clang=clang, triple=triple)))
+                    exec `dirname $0`/{clang} {flags} "$@"
+                    """.format(clang=clang, flags=' '.join(flags))))
         mode = os.stat(gcc).st_mode
         os.chmod(gcc, mode | stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH)
 
