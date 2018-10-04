@@ -201,12 +201,25 @@ def make_clang_scripts(install_dir, triple, api, windows):
                     clangbat.write(clangbat_text)
 
 
+def replace_gcc_wrappers(install_path, triple, is_windows):
+    cmd = '.cmd' if is_windows else ''
+
+    gcc = os.path.join(install_path, 'bin', triple + '-gcc' + cmd)
+    clang = os.path.join(install_path, 'bin', 'clang' + cmd)
+    shutil.copy2(clang, gcc)
+
+    gpp = os.path.join(install_path, 'bin', triple + '-g++' + cmd)
+    clangpp = os.path.join(install_path, 'bin', 'clang++' + cmd)
+    shutil.copy2(clangpp, gpp)
+
+
 def create_toolchain(install_path, arch, api, toolchain_path, host_tag):
     """Create a standalone toolchain."""
     copy_tree(toolchain_path, install_path)
     triple = get_triple(arch)
     make_clang_scripts(
         install_path, triple, api, host_tag.startswith('windows'))
+    replace_gcc_wrappers(install_path, triple, host_tag.startswith('windows'))
 
     prebuilt_path = os.path.join(NDK_DIR, 'prebuilt', host_tag)
     copy_tree(prebuilt_path, install_path)
