@@ -32,11 +32,19 @@ def parse_args():
     parser.add_argument(
         '-o', '--output', type=os.path.realpath, help='Path to output file')
 
+    def maybe_list_file(arg):
+        if arg.startswith('@'):
+            return '@' + os.path.realpath(arg[1:])
+        return os.path.realpath(arg)
+
     parser.add_argument(
-        'list_file',
-        type=os.path.realpath,
-        help=('A list file containing paths to the one or more JSON files'
-              'containing compilation commands per source/target.'))
+        'command_files',
+        metavar='FILE',
+        type=maybe_list_file,
+        nargs='+',
+        help=('Path to the compilation database for a single object. If the '
+              'argument begins with @ it will be treated as a list file '
+              'containing paths to the one or more JSON files.'))
 
     return parser.parse_args()
 
@@ -46,8 +54,13 @@ def main():
     args = parse_args()
 
     all_commands = []
-    with open(args.list_file) as list_file:
-        command_files = list_file.read().split()
+    command_files = []
+    for command_file in args.command_files:
+        if command_file.startswith('@'):
+            with open(command_file[1:]) as list_file:
+                command_files.extend(list_file.read().split())
+        else:
+            command_files.append(command_file)
 
     for command_file_path in command_files:
         with open(command_file_path) as command_file:

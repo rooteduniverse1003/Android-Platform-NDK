@@ -116,11 +116,16 @@ $(foreach _abi,$(NDK_APP_ABI),\
     $(eval include $(BUILD_SYSTEM)/setup-abi.mk) \
 )
 
+_sub_commands_arg := $(sub_commands_json)
+
+ifeq ($(LOCAL_SHORT_COMMANDS),true)
 compile_commands_list_file := $(NDK_APP_OUT)/compile_commands.list
+_sub_commands_arg := @$(compile_commands_list_file)
 $(compile_commands_list_file): $(sub_commands_json)
 $(call generate-list-file,$(sub_commands_json),$(compile_commands_list_file))
+endif
 
-$(COMPILE_COMMANDS_JSON): PRIVATE_LIST_FILE := $(compile_commands_list_file)
-$(COMPILE_COMMANDS_JSON): $(compile_commands_list_file)
+$(COMPILE_COMMANDS_JSON): PRIVATE_SUB_COMMANDS := $(_sub_commands_arg)
+$(COMPILE_COMMANDS_JSON): $(compile_commands_list_file) $(sub_commands_json)
 	$(hide) $(HOST_PYTHON) $(BUILD_PY)/gen_compile_db.py -o $@ \
-        $(PRIVATE_LIST_FILE)
+        $(PRIVATE_SUB_COMMANDS)

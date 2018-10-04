@@ -147,161 +147,25 @@ generate-file-dir = $(eval $(call ev-generate-file-dir,$1))
 #
 # -----------------------------------------------------------------------------
 
-# Helper functions because the GNU Make $(word ...) function does
-# not accept a 0 index, so we need to bump any of these to 1 when
-# we find them.
-#
-index-is-zero = $(filter 0 00 000 0000 00000 000000 0000000,$1)
-bump-0-to-1 = $(if $(call index-is-zero,$1),1,$1)
+list_file_words_per_echo := 10
 
--test-bump-0-to-1 = \
-  $(call test-expect,$(call bump-0-to-1))\
-  $(call test-expect,1,$(call bump-0-to-1,0))\
-  $(call test-expect,1,$(call bump-0-to-1,1))\
-  $(call test-expect,2,$(call bump-0-to-1,2))\
-  $(call test-expect,1,$(call bump-0-to-1,00))\
-  $(call test-expect,1,$(call bump-0-to-1,000))\
-  $(call test-expect,1,$(call bump-0-to-1,0000))\
-  $(call test-expect,1,$(call bump-0-to-1,00000))\
-  $(call test-expect,1,$(call bump-0-to-1,000000))\
-  $(call test-expect,10,$(call bump-0-to-1,10))\
-  $(call test-expect,100,$(call bump-0-to-1,100))
+# 1: First word index
+# 2: Last word index
+# 3: Full text length
+# 4: Full text
+define list_file_echo
 
-# Same as $(wordlist ...) except the start index, if 0, is bumped to 1
-index-word-list = $(wordlist $(call bump-0-to-1,$1),$2,$3)
-
--test-index-word-list = \
-  $(call test-expect,,$(call index-word-list,1,1))\
-  $(call test-expect,a b,$(call index-word-list,0,2,a b c d))\
-  $(call test-expect,b c,$(call index-word-list,2,3,a b c d))\
-
-# NOTE: With GNU Make $1 and $(1) are equivalent, which means
-#       that $10 is equivalent to $(1)0, and *not* $(10).
-
-# Used to generate a slice of up to 10 items starting from index $1,
-# If $1 is 0, it will be bumped to 1 (and only 9 items will be printed)
-# $1: start (tenth) index. Can be 0
-# $2: word list
-#
-define list-file-start-gen-10
-	$$(hide) $$(HOST_ECHO_N) "$(call index-word-list,$10,$19,$2) " >> $$@
+	$(hide) $(HOST_ECHO_N) "$(wordlist $1,$2,$4) " >> $$@
+$(if $(call lt,$2,$3),\
+    $(call list_file_echo,\
+        $(call plus,$1,$(list_file_words_per_echo)),\
+        $(call plus,$2,$(list_file_words_per_echo)),\
+        $3,\
+        $4))
 endef
-
-# Used to generate a slice of always 10 items starting from index $1
-# $1: start (tenth) index. CANNOT BE 0
-# $2: word list
-define list-file-always-gen-10
-	$$(hide) $$(HOST_ECHO_N) "$(wordlist $10,$19,$2) " >> $$@
-endef
-
-# Same as list-file-always-gen-10, except that the word list might be
-# empty at position $10 (i.e. $(1)0)
-define list-file-maybe-gen-10
-ifneq ($(word $10,$2),)
-	$$(hide) $$(HOST_ECHO_N) "$(wordlist $10,$19,$2) " >> $$@
-endif
-endef
-
-define list-file-start-gen-100
-$(call list-file-start-gen-10,$10,$2)
-$(call list-file-always-gen-10,$11,$2)
-$(call list-file-always-gen-10,$12,$2)
-$(call list-file-always-gen-10,$13,$2)
-$(call list-file-always-gen-10,$14,$2)
-$(call list-file-always-gen-10,$15,$2)
-$(call list-file-always-gen-10,$16,$2)
-$(call list-file-always-gen-10,$17,$2)
-$(call list-file-always-gen-10,$18,$2)
-$(call list-file-always-gen-10,$19,$2)
-endef
-
-define list-file-always-gen-100
-$(call list-file-always-gen-10,$10,$2)
-$(call list-file-always-gen-10,$11,$2)
-$(call list-file-always-gen-10,$12,$2)
-$(call list-file-always-gen-10,$13,$2)
-$(call list-file-always-gen-10,$14,$2)
-$(call list-file-always-gen-10,$15,$2)
-$(call list-file-always-gen-10,$16,$2)
-$(call list-file-always-gen-10,$17,$2)
-$(call list-file-always-gen-10,$18,$2)
-$(call list-file-always-gen-10,$19,$2)
-endef
-
-define list-file-maybe-gen-100
-ifneq ($(word $(call bump-0-to-1,$100),$2),)
-ifneq ($(word $199,$2),)
-$(call list-file-start-gen-10,$10,$2)
-$(call list-file-always-gen-10,$11,$2)
-$(call list-file-always-gen-10,$12,$2)
-$(call list-file-always-gen-10,$13,$2)
-$(call list-file-always-gen-10,$14,$2)
-$(call list-file-always-gen-10,$15,$2)
-$(call list-file-always-gen-10,$16,$2)
-$(call list-file-always-gen-10,$17,$2)
-$(call list-file-always-gen-10,$18,$2)
-$(call list-file-always-gen-10,$19,$2)
-else
-ifneq ($(word $150,$2),)
-$(call list-file-start-gen-10,$10,$2)
-$(call list-file-always-gen-10,$11,$2)
-$(call list-file-always-gen-10,$12,$2)
-$(call list-file-always-gen-10,$13,$2)
-$(call list-file-always-gen-10,$14,$2)
-$(call list-file-maybe-gen-10,$15,$2)
-$(call list-file-maybe-gen-10,$16,$2)
-$(call list-file-maybe-gen-10,$17,$2)
-$(call list-file-maybe-gen-10,$18,$2)
-$(call list-file-maybe-gen-10,$19,$2)
-else
-$(call list-file-start-gen-10,$10,$2)
-$(call list-file-maybe-gen-10,$11,$2)
-$(call list-file-maybe-gen-10,$12,$2)
-$(call list-file-maybe-gen-10,$13,$2)
-$(call list-file-maybe-gen-10,$14,$2)
-endif
-endif
-endif
-endef
-
-define list-file-maybe-gen-1000
-ifneq ($(word $(call bump-0-to-1,$1000),$2),)
-ifneq ($(word $1999,$2),)
-$(call list-file-start-gen-100,$10,$2)
-$(call list-file-always-gen-100,$11,$2)
-$(call list-file-always-gen-100,$12,$2)
-$(call list-file-always-gen-100,$13,$2)
-$(call list-file-always-gen-100,$14,$2)
-$(call list-file-always-gen-100,$15,$2)
-$(call list-file-always-gen-100,$16,$2)
-$(call list-file-always-gen-100,$17,$2)
-$(call list-file-always-gen-100,$18,$2)
-$(call list-file-always-gen-100,$19,$2)
-else
-ifneq ($(word $1500,$2),)
-$(call list-file-start-gen-100,$10,$2)
-$(call list-file-always-gen-100,$11,$2)
-$(call list-file-always-gen-100,$12,$2)
-$(call list-file-always-gen-100,$13,$2)
-$(call list-file-always-gen-100,$14,$2)
-$(call list-file-maybe-gen-100,$15,$2)
-$(call list-file-maybe-gen-100,$16,$2)
-$(call list-file-maybe-gen-100,$17,$2)
-$(call list-file-maybe-gen-100,$18,$2)
-$(call list-file-maybe-gen-100,$19,$2)
-else
-$(call list-file-start-gen-100,$10,$2)
-$(call list-file-maybe-gen-100,$11,$2)
-$(call list-file-maybe-gen-100,$12,$2)
-$(call list-file-maybe-gen-100,$13,$2)
-$(call list-file-maybe-gen-100,$14,$2)
-endif
-endif
-endif
-endef
-
 
 define generate-list-file-ev
+
 __list_file := $2
 
 .PHONY: $$(__list_file).tmp
@@ -310,12 +174,7 @@ $$(call generate-file-dir,$$(__list_file).tmp)
 
 $$(__list_file).tmp:
 	$$(hide) $$(call generate-empty-file,$$@)
-$(call list-file-maybe-gen-1000,0,$1)
-$(call list-file-maybe-gen-1000,1,$1)
-$(call list-file-maybe-gen-1000,2,$1)
-$(call list-file-maybe-gen-1000,3,$1)
-$(call list-file-maybe-gen-1000,4,$1)
-$(call list-file-maybe-gen-1000,5,$1)
+	$(call list_file_echo,1,$(list_file_words_per_echo),$(words $1),$1)
 
 $$(__list_file): $$(__list_file).tmp
 	$$(hide) $$(call host-copy-if-differ,$$@.tmp,$$@)
@@ -1500,28 +1359,34 @@ $$(_OBJ): $$(_SRC) $$(LOCAL_MAKEFILE) $$(NDK_APP_APPLICATION_MK) $(LOCAL_RS_OBJE
 
 _JSON_INTERMEDIATE := $$(_OBJ).commands.json
 
-_SUB_COMMANDS_LIST_FILE := $$(_OBJ).commands.list
 _COMPILE_COMMAND := \
     $$(_CC) $$(_FLAGS) \
     $$(call host-path,$$(_SRC)) \
     -o $$(call host-path,$$(_OBJ)) \
 
+_COMPILE_COMMAND_ARG := $$(_COMPILE_COMMAND)
+
+ifeq ($$(LOCAL_SHORT_COMMANDS),true)
+_SUB_COMMANDS_LIST_FILE := $$(_OBJ).commands.list
 $$(call generate-list-file,$$(_COMPILE_COMMAND),$$(_SUB_COMMANDS_LIST_FILE))
 $$(_JSON_INTERMEDIATE): $$(_SUB_COMMANDS_LIST_FILE)
+_COMPILE_COMMAND_ARG := --command-file "$$(_SUB_COMMANDS_LIST_FILE)"
+endif
 
 $$(call generate-file-dir,$$(_JSON_INTERMEDIATE))
 $$(_JSON_INTERMEDIATE): PRIVATE_CC := $$(_CC)
 $$(_JSON_INTERMEDIATE): PRIVATE_SRC := $$(_SRC)
 $$(_JSON_INTERMEDIATE): PRIVATE_OBJ := $$(_OBJ)
 $$(_JSON_INTERMEDIATE): PRIVATE_CFLAGS := $$(_FLAGS)
-$$(_JSON_INTERMEDIATE): PRIVATE_LIST_FILE := $$(_SUB_COMMANDS_LIST_FILE)
+$$(_JSON_INTERMEDIATE): PRIVATE_COMPILE_COMMAND_ARG := $$(_COMPILE_COMMAND_ARG)
+
 $$(_JSON_INTERMEDIATE): $$(LOCAL_MAKEFILE) $$(NDK_APP_APPLICATION_MK)
 	$$(hide) $$(HOST_PYTHON) $$(BUILD_PY)/dump_compile_commands.py \
         -o $$@ \
         --directory "$$(CURDIR)" \
         --file "$$(call host-path,$$(PRIVATE_SRC))" \
         --object-file "$$(PRIVATE_OBJ)" \
-        --command-file "$$(PRIVATE_LIST_FILE)"
+        $$(PRIVATE_COMPILE_COMMAND_ARG)
 
 $$(COMPILE_COMMANDS_JSON): $$(_JSON_INTERMEDIATE)
 sub_commands_json += $$(_JSON_INTERMEDIATE)
