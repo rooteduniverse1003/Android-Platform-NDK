@@ -337,6 +337,18 @@ def copy_libcxx_libs(src_dir, dst_dir, abi, api):
                  os.path.join(dst_dir, 'libstdc++.so'))
 
 
+def replace_gcc_wrappers(install_path, triple, is_windows):
+    cmd = '.cmd' if is_windows else ''
+
+    gcc = os.path.join(install_path, 'bin', triple + '-gcc' + cmd)
+    clang = os.path.join(install_path, 'bin', 'clang' + cmd)
+    shutil.copy2(clang, gcc)
+
+    gpp = os.path.join(install_path, 'bin', triple + '-g++' + cmd)
+    clangpp = os.path.join(install_path, 'bin', 'clang++' + cmd)
+    shutil.copy2(clangpp, gpp)
+
+
 def create_toolchain(install_path, arch, api, gcc_path, clang_path,
                      platforms_path, host_tag):
     """Create a standalone toolchain."""
@@ -345,6 +357,7 @@ def create_toolchain(install_path, arch, api, gcc_path, clang_path,
     triple = get_triple(arch)
     make_clang_scripts(
         install_path, triple, api, host_tag.startswith('windows'))
+    replace_gcc_wrappers(install_path, triple, host_tag.startswith('windows'))
 
     sysroot = os.path.join(NDK_DIR, 'sysroot')
     headers = os.path.join(sysroot, 'usr/include')
