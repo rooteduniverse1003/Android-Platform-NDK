@@ -25,12 +25,16 @@ import json
 import os
 
 
-def parse_args():
+def get_argument_parser():
     """Parses and returns command line arguments."""
     parser = argparse.ArgumentParser()
 
     parser.add_argument(
-        '-o', '--output', type=os.path.realpath, help='Path to output file')
+        '-o',
+        '--output',
+        type=os.path.realpath,
+        required=True,
+        help='Path to output file')
 
     parser.add_argument(
         '-d',
@@ -40,18 +44,37 @@ def parse_args():
 
     parser.add_argument('-f', '--file', help='Source file.')
     parser.add_argument('--object-file', help='Object file.')
-    parser.add_argument(
-        '--command-file', type=os.path.realpath, help='Compilation command.')
 
-    return parser.parse_args()
+    parser.add_argument(
+        '--command-file',
+        type=os.path.realpath,
+        help='Compilation command list file.')
+
+    parser.add_argument(
+        'compile_command',
+        metavar='COMPILE_COMMAND',
+        nargs=argparse.REMAINDER,
+        help='Compilation command.')
+
+    return parser
 
 
 def main():
     """Program entry point."""
-    args = parse_args()
+    parser = get_argument_parser()
+    args = parser.parse_args()
 
-    with open(args.command_file) as command_file:
-        command = command_file.read().strip()
+    if args.command_file and args.compile_command:
+        parser.error(
+            '--command-file and COMPILE_COMMAND are mutually exclusive')
+
+    if not args.command_file and not args.compile_command:
+        parser.error('Either --command-file or COMPILE_COMMAND is required.')
+
+    command = ' '.join(args.compile_command)
+    if args.command_file:
+        with open(args.command_file) as command_file:
+            command = command_file.read().strip()
 
     with open(args.output, 'w') as out_file:
         json.dump({
