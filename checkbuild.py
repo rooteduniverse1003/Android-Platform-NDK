@@ -747,18 +747,6 @@ class NdkDepends(ndk.builds.InvokeExternalBuildModule):
         install_exe(src, install_dir, self.name, self.host)
 
 
-class NdkStack(ndk.builds.InvokeExternalBuildModule):
-    name = 'ndk-stack'
-    path = 'prebuilt/{host}/bin'
-    script = 'ndk/sources/host-tools/ndk-stack/build.py'
-    notice = ndk.paths.ndk_path('sources/host-tools/ndk-stack/NOTICE')
-
-    def install(self):
-        src = os.path.join(self.out_dir, self.host, self.name)
-        install_dir = self.get_install_path()
-        install_exe(src, install_dir, self.name, self.host)
-
-
 class GdbServer(ndk.builds.InvokeBuildModule):
     name = 'gdbserver'
     path = 'prebuilt/android-{arch}/gdbserver'
@@ -1976,6 +1964,31 @@ class NdkGdbShortcut(ndk.builds.ScriptShortcutModule):
     windows_ext = '.cmd'
 
 
+class NdkStack(ndk.builds.MultiFileModule):
+    name = 'ndk-stack'
+    path = 'prebuilt/{host}/bin'
+    notice = ndk.paths.ndk_path('NOTICE')
+
+    @property
+    def files(self):
+        files = [
+            ndk.paths.ndk_path('ndk-stack'),
+            ndk.paths.ndk_path('ndk-stack.py'),
+        ]
+
+        if self.host.startswith('windows'):
+            files.append(ndk.paths.ndk_path('ndk-stack.cmd'))
+
+        return files
+
+
+class NdkStackShortcut(ndk.builds.ScriptShortcutModule):
+    name = 'ndk-stack-shortcut'
+    path = 'ndk-stack'
+    script = 'prebuilt/{host}/bin/ndk-stack'
+    windows_ext = '.cmd'
+
+
 class NdkWhichShortcut(ndk.builds.ScriptShortcutModule):
     name = 'ndk-which-shortcut'
     path = 'ndk-which'
@@ -1994,7 +2007,7 @@ class NdkStackShortcut(ndk.builds.ScriptShortcutModule):
     name = 'ndk-stack-shortcut'
     path = 'ndk-stack'
     script = 'prebuilt/{host}/bin/ndk-stack'
-    windows_ext = '.exe'
+    windows_ext = '.cmd'
 
 
 class NdkBuildShortcut(ndk.builds.ScriptShortcutModule):
