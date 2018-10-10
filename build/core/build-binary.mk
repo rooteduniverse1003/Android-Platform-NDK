@@ -234,22 +234,6 @@ else
   LOCAL_CFLAGS += $(TARGET_FORMAT_STRING_CFLAGS)
 endif
 
-# Enable PIE for dynamic executables.
-ifeq ($(call module-get-class,$(LOCAL_MODULE)),EXECUTABLE)
-    ifeq (,$(filter -static,$(TARGET_LDFLAGS) $(LOCAL_LDFLAGS) $(NDK_APP_LDFLAGS)))
-        # x86 and x86_64 use large model pic, whereas everything else uses small
-        # model. In the past we've always used -fPIE, but the LLVMgold plugin
-        # (for LTO) complains if the models are mismatched.
-        ifneq (,$(filter x86 x86_64,$(TARGET_ARCH_ABI)))
-            LOCAL_CFLAGS += -fPIE
-            LOCAL_LDFLAGS += -fPIE -pie
-        else
-            LOCAL_CFLAGS += -fpie
-            LOCAL_LDFLAGS += -fpie -pie
-        endif
-    endif
-endif
-
 # http://b.android.com/222239
 # http://b.android.com/220159 (internal http://b/31809417)
 # x86 devices have stack alignment issues.
