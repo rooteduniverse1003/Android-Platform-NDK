@@ -132,8 +132,9 @@ CLANG_TIDY = $(LLVM_TOOLCHAIN_PREFIX)clang-tidy$(HOST_EXEEXT)
 
 GLOBAL_CFLAGS = \
     -target $(LLVM_TRIPLE)$(TARGET_PLATFORM_LEVEL) \
-    -ffunction-sections \
     -fdata-sections \
+    -ffunction-sections \
+    -fstack-protector-strong \
     -funwind-tables \
     -no-canonical-prefixes \
 
