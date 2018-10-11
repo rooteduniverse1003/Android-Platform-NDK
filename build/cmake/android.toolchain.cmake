@@ -452,9 +452,7 @@ list(APPEND ANDROID_LINKER_FLAGS
   -Wl,--build-id
   -Wl,--warn-shared-textrel
   -Wl,--fatal-warnings)
-list(APPEND ANDROID_LINKER_FLAGS_EXE
-  -Wl,--gc-sections
-  -Wl,-z,nocopyreloc)
+list(APPEND ANDROID_LINKER_FLAGS_EXE -Wl,--gc-sections)
 
 # Debug and release flags.
 list(APPEND ANDROID_COMPILER_FLAGS_DEBUG -O0)
