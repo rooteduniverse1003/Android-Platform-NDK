@@ -239,7 +239,7 @@ export CC="${TOOLCHAIN_PREFIX}gcc --sysroot=$BUILD_SYSROOT $TARGET_FLAG" &&
 export AR="${TOOLCHAIN_PREFIX}ar" &&
 export RANLIB="${TOOLCHAIN_PREFIX}ranlib" &&
 export CFLAGS="-O2 $GDBSERVER_CFLAGS"  &&
-export LDFLAGS="-static -Wl,-z,nocopyreloc -Wl,--no-undefined" &&
+export LDFLAGS="-static" &&
 run $SRC_DIR/configure \
 --build=x86_64-linux-gnu \
 --host=$GDBSERVER_HOST \

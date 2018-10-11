@@ -90,7 +90,6 @@ endef
 define cmd-build-executable
 $(PRIVATE_CXX) \
     -Wl,--gc-sections \
-    -Wl,-z,nocopyreloc \
     -Wl,-rpath-link=$(call host-path,$(PRIVATE_SYSROOT_API_LIB_DIR)) \
     -Wl,-rpath-link=$(call host-path,$(TARGET_OUT)) \
     $(PRIVATE_LINKER_OBJECTS_AND_LIBRARIES) \
