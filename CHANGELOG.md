@@ -50,6 +50,18 @@ Changes
  * Updated Clang to r339409.
  * [Issue 780]: A complete NDK toolchain is now installed to `$NDK/toolchain`.
    See the announcements section for more information.
+ * ndk-build no longer removes artifacts from `NDK_LIBS_OUT` for ABIs not
+   present in `APP_ABI`. This enables workflows like the following:
+
+   ```bash
+   for abi in armeabi-v7a arm64-v8a x86 x86_64; do
+       ndk-build APP_ABI=$abi
+   done
+   ```
+
+   Prior to this change, the above workflow would remove the previously built
+   ABI's artifacts on each successive build, resulting in only x86_64 being
+   present at the end of the loop.
 
 Known Issues
 ------------
