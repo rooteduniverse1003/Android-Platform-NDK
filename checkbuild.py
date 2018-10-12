@@ -935,6 +935,11 @@ class Platforms(ndk.builds.Module):
     name = 'platforms'
     path = 'platforms'
 
+    deps = {
+        'clang',
+        'binutils',
+    }
+
     min_supported_api = 16
 
     # These API levels had no new native APIs. The contents of these platforms
@@ -960,16 +965,10 @@ class Platforms(ndk.builds.Module):
     def src_path(self, *args):  # pylint: disable=no-self-use
         return ndk.paths.android_path('development/ndk/platforms', *args)
 
-    def gcc_toolchain(self, arch):  # pylint: disable=no-self-use
-        host_tag = ndk.hosts.host_to_tag(ndk.hosts.get_default_host())
-        toolchain = ndk.abis.arch_to_toolchain(arch) + '-4.9'
-        return ndk.paths.android_path(
-            'prebuilts/ndk/current/toolchains', host_tag, toolchain)
-
-    def gcc_tool(self, tool, arch):
-        gcc_toolchain = self.gcc_toolchain(arch)
-        triple = ndk.abis.arch_to_triple(arch)
-        return os.path.join(gcc_toolchain, 'bin', triple + '-' + tool)
+    def binutils_tool(self, tool, arch):
+        triple = build_support.arch_to_triple(arch)
+        binutils = self.get_dep('binutils').get_build_host_install(arch)
+        return os.path.join(binutils, 'bin', triple + '-' + tool)
 
     def libdir_name(self, arch):  # pylint: disable=no-self-use
         if arch == 'x86_64':
@@ -1008,30 +1007,40 @@ class Platforms(ndk.builds.Module):
         bionic_includes = ndk.paths.android_path(
             'bionic/libc/arch-common/bionic')
 
-        cc = ndk.paths.android_path('prebuilts/clang/host',
-                                    ndk.hosts.get_default_host() + '-x86',
-                                    Clang.version, 'bin/clang')
+        cc = os.path.join(
+            self.get_dep('clang').get_build_host_install(), 'bin/clang')
+        binutils = self.get_dep('binutils').get_build_host_install(arch)
 
         args = [
             cc,
-            '-target', ndk.abis.arch_to_triple(arch),
-            '--sysroot', self.prebuilt_path('sysroot'),
-            '-gcc-toolchain', self.gcc_toolchain(arch),
-            '-I', bionic_includes,
+            '-target',
+            build_support.arch_to_triple(arch),
+            '--sysroot',
+            self.prebuilt_path('sysroot'),
+            '-gcc-toolchain',
+            binutils,
+            '-I',
+            bionic_includes,
             '-D__ANDROID_API__={}'.format(api),
             '-DPLATFORM_SDK_VERSION={}'.format(api),
             '-DABI_NDK_VERSION="{}"'.format(ndk.config.release),
             '-DABI_NDK_BUILD_NUMBER="{}"'.format(build_number),
-            '-O2', '-fpic', '-Wl,-r', '-no-pie', '-nostdlib',
-            '-Wa,--noexecstack', '-Wl,-z,noexecstack',
-            '-o', dst,
+            '-O2',
+            '-fpic',
+            '-Wl,-r',
+            '-no-pie',
+            '-nostdlib',
+            '-Wa,--noexecstack',
+            '-Wl,-z,noexecstack',
+            '-o',
+            dst,
         ] + srcs
 
         return args
 
     def check_elf_note(self, obj_file):
         # readelf is a cross platform tool, so arch doesn't matter.
-        readelf = self.gcc_tool('readelf', 'arm')
+        readelf = self.binutils_tool('readelf', 'arm')
         out = subprocess.check_output([readelf, '--notes', obj_file])
         if 'Android' not in out.decode('utf-8'):
             raise RuntimeError(
@@ -1049,6 +1058,7 @@ class Platforms(ndk.builds.Module):
         cc_args = self.get_build_cmd(dst, srcs, api_num, arch, build_number)
         cc_args.extend(defines)
 
+        print('Running: ' + ' '.join([pipes.quote(arg) for arg in cc_args]))
         subprocess.check_call(cc_args)
 
     def build_crt_objects(self, dst_dir, api, arch, build_number):
