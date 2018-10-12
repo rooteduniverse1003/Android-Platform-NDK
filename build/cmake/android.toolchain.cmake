@@ -467,19 +467,9 @@ if(ANDROID_TOOLCHAIN STREQUAL clang)
 endif()
 
 # Toolchain and ABI specific flags.
-if(ANDROID_ABI STREQUAL armeabi)
-  list(APPEND ANDROID_COMPILER_FLAGS
-    -march=armv5te
-    -mtune=xscale
-    -msoft-float)
-endif()
 if(ANDROID_ABI STREQUAL armeabi-v7a)
-  list(APPEND ANDROID_COMPILER_FLAGS
-    -march=armv7-a
-    -mfloat-abi=softfp
-    -mfpu=vfpv3-d16)
-  list(APPEND ANDROID_LINKER_FLAGS
-    -Wl,--fix-cortex-a8)
+  list(APPEND ANDROID_COMPILER_FLAGS -mfpu=vfpv3-d16)
+  list(APPEND ANDROID_LINKER_FLAGS -Wl,--fix-cortex-a8)
 endif()
 if(ANDROID_ABI STREQUAL x86 AND ANDROID_PLATFORM_LEVEL LESS 24)
   # http://b.android.com/222239
@@ -505,22 +495,11 @@ endif()
 
 # Configuration specific flags.
 
-# x86 and x86_64 use large model pic, whereas everything else uses small model.
-# In the past we've always used -fPIE, but the LLVMgold plugin (for LTO)
-# complains if the models are mismatched.
-list(APPEND ANDROID_PIE_FLAGS -pie)
-if(ANDROID_ABI MATCHES "x86")
-  list(APPEND ANDROID_PIE_FLAGS -fPIE)
-else()
-  list(APPEND ANDROID_PIE_FLAGS -fpie)
-endif()
-
 # PIE is supported on all currently supported Android releases, but it is not
 # supported with static executables, so we still provide ANDROID_PIE as an
 # escape hatch for those.
 if(ANDROID_PIE)
   set(CMAKE_POSITION_INDEPENDENT_CODE TRUE)
-  list(APPEND ANDROID_LINKER_FLAGS_EXE ${ANDROID_PIE_FLAGS})
 endif()
 
 if(ANDROID_CPP_FEATURES)
@@ -540,11 +519,9 @@ if(NOT ANDROID_ALLOW_UNDEFINED_SYMBOLS)
 endif()
 if(ANDROID_ABI MATCHES "armeabi")
   if(ANDROID_ARM_MODE STREQUAL thumb)
-    list(APPEND ANDROID_COMPILER_FLAGS
-      -mthumb)
+    list(APPEND ANDROID_COMPILER_FLAGS -mthumb)
   elseif(ANDROID_ARM_MODE STREQUAL arm)
-    list(APPEND ANDROID_COMPILER_FLAGS
-      -marm)
+    # Default behavior.
   else()
     message(FATAL_ERROR "Invalid Android ARM mode: ${ANDROID_ARM_MODE}.")
   endif()

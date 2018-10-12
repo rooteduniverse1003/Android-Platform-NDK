@@ -21,8 +21,6 @@ TARGET_UBSAN_BASENAME := libclang_rt.ubsan_standalone-arm-android.so
 
 TARGET_CFLAGS := \
     -fpic \
-    -march=armv7-a \
-    -mfloat-abi=softfp \
     -mfpu=vfpv3-d16 \
 
 TARGET_LDFLAGS += \
@@ -31,7 +29,6 @@ TARGET_LDFLAGS += \
 TARGET_CFLAGS.neon := -mfpu=neon
 
 TARGET_arm_release_CFLAGS := \
-    -marm \
     -O2 \
     -DNDEBUG \
 
@@ -41,7 +38,6 @@ TARGET_thumb_release_CFLAGS := \
     -DNDEBUG \
 
 TARGET_arm_debug_CFLAGS := \
-    -marm \
     -O0 \
     -UNDEBUG \
     -fno-limit-debug-info \

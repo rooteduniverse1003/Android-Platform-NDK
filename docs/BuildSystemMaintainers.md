@@ -52,7 +52,7 @@ follows except where otherwise noted:
 | 32-bit Intel | x86     | x86         | i686-linux-android    |
 | 64-bit Intel | x86_64  | x86_64      | x86_64-linux-android  |
 
-Note: Strictly speaking ARMv7 with NEON is a different ABI from ARMv7 without
+Note: Strictly speaking ARMv7 with [NEON] is a different ABI from ARMv7 without
 NEON, but it is not a *system* ABI. Both NEON and non-NEON ARMv7 code uses the
 ARMv7 system and toolchains.
 
@@ -333,13 +333,28 @@ All flags discussed in this section should be automatically selected by Clang,
 but they are not yet. Check back in a future NDK release to see if any can be
 removed from your build system.
 
-TODO: Check if -mfloat-abi=softfp and friends are actually needed for Android
-targets. They ought to be implied, but I need to check.
+32-bit ARM targets should use `-mfpu=vfpv3-d16` when compiling unless using
+[NEON]. This allows the compiler to make use of the FPU.
+
+32-bit ARM targets should use `-Wl,--fix-cortex-a8` when linking. This instructs
+the linker to apply a workaround for an erratum that affects Cortex-A8 CPUs.
+
+C++ builds should use `-stdlib=libc++` when using libc++. This flag is used both
+when compiling and when linking. This allows the compiler to find the correct
+C++ standard headers and libraries.
 
 For x86 targets prior to Android Nougat (API 24), `-mstackrealign` is needed to
 properly align stacks for global constructors. See [Issue 635].
 
+All code must be linked with `-Wl,-z,relro`, which causes relocations to be
+made read-only after relocation is performed.
+
+Android requires [Position-independent executables] beginning with API 21. Clang
+builds PIE executables by default. If invoking the linker directly or not using
+Clang, use `-pie` when linking.
+
 [Issue 635]: https://github.com/android-ndk/ndk/issues/635
+[Position-independent executables]: https://en.wikipedia.org/wiki/Position-independent_code#Position-independent_executables
 
 ## Useful Arguments
 
