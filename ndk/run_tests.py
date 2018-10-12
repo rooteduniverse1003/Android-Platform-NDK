@@ -37,18 +37,18 @@ import ndk.ext.subprocess
 import ndk.notify
 import ndk.paths
 import ndk.test.builder
+import ndk.test.config
 import ndk.test.devices
 import ndk.test.filters
 import ndk.test.printers
 import ndk.test.report
 import ndk.test.result
 import ndk.test.spec
+import ndk.test.types
 import ndk.test.ui
 import ndk.timer
 import ndk.ui
 import ndk.workqueue
-
-import tests.testlib as testlib
 
 
 DEVICE_TEST_BASE_DIR = '/data/local/tmp/tests'
@@ -67,7 +67,8 @@ def shell_nocheck_wrap_errors(device, cmd):
         return 1, traceback.format_exc(ex), ''
 
 
-# TODO: Extract a common interface from this and testlib.Test for the printer.
+# TODO: Extract a common interface from this and ndk.test.types.Test for the
+# printer.
 class TestCase(object):
     """A test case found in the dist directory.
 
@@ -115,7 +116,7 @@ class BasicTestCase(TestCase):
         # handled by a different LibcxxTest. We can safely assume that anything
         # here is in tests/device.
         test_dir = os.path.join(self.test_src_dir, 'device', self.suite)
-        return testlib.DeviceTestConfig.from_test_dir(test_dir)
+        return ndk.test.config.DeviceTestConfig.from_test_dir(test_dir)
 
     def check_unsupported(self, device):
         return self.get_test_config().run_unsupported(
@@ -165,7 +166,7 @@ class LibcxxTestCase(TestCase):
     def get_test_config(self):
         _, _, test_subdir = self.suite.partition('/')
         test_dir = os.path.join(self.test_src_dir, 'libc++/test', test_subdir)
-        return testlib.LibcxxTestConfig.from_test_dir(test_dir)
+        return ndk.test.config.LibcxxTestConfig.from_test_dir(test_dir)
 
     def check_unsupported(self, device):
         # Executable is foo.pass.cpp.exe, we want foo.pass.
@@ -523,7 +524,7 @@ def wait_for_results(report, workqueue, printer):
 
 
 def flake_filter(result):
-    if isinstance(result, testlib.UnexpectedSuccess):
+    if isinstance(result, ndk.test.result.UnexpectedSuccess):
         # There are no flaky successes.
         return False
 
