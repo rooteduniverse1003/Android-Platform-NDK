@@ -23,8 +23,7 @@ TARGET_CFLAGS := \
     -fpic \
     -mfpu=vfpv3-d16 \
 
-TARGET_LDFLAGS += \
-    -Wl,--fix-cortex-a8 \
+TARGET_LDFLAGS :=
 
 TARGET_CFLAGS.neon := -mfpu=neon
 
