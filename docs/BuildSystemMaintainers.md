@@ -336,9 +336,6 @@ removed from your build system.
 32-bit ARM targets should use `-mfpu=vfpv3-d16` when compiling unless using
 [NEON]. This allows the compiler to make use of the FPU.
 
-32-bit ARM targets should use `-Wl,--fix-cortex-a8` when linking. This instructs
-the linker to apply a workaround for an erratum that affects Cortex-A8 CPUs.
-
 C++ builds should use `-stdlib=libc++` when using libc++. This flag is used both
 when compiling and when linking. This allows the compiler to find the correct
 C++ standard headers and libraries.

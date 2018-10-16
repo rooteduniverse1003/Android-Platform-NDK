@@ -469,7 +469,6 @@ endif()
 # Toolchain and ABI specific flags.
 if(ANDROID_ABI STREQUAL armeabi-v7a)
   list(APPEND ANDROID_COMPILER_FLAGS -mfpu=vfpv3-d16)
-  list(APPEND ANDROID_LINKER_FLAGS -Wl,--fix-cortex-a8)
 endif()
 if(ANDROID_ABI STREQUAL x86 AND ANDROID_PLATFORM_LEVEL LESS 24)
   # http://b.android.com/222239

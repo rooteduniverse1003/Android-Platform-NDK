@@ -634,7 +634,7 @@ builder_begin_android ()
             SCRATCH_FLAGS="-march=armv7-a -mfpu=vfpv3-d16 -mfloat-abi=softfp"
             builder_cflags "$SCRATCH_FLAGS"
             builder_cxxflags "$SCRATCH_FLAGS"
-            builder_ldflags "-march=armv7-a -Wl,--fix-cortex-a8"
+            builder_ldflags "-march=armv7-a"
             ;;
         mips)
             SCRATCH_FLAGS="-mips32"

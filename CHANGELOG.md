@@ -62,6 +62,18 @@ Changes
    Prior to this change, the above workflow would remove the previously built
    ABI's artifacts on each successive build, resulting in only x86_64 being
    present at the end of the loop.
+ * [Issue 776]: To better support LLD, ndk-build and CMake no longer pass
+   `-Wl,--fix-cortex-a8` by default.
+     * CPUs that require this fix are uncommon in the NDK's supported API range
+       (16+).
+     * If you need to continue supporting these devices, add
+       `-Wl,--fix-cortex-a8` to your `APP_LDFLAGS` or `CMAKE_C_FLAGS`, but note
+       that LLD will not be adding support for this workaround.
+     * Alternatively, use the Play Console to [blacklist] Cortex-A8 CPUs to
+       disallow your app from being installed on those devices.
+
+[Issue 776]: https://github.com/android-ndk/ndk/issues/776
+[blacklist]: https://support.google.com/googleplay/android-developer/answer/7353455?hl=en
 
 Known Issues
 ------------
