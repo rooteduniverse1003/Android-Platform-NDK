@@ -35,27 +35,6 @@ TARGET-get-linker-objects-and-libraries = \
     $(PRIVATE_LIBATOMIC) \
     $(call host-path, $4) \
 
-
-# These flags are used to enforce the NX (no execute) security feature in the
-# generated machine code. This adds a special section to the generated shared
-# libraries that instruct the Linux kernel to disable code execution from
-# the stack and the heap.
-TARGET_NO_EXECUTE_CFLAGS  := -Wa,--noexecstack
-TARGET_NO_EXECUTE_LDFLAGS := -Wl,-z,noexecstack
-
-# These flags disable the above security feature
-TARGET_DISABLE_NO_EXECUTE_CFLAGS  := -Wa,--execstack
-TARGET_DISABLE_NO_EXECUTE_LDFLAGS := -Wl,-z,execstack
-
-# These flags are used to mark certain regions of the resulting
-# executable or shared library as being read-only after the dynamic
-# linker has run. This makes GOT overwrite security attacks harder to
-# exploit.
-TARGET_RELRO_LDFLAGS := -Wl,-z,relro -Wl,-z,now
-
-# These flags disable the above security feature
-TARGET_DISABLE_RELRO_LDFLAGS := -Wl,-z,norelro -Wl,-z,lazy
-
 # This flag are used to provide compiler protection against format
 # string vulnerabilities.
 TARGET_FORMAT_STRING_CFLAGS := -Wformat -Werror=format-security

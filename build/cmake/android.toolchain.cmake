@@ -32,8 +32,6 @@
 # ANDROID_ALLOW_UNDEFINED_SYMBOLS
 # ANDROID_ARM_MODE
 # ANDROID_ARM_NEON
-# ANDROID_DISABLE_NO_EXECUTE
-# ANDROID_DISABLE_RELRO
 # ANDROID_DISABLE_FORMAT_STRING_CHECKS
 # ANDROID_CCACHE
 
@@ -160,20 +158,6 @@ if(DEFINED ANDROID_FORCE_ARM_BUILD AND NOT ANDROID_ARM_MODE)
     set(ANDROID_ARM_MODE thumb)
   endif()
 endif()
-if(DEFINED ANDROID_NOEXECSTACK AND NOT DEFINED ANDROID_DISABLE_NO_EXECUTE)
-  if(ANDROID_NOEXECSTACK)
-    set(ANDROID_DISABLE_NO_EXECUTE FALSE)
-  else()
-    set(ANDROID_DISABLE_NO_EXECUTE TRUE)
-  endif()
-endif()
-if(DEFINED ANDROID_RELRO AND NOT DEFINED ANDROID_DISABLE_RELRO)
-  if(ANDROID_RELRO)
-    set(ANDROID_DISABLE_RELRO FALSE)
-  else()
-    set(ANDROID_DISABLE_RELRO TRUE)
-  endif()
-endif()
 if(NDK_CCACHE AND NOT ANDROID_CCACHE)
   set(ANDROID_CCACHE "${NDK_CCACHE}")
 endif()
@@ -290,8 +274,6 @@ set(CMAKE_TRY_COMPILE_PLATFORM_VARIABLES
   ANDROID_ALLOW_UNDEFINED_SYMBOLS
   ANDROID_ARM_MODE
   ANDROID_ARM_NEON
-  ANDROID_DISABLE_NO_EXECUTE
-  ANDROID_DISABLE_RELRO
   ANDROID_DISABLE_FORMAT_STRING_CHECKS
   ANDROID_CCACHE)
 
@@ -530,32 +512,16 @@ if(ANDROID_ABI MATCHES "armeabi")
       -mfpu=neon)
   endif()
 endif()
-if(ANDROID_DISABLE_NO_EXECUTE)
-  list(APPEND ANDROID_COMPILER_FLAGS
-    -Wa,--execstack)
-  list(APPEND ANDROID_LINKER_FLAGS
-    -Wl,-z,execstack)
-else()
-  list(APPEND ANDROID_COMPILER_FLAGS
-    -Wa,--noexecstack)
-  list(APPEND ANDROID_LINKER_FLAGS
-    -Wl,-z,noexecstack)
-endif()
-if(ANDROID_TOOLCHAIN STREQUAL clang)
-  # CMake automatically forwards all compiler flags to the linker,
-  # and clang doesn't like having -Wa flags being used for linking.
-  # To prevent CMake from doing this would require meddling with
-  # the CMAKE_<LANG>_COMPILE_OBJECT rules, which would get quite messy.
-  list(APPEND ANDROID_LINKER_FLAGS
-    -Qunused-arguments)
-endif()
-if(ANDROID_DISABLE_RELRO)
-  list(APPEND ANDROID_LINKER_FLAGS
-    -Wl,-z,norelro -Wl,-z,lazy)
-else()
-  list(APPEND ANDROID_LINKER_FLAGS
-    -Wl,-z,relro -Wl,-z,now)
-endif()
+
+# CMake automatically forwards all compiler flags to the linker, and clang
+# doesn't like having -Wa flags being used for linking. To prevent CMake from
+# doing this would require meddling with the CMAKE_<LANG>_COMPILE_OBJECT rules,
+# which would get quite messy.
+list(APPEND ANDROID_LINKER_FLAGS -Qunused-arguments)
+
+list(APPEND ANDROID_COMPILER_FLAGS -Wa,--noexecstack)
+list(APPEND ANDROID_LINKER_FLAGS -Wl,-z,noexecstack -Wl,-z,relro -Wl,-z,now)
+
 if(ANDROID_DISABLE_FORMAT_STRING_CHECKS)
   list(APPEND ANDROID_COMPILER_FLAGS
     -Wno-error=format-security)
@@ -644,12 +610,8 @@ else()
 endif()
 set(ANDROID_FUNCTION_LEVEL_LINKING TRUE)
 set(ANDROID_GOLD_LINKER TRUE)
-if(NOT ANDROID_DISABLE_NO_EXECUTE)
-  set(ANDROID_NOEXECSTACK TRUE)
-endif()
-if(NOT ANDROID_DISABLE_RELRO)
-  set(ANDROID_RELRO TRUE)
-endif()
+set(ANDROID_NOEXECSTACK TRUE)
+set(ANDROID_RELRO TRUE)
 if(ANDROID_ARM_MODE STREQUAL arm)
   set(ANDROID_FORCE_ARM_BUILD TRUE)
 endif()

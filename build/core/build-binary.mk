@@ -195,29 +195,34 @@ ifneq ($(LOCAL_ALLOW_UNDEFINED_SYMBOLS),true)
   LOCAL_LDFLAGS += $(TARGET_NO_UNDEFINED_LDFLAGS)
 endif
 
-# Toolchain by default disallows generated code running from the heap and stack.
-# If LOCAL_DISABLE_NO_EXECUTE is true, we allow that
+# These flags are used to enforce the NX (no execute) security feature in the
+# generated machine code. This adds a special section to the generated shared
+# libraries that instruct the Linux kernel to disable code execution from the
+# stack and the heap.
 #
-ifeq ($(LOCAL_DISABLE_NO_EXECUTE),true)
-  LOCAL_CFLAGS += $(TARGET_DISABLE_NO_EXECUTE_CFLAGS)
-  LOCAL_LDFLAGS += $(TARGET_DISABLE_NO_EXECUTE_LDFLAGS)
-else
-  LOCAL_CFLAGS += $(TARGET_NO_EXECUTE_CFLAGS)
-  LOCAL_LDFLAGS += $(TARGET_NO_EXECUTE_LDFLAGS)
-endif
+# TODO: Should be a Clang default: https://github.com/android-ndk/ndk/issues/812
+LOCAL_CFLAGS += -Wa,--noexecstack
+LOCAL_LDFLAGS += -Wl,-z,noexecstack
 
-# Toolchain by default provides relro and GOT protections.
-# If LOCAL_DISABLE_RELRO is true, we disable the protections.
+# This flag is used to mark certain regions of the resulting executable or
+# shared library as being read-only after the dynamic linker has run. This makes
+# GOT overwrite security attacks harder to exploit.
 #
-ifeq ($(LOCAL_DISABLE_RELRO),true)
-  LOCAL_LDFLAGS += $(TARGET_DISABLE_RELRO_LDFLAGS)
-else
-  LOCAL_LDFLAGS += $(TARGET_RELRO_LDFLAGS)
-endif
+# TODO: Should be a Clang default: https://github.com/android-ndk/ndk/issues/812
+LOCAL_LDFLAGS += -Wl,-z,relro
+
+# This flag instructs the loader to resolve relocations immediately. For Android
+# the loader always does this, but we should pass this flag in case the lazy
+# behavior is ever added.
+#
+# TODO: Should be a Clang default: https://github.com/android-ndk/ndk/issues/812
+LOCAL_LDFLAGS += -Wl,-z,now
 
 # We enable shared text relocation warnings by default. These are not allowed in
 # current versions of Android (android-21 for LP64 ABIs, android-23 for LP32
 # ABIs).
+#
+# TODO: Should be a Clang default: https://github.com/android-ndk/ndk/issues/812
 LOCAL_LDFLAGS += -Wl,--warn-shared-textrel
 
 # We enable fatal linker warnings by default.
