@@ -68,30 +68,9 @@ libs_in_ldflags := $(filter -l% %.so %.a,$(LOCAL_LDLIBS) $(LOCAL_LDFLAGS))
 libs_in_ldflags := \
     $(filter-out -Wl$(comma)--exclude-libs$(comma)%,$(libs_in_ldflags))
 
-# Remove the system libraries we know about from the warning, it's ok
-# (and actually expected) to link them with -l<name>.
-system_libs := \
-    EGL \
-    GLESv1_CM \
-    GLESv2 \
-    GLESv3 \
-    OpenMAXAL \
-    OpenSLES \
-    aaudio \
-    android \
-    atomic \
-    c \
-    camera2ndk \
-    dl \
-    jnigraphics \
-    log \
-    m \
-    mediandk \
-    stdc++ \
-    vulkan \
-    z \
+include $(BUILD_SYSTEM)/system_libs.mk
 
-libs_in_ldflags := $(filter-out $(addprefix -l,$(system_libs)), $(libs_in_ldflags))
+libs_in_ldflags := $(filter-out $(NDK_SYSTEM_LIBS:lib%.so=-l%),$(libs_in_ldflags))
 
 ifneq (,$(strip $(libs_in_ldflags)))
   $(call __ndk_info,WARNING:$(LOCAL_MAKEFILE):$(LOCAL_MODULE): non-system libraries in linker flags: $(libs_in_ldflags))
