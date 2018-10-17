@@ -444,6 +444,7 @@ list(APPEND ANDROID_COMPILER_FLAGS "--sysroot ${ANDROID_SYSROOT}")
 list(APPEND ANDROID_COMPILER_FLAGS
   -g
   -DANDROID
+  -fdata-sections
   -ffunction-sections
   -funwind-tables
   -fstack-protector-strong
