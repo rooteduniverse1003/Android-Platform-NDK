@@ -419,7 +419,12 @@ def install_libgcc(install_path, host, arch, subarch, new_layout=False):
     subdir = os.path.join('lib/gcc', triple, '4.9.x')
     install_gcc_lib(install_path, host, arch, subarch, subdir, 'libgcc.a')
 
-    if new_layout and arch == 'arm':
+    if new_layout:
+        # For all architectures, we want to ensure that libcompiler_rt-extras
+        # is linked when libgcc is linked. Some day this will be entirely
+        # replaced by compiler-rt, but for now we are still dependent on libgcc
+        # but still need some things from compiler_rt-extras.
+        #
         # For ARM32 we need to use LLVM's libunwind rather than libgcc.
         # Unfortunately we still use libgcc for the compiler builtins, so we we
         # have to link both. To make sure that the LLVM unwinder gets used, add
@@ -445,8 +450,12 @@ def install_libgcc(install_path, host, arch, subarch, new_layout=False):
         libgcc_path = os.path.join(libgcc_base_path, 'libgcc.a')
         libgcc_real_path = os.path.join(libgcc_base_path, 'libgcc_real.a')
         shutil.move(libgcc_path, libgcc_real_path)
+        if arch == 'arm':
+            libs = '-lunwind -lcompiler_rt-extras -lgcc_real -ldl'
+        else:
+            libs = '-lcompiler_rt-extras -lgcc_real'
         with open(libgcc_path, 'w') as script:
-            script.write('INPUT(-lunwind -lgcc_real -ldl)')
+            script.write('INPUT({})'.format(libs))
 
 
 def install_libatomic(install_path, host, arch, subarch):
