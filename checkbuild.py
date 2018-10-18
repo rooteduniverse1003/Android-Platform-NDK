@@ -25,6 +25,7 @@ from __future__ import print_function
 from __future__ import unicode_literals
 
 import argparse
+import collections
 import contextlib
 import copy
 from distutils.dir_util import copy_tree
@@ -1784,18 +1785,6 @@ def var_dict_to_cmake(var_dict):
     return os.linesep.join(lines)
 
 
-def generate_language_specific_metadata(name, install_path, json_path, func):
-    meta = json.loads(ndk.file.read_file(json_path))
-    meta_vars = func(meta)
-
-    ndk.file.write_file(
-        os.path.join(install_path, 'core/{}.mk'.format(name)),
-        var_dict_to_make(meta_vars))
-    ndk.file.write_file(
-        os.path.join(install_path, 'cmake/{}.cmake'.format(name)),
-        var_dict_to_cmake(meta_vars))
-
-
 def abis_meta_transform(metadata):
     default_abis = []
     deprecated_abis = []
@@ -1840,24 +1829,47 @@ def platforms_meta_transform(metadata):
     return meta_vars
 
 
+def system_libs_meta_transform(metadata):
+    # This file also contains information about the first supported API level
+    # for each library. We could use this to provide better diagnostics in
+    # ndk-build, but currently do not.
+    return {'NDK_SYSTEM_LIBS': sorted(metadata.keys())}
+
+
 class NdkBuild(ndk.builds.PackageModule):
     name = 'ndk-build'
     path = 'build'
     src = ndk.paths.ndk_path('build')
     notice = ndk.paths.ndk_path('NOTICE')
 
+    deps = {
+        'meta',
+    }
+
     def install(self):
         super(NdkBuild, self).install()
+
+        self.generate_language_specific_metadata('abis', abis_meta_transform)
+
+        self.generate_language_specific_metadata('platforms',
+                                                 platforms_meta_transform)
+
+        self.generate_language_specific_metadata('system_libs',
+                                                 system_libs_meta_transform)
+
+    def generate_language_specific_metadata(self, name, func):
         install_path = self.get_install_path()
+        json_path = os.path.join(
+            self.get_dep('meta').get_install_path(), name + '.json')
+        meta = json.loads(ndk.file.read_file(json_path))
+        meta_vars = func(meta)
 
-        abis_json = os.path.join(Meta.path, 'abis.json')
-        generate_language_specific_metadata(
-            'abis', install_path, abis_json, abis_meta_transform)
-
-        platforms_json = os.path.join(Meta.path, 'platforms.json')
-        generate_language_specific_metadata(
-            'platforms', install_path, platforms_json,
-            platforms_meta_transform)
+        ndk.file.write_file(
+            os.path.join(install_path, 'core/{}.mk'.format(name)),
+            var_dict_to_make(meta_vars))
+        ndk.file.write_file(
+            os.path.join(install_path, 'cmake/{}.cmake'.format(name)),
+            var_dict_to_cmake(meta_vars))
 
 
 class PythonPackages(ndk.builds.PackageModule):
@@ -2021,6 +2033,57 @@ class Meta(ndk.builds.PackageModule):
     path = 'meta'
     src = ndk.paths.ndk_path('meta')
     no_notice = True
+
+    deps = {
+        'base-toolchain',
+    }
+
+    def install(self):
+        super(Meta, self).install()
+        self.create_system_libs_meta()
+
+    def create_system_libs_meta(self):
+        # Build system_libs.json based on what we find in the toolchain. We
+        # only need to scan a single 32-bit architecture since these libraries
+        # do not vary in availability across architectures.
+        sysroot_base = os.path.join(
+            self.get_dep('base-toolchain').get_install_path(),
+            'sysroot/usr/lib/arm-linux-androideabi')
+
+        system_libs = {}
+        for api_name in sorted(os.listdir(sysroot_base)):
+            path = os.path.join(sysroot_base, api_name)
+
+            # There are also non-versioned libraries in this directory.
+            if not os.path.isdir(path):
+                continue
+
+            for lib in os.listdir(path):
+                # Don't include CRT objects in the list.
+                if not lib.endswith('.so'):
+                    continue
+
+                if not lib.startswith('lib'):
+                    raise RuntimeError(
+                        'Found unexpected file in sysroot: {}'.format(lib))
+
+                # libc++.so is a linker script, not a system library.
+                if lib == 'libc++.so':
+                    continue
+
+                # We're processing each version directory in sorted order, so
+                # if we've already seen this library before it is an earlier
+                # version of the library.
+                if lib in system_libs:
+                    continue
+
+                system_libs[lib] = api_name
+
+        system_libs = collections.OrderedDict(sorted(system_libs.items()))
+
+        json_path = os.path.join(self.get_install_path(), 'system_libs.json')
+        with open(json_path, 'w') as json_file:
+            json.dump(system_libs, json_file, indent=2, separators=(',', ': '))
 
 
 class WrapSh(ndk.builds.PackageModule):
