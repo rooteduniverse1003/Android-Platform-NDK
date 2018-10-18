@@ -1333,6 +1333,10 @@ local-source-file-path = $(if $(call host-path-is-absolute,$1),$1,$(LOCAL_PATH)/
 # _FLAGS: 'compiler' flags
 # _TEXT: Display text (e.g. "Compile++ thumb", must be EXACTLY 15 chars long)
 #
+# The output object is removed before the compile step as a fix for
+# https://github.com/android-ndk/ndk/issues/603. tl;dr: Object files may not
+# necessarily be removed when compilation fails. .DELETE_ON_ERROR may not help
+# here because that only removes the output if the output changes.
 define ev-build-file
 $$(_OBJ): PRIVATE_ABI      := $$(TARGET_ARCH_ABI)
 $$(_OBJ): PRIVATE_SRC      := $$(_SRC)
@@ -1353,6 +1357,7 @@ endif
 $$(call generate-file-dir,$$(_OBJ))
 $$(_OBJ): $$(_SRC) $$(LOCAL_MAKEFILE) $$(NDK_APP_APPLICATION_MK) $(LOCAL_RS_OBJECTS)
 	$$(call host-echo-build-step,$$(PRIVATE_ABI),$$(PRIVATE_TEXT)) "$$(PRIVATE_MODULE) <= $$(notdir $$(PRIVATE_SRC))"
+	$$(hide) $$(call host-rm,$$(call host-path,$$(PRIVATE_OBJ)))
 	$$(hide) $$(PRIVATE_CC) -MMD -MP -MF $$(PRIVATE_DEPS) $$(PRIVATE_CFLAGS) $$(call host-path,$$(PRIVATE_SRC)) -o $$(call host-path,$$(PRIVATE_OBJ))
 
 _JSON_INTERMEDIATE := $$(_OBJ).commands.json
