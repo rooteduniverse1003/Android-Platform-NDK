@@ -38,11 +38,19 @@ See the corresponding bug
 [make all toolchains standalone toolchains](https://github.com/android-ndk/ndk/issues/780)
 for detailed discussion of the implementation and sub-tasks.
 
+### Bugs
+
+See the [r19 hotlist](https://github.com/android-ndk/ndk/milestone/14).
+
 ## NDK r20
 
 Estimated release: Q1 2019
 
 To be decided...
+
+### Bugs
+
+See the [r20 hotlist](https://github.com/android-ndk/ndk/milestone/16).
 
 ---
 
@@ -69,9 +77,9 @@ We should probably add basic doc comments to the bionic headers:
 Should these be in the NDK API reference too? If so, how will we keep
 them from swamping the "real" NDK API?
 
-vim is ready, Android Studio is almost ready bar one bug
-(https://issuetracker.google.com/110556794), and Visual Studio Code
-has nothing but feature requests.
+vim is ready, Android Studio now supports doxygen comments (but seems
+to have gained a new man page viewer that takes precedence),
+and Visual Studio Code has nothing but feature requests.
 
 ### Better samples
 
@@ -84,39 +92,46 @@ The NDK has long included `gtest` and clang supports various sanitiziers,
 but there are things we can do to improve the state of testing/code quality:
 
  * Test coverage support.
+ * Add `gmock`.
  * Make the [GTest-as-JUnit] wrapper available to developers so developers can
    integrate their C++ tests into Studio.
 
 [GTest-as-JUnit]: https://android-review.googlesource.com/c/platform/cts/+/683355
 
+### C++ Modules
+
+Are C++ modules useful and is the clang implementation complete enough? How
+do we test? Is this only useful for libc/libm/libdl or for the NDK API too?
+Do we need any changes to ndk-build/cmake to enable this for user's code (as
+distinct from the system headers)?
+
 ### Easier access to common open-source libraries
 
 There are many other commonly-used libraries (such as Curl and BoringSSL)
 that are currently difficult to build/package, let alone keep updated. We
-should investigate using something like [cdep] to simplify this.
-
-[cdep]: https://github.com/jomof/cdep
+should offer (a) a tool to build open source projects, (b) a repository
+of prebuilts, (c) a command-line tool to add prebuilts to an ndk-build/cmake
+project, and (d) Studio integration to add prebuilts via a GUI.
 
 ### lld linker
 
-NDK r18 made lld available, but we should make it the default (as it already
-is in the platform), and long-term aim to ship lld as our _only_ linker.
-https://github.com/android-ndk/ndk/issues/683
+NDK r18 [made lld available](https://github.com/android-ndk/ndk/issues/683),
+but we should make it the default (as it already is for the OS itself), and
+long-term aim to ship lld as our _only_ linker.
 
 ### lldb debugger
 
 We should make lldb available in the NDK. It's currently shipped as part
-of Studio.
-
-### Modules
-
-Are modules useful and is the clang implementation complete enough? How do
-we test? Is this only useful for libc/libm/libdl or for the NDK API too?
+of Studio. Medium-term we should have Studio ship our lldb. Long-term Studio
+should probably use the NDK lldb directly.
 
 ### NDK API header-only C++ wrappers
 
 NDK APIs are C-only for ABI stability reasons. We should offer header-only
 C++ wrappers for NDK APIs, even if only to offer the benefits of RAII.
+Examples include [Bitmap](https://github.com/android-ndk/ndk/issues/822),
+[ATrace](https://github.com/android-ndk/ndk/issues/821), and
+[ASharedMemory](https://github.com/android-ndk/ndk/issues/820).
 
 ### NDK C++ header-only JNI helpers
 
@@ -146,6 +161,8 @@ to update without the user also updating their CMake version.
 We should send patches to the CMake implementation that will load as much
 information about the NDK as possible from tables we provide in the NDK.
 
+See [bug 463](https://github.com/android-ndk/ndk/issues/463) for discussion.
+
 ### Weak symbols for API additions
 
 iOS developers are used to using weak symbols to refer to function that
@@ -162,6 +179,9 @@ includes a function to check which version of Android you're running on.
 We might not want to make this the default (because it's such a break
 with historical practice, and might be surprising), but we should offer
 this as an option.
+
+An interesting technical problem here will be dealing with the `DT_NEEDED`
+situation for "I need this library (but it might not exist yet)".
 
 ---
 
