@@ -1967,7 +1967,8 @@ class RenderscriptToolchain(ndk.builds.InvokeBuildModule):
 class Changelog(ndk.builds.FileModule):
     name = 'changelog'
     path = 'CHANGELOG.md'
-    src = ndk.paths.ndk_path('CHANGELOG.md')
+    src = ndk.paths.ndk_path('docs/changelogs/Changelog-r{}.md'.format(
+        ndk.config.major))
     no_notice = True
 
 
