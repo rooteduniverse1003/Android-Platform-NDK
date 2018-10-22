@@ -1602,6 +1602,8 @@ class Vulkan(ndk.builds.Module):
         print('Constructing Vulkan validation layer source...')
         vulkan_root_dir = ndk.paths.android_path(
             'external/vulkan-validation-layers')
+        vulkan_headers_root_dir = ndk.paths.android_path(
+            'external/vulkan-headers')
 
         copies = [
             {
@@ -1610,17 +1612,17 @@ class Vulkan(ndk.builds.Module):
                 'files': [
                 ],
                 'dirs': [
-                    'layers', 'include', 'tests', 'common', 'libs', 'scripts'
+                    'layers', 'tests', 'scripts'
                 ],
             },
             {
-                'source_dir': vulkan_root_dir + '/loader',
-                'dest_dir': 'vulkan/src/loader',
+                'source_dir': vulkan_headers_root_dir,
+                'dest_dir': 'vulkan/src',
                 'files': [
-                    'vk_loader_platform.h',
-                    'vk_loader_layer.h'
                 ],
-                'dirs': [],
+                'dirs': [
+                    'include', 'registry'
+                ],
             }
         ]
 
@@ -1661,7 +1663,8 @@ class Vulkan(ndk.builds.Module):
         print('Copying finished')
 
         build_cmd = [
-            'bash', vulkan_path + '/build-android/android-generate.sh'
+            'bash', vulkan_path + '/build-android/android-generate.sh',
+                    vulkan_path + '/registry'
         ]
         print('Generating generated layers...')
         subprocess.check_call(build_cmd)
