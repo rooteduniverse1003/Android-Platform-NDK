@@ -23,7 +23,7 @@ if sys.version_info >= (3, 3):
     import shutil
 
     def which(cmd, path=None):
-        return shutil.which(cmd, path=path)
+        return shutil.which(cmd, path=path)  # pylint: disable=no-member
 else:
     # virtualenv does tricks for distutils, so this fails pylint in virtualenv.
     import distutils.spawn  # pylint: disable=no-name-in-module,import-error

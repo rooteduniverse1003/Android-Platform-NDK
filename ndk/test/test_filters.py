@@ -15,7 +15,7 @@
 #
 import unittest
 
-from filters import TestFilter
+from ndk.test.filters import TestFilter
 
 
 class FilterTest(unittest.TestCase):

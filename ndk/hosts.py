@@ -39,6 +39,7 @@ def get_host_tag(ndk_path):
         if not os.path.exists(test_path):
             host_tag = 'windows'
         return host_tag
+    raise ValueError('Unknown host: {}'.format(sys.platform))
 
 
 def host_to_tag(host):
