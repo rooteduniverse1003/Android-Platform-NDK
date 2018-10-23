@@ -16,7 +16,18 @@
 """Extensions for shutil APIs."""
 from __future__ import absolute_import
 
+import errno
+import os
 import sys
+
+
+def create_directory(path):
+    """Creates a directory, ignoring errors if the directory exists."""
+    try:
+        os.makedirs(path)  # pylint: disable=no-member
+    except OSError as ex:
+        if ex.errno != errno.EEXIST:
+            raise
 
 
 if sys.version_info >= (3, 3):

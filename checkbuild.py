@@ -29,7 +29,6 @@ import collections
 import contextlib
 import copy
 from distutils.dir_util import copy_tree
-import errno
 import glob
 import inspect
 import json
@@ -694,14 +693,7 @@ class HostTools(ndk.builds.Module):
 
     def install(self):
         install_dir = self.get_install_path()
-
-        try:
-            os.makedirs(install_dir)
-        except OSError as ex:
-            # Another build might be trying to create this simultaneously,
-            # which we can safely ignore.
-            if ex.errno != errno.EEXIST:
-                raise
+        ndk.ext.shutil.create_directory(install_dir)
 
         packages = [
             'gdb-multiarch-7.11',
@@ -711,14 +703,11 @@ class HostTools(ndk.builds.Module):
         ]
 
         files = [
-            'ndk-gdb',
-            'ndk-gdb.py',
             'ndk-which',
         ]
 
         if self.host in ('windows', 'windows64'):
             packages.append('toolbox')
-            files.append('ndk-gdb.cmd')
 
         host_tag = ndk.hosts.host_to_tag(self.host)
 
@@ -742,14 +731,7 @@ def install_exe(out_dir, install_dir, name, system):
     src = os.path.join(out_dir, exe_name)
     dst = os.path.join(install_dir, exe_name)
 
-    try:
-        os.makedirs(install_dir)
-    except OSError as ex:
-        # Another build might be trying to create this simultaneously,
-        # which we can safely ignore.
-        if ex.errno != errno.EEXIST:
-            raise
-
+    ndk.ext.shutil.create_directory(install_dir)
     shutil.copy2(src, dst)
 
 
@@ -1969,6 +1951,24 @@ class Changelog(ndk.builds.FileModule):
     no_notice = True
 
 
+class NdkGdb(ndk.builds.MultiFileModule):
+    name = 'ndk-gdb'
+    path = 'prebuilt/{host}/bin'
+    notice = ndk.paths.ndk_path('NOTICE')
+
+    @property
+    def files(self):
+        files = [
+            ndk.paths.ndk_path('ndk-gdb'),
+            ndk.paths.ndk_path('ndk-gdb.py'),
+        ]
+
+        if self.host.startswith('windows'):
+            files.append(ndk.paths.ndk_path('ndk-gdb.cmd'))
+
+        return files
+
+
 class NdkGdbShortcut(ndk.builds.ScriptShortcutModule):
     name = 'ndk-gdb-shortcut'
     path = 'ndk-gdb'
@@ -2292,6 +2292,7 @@ ALL_MODULES = [
     NdkBuildShortcut(),
     NdkDepends(),
     NdkDependsShortcut(),
+    NdkGdb(),
     NdkGdbShortcut(),
     NdkHelper(),
     NdkPy(),
