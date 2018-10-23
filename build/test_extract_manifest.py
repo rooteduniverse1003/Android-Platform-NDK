@@ -95,7 +95,7 @@ class ExtractMinSdkVersionTest(unittest.TestCase):
             '', build.extract_manifest.get_minsdkversion(root))
 
 
-class ExtractMinSdkVersionTest(unittest.TestCase):
+class ExtractDebuggableTest(unittest.TestCase):
     def testIsDebuggable(self):
         xml_str = textwrap.dedent("""\
             <?xml version="1.0" encoding="utf-8"?>
