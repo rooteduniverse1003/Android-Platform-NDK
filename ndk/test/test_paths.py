@@ -22,6 +22,7 @@ import unittest
 import mock
 
 import ndk.config
+import ndk.hosts
 import ndk.paths
 
 
@@ -41,11 +42,13 @@ class GetInstallPathTest(unittest.TestCase):
         mock_get_out_dir.return_value = out_dir
         release = 'android-ndk-' + self.release
         self.assertEqual(
-            ndk.paths.get_install_path(), os.path.join(out_dir, release))
+            ndk.paths.get_install_path(),
+            os.path.join(out_dir, ndk.hosts.get_default_host(), release))
 
     def test_supplied_out_dir(self):
         """Tests that the correct path is returned for a supplied out_dir"""
         out_dir = 'foo'
         release = 'android-ndk-' + self.release
         self.assertEqual(
-            ndk.paths.get_install_path('foo'), os.path.join(out_dir, release))
+            ndk.paths.get_install_path('foo'),
+            os.path.join(out_dir, ndk.hosts.get_default_host(), release))
