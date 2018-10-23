@@ -26,6 +26,7 @@ import stat
 import subprocess
 
 import ndk.abis
+import ndk.ext.shutil
 import ndk.packaging
 import ndk.paths
 
@@ -304,6 +305,19 @@ class FileModule(Module):
 
     def install(self):
         shutil.copy2(self.src, self.get_install_path())
+
+
+class MultiFileModule(Module):
+    files = []
+
+    def build(self):
+        pass
+
+    def install(self):
+        install_dir = self.get_install_path()
+        ndk.ext.shutil.create_directory(install_dir)
+        for file_path in self.files:
+            shutil.copy2(file_path, install_dir)
 
 
 class ScriptShortcutModule(Module):
