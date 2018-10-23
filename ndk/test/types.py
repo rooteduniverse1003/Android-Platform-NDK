@@ -413,7 +413,7 @@ def get_xunit_reports(xunit_file, test_base_dir, config, ndk_path):
 
         # ... that has had '.' in its path replaced with '_' because xunit.
         test_matches = find_original_libcxx_test(mangled_path, ndk_path)
-        if len(test_matches) == 0:
+        if not test_matches:
             raise RuntimeError('Found no matches for test ' + mangled_path)
         if len(test_matches) > 1:
             raise RuntimeError('Found multiple matches for test {}: {}'.format(
@@ -425,7 +425,7 @@ def get_xunit_reports(xunit_file, test_base_dir, config, ndk_path):
         test_dir = os.path.dirname(name)[len('libc++.'):]
 
         failure_nodes = test_case.findall('failure')
-        if len(failure_nodes) == 0:
+        if not failure_nodes:
             reports.append(XunitSuccess(
                 name, test_base_dir, test_dir, config, ndk_path))
             continue
@@ -545,7 +545,7 @@ class LibcxxTest(Test):
 
         default_test_path = os.path.join(libcxx_dir, 'test')
         test_paths = list(filters)
-        if len(test_paths) == 0:
+        if not test_paths:
             test_paths.append(default_test_path)
         for test_path in test_paths:
             lit_args.append(test_path)

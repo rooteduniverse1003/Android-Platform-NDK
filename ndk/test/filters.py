@@ -35,7 +35,7 @@ class TestFilter(object):
         filter_set = self.early_filters
         if '.' in test_name:
             filter_set = self.late_filters
-        if len(filter_set) == 0:
+        if not filter_set:
             return True
         return any(f(test_name) for f in filter_set)
 
