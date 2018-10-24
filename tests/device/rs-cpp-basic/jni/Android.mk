@@ -19,21 +19,9 @@ LOCAL_PATH := $(call my-dir)
 
 include $(CLEAR_VARS)
 LOCAL_MODULE := rstest-compute
-LOCAL_SRC_FILES:= \
-	mono.rs \
-	compute.cpp
-
-LOCAL_CLANG := true
-
-LOCAL_CFLAGS := -std=c++11
-LOCAL_LDFLAGS := -Wl,-Bsymbolic
-
-LOCAL_LDLIBS := \
-	-ldl \
-	-llog
-
+LOCAL_SRC_FILES:= mono.rs compute.cpp
+LOCAL_LDLIBS := -llog
 LOCAL_STATIC_LIBRARIES := RScpp_static
-
 include $(BUILD_EXECUTABLE)
 
 $(call import-module,android/renderscript)
