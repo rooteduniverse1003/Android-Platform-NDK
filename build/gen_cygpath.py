@@ -76,7 +76,7 @@ def make_cygpath_function(mounts):
     """
     # We're building a bunch of nested patsubst calls. Once we've written each
     # of the calls, we pass the function input to the inner most call.
-    if len(mounts) == 0:
+    if not mounts:
         return '$1'
 
     cyg_path, win_path = mounts[0]

@@ -88,9 +88,8 @@ def SetInformationJobObject(job, info_class, info):
         ctypes.c_void_p,
         ctypes.wintypes.DWORD
     ]
-    result = fn_SetInformationJobObject(
-        job, JobObjectExtendedLimitInformation,
-        ctypes.pointer(info), ctypes.sizeof(info))
+    result = fn_SetInformationJobObject(job, info_class, ctypes.pointer(info),
+                                        ctypes.sizeof(info))
     if not result:
         raise ctypes.WinError(ctypes.get_last_error())
 

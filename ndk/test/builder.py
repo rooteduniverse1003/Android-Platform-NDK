@@ -241,11 +241,11 @@ class TestBuilder(object):
                     # Filtered test. Skip them entirely to avoid polluting
                     # --show-all results.
                     if result is None:
-                        assert len(additional_tests) == 0
+                        assert not additional_tests
                         ui.draw()
                         continue
 
-                    assert result.passed() or len(additional_tests) == 0
+                    assert result.passed() or not additional_tests
                     for test in additional_tests:
                         workqueue.add_task(
                             _run_test, suite, test, self.obj_dir,

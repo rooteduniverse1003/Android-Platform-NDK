@@ -468,7 +468,7 @@ def print_test_stats(test_groups):
 
 def verify_have_all_requested_devices(fleet):
     missing_configs = fleet.get_missing()
-    if len(missing_configs):
+    if missing_configs:
         logger().warning(
             'Missing device configurations: %s', ', '.join(missing_configs))
         return False
@@ -544,7 +544,7 @@ def flake_filter(result):
 def restart_flaky_tests(report, workqueue):
     """Finds and restarts any failing flaky tests."""
     rerun_tests = report.remove_all_failing_flaky(flake_filter)
-    if len(rerun_tests) > 0:
+    if rerun_tests:
         cooldown = 10
         logger().warning(
             'Found %d flaky failures. Sleeping for %d seconds to let '

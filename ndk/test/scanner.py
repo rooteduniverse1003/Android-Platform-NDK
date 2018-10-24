@@ -128,7 +128,7 @@ class LibcxxTestScanner(TestScanner):
         # If we instantiate multiple LibcxxTestScanners, we still only need to
         # initialize this once. We only create these in the main thread, so
         # there's no risk of race.
-        if len(cls.ALL_TESTS) != 0:
+        if cls.ALL_TESTS:
             return
 
         test_base_dir = os.path.join(

@@ -44,8 +44,7 @@ class TaskError(Exception):
     for the TaskError is the stack trace of the original exception, and will be
     printed if the TaskError is not caught.
     """
-    def __init__(self, trace):
-        super(TaskError, self).__init__(trace)
+    pass
 
 
 def create_windows_process_group():
@@ -235,7 +234,7 @@ class ProcessPoolWorkQueue(object):
     def get_result(self):
         """Gets a result from the queue, blocking until one is available."""
         result = self.result_queue.get()
-        if type(result) == TaskError:
+        if isinstance(result, TaskError):
             raise result
         self.num_tasks -= 1
         return result

@@ -27,7 +27,7 @@ def logger():
 
 
 def call_output(cmd, *args, **kwargs):
-    logger().info('COMMAND: ' + ' '.join(cmd))
+    logger().info('COMMAND: %s', ' '.join(cmd))
     proc = subprocess.Popen(cmd, stdout=subprocess.PIPE,
                             stderr=subprocess.STDOUT, *args, **kwargs)
     out, _ = proc.communicate()
