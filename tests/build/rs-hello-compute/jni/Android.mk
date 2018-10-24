@@ -20,21 +20,10 @@ LOCAL_PATH := $(call my-dir)
 include $(CLEAR_VARS)
 LOCAL_MODULE := hellocomputendk
 LOCAL_SRC_FILES := helloComputeNDK.cpp mono.rs
-LOCAL_CLANG := true
-
-LOCAL_CFLAGS := -std=c++11
-LOCAL_LDFLAGS := -Wl,-Bsymbolic
-
-LOCAL_LDLIBS := \
-	-ldl \
-	-llog \
-	-ljnigraphics
-
+LOCAL_LDLIBS := -ljnigraphics -llog
 LOCAL_RENDERSCRIPT_COMPATIBILITY := true
-
 LOCAL_SHARED_LIBRARIES := RSSupport blasV8
 LOCAL_STATIC_LIBRARIES := RScpp_static
-
 include $(BUILD_SHARED_LIBRARY)
 
 $(call import-module,android/renderscript)
