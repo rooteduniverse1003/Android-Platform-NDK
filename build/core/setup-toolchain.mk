@@ -87,7 +87,6 @@ include $(BUILD_SYSTEM)/default-build-commands.mk
 
 # now call the toolchain-specific setup script
 include $(NDK_TOOLCHAIN.$(TARGET_TOOLCHAIN).setup)
-TOOLCHAIN_PREFIX := $(NDK_ROOT)/toolchain/bin/$(TOOLCHAIN_NAME)-
 
 # Setup sysroot variables.
 #
@@ -99,7 +98,7 @@ TOOLCHAIN_PREFIX := $(NDK_ROOT)/toolchain/bin/$(TOOLCHAIN_NAME)-
 # SYSROOT_INC points to a directory that contains all public header files for a
 # given platform.
 ifndef NDK_UNIFIED_SYSROOT_PATH
-    NDK_UNIFIED_SYSROOT_PATH := $(NDK_ROOT)/toolchain/sysroot
+    NDK_UNIFIED_SYSROOT_PATH := $(TOOLCHAIN_ROOT)/sysroot
 endif
 
 # TODO: Have the driver add the library path to -rpath-link.

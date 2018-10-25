@@ -1501,7 +1501,8 @@ class BaseToolchain(ndk.builds.Module):
     """
 
     name = 'base-toolchain'
-    path = 'toolchain'
+    # This is installed to the Clang location to avoid migration pain.
+    path = 'toolchains/llvm/prebuilt/{host}'
     notice_group = ndk.builds.NoticeGroup.TOOLCHAIN
     deps = {
         'binutils',
@@ -1524,7 +1525,6 @@ class BaseToolchain(ndk.builds.Module):
 
     def install(self):
         install_dir = self.get_install_path()
-        clang_dir = self.get_dep('clang').get_install_path()
         host_tools_dir = self.get_dep('host-tools').get_install_path()
         libandroid_support_dir = self.get_dep(
             'libandroid_support').get_install_path()
@@ -1532,10 +1532,6 @@ class BaseToolchain(ndk.builds.Module):
         sysroot_dir = self.get_dep('sysroot').get_install_path()
         system_stl_dir = self.get_dep('system-stl').get_install_path()
 
-        if os.path.exists(install_dir):
-            shutil.rmtree(install_dir)
-
-        copy_tree(clang_dir, install_dir)
         copy_tree(sysroot_dir, os.path.join(install_dir, 'sysroot'))
 
         exe = '.exe' if self.host.startswith('windows') else ''
@@ -1682,7 +1678,8 @@ class Toolchain(ndk.builds.Module):
     """
 
     name = 'toolchain'
-    path = 'toolchain'
+    # This is installed to the Clang location to avoid migration pain.
+    path = 'toolchains/llvm/prebuilt/{host}'
     notice_group = ndk.builds.NoticeGroup.TOOLCHAIN
     deps = {
         'base-toolchain',

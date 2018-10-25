@@ -91,14 +91,13 @@ TARGET_LIBGCC = -lgcc -Wl,--exclude-libs,libgcc.a
 TARGET_LIBATOMIC = -latomic -Wl,--exclude-libs,libatomic.a
 TARGET_LDLIBS := -lc -lm
 
-#
-# IMPORTANT: The following definitions must use lazy assignment because
-# the value of TOOLCHAIN_PREFIX or TARGET_CFLAGS can be changed later by
-# the toolchain's setup.mk script.
-#
+TOOLCHAIN_ROOT := $(NDK_ROOT)/toolchains/llvm/prebuilt/$(HOST_TAG64)
+LLVM_TOOLCHAIN_PREFIX := $(TOOLCHAIN_ROOT)/bin/
 
-LLVM_TOOLCHAIN_PREBUILT_ROOT := $(NDK_ROOT)/toolchain
-LLVM_TOOLCHAIN_PREFIX := $(LLVM_TOOLCHAIN_PREBUILT_ROOT)/bin/
+# IMPORTANT: The following definitions must use lazy assignment because
+# the value of TOOLCHAIN_NAME or TARGET_CFLAGS can be changed later by
+# the toolchain's setup.mk script.
+TOOLCHAIN_PREFIX = $(TOOLCHAIN_ROOT)/bin/$(TOOLCHAIN_NAME)-
 
 ifneq ($(findstring ccc-analyzer,$(CC)),)
     TARGET_CC = $(CC)
@@ -154,10 +153,8 @@ else
 TARGET_RS_FLAGS += -m64
 endif
 
-TARGET_ASM      = $(NDK_TOOLCHAIN_ROOT)/bin/yasm
+TARGET_ASM      = $(TOOLCHAIN_ROOT)/bin/yasm
 TARGET_ASMFLAGS =
-
-TOOLCHAIN_PREFIX = $(NDK_TOOLCHAIN_ROOT)/bin/$(TOOLCHAIN_NAME)-
 
 TARGET_LD       = $(TOOLCHAIN_PREFIX)ld
 TARGET_LDFLAGS :=

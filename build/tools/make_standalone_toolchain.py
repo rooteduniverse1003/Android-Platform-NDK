@@ -47,7 +47,7 @@ def check_ndk_or_die():
     checks = [
         'build/core',
         'prebuilt',
-        'toolchain',
+        'toolchains',
     ]
 
     for check in checks:
@@ -80,9 +80,10 @@ def get_host_tag_or_die():
     sys.exit('Unsupported platform: ' + platform.system())
 
 
-def get_toolchain_path_or_die():
+def get_toolchain_path_or_die(host_tag):
     """Return the toolchain path or die."""
-    toolchain_path = os.path.join(NDK_DIR, 'toolchain')
+    toolchain_path = os.path.join(NDK_DIR, 'toolchains/llvm/prebuilt',
+                                  host_tag)
     if not os.path.exists(toolchain_path):
         sys.exit('Could not find toolchain: {}'.format(toolchain_path))
     return toolchain_path
@@ -233,7 +234,7 @@ def create_toolchain(install_path, arch, api, toolchain_path, host_tag):
 def warn_unnecessary(is_windows):
     if is_windows:
         ndk_var = '%NDK%'
-        prompt = 'C:\>'
+        prompt = 'C:\\>'
     else:
         ndk_var = '$NDK'
         prompt = '$ '
@@ -333,7 +334,7 @@ def main():
             api, args.arch, min_api))
 
     triple = get_triple(args.arch)
-    toolchain_path = get_toolchain_path_or_die()
+    toolchain_path = get_toolchain_path_or_die(host_tag)
 
     if args.install_dir is not None:
         install_path = args.install_dir
