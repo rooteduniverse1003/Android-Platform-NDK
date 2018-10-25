@@ -1160,7 +1160,7 @@ class Platforms(ndk.builds.Module):
 
         # https://github.com/android-ndk/ndk/issues/372
         for root, dirs, files in os.walk(install_dir):
-            if len(files) == 0 and len(dirs) == 0:
+            if not files and not dirs:
                 with open(os.path.join(root, '.keep_dir'), 'w') as keep_file:
                     keep_file.write(
                         'This file forces git to keep the directory.')
@@ -1645,8 +1645,9 @@ class Vulkan(ndk.builds.Module):
         print('Copying finished')
 
         build_cmd = [
-            'bash', vulkan_path + '/build-android/android-generate.sh',
-                    vulkan_path + '/registry'
+            'bash',
+            vulkan_path + '/build-android/android-generate.sh',
+            vulkan_path + '/registry',
         ]
         print('Generating generated layers...')
         subprocess.check_call(build_cmd)
