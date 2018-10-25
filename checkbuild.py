@@ -735,18 +735,6 @@ def install_exe(out_dir, install_dir, name, system):
     shutil.copy2(src, dst)
 
 
-class NdkDepends(ndk.builds.InvokeExternalBuildModule):
-    name = 'ndk-depends'
-    path = 'prebuilt/{host}/bin'
-    script = 'ndk/sources/host-tools/ndk-depends/build.py'
-    notice = ndk.paths.ndk_path('sources/host-tools/ndk-depends/NOTICE')
-
-    def install(self):
-        src = os.path.join(self.out_dir, self.host, self.name)
-        install_dir = self.get_install_path()
-        install_exe(src, install_dir, self.name, self.host)
-
-
 class GdbServer(ndk.builds.InvokeBuildModule):
     name = 'gdbserver'
     path = 'prebuilt/android-{arch}/gdbserver'
@@ -1996,13 +1984,6 @@ class NdkWhichShortcut(ndk.builds.ScriptShortcutModule):
     windows_ext = ''  # There isn't really a Windows ndk-which.
 
 
-class NdkDependsShortcut(ndk.builds.ScriptShortcutModule):
-    name = 'ndk-depends-shortcut'
-    path = 'ndk-depends'
-    script = 'prebuilt/{host}/bin/ndk-depends'
-    windows_ext = '.exe'
-
-
 class NdkStackShortcut(ndk.builds.ScriptShortcutModule):
     name = 'ndk-stack-shortcut'
     path = 'ndk-stack'
@@ -2303,8 +2284,6 @@ ALL_MODULES = [
     NativeAppGlue(),
     NdkBuild(),
     NdkBuildShortcut(),
-    NdkDepends(),
-    NdkDependsShortcut(),
     NdkGdb(),
     NdkGdbShortcut(),
     NdkHelper(),
