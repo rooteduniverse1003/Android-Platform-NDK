@@ -40,7 +40,8 @@ def find_llvm_symbolizer():
     # ...get `linux-x86_64`:
     arch = os.path.basename(os.path.abspath(os.path.join(ndk_bin, '../')))
     # And from there construct the llvm-symbolizer path.
-    llvm_bin = os.path.join(ndk_root, 'toolchain', 'bin')
+    llvm_bin = os.path.join(ndk_root, 'toolchains', 'llvm', 'prebuilt', arch,
+                            'bin')
     return os.path.join(llvm_bin, 'llvm-symbolizer')
 
 
