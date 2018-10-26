@@ -62,6 +62,7 @@ Changes
    Prior to this change, the above workflow would remove the previously built
    ABI's artifacts on each successive build, resulting in only x86_64 being
    present at the end of the loop.
+ * ndk-stack has been rewritten in Python.
  * [Issue 776]: To better support LLD, ndk-build and CMake no longer pass
    `-Wl,--fix-cortex-a8` by default.
      * CPUs that require this fix are uncommon in the NDK's supported API range
