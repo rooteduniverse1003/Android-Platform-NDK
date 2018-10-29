@@ -22,11 +22,11 @@ Announcements
 
  * [Issue 780]: [Standalone toolchains] are now unnecessary. Clang, binutils,
    the sysroot, and other toolchain pieces are now all installed to
-   `$NDK/toolchain` and Clang will automatically find them. Instead of creating
-   a standalone toolchain for API 26 ARM, instead invoke the compiler directly
-   from the NDK:
+   `$NDK/toolchains/llvm/prebuilt/<host-tag>` and Clang will automatically find
+   them. Instead of creating a standalone toolchain for API 26 ARM, instead
+   invoke the compiler directly from the NDK:
 
-       $ $NDK/toolchain/bin/armv7a-linux-androideabi26-clang++ src.cpp
+       $ $NDK/toolchains/llvm/prebuilt/<host-tag>/bin/armv7a-linux-androideabi26-clang++ src.cpp
 
    For r19 the toolchain is also installed to the old path to give build systems
    a chance to adapt to the new layout. The old paths will be removed in r20.
@@ -41,15 +41,19 @@ Announcements
    Android-specific code. For more information, see the [Build System
    Maintainers] guide.
 
+ * ndk-depends has been removed. We believe that [ReLinker] is a better
+   solution to native library loading issues on old Android versions.
+
 [Build System Maintainers]: https://android.googlesource.com/platform/ndk/+/master/docs/BuildSystemMaintainers.md
 [Issue 780]: https://github.com/android-ndk/ndk/issues/780
+[ReLinker]: https://github.com/KeepSafe/ReLinker
 
 Changes
 -------
 
  * Updated Clang to r339409.
- * [Issue 780]: A complete NDK toolchain is now installed to `$NDK/toolchain`.
-   See the announcements section for more information.
+ * [Issue 780]: A complete NDK toolchain is now installed to the Clang
+   directory. See the announcements section for more information.
  * ndk-build no longer removes artifacts from `NDK_LIBS_OUT` for ABIs not
    present in `APP_ABI`. This enables workflows like the following:
 
@@ -62,6 +66,7 @@ Changes
    Prior to this change, the above workflow would remove the previously built
    ABI's artifacts on each successive build, resulting in only x86_64 being
    present at the end of the loop.
+ * ndk-stack has been rewritten in Python.
  * [Issue 776]: To better support LLD, ndk-build and CMake no longer pass
    `-Wl,--fix-cortex-a8` by default.
      * CPUs that require this fix are uncommon in the NDK's supported API range

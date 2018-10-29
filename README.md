@@ -48,7 +48,7 @@ prebuilts, build systems, and support libraries.
       when this toolchain is used.
 * `prebuilt/$HOST_TAG` contains build dependencies and additional tools.
     * make, python, yasm, and for Windows: cmp.exe and echo.exe
-    * `ndk-depends`, `ndk-stack` and `ndk-gdb` can also be found here.
+    * `ndk-stack` and `ndk-gdb` can also be found here.
 
 ### Target Prebuilts
 

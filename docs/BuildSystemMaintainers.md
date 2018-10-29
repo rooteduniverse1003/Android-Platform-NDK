@@ -147,10 +147,10 @@ releases should not be shipped to production. Consult
 
 ## Clang
 
-Clang is installed to `<NDK>/toolchain/bin/clang`. The C++ compiler is installed
-as `clang++` in the same directory. `clang++` will make C++ headers available
-when compiling and will automatically link the C++ runtime libraries when
-linking.
+Clang is installed to `<NDK>/toolchains/llvm/prebuilt/<host-tag>/bin/clang`.
+The C++ compiler is installed as `clang++` in the same directory. `clang++` will
+make C++ headers available when compiling and will automatically link the C++
+runtime libraries when linking.
 
 `clang` should be used when compiling C source files, and `clang++` should be
 used when compiling C++ source files. When linking, `clang` should be used if
@@ -202,18 +202,21 @@ will do so automatically. Clang will also automatically link CRT objects and
 default libraries and set up other target-specific options, so it is generally
 better to use Clang for linking.
 
-The default linkers are installed to `<NDK>/toolchain/bin/<triple>-ld` and
-`<NDK/toolchain/<triple>/bin/ld`. To use BFD or gold explicitly, use `ld.bfd` or
-`ld.gold` from the same locations. `ld.lld` is not installed to the triple
-directory and is not triple-prefixed, but rather is only installed as
-`<NDK>/toolchain/bin/ld.lld` because the one binary supports all ABIs.
+The default linkers are installed to
+`<NDK>/toolchains/llvm/prebuilt/<host-tag>/bin/<triple>-ld` and
+`<NDK>/toolchains/llvm/prebuilt/<host-tag>/<triple>/bin/ld`. To use BFD or gold
+explicitly, use `ld.bfd` or `ld.gold` from the same locations. `ld.lld` is not
+installed to the triple directory and is not triple-prefixed, but rather is only
+installed as `<NDK>/toolchains/llvm/prebuilt/<host-tag>/bin/ld.lld` because the
+one binary supports all ABIs.
 
 [Issue 70838247]: https://issuetracker.google.com/70838247
 
 ## Sysroot
 
-The Android sysroot is installed to `<NDK>/toolchain/sysroot` and contains the
-headers, libraries, and CRT object files for each Android target.
+The Android sysroot is installed to
+`<NDK>/toolchains/llvm/prebuilt/<host-tag>/sysroot` and contains the headers,
+libraries, and CRT object files for each Android target.
 
 Headers can be found in the `usr/include` directory of the sysroot. Target
 specific include files are installed to `usr/include/<triple>`. When using
@@ -290,8 +293,9 @@ The legacy "system STL" is also included, but it will be removed in a future NDK
 release. It is not in fact an STL; it contains only the barest C++ library
 support: the C++ versions of the C library headers and basic C++ runtime support
 like `new` and `delete`. Its headers are installed to
-`<NDK>/toolchain/include/c++/4.9.x` and its library is the libstdc++.so system
-stub library. To use this STL, use the `-stdlib=libstdc++` flag.
+`<NDK>/toolchains/llvm/prebuilt/<host-tag>/include/c++/4.9.x` and its library is
+the libstdc++.so system stub library. To use this STL, use the
+`-stdlib=libstdc++` flag.
 
 TODO: Shouldn't it be installed to sysroot like libc++?
 
@@ -310,10 +314,11 @@ that it diagnoses memory bugs in a running application, but ASan is much faster
 than Valgrind (roughly 50% performance compared to an unsanitized application).
 
 To use ASan, pass `-fsanitize=address` when both compiling and linking. The
-sanitizer runtime libraries are installed to `<NDK>/toolchain/lib64/clang/<clang
-version>/lib/linux`. The library is named `libclang_rt.asan-<arch>-android.so`.
-This library must be included in the APK. A [wrap.sh] file must also be included
-in the APK. Premade wrap.sh files for ASan are installed to `<NDK>/wrap.sh`.
+sanitizer runtime libraries are installed to
+`<NDK>/toolchains/llvm/prebuilt/<host-tag>/lib64/clang/<clang-version>/lib/linux`.
+The library is named `libclang_rt.asan-<arch>-android.so`.  This library must be
+included in the APK. A [wrap.sh] file must also be included in the APK. Premade
+wrap.sh files for ASan are installed to `<NDK>/wrap.sh`.
 
 Note: wrap.sh is only available for [debuggable] APKs running on Android Oreo
 (API 26) or higher. ASan can still be used devices prior to Oreo but at least

@@ -29,7 +29,6 @@ import collections
 import contextlib
 import copy
 from distutils.dir_util import copy_tree
-import errno
 import glob
 import inspect
 import json
@@ -694,14 +693,7 @@ class HostTools(ndk.builds.Module):
 
     def install(self):
         install_dir = self.get_install_path()
-
-        try:
-            os.makedirs(install_dir)
-        except OSError as ex:
-            # Another build might be trying to create this simultaneously,
-            # which we can safely ignore.
-            if ex.errno != errno.EEXIST:
-                raise
+        ndk.ext.shutil.create_directory(install_dir)
 
         packages = [
             'gdb-multiarch-7.11',
@@ -711,14 +703,11 @@ class HostTools(ndk.builds.Module):
         ]
 
         files = [
-            'ndk-gdb',
-            'ndk-gdb.py',
             'ndk-which',
         ]
 
         if self.host in ('windows', 'windows64'):
             packages.append('toolbox')
-            files.append('ndk-gdb.cmd')
 
         host_tag = ndk.hosts.host_to_tag(self.host)
 
@@ -742,39 +731,8 @@ def install_exe(out_dir, install_dir, name, system):
     src = os.path.join(out_dir, exe_name)
     dst = os.path.join(install_dir, exe_name)
 
-    try:
-        os.makedirs(install_dir)
-    except OSError as ex:
-        # Another build might be trying to create this simultaneously,
-        # which we can safely ignore.
-        if ex.errno != errno.EEXIST:
-            raise
-
+    ndk.ext.shutil.create_directory(install_dir)
     shutil.copy2(src, dst)
-
-
-class NdkDepends(ndk.builds.InvokeExternalBuildModule):
-    name = 'ndk-depends'
-    path = 'prebuilt/{host}/bin'
-    script = 'ndk/sources/host-tools/ndk-depends/build.py'
-    notice = ndk.paths.ndk_path('sources/host-tools/ndk-depends/NOTICE')
-
-    def install(self):
-        src = os.path.join(self.out_dir, self.host, self.name)
-        install_dir = self.get_install_path()
-        install_exe(src, install_dir, self.name, self.host)
-
-
-class NdkStack(ndk.builds.InvokeExternalBuildModule):
-    name = 'ndk-stack'
-    path = 'prebuilt/{host}/bin'
-    script = 'ndk/sources/host-tools/ndk-stack/build.py'
-    notice = ndk.paths.ndk_path('sources/host-tools/ndk-stack/NOTICE')
-
-    def install(self):
-        src = os.path.join(self.out_dir, self.host, self.name)
-        install_dir = self.get_install_path()
-        install_exe(src, install_dir, self.name, self.host)
 
 
 class GdbServer(ndk.builds.InvokeBuildModule):
@@ -1501,7 +1459,8 @@ class BaseToolchain(ndk.builds.Module):
     """
 
     name = 'base-toolchain'
-    path = 'toolchain'
+    # This is installed to the Clang location to avoid migration pain.
+    path = 'toolchains/llvm/prebuilt/{host}'
     notice_group = ndk.builds.NoticeGroup.TOOLCHAIN
     deps = {
         'binutils',
@@ -1524,7 +1483,6 @@ class BaseToolchain(ndk.builds.Module):
 
     def install(self):
         install_dir = self.get_install_path()
-        clang_dir = self.get_dep('clang').get_install_path()
         host_tools_dir = self.get_dep('host-tools').get_install_path()
         libandroid_support_dir = self.get_dep(
             'libandroid_support').get_install_path()
@@ -1532,10 +1490,6 @@ class BaseToolchain(ndk.builds.Module):
         sysroot_dir = self.get_dep('sysroot').get_install_path()
         system_stl_dir = self.get_dep('system-stl').get_install_path()
 
-        if os.path.exists(install_dir):
-            shutil.rmtree(install_dir)
-
-        copy_tree(clang_dir, install_dir)
         copy_tree(sysroot_dir, os.path.join(install_dir, 'sysroot'))
 
         exe = '.exe' if self.host.startswith('windows') else ''
@@ -1682,7 +1636,8 @@ class Toolchain(ndk.builds.Module):
     """
 
     name = 'toolchain'
-    path = 'toolchain'
+    # This is installed to the Clang location to avoid migration pain.
+    path = 'toolchains/llvm/prebuilt/{host}'
     notice_group = ndk.builds.NoticeGroup.TOOLCHAIN
     deps = {
         'base-toolchain',
@@ -1972,10 +1927,53 @@ class Changelog(ndk.builds.FileModule):
     no_notice = True
 
 
+class NdkGdb(ndk.builds.MultiFileModule):
+    name = 'ndk-gdb'
+    path = 'prebuilt/{host}/bin'
+    notice = ndk.paths.ndk_path('NOTICE')
+
+    @property
+    def files(self):
+        files = [
+            ndk.paths.ndk_path('ndk-gdb'),
+            ndk.paths.ndk_path('ndk-gdb.py'),
+        ]
+
+        if self.host.startswith('windows'):
+            files.append(ndk.paths.ndk_path('ndk-gdb.cmd'))
+
+        return files
+
+
 class NdkGdbShortcut(ndk.builds.ScriptShortcutModule):
     name = 'ndk-gdb-shortcut'
     path = 'ndk-gdb'
     script = 'prebuilt/{host}/bin/ndk-gdb'
+    windows_ext = '.cmd'
+
+
+class NdkStack(ndk.builds.MultiFileModule):
+    name = 'ndk-stack'
+    path = 'prebuilt/{host}/bin'
+    notice = ndk.paths.ndk_path('NOTICE')
+
+    @property
+    def files(self):
+        files = [
+            ndk.paths.ndk_path('ndk-stack'),
+            ndk.paths.ndk_path('ndk-stack.py'),
+        ]
+
+        if self.host.startswith('windows'):
+            files.append(ndk.paths.ndk_path('ndk-stack.cmd'))
+
+        return files
+
+
+class NdkStackShortcut(ndk.builds.ScriptShortcutModule):
+    name = 'ndk-stack-shortcut'
+    path = 'ndk-stack'
+    script = 'prebuilt/{host}/bin/ndk-stack'
     windows_ext = '.cmd'
 
 
@@ -1986,18 +1984,11 @@ class NdkWhichShortcut(ndk.builds.ScriptShortcutModule):
     windows_ext = ''  # There isn't really a Windows ndk-which.
 
 
-class NdkDependsShortcut(ndk.builds.ScriptShortcutModule):
-    name = 'ndk-depends-shortcut'
-    path = 'ndk-depends'
-    script = 'prebuilt/{host}/bin/ndk-depends'
-    windows_ext = '.exe'
-
-
 class NdkStackShortcut(ndk.builds.ScriptShortcutModule):
     name = 'ndk-stack-shortcut'
     path = 'ndk-stack'
     script = 'prebuilt/{host}/bin/ndk-stack'
-    windows_ext = '.exe'
+    windows_ext = '.cmd'
 
 
 class NdkBuildShortcut(ndk.builds.ScriptShortcutModule):
@@ -2293,8 +2284,7 @@ ALL_MODULES = [
     NativeAppGlue(),
     NdkBuild(),
     NdkBuildShortcut(),
-    NdkDepends(),
-    NdkDependsShortcut(),
+    NdkGdb(),
     NdkGdbShortcut(),
     NdkHelper(),
     NdkPy(),
