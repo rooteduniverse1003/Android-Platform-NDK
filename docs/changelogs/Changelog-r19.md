@@ -22,11 +22,11 @@ Announcements
 
  * [Issue 780]: [Standalone toolchains] are now unnecessary. Clang, binutils,
    the sysroot, and other toolchain pieces are now all installed to
-   `$NDK/toolchain` and Clang will automatically find them. Instead of creating
-   a standalone toolchain for API 26 ARM, instead invoke the compiler directly
-   from the NDK:
+   `$NDK/toolchains/llvm/prebuilt/<host-tag>` and Clang will automatically find
+   them. Instead of creating a standalone toolchain for API 26 ARM, instead
+   invoke the compiler directly from the NDK:
 
-       $ $NDK/toolchain/bin/armv7a-linux-androideabi26-clang++ src.cpp
+       $ $NDK/toolchains/llvm/prebuilt/<host-tag>/bin/armv7a-linux-androideabi26-clang++ src.cpp
 
    For r19 the toolchain is also installed to the old path to give build systems
    a chance to adapt to the new layout. The old paths will be removed in r20.
@@ -52,8 +52,8 @@ Changes
 -------
 
  * Updated Clang to r339409.
- * [Issue 780]: A complete NDK toolchain is now installed to `$NDK/toolchain`.
-   See the announcements section for more information.
+ * [Issue 780]: A complete NDK toolchain is now installed to the Clang
+   directory. See the announcements section for more information.
  * ndk-build no longer removes artifacts from `NDK_LIBS_OUT` for ABIs not
    present in `APP_ABI`. This enables workflows like the following:
 

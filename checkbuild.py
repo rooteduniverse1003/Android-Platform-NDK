@@ -1136,7 +1136,7 @@ class Platforms(ndk.builds.Module):
 
         # https://github.com/android-ndk/ndk/issues/372
         for root, dirs, files in os.walk(install_dir):
-            if len(files) == 0 and len(dirs) == 0:
+            if not files and not dirs:
                 with open(os.path.join(root, '.keep_dir'), 'w') as keep_file:
                     keep_file.write(
                         'This file forces git to keep the directory.')
@@ -1459,7 +1459,8 @@ class BaseToolchain(ndk.builds.Module):
     """
 
     name = 'base-toolchain'
-    path = 'toolchain'
+    # This is installed to the Clang location to avoid migration pain.
+    path = 'toolchains/llvm/prebuilt/{host}'
     notice_group = ndk.builds.NoticeGroup.TOOLCHAIN
     deps = {
         'binutils',
@@ -1482,7 +1483,6 @@ class BaseToolchain(ndk.builds.Module):
 
     def install(self):
         install_dir = self.get_install_path()
-        clang_dir = self.get_dep('clang').get_install_path()
         host_tools_dir = self.get_dep('host-tools').get_install_path()
         libandroid_support_dir = self.get_dep(
             'libandroid_support').get_install_path()
@@ -1490,10 +1490,6 @@ class BaseToolchain(ndk.builds.Module):
         sysroot_dir = self.get_dep('sysroot').get_install_path()
         system_stl_dir = self.get_dep('system-stl').get_install_path()
 
-        if os.path.exists(install_dir):
-            shutil.rmtree(install_dir)
-
-        copy_tree(clang_dir, install_dir)
         copy_tree(sysroot_dir, os.path.join(install_dir, 'sysroot'))
 
         exe = '.exe' if self.host.startswith('windows') else ''
@@ -1621,8 +1617,9 @@ class Vulkan(ndk.builds.Module):
         print('Copying finished')
 
         build_cmd = [
-            'bash', vulkan_path + '/build-android/android-generate.sh',
-                    vulkan_path + '/registry'
+            'bash',
+            vulkan_path + '/build-android/android-generate.sh',
+            vulkan_path + '/registry',
         ]
         print('Generating generated layers...')
         subprocess.check_call(build_cmd)
@@ -1643,7 +1640,8 @@ class Toolchain(ndk.builds.Module):
     """
 
     name = 'toolchain'
-    path = 'toolchain'
+    # This is installed to the Clang location to avoid migration pain.
+    path = 'toolchains/llvm/prebuilt/{host}'
     notice_group = ndk.builds.NoticeGroup.TOOLCHAIN
     deps = {
         'base-toolchain',

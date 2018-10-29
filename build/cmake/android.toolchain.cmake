@@ -362,16 +362,6 @@ else()
   message(FATAL_ERROR "Invalid Android STL: ${ANDROID_STL}.")
 endif()
 
-# find_library searches a handful of paths as described by
-# https://cmake.org/cmake/help/v3.6/command/find_library.html. CMake doesn't
-# understand the Android sysroot layout, so we need to give the direct path to
-# the libraries rather than just the sysroot. Set up CMAKE_SYSTEM_LIBRARY_PATH
-# (https://cmake.org/cmake/help/v3.6/variable/CMAKE_SYSTEM_LIBRARY_PATH.html)
-# instead.
-list(APPEND CMAKE_SYSTEM_LIBRARY_PATH
-  "${ANDROID_NDK}/toolchain/sysroot/usr/lib/${ANDROID_TOOLCHAIN_NAME}/${ANDROID_PLATFORM_LEVEL}")
-
-# Toolchain.
 if(CMAKE_HOST_SYSTEM_NAME STREQUAL Linux)
   set(ANDROID_HOST_TAG linux-x86_64)
 elseif(CMAKE_HOST_SYSTEM_NAME STREQUAL Darwin)
@@ -379,11 +369,26 @@ elseif(CMAKE_HOST_SYSTEM_NAME STREQUAL Darwin)
 elseif(CMAKE_HOST_SYSTEM_NAME STREQUAL Windows)
   set(ANDROID_HOST_TAG windows-x86_64)
 endif()
-set(ANDROID_TOOLCHAIN_ROOT "${ANDROID_NDK}/toolchain")
-set(ANDROID_TOOLCHAIN_PREFIX "${ANDROID_TOOLCHAIN_ROOT}/bin/${ANDROID_TOOLCHAIN_NAME}-")
+
 if(CMAKE_HOST_SYSTEM_NAME STREQUAL Windows)
   set(ANDROID_TOOLCHAIN_SUFFIX .exe)
 endif()
+
+# Toolchain.
+set(ANDROID_TOOLCHAIN_ROOT
+  "${ANDROID_NDK}/toolchains/llvm/prebuilt/${ANDROID_HOST_TAG}")
+set(ANDROID_TOOLCHAIN_PREFIX
+  "${ANDROID_TOOLCHAIN_ROOT}/bin/${ANDROID_TOOLCHAIN_NAME}-")
+
+# find_library searches a handful of paths as described by
+# https://cmake.org/cmake/help/v3.6/command/find_library.html. CMake doesn't
+# understand the Android sysroot layout, so we need to give the direct path to
+# the libraries rather than just the sysroot. Set up CMAKE_SYSTEM_LIBRARY_PATH
+# (https://cmake.org/cmake/help/v3.6/variable/CMAKE_SYSTEM_LIBRARY_PATH.html)
+# instead.
+set(ANDROID_SYSROOT "${ANDROID_TOOLCHAIN_ROOT}/sysroot")
+list(APPEND CMAKE_SYSTEM_LIBRARY_PATH
+  "${ANDROID_SYSROOT}/usr/lib/${ANDROID_TOOLCHAIN_NAME}/${ANDROID_PLATFORM_LEVEL}")
 
 set(ANDROID_HOST_PREBUILTS "${ANDROID_NDK}/prebuilt/${ANDROID_HOST_TAG}")
 
@@ -419,7 +424,6 @@ set(ANDROID_RANLIB
 # This is unnecessary given the new toolchain layout, but Studio will not
 # recognize this as an Android build if there is no --sysroot flag.
 # TODO: Teach Studio to recognize Android builds based on --target.
-set(ANDROID_SYSROOT "${ANDROID_NDK}/toolchain/sysroot")
 list(APPEND ANDROID_COMPILER_FLAGS "--sysroot ${ANDROID_SYSROOT}")
 
 # Generic flags.
