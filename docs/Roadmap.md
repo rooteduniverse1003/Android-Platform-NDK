@@ -54,9 +54,26 @@ for building Android that should be lifted into the Clang driver. See [Issue
 
 [Issue 812]: https://github.com/android-ndk/ndk/issues/812
 
+### Default to lld (tentative)
+
+NDK r18 [made lld available](https://github.com/android-ndk/ndk/issues/683), r19
+encourages its use, and r20 will make it the default assuming there are no
+unresolved issues turned up in r19.
+
 ### Bugs
 
 See the [r20 hotlist](https://github.com/android-ndk/ndk/milestone/16).
+
+## NDK r21
+
+### Remove gold and bfd (tentative)
+
+If r20 was able to switch the default to lld and no major unresolved issues
+remained, we should remove gold and bfd.
+
+### Bugs
+
+See the [r21 hotlist](https://github.com/android-ndk/ndk/milestone/20).
 
 ---
 
@@ -113,12 +130,6 @@ that are currently difficult to build/package, let alone keep updated. We
 should offer (a) a tool to build open source projects, (b) a repository
 of prebuilts, (c) a command-line tool to add prebuilts to an ndk-build/cmake
 project, and (d) Studio integration to add prebuilts via a GUI.
-
-### lld linker
-
-NDK r18 [made lld available](https://github.com/android-ndk/ndk/issues/683),
-but we should make it the default (as it already is for the OS itself), and
-long-term aim to ship lld as our _only_ linker.
 
 ### lldb debugger
 
