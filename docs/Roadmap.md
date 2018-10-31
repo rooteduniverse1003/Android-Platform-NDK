@@ -46,7 +46,13 @@ See the [r19 hotlist](https://github.com/android-ndk/ndk/milestone/14).
 
 Estimated release: Q1 2019
 
-To be decided...
+### Iterate on r19 toolchain improvements
+
+r19 covers the bulk of the work, but there are still a handful of flags required
+for building Android that should be lifted into the Clang driver. See [Issue
+812] for more information.
+
+[Issue 812]: https://github.com/android-ndk/ndk/issues/812
 
 ### Bugs
 
@@ -55,11 +61,6 @@ See the [r20 hotlist](https://github.com/android-ndk/ndk/milestone/16).
 ---
 
 ## Future work
-
-### Better code-completion support
-
-NDK r17 added names for all function arguments, but tools such as vim
-and Visual Studio Code need a `compile_commands.json` file.
 
 ### Better documentation
 
@@ -93,10 +94,10 @@ but there are things we can do to improve the state of testing/code quality:
 
  * Test coverage support.
  * Add `gmock`.
- * Make the [GTest-as-JUnit] wrapper available to developers so developers can
-   integrate their C++ tests into Studio.
+ * Make [GTestJNI] available to developers via some some package manager so
+   developers can integrate their C++ tests into Studio.
 
-[GTest-as-JUnit]: https://android-review.googlesource.com/c/platform/cts/+/683355
+[GTestJNI]: https://github.com/danalbert/GTestJNI
 
 ### C++ Modules
 
@@ -195,6 +196,8 @@ in recent releases.
 ### NDK r18
 
 Removed GCC and gnustl/stlport. Added lld.
+
+Added `compile_commands.json` for better tooling support.
 
 ### NDK r17
 
