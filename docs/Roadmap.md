@@ -46,6 +46,26 @@ See the [r19 hotlist](https://github.com/android-ndk/ndk/milestone/14).
 
 Estimated release: Q1 2019
 
+### Weak symbols for API additions
+
+iOS developers are used to using weak symbols to refer to function that
+may be present in their equivalent of `targetSdkVersion` but not in their
+`minSdkVersion`. They use a run-time null check to decide whether the
+new function is available or not. Apparently clang also has some support
+for emitting a warning if you dereference one of these symbols without
+a corresponding null check.
+
+This seems like a more convenient option than is currently available
+on Android, especially since no currently shipping version of Android
+includes a function to check which version of Android you're running on.
+
+We might not want to make this the default (because it's such a break
+with historical practice, and might be surprising), but we should offer
+this as an option.
+
+An interesting technical problem here will be dealing with the `DT_NEEDED`
+situation for "I need this library (but it might not exist yet)".
+
 ### Iterate on r19 toolchain improvements
 
 r19 covers the bulk of the work, but there are still a handful of flags required
@@ -65,6 +85,22 @@ unresolved issues turned up in r19.
 See the [r20 hotlist](https://github.com/android-ndk/ndk/milestone/16).
 
 ## NDK r21
+
+Estimated release: Q2 2019
+
+### C++ Modules
+
+By Q2 Clang may have a complete enough implementation of the modules TS and
+Android may have a Clang with those changes available.
+
+At least for the current spec (which is in the process of merging with the Clang
+implementation, so could change), the NDK will need to:
+
+ 1. Support compiling module interfaces.
+ 2. Support either automated discovery (currently very messy) or specification
+    of module dependencies.
+ 3. Begin creating module interfaces for system libraries. Frameworks, libc,
+    libc++, etc.
 
 ### Remove gold and bfd (tentative)
 
@@ -115,13 +151,6 @@ but there are things we can do to improve the state of testing/code quality:
    developers can integrate their C++ tests into Studio.
 
 [GTestJNI]: https://github.com/danalbert/GTestJNI
-
-### C++ Modules
-
-Are C++ modules useful and is the clang implementation complete enough? How
-do we test? Is this only useful for libc/libm/libdl or for the NDK API too?
-Do we need any changes to ndk-build/cmake to enable this for user's code (as
-distinct from the system headers)?
 
 ### Easier access to common open-source libraries
 
@@ -174,26 +203,6 @@ We should send patches to the CMake implementation that will load as much
 information about the NDK as possible from tables we provide in the NDK.
 
 See [bug 463](https://github.com/android-ndk/ndk/issues/463) for discussion.
-
-### Weak symbols for API additions
-
-iOS developers are used to using weak symbols to refer to function that
-may be present in their equivalent of `targetSdkVersion` but not in their
-`minSdkVersion`. They use a run-time null check to decide whether the
-new function is available or not. Apparently clang also has some support
-for emitting a warning if you dereference one of these symbols without
-a corresponding null check.
-
-This seems like a more convenient option than is currently available
-on Android, especially since no currently shipping version of Android
-includes a function to check which version of Android you're running on.
-
-We might not want to make this the default (because it's such a break
-with historical practice, and might be surprising), but we should offer
-this as an option.
-
-An interesting technical problem here will be dealing with the `DT_NEEDED`
-situation for "I need this library (but it might not exist yet)".
 
 ---
 
