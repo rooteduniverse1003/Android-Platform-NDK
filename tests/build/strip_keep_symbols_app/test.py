@@ -35,7 +35,8 @@ def run_test(ndk_path, abi, api, build_flags):
         'V=1',
     ]
     proc = subprocess.Popen([ndk_build, '-C', project_path] + ndk_args,
-                            stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+                            stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+                            encoding='utf-8')
     out, _ = proc.communicate()
     if proc.returncode != 0:
         return proc.returncode == 0, out

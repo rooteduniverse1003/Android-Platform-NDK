@@ -14,8 +14,10 @@
 # limitations under the License.
 #
 """Graph classes and functions."""
+import functools
 
 
+@functools.total_ordering
 class Node(object):
     """A node in a directed graph."""
     def __init__(self, name, outs):
@@ -31,8 +33,14 @@ class Node(object):
     def __repr__(self):
         return self.name
 
-    def __cmp__(self, other):
-        return cmp(self.name, other.name)
+    def __eq__(self, other):
+        return self.name == other.name
+
+    def __le__(self, other):
+        return self.name < other.name
+
+    def __hash__(self):
+        return hash(str(self))
 
 
 class Graph(object):

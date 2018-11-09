@@ -2259,7 +2259,7 @@ def get_modules_to_build(module_names, arches):
         for build_module in split_module_by_arch(module, arches):
             build_modules.append(build_module)
 
-    return sorted(list(build_modules)), deps_only
+    return sorted(list(build_modules), key=str), deps_only
 
 
 ALL_MODULES = [
