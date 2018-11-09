@@ -19,10 +19,26 @@
 Differs from do_checkbuild.py because it launches a new Python interpreter,
 allowing this script to bootstrap our build with a specific version of Python.
 """
+import argparse
+import logging
+import os
 import subprocess
 import sys
 
+import ndk.bootstrap
 import ndk.paths
+
+
+def parse_args():
+    """Parses and returns command line arguments."""
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        '-v',
+        '--verbose',
+        action='count',
+        dest='verbosity',
+        help='Increase logging verbosity.')
+    return parser.parse_known_args()
 
 
 def main():
@@ -30,9 +46,18 @@ def main():
 
     Bootstraps the real checkbuild wrapper, do_checkbuild.py.
     """
-    subprocess.check_call(
-        ['/usr/bin/env', 'python',
-         ndk.paths.ndk_path('do_checkbuild.py')] + sys.argv[1:])
+    args, _ = parse_args()
+
+    if args.verbosity >= 2:
+        logging.basicConfig(level=logging.DEBUG)
+    else:
+        logging.basicConfig(level=logging.INFO)
+
+    python_install = ndk.bootstrap.bootstrap()
+    subprocess.check_call([
+        os.path.join(python_install, 'bin/python3'),
+        ndk.paths.ndk_path('do_checkbuild.py')
+    ] + sys.argv[1:])
 
 
 if __name__ == '__main__':
