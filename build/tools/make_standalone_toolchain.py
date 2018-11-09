@@ -24,7 +24,6 @@ import atexit
 from distutils.dir_util import copy_tree
 import inspect
 import logging
-import platform
 import os
 import shutil
 import stat
@@ -68,16 +67,16 @@ def get_triple(arch):
 
 def get_host_tag_or_die():
     """Return the host tag for this platform. Die if not supported."""
-    if platform.system() == 'Linux':
+    if sys.platform.startswith('linux'):
         return 'linux-x86_64'
-    elif platform.system() == 'Darwin':
+    elif sys.platform == 'darwin':
         return 'darwin-x86_64'
-    elif platform.system() == 'Windows':
+    elif sys.platform == 'win32' or sys.platform == 'cygwin':
         host_tag = 'windows-x86_64'
         if not os.path.exists(os.path.join(NDK_DIR, 'prebuilt', host_tag)):
             host_tag = 'windows'
         return host_tag
-    sys.exit('Unsupported platform: ' + platform.system())
+    sys.exit('Unsupported platform: ' + sys.platform)
 
 
 def get_toolchain_path_or_die(host_tag):
