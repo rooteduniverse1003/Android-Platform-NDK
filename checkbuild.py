@@ -1988,13 +1988,6 @@ class NdkWhichShortcut(ndk.builds.ScriptShortcutModule):
     windows_ext = ''  # There isn't really a Windows ndk-which.
 
 
-class NdkStackShortcut(ndk.builds.ScriptShortcutModule):
-    name = 'ndk-stack-shortcut'
-    path = 'ndk-stack'
-    script = 'prebuilt/{host}/bin/ndk-stack'
-    windows_ext = '.cmd'
-
-
 class NdkBuildShortcut(ndk.builds.ScriptShortcutModule):
     name = 'ndk-build-shortcut'
     path = 'ndk-build'
