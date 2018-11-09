@@ -24,6 +24,7 @@ import os
 import shutil
 import stat
 import subprocess
+from typing import Iterable, Optional, Set
 
 import ndk.abis
 import ndk.ext.shutil
@@ -56,9 +57,9 @@ class BuildContext(object):
 
 
 class Module(object):
-    name = None
-    path = None
-    deps = set()
+    name: Optional[str] = None
+    path: Optional[str] = None
+    deps: Set[str] = set()
 
     # Used to exclude a module from the build. If explicitly named it will
     # still be built, but it is not included by default.
@@ -267,7 +268,7 @@ class PackageModule(Module):
 
 
 class InvokeExternalBuildModule(Module):
-    script = None
+    script: Optional[str] = None
     arch_specific = False
 
     def build(self):
@@ -308,7 +309,7 @@ class FileModule(Module):
 
 
 class MultiFileModule(Module):
-    files = []
+    files: Iterable[str] = []
 
     def build(self):
         pass
@@ -321,8 +322,8 @@ class MultiFileModule(Module):
 
 
 class ScriptShortcutModule(Module):
-    script = None
-    windows_ext = None
+    script: Optional[str] = None
+    windows_ext: Optional[str] = None
 
     # These are all trivial shell scripts that we generated. No notice needed.
     no_notice = True

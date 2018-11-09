@@ -15,6 +15,7 @@
 # limitations under the License.
 #
 """Test for ndk.deps."""
+from typing import Set
 import unittest
 
 from ndk.deps import CyclicDependencyError
@@ -36,20 +37,20 @@ class CycleB(object):
 # A module with no dependents or dependencies. Should be immediately buildable.
 class Isolated(object):
     name = 'isolated'
-    deps = set()
+    deps: Set[str] = set()
 
 
 # A module that is not present in the build graph.
 class Unknown(object):
     name = 'unknown'
-    deps = set()
+    deps: Set[str] = set()
 
 
 # A simple chain of two modules. The first should be immediately buildable, and
 # the second should become buildable after it completes.
 class SimpleA(object):
     name = 'simpleA'
-    deps = set()
+    deps: Set[str] = set()
 
 
 class SimpleB(object):
@@ -60,7 +61,7 @@ class SimpleB(object):
 # Slightly more complex module graph.
 class ComplexA(object):
     name = 'complexA'
-    deps = set()
+    deps: Set[str] = set()
 
 
 class ComplexB(object):

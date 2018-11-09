@@ -49,6 +49,7 @@ import sys
 import tempfile
 import textwrap
 import traceback
+from typing import Dict
 
 from build.lib import build_support
 import ndk.abis
@@ -926,7 +927,7 @@ class Platforms(ndk.builds.Module):
     # ABI_ANDROID_API in crtbrand is an integer. We start counting the
     # codenamed releases from 9000 and increment for each additional release.
     # This is filled by get_apis.
-    codename_api_map = {}
+    codename_api_map: Dict[str, int] = {}
 
     # Shared with the sysroot, though the sysroot NOTICE actually includes a
     # lot more licenses. Platforms and Sysroot are essentially a single

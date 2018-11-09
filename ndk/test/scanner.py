@@ -16,6 +16,7 @@
 from __future__ import absolute_import
 
 import os
+from typing import List
 
 import ndk.test.spec
 import ndk.test.types
@@ -105,7 +106,7 @@ class BuildTestScanner(TestScanner):
 
 
 class LibcxxTestScanner(TestScanner):
-    ALL_TESTS = []
+    ALL_TESTS: List[str] = []
 
     def __init__(self, ndk_path):
         self.ndk_path = ndk_path

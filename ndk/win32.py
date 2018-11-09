@@ -60,7 +60,9 @@ class JOBOBJECT_EXTENDED_LIMIT_INFORMATION(ctypes.Structure):
     ]
 
 
-class UseLastErrorWinDLL(ctypes.WinDLL):
+# mypy needs to ignore this line because this only typechecks successfully for
+# Windows.
+class UseLastErrorWinDLL(ctypes.WinDLL):  # type: ignore
     def __init__(self, name, mode=ctypes.DEFAULT_MODE, handle=None):
         super(UseLastErrorWinDLL, self).__init__(name, mode, handle, use_last_error=True)
 
