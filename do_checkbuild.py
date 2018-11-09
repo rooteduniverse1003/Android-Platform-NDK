@@ -16,24 +16,11 @@
 #
 """Shortcut for ndk/checkbuild.py.
 
-Differs from do_checkbuild.py because it launches a new Python interpreter,
-allowing this script to bootstrap our build with a specific version of Python.
+Differs from the actual checkbuild.py in this directory because it uses the
+current Python interpreter.
 """
-import subprocess
-import sys
-
-import ndk.paths
-
-
-def main():
-    """Program entry point.
-
-    Bootstraps the real checkbuild wrapper, do_checkbuild.py.
-    """
-    subprocess.check_call(
-        ['/usr/bin/env', 'python',
-         ndk.paths.ndk_path('do_checkbuild.py')] + sys.argv[1:])
+import ndk.checkbuild
 
 
 if __name__ == '__main__':
-    main()
+    ndk.checkbuild.main()
