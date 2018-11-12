@@ -18,7 +18,7 @@ import functools
 
 
 @functools.total_ordering
-class Node(object):
+class Node:
     """A node in a directed graph."""
     def __init__(self, name, outs):
         """Initializes a Node.
@@ -43,7 +43,7 @@ class Node(object):
         return hash(str(self))
 
 
-class Graph(object):
+class Graph:
     """A directed graph."""
     def __init__(self, nodes):
         """Initializes a Graph.

@@ -26,7 +26,7 @@ import time
 import ndk.ansi
 
 
-class UiRenderer(object):
+class UiRenderer:
     def __init__(self, console):
         self.console = console
 
@@ -118,7 +118,7 @@ class DumbUiRenderer(UiRenderer):
         self.last_draw = time.time()
 
 
-class Ui(object):
+class Ui:
     def __init__(self, ui_renderer):
         self.ui_renderer = ui_renderer
 
@@ -154,7 +154,7 @@ class BuildProgressUi(Ui):
         return lines
 
 
-class DumbBuildProgressUi(object):
+class DumbBuildProgressUi:
     def clear(self):
         pass
 

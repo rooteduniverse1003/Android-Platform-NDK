@@ -46,7 +46,7 @@ def prove_acyclic(modules):
         raise CyclicDependencyError(cycle)
 
 
-class DependencyManager(object):
+class DependencyManager:
     """Tracks module dependencies.
 
     The DependencyManager computes module ordering based on the dependency

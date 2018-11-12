@@ -16,14 +16,14 @@
 """Defines the format of test results from the test runner."""
 
 
-class SingleResultReport(object):
+class SingleResultReport:
     """Stores the result of a single test with its config info."""
     def __init__(self, suite, result):
         self.suite = suite
         self.result = result
 
 
-class Report(object):
+class Report:
     """Stores details of a test run.
 
     A "test run" means any number of tests run in any number of (unique)

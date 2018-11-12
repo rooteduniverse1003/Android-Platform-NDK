@@ -17,7 +17,7 @@
 import ndk.termcolor
 
 
-class TestResult(object):
+class TestResult:
     def __init__(self, test):
         self.test = test
 

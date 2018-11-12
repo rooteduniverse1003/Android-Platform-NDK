@@ -119,7 +119,7 @@ def _run_test(worker, suite, test, obj_dir, dist_dir, test_filters):
     return suite, result, additional_tests
 
 
-class TestBuilder(object):
+class TestBuilder:
     def __init__(self, test_spec, test_options, printer):
         self.printer = printer
         self.tests = {}
@@ -261,7 +261,7 @@ class TestBuilder(object):
                 ui.clear()
 
 
-class LoadRestrictingWorkQueue(object):
+class LoadRestrictingWorkQueue:
     """Specialized work queue for building tests.
 
     Building the libc++ tests is very demanding and we should not be running

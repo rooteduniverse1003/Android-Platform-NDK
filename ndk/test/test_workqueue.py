@@ -29,7 +29,7 @@ def put(_worker, i):
     return i
 
 
-class Functor(object):
+class Functor:
     """Functor that returns the argument passed to the constructor."""
     def __init__(self, value):
         self.value = value

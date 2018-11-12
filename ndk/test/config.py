@@ -17,7 +17,7 @@ import imp
 import os
 
 
-class TestConfig(object):
+class TestConfig:
     """Describes the status of a test.
 
     Each test directory can contain a "test_config.py" file that describes
@@ -42,7 +42,7 @@ class TestConfig(object):
     supported), will be used.
     """
 
-    class NullTestConfig(object):
+    class NullTestConfig:
         def __init__(self):
             pass
 

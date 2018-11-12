@@ -16,7 +16,7 @@
 """Configuration objects for describing test runs."""
 
 
-class TestOptions(object):
+class TestOptions:
     """Configuration for how tests should be run."""
     def __init__(self, src_dir, ndk_path, out_dir, test_filter=None,
                  clean=True, build_report=None):
@@ -38,14 +38,14 @@ class TestOptions(object):
         self.build_report = build_report
 
 
-class TestSpec(object):
+class TestSpec:
     """Configuration for which tests should be run."""
     def __init__(self, abis, suites):
         self.abis = abis
         self.suites = suites
 
 
-class BuildConfiguration(object):
+class BuildConfiguration:
     """A configuration for a single test build.
 
     A TestSpec describes which BuildConfigurations should be included in a test

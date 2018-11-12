@@ -16,7 +16,7 @@
 import fnmatch
 
 
-class FilterFunc(object):
+class FilterFunc:
     def __init__(self, pattern):
         self.pattern = pattern
 
@@ -24,7 +24,7 @@ class FilterFunc(object):
         return fnmatch.fnmatch(test_name, self.pattern)
 
 
-class TestFilter(object):
+class TestFilter:
     def __init__(self, patterns):
         self.early_filters = []
         self.late_filters = []

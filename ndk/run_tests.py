@@ -69,7 +69,7 @@ def shell_nocheck_wrap_errors(device, cmd):
 
 # TODO: Extract a common interface from this and ndk.test.types.Test for the
 # printer.
-class TestCase(object):
+class TestCase:
     """A test case found in the dist directory.
 
     The test directory is structured as tests/dist/$CONFIG/$BUILD_SYTEM/...
@@ -195,7 +195,7 @@ class LibcxxTestCase(TestCase):
         return shell_nocheck_wrap_errors(device, [cmd])
 
 
-class TestRun(object):
+class TestRun:
     """A test case mapped to the device group it will run on."""
     def __init__(self, test_case, device_group):
         self.test_case = test_case
@@ -639,7 +639,7 @@ def parse_args():
     return parser.parse_args()
 
 
-class ConfigFilter(object):
+class ConfigFilter:
     def __init__(self, test_config):
         test_spec = ndk.test.builder.test_spec_from_config(test_config)
         self.config_abis = test_spec.abis
@@ -648,7 +648,7 @@ class ConfigFilter(object):
         return build_config.abi in self.config_abis
 
 
-class ShardingWorkQueue(object):
+class ShardingWorkQueue:
     def __init__(self, device_groups, procs_per_device):
         self.manager = multiprocessing.Manager()
         self.result_queue = self.manager.Queue()
@@ -689,7 +689,7 @@ class ShardingWorkQueue(object):
         return self.num_tasks == 0
 
 
-class Results(object):
+class Results:
     def __init__(self):
         self.success = None
         self.failure_message = None

@@ -146,7 +146,7 @@ class Device(adb.AndroidDevice):
         return hash(self.serial)
 
 
-class DeviceShardingGroup(object):
+class DeviceShardingGroup:
     """A collection of devices that should be identical for testing purposes.
 
     For the moment, devices are only identical for testing purposes if they are
@@ -206,7 +206,7 @@ class DeviceShardingGroup(object):
             self.is_debuggable, tuple(self.abis), tuple(self.devices)))
 
 
-class DeviceFleet(object):
+class DeviceFleet:
     """A collection of devices that can be used for testing."""
     def __init__(self, test_configurations):
         """Initializes a device fleet.

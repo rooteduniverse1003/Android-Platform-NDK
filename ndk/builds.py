@@ -36,7 +36,7 @@ class ModuleValidateError(RuntimeError):
     pass
 
 
-class NoticeGroup(object):
+class NoticeGroup:
     """An enum describing NOTICE file groupings.
 
     The NDK ships two NOTICE files: one for the toolchain, and one for
@@ -46,7 +46,7 @@ class NoticeGroup(object):
     TOOLCHAIN = 2
 
 
-class BuildContext(object):
+class BuildContext:
     def __init__(self, out_dir, dist_dir, modules, host, arches, build_number):
         self.out_dir = out_dir
         self.dist_dir = dist_dir
@@ -56,7 +56,7 @@ class BuildContext(object):
         self.build_number = build_number
 
 
-class Module(object):
+class Module:
     name: Optional[str] = None
     path: Optional[str] = None
     deps: Set[str] = set()

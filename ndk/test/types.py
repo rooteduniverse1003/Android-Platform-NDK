@@ -142,7 +142,7 @@ def _run_cmake_build_test(test, obj_dir, dist_dir, test_dir, ndk_path,
     return ndk.test.result.Success(test)
 
 
-class Test(object):
+class Test:
     def __init__(self, name, test_dir, config, ndk_path):
         self.name = name
         self.test_dir = test_dir

@@ -22,7 +22,7 @@ import ndk.test.spec
 import ndk.test.types
 
 
-class TestScanner(object):
+class TestScanner:
     """Creates a Test objects for a given test directory.
 
     A test scanner is used to turn a test directory into a list of Tests for

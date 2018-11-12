@@ -24,57 +24,57 @@ from ndk.deps import DependencyManager
 
 # A basic cycle. The cycle logic is tested more thoroughly in test_graph.py,
 # but we want to ensure that CyclicDependencyError is formatted nicely.
-class CycleA(object):
+class CycleA:
     name = 'cycleA'
     deps = {'cycleB'}
 
 
-class CycleB(object):
+class CycleB:
     name = 'cycleB'
     deps = {'cycleA'}
 
 
 # A module with no dependents or dependencies. Should be immediately buildable.
-class Isolated(object):
+class Isolated:
     name = 'isolated'
     deps: Set[str] = set()
 
 
 # A module that is not present in the build graph.
-class Unknown(object):
+class Unknown:
     name = 'unknown'
     deps: Set[str] = set()
 
 
 # A simple chain of two modules. The first should be immediately buildable, and
 # the second should become buildable after it completes.
-class SimpleA(object):
+class SimpleA:
     name = 'simpleA'
     deps: Set[str] = set()
 
 
-class SimpleB(object):
+class SimpleB:
     name = 'simpleB'
     deps = {'simpleA'}
 
 
 # Slightly more complex module graph.
-class ComplexA(object):
+class ComplexA:
     name = 'complexA'
     deps: Set[str] = set()
 
 
-class ComplexB(object):
+class ComplexB:
     name = 'complexB'
     deps = {'complexA'}
 
 
-class ComplexC(object):
+class ComplexC:
     name = 'complexC'
     deps = {'complexA'}
 
 
-class ComplexD(object):
+class ComplexD:
     name = 'complexD'
     deps = {'complexA', 'complexB'}
 

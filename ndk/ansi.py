@@ -90,7 +90,7 @@ def get_console_size_windows():
     raise NotImplementedError
 
 
-class Console(object):
+class Console:
     def __init__(self, stream):
         self.stream = stream
 

@@ -32,7 +32,7 @@ def format_stats_str(report, use_color):
         t=report.num_tests)
 
 
-class Printer(object):
+class Printer:
     def print_result(self, result):
         raise NotImplementedError
 
