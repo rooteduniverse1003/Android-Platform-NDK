@@ -28,7 +28,10 @@ import argparse
 import collections
 import contextlib
 import copy
+# pylint: disable=import-error,no-name-in-module
+# https://github.com/PyCQA/pylint/issues/73
 from distutils.dir_util import copy_tree
+# pylint: enable=import-error,no-name-in-module
 import glob
 import inspect
 import json
@@ -46,8 +49,9 @@ import sys
 import tempfile
 import textwrap
 import traceback
+from typing import Dict
 
-import build.lib.build_support as build_support
+from build.lib import build_support
 import ndk.abis
 import ndk.ansi
 import ndk.builds
@@ -923,7 +927,7 @@ class Platforms(ndk.builds.Module):
     # ABI_ANDROID_API in crtbrand is an integer. We start counting the
     # codenamed releases from 9000 and increment for each additional release.
     # This is filled by get_apis.
-    codename_api_map = {}
+    codename_api_map: Dict[str, int] = {}
 
     # Shared with the sysroot, though the sysroot NOTICE actually includes a
     # lot more licenses. Platforms and Sysroot are essentially a single
@@ -1816,7 +1820,7 @@ class NdkBuild(ndk.builds.PackageModule):
     }
 
     def install(self):
-        super(NdkBuild, self).install()
+        super().install()
 
         self.generate_language_specific_metadata('abis', abis_meta_transform)
 
@@ -2038,7 +2042,7 @@ class Meta(ndk.builds.PackageModule):
     }
 
     def install(self):
-        super(Meta, self).install()
+        super().install()
         self.create_system_libs_meta()
 
     def create_system_libs_meta(self):

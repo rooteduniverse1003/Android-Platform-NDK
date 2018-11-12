@@ -19,7 +19,7 @@ import unittest
 import ndk.test.report
 
 
-class MockTest(object):
+class MockTest:
     def __init__(self, name=''):
         self.name = name
 

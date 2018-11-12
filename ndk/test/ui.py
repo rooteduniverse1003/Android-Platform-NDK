@@ -44,7 +44,7 @@ class TestProgressUi(ndk.ui.Ui):
 
     def __init__(self, ui_renderer, show_worker_status, show_device_groups,
                  workqueue):
-        super(TestProgressUi, self).__init__(ui_renderer)
+        super().__init__(ui_renderer)
         self.show_worker_status = show_worker_status
         self.show_device_groups = show_device_groups
         self.workqueue = workqueue
@@ -87,7 +87,7 @@ class TestBuildProgressUi(ndk.ui.Ui):
     NUM_TESTS_DIGITS = 6
 
     def __init__(self, ui_renderer, show_worker_status, workqueue):
-        super(TestBuildProgressUi, self).__init__(ui_renderer)
+        super().__init__(ui_renderer)
         self.show_worker_status = show_worker_status
         self.workqueue = workqueue
 

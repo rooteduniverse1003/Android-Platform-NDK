@@ -26,7 +26,7 @@ import time
 import ndk.ansi
 
 
-class UiRenderer(object):
+class UiRenderer:
     def __init__(self, console):
         self.console = console
 
@@ -42,7 +42,7 @@ class AnsiUiRenderer(UiRenderer):
     debug_draw_delay = 0.1
 
     def __init__(self, console, debug_draw=False):
-        super(AnsiUiRenderer, self).__init__(console)
+        super().__init__(console)
         self.last_rendered_lines = []
         self.debug_draw = debug_draw
 
@@ -92,7 +92,7 @@ class AnsiUiRenderer(UiRenderer):
 
 class DumbUiRenderer(UiRenderer):
     def __init__(self, console, redraw_rate=30):
-        super(DumbUiRenderer, self).__init__(console)
+        super().__init__(console)
         self.redraw_rate = redraw_rate
         self.last_draw = None
 
@@ -118,7 +118,7 @@ class DumbUiRenderer(UiRenderer):
         self.last_draw = time.time()
 
 
-class Ui(object):
+class Ui:
     def __init__(self, ui_renderer):
         self.ui_renderer = ui_renderer
 
@@ -142,7 +142,7 @@ def get_build_progress_ui(console, workqueue):
 
 class BuildProgressUi(Ui):
     def __init__(self, ui_renderer, workqueue):
-        super(BuildProgressUi, self).__init__(ui_renderer)
+        super().__init__(ui_renderer)
         self.workqueue = workqueue
 
     def get_ui_lines(self):
@@ -154,7 +154,7 @@ class BuildProgressUi(Ui):
         return lines
 
 
-class DumbBuildProgressUi(object):
+class DumbBuildProgressUi:
     def clear(self):
         pass
 
@@ -197,7 +197,7 @@ class WorkQueueUi(Ui):
     NUM_TESTS_DIGITS = 6
 
     def __init__(self, ui_renderer, show_worker_status, workqueue):
-        super(WorkQueueUi, self).__init__(ui_renderer)
+        super().__init__(ui_renderer)
         self.show_worker_status = show_worker_status
         self.workqueue = workqueue
 

@@ -24,6 +24,7 @@ import os
 import shutil
 import stat
 import subprocess
+from typing import Iterable, Optional, Set
 
 import ndk.abis
 import ndk.ext.shutil
@@ -35,7 +36,7 @@ class ModuleValidateError(RuntimeError):
     pass
 
 
-class NoticeGroup(object):
+class NoticeGroup:
     """An enum describing NOTICE file groupings.
 
     The NDK ships two NOTICE files: one for the toolchain, and one for
@@ -45,7 +46,7 @@ class NoticeGroup(object):
     TOOLCHAIN = 2
 
 
-class BuildContext(object):
+class BuildContext:
     def __init__(self, out_dir, dist_dir, modules, host, arches, build_number):
         self.out_dir = out_dir
         self.dist_dir = dist_dir
@@ -55,10 +56,10 @@ class BuildContext(object):
         self.build_number = build_number
 
 
-class Module(object):
-    name = None
-    path = None
-    deps = set()
+class Module:
+    name: Optional[str] = None
+    path: Optional[str] = None
+    deps: Set[str] = set()
 
     # Used to exclude a module from the build. If explicitly named it will
     # still be built, but it is not included by default.
@@ -238,7 +239,7 @@ class PackageModule(Module):
         return os.path.join(self.src, 'NOTICE')
 
     def validate(self):
-        super(PackageModule, self).validate()
+        super().validate()
 
         if ndk.packaging.package_varies_by(self.path, 'abi'):
             raise self.validate_error(
@@ -267,7 +268,7 @@ class PackageModule(Module):
 
 
 class InvokeExternalBuildModule(Module):
-    script = None
+    script: Optional[str] = None
     arch_specific = False
 
     def build(self):
@@ -308,7 +309,7 @@ class FileModule(Module):
 
 
 class MultiFileModule(Module):
-    files = []
+    files: Iterable[str] = []
 
     def build(self):
         pass
@@ -321,14 +322,14 @@ class MultiFileModule(Module):
 
 
 class ScriptShortcutModule(Module):
-    script = None
-    windows_ext = None
+    script: Optional[str] = None
+    windows_ext: Optional[str] = None
 
     # These are all trivial shell scripts that we generated. No notice needed.
     no_notice = True
 
     def validate(self):
-        super(ScriptShortcutModule, self).validate()
+        super().validate()
 
         if ndk.packaging.package_varies_by(self.script, 'abi'):
             raise self.validate_error(

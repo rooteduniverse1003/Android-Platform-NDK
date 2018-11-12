@@ -75,7 +75,7 @@ def kill_process_group(group):
         os.kill(0, signal.SIGTERM)
 
 
-class Worker(object):
+class Worker:
     IDLE_STATUS = 'IDLE'
     EXCEPTION_STATUS = 'EXCEPTION'
 
@@ -153,7 +153,7 @@ class Worker(object):
         logger().debug('worker %d exiting', os.getpid())
 
 
-class Task(object):
+class Task:
     """A task to be executed by a worker process."""
     def __init__(self, func, args, kwargs):
         """Creates a task.
@@ -172,7 +172,7 @@ class Task(object):
         return self.func(worker_data, *self.args, **self.kwargs)
 
 
-class ProcessPoolWorkQueue(object):
+class ProcessPoolWorkQueue:
     """A pool of processes for executing work asynchronously."""
 
     join_timeout = 8  # Timeout for join before trying SIGKILL.
@@ -275,12 +275,12 @@ class ProcessPoolWorkQueue(object):
             self.workers.append(worker)
 
 
-class DummyWorker(object):
+class DummyWorker:
     def __init__(self, data):
         self.data = data
 
 
-class DummyWorkQueue(object):
+class DummyWorkQueue:
     """A fake WorkQueue that does not parallelize.
 
     Useful for debugging when trying to determine if an issue is being caused

@@ -90,7 +90,7 @@ def get_console_size_windows():
     raise NotImplementedError
 
 
-class Console(object):
+class Console:
     def __init__(self, stream):
         self.stream = stream
 
@@ -124,7 +124,7 @@ class AnsiConsole(Console):
     SHOW_CURSOR = '\033[?25h'
 
     def __init__(self, stream):
-        super(AnsiConsole, self).__init__(stream)
+        super().__init__(stream)
         self.smart_console = True
         self._width = None
         self._height = None
@@ -170,7 +170,7 @@ class AnsiConsole(Console):
 
 class DumbConsole(Console):
     def __init__(self, stream):
-        super(DumbConsole, self).__init__(stream)
+        super().__init__(stream)
         self.smart_console = False
 
     def clear_lines(self, _num_lines):

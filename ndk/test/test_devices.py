@@ -23,8 +23,8 @@ import ndk.test.spec
 
 
 class MockDevice(ndk.test.devices.Device):
-    def __init__(self, version, abis):  # pylint: disable=super-on-old-class
-        super(MockDevice, self).__init__('')
+    def __init__(self, version, abis):
+        super().__init__('')
         self._version = version
         self._abis = abis
 

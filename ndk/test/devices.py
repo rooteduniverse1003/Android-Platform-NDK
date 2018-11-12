@@ -38,10 +38,9 @@ def logger():
 
 class Device(adb.AndroidDevice):
     """A device to be used for testing."""
-    # pylint: disable=super-on-old-class
     # pylint: disable=no-member
     def __init__(self, serial, precache=False):
-        super(Device, self).__init__(serial)
+        super().__init__(serial)
         self._did_cache = False
         self._cached_abis = None
         self._ro_build_characteristics = None
@@ -146,7 +145,7 @@ class Device(adb.AndroidDevice):
         return hash(self.serial)
 
 
-class DeviceShardingGroup(object):
+class DeviceShardingGroup:
     """A collection of devices that should be identical for testing purposes.
 
     For the moment, devices are only identical for testing purposes if they are
@@ -206,7 +205,7 @@ class DeviceShardingGroup(object):
             self.is_debuggable, tuple(self.abis), tuple(self.devices)))
 
 
-class DeviceFleet(object):
+class DeviceFleet:
     """A collection of devices that can be used for testing."""
     def __init__(self, test_configurations):
         """Initializes a device fleet.

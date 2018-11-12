@@ -19,7 +19,7 @@ from __future__ import absolute_import
 import os
 import unittest
 
-import mock
+from unittest import mock
 
 import ndk.config
 import ndk.hosts

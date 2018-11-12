@@ -32,7 +32,7 @@ def format_stats_str(report, use_color):
         t=report.num_tests)
 
 
-class Printer(object):
+class Printer:
     def print_result(self, result):
         raise NotImplementedError
 
@@ -71,5 +71,4 @@ class FilePrinter(Printer):
 
 class StdoutPrinter(FilePrinter):
     def __init__(self, use_color=None, show_all=False, quiet=False):
-        super(StdoutPrinter, self).__init__(
-            sys.stdout, use_color, show_all, quiet)
+        super().__init__(sys.stdout, use_color, show_all, quiet)
