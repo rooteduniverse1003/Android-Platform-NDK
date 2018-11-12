@@ -161,7 +161,7 @@ class Test:
 
 class BuildTest(Test):
     def __init__(self, name, test_dir, config, ndk_path):
-        super(BuildTest, self).__init__(name, test_dir, config, ndk_path)
+        super().__init__(name, test_dir, config, ndk_path)
 
         if self.api is None:
             raise ValueError
@@ -230,7 +230,7 @@ class PythonBuildTest(BuildTest):
         if api is None:
             api = ndk.abis.min_api_for_abi(config.abi)
         config = ndk.test.spec.BuildConfiguration(config.abi, api)
-        super(PythonBuildTest, self).__init__(name, test_dir, config, ndk_path)
+        super().__init__(name, test_dir, config, ndk_path)
 
         if self.abi not in ndk.abis.ALL_ABIS:
             raise ValueError('{} is not a valid ABI'.format(self.abi))
@@ -268,7 +268,7 @@ class ShellBuildTest(BuildTest):
         if api is None:
             api = ndk.abis.min_api_for_abi(config.abi)
         config = ndk.test.spec.BuildConfiguration(config.abi, api)
-        super(ShellBuildTest, self).__init__(name, test_dir, config, ndk_path)
+        super().__init__(name, test_dir, config, ndk_path)
 
     def get_build_dir(self, out_dir):
         return os.path.join(out_dir, str(self.config), 'build.sh', self.name)
@@ -350,7 +350,7 @@ class NdkBuildTest(BuildTest):
     def __init__(self, name, test_dir, config, ndk_path, dist):
         api = _get_or_infer_app_platform(config.api, test_dir, config.abi)
         config = ndk.test.spec.BuildConfiguration(config.abi, api)
-        super(NdkBuildTest, self).__init__(name, test_dir, config, ndk_path)
+        super().__init__(name, test_dir, config, ndk_path)
         self.dist = dist
 
     def get_dist_dir(self, obj_dir, dist_dir):
@@ -376,7 +376,7 @@ class CMakeBuildTest(BuildTest):
     def __init__(self, name, test_dir, config, ndk_path, dist):
         api = _get_or_infer_app_platform(config.api, test_dir, config.abi)
         config = ndk.test.spec.BuildConfiguration(config.abi, api)
-        super(CMakeBuildTest, self).__init__(name, test_dir, config, ndk_path)
+        super().__init__(name, test_dir, config, ndk_path)
         self.dist = dist
 
     def get_dist_dir(self, obj_dir, dist_dir):
@@ -492,7 +492,7 @@ class LibcxxTest(Test):
         if config.api is None:
             config.api = ndk.abis.min_api_for_abi(config.abi)
 
-        super(LibcxxTest, self).__init__(name, test_dir, config, ndk_path)
+        super().__init__(name, test_dir, config, ndk_path)
 
     @property
     def abi(self):
@@ -652,7 +652,7 @@ class XunitResult(Test):
     already handled for us by the libc++ test runner.
     """
     def __init__(self, name, test_base_dir, test_dir, config, ndk_path):
-        super(XunitResult, self).__init__(name, test_dir, config, ndk_path)
+        super().__init__(name, test_dir, config, ndk_path)
         self.test_base_dir = test_base_dir
 
     def run(self, _out_dir, _dist_dir, _test_filters):
@@ -686,8 +686,7 @@ class XunitSuccess(XunitResult):
 
 class XunitFailure(XunitResult):
     def __init__(self, name, test_base_dir, test_dir, text, config, ndk_path):
-        super(XunitFailure, self).__init__(
-            name, test_base_dir, test_dir, config, ndk_path)
+        super().__init__(name, test_base_dir, test_dir, config, ndk_path)
         self.text = text
 
     def run(self, _out_dir, _dist_dir, _test_filters):

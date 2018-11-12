@@ -38,10 +38,9 @@ def logger():
 
 class Device(adb.AndroidDevice):
     """A device to be used for testing."""
-    # pylint: disable=super-on-old-class
     # pylint: disable=no-member
     def __init__(self, serial, precache=False):
-        super(Device, self).__init__(serial)
+        super().__init__(serial)
         self._did_cache = False
         self._cached_abis = None
         self._ro_build_characteristics = None

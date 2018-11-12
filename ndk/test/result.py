@@ -36,7 +36,7 @@ class TestResult:
 
 class Failure(TestResult):
     def __init__(self, test, message):
-        super(Failure, self).__init__(test)
+        super().__init__(test)
         self.message = message
 
     def passed(self):
@@ -65,7 +65,7 @@ class Success(TestResult):
 
 class Skipped(TestResult):
     def __init__(self, test, reason):
-        super(Skipped, self).__init__(test)
+        super().__init__(test)
         self.reason = reason
 
     def passed(self):
@@ -82,7 +82,7 @@ class Skipped(TestResult):
 
 class ExpectedFailure(TestResult):
     def __init__(self, test, broken_config, bug):
-        super(ExpectedFailure, self).__init__(test)
+        super().__init__(test)
         self.broken_config = broken_config
         self.bug = bug
 
@@ -101,7 +101,7 @@ class ExpectedFailure(TestResult):
 
 class UnexpectedSuccess(TestResult):
     def __init__(self, test, broken_config, bug):
-        super(UnexpectedSuccess, self).__init__(test)
+        super().__init__(test)
         self.broken_config = broken_config
         self.bug = bug
 

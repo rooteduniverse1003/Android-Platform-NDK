@@ -1820,7 +1820,7 @@ class NdkBuild(ndk.builds.PackageModule):
     }
 
     def install(self):
-        super(NdkBuild, self).install()
+        super().install()
 
         self.generate_language_specific_metadata('abis', abis_meta_transform)
 
@@ -2042,7 +2042,7 @@ class Meta(ndk.builds.PackageModule):
     }
 
     def install(self):
-        super(Meta, self).install()
+        super().install()
         self.create_system_libs_meta()
 
     def create_system_libs_meta(self):

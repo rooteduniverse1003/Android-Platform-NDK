@@ -239,7 +239,7 @@ class PackageModule(Module):
         return os.path.join(self.src, 'NOTICE')
 
     def validate(self):
-        super(PackageModule, self).validate()
+        super().validate()
 
         if ndk.packaging.package_varies_by(self.path, 'abi'):
             raise self.validate_error(
@@ -329,7 +329,7 @@ class ScriptShortcutModule(Module):
     no_notice = True
 
     def validate(self):
-        super(ScriptShortcutModule, self).validate()
+        super().validate()
 
         if ndk.packaging.package_varies_by(self.script, 'abi'):
             raise self.validate_error(

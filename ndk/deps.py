@@ -21,9 +21,8 @@ class CyclicDependencyError(RuntimeError):
     """An error indicating a cyclic dependency in the module graph."""
     def __init__(self, modules):
         """Initializes a CyclicDependencyError."""
-        super(CyclicDependencyError, self).__init__(
-            'Detected cyclic dependency: {}'.format(
-                ' -> '.join([m.name for m in modules])))
+        super().__init__('Detected cyclic dependency: {}'.format(' -> '.join(
+            [m.name for m in modules])))
 
 
 def prove_acyclic(modules):

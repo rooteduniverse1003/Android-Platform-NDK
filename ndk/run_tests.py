@@ -105,8 +105,7 @@ class BasicTestCase(TestCase):
     def __init__(self, suite, executable, test_src_dir, config, build_system,
                  device_dir):
         name = '.'.join([suite, executable])
-        super(BasicTestCase, self).__init__(
-            name, test_src_dir, config, build_system, device_dir)
+        super().__init__(name, test_src_dir, config, build_system, device_dir)
 
         self.suite = suite
         self.executable = executable

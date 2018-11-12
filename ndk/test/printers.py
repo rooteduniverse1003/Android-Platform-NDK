@@ -71,5 +71,4 @@ class FilePrinter(Printer):
 
 class StdoutPrinter(FilePrinter):
     def __init__(self, use_color=None, show_all=False, quiet=False):
-        super(StdoutPrinter, self).__init__(
-            sys.stdout, use_color, show_all, quiet)
+        super().__init__(sys.stdout, use_color, show_all, quiet)

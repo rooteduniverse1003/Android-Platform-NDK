@@ -175,7 +175,7 @@ class DeviceTestConfig(TestConfig):
         # pylint: enable=unused-argument
 
     def __init__(self, file_path):
-        super(DeviceTestConfig, self).__init__(file_path)
+        super().__init__(file_path)
 
         try:
             self.run_broken = self.module.run_broken

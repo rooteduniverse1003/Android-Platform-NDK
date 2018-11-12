@@ -64,7 +64,7 @@ class JOBOBJECT_EXTENDED_LIMIT_INFORMATION(ctypes.Structure):
 # Windows.
 class UseLastErrorWinDLL(ctypes.WinDLL):  # type: ignore
     def __init__(self, name, mode=ctypes.DEFAULT_MODE, handle=None):
-        super(UseLastErrorWinDLL, self).__init__(name, mode, handle, use_last_error=True)
+        super().__init__(name, mode, handle, use_last_error=True)
 
 _LOADER = ctypes.LibraryLoader(UseLastErrorWinDLL)
 
