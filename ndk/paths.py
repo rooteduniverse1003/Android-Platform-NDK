@@ -29,8 +29,7 @@ THIS_DIR = os.path.realpath(os.path.dirname(__file__))
 
 
 def android_path(*args):
-    top = os.path.realpath(os.path.join(THIS_DIR, '../..'))
-    return os.path.normpath(os.path.join(top, *args))
+    return os.path.normpath(os.path.join(THIS_DIR, '../../', *args))
 
 
 def ndk_path(*args):
