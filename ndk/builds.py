@@ -24,7 +24,7 @@ import os
 import shutil
 import stat
 import subprocess
-from typing import Iterable, Set
+from typing import Iterable, Optional, Set
 
 import ndk.abis
 import ndk.ext.shutil
@@ -69,7 +69,7 @@ class Module:
     # interface is a single path, not a list. For the rare modules that have
     # multiple notice files (such as yasm), the notices property should be
     # overrided. By default this property will return `[self.notice]`.
-    notice = None
+    notice: Optional[str] = None
 
     # Not all components need a notice (stub scripts, basic things like the
     # readme and changelog, etc), but this is opt-out.
@@ -232,7 +232,7 @@ class Module:
 
 
 class PackageModule(Module):
-    src = None
+    src: str
     create_repo_prop = False
 
     def default_notice_path(self):
@@ -296,7 +296,7 @@ class InvokeBuildModule(InvokeExternalBuildModule):
 
 
 class FileModule(Module):
-    src = None
+    src: str
 
     # Used for things like the readme and the changelog. No notice needed.
     no_notice = True
