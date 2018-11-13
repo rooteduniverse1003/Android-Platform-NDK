@@ -398,7 +398,7 @@ class PythonPackage(Module):
     def build(self):
         cwd = os.path.dirname(self.path)
         subprocess.check_call(
-            ['python', self.path, 'sdist', '-d', self.out_dir], cwd=cwd)
+            ['python3', self.path, 'sdist', '-d', self.out_dir], cwd=cwd)
 
     def install(self):
         pass
@@ -407,7 +407,7 @@ class PythonPackage(Module):
 def _invoke_build(script, args):
     if args is None:
         args = []
-    subprocess.check_call([ndk.paths.android_path(script)] + args)
+    subprocess.check_call(['python3', ndk.paths.android_path(script)] + args)
 
 
 def invoke_build(script, args=None):
