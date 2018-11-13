@@ -18,13 +18,17 @@ from __future__ import absolute_import
 
 import os
 import sys
+from typing import NewType
+
+
+Host = NewType('Host', str)
 
 
 ALL_HOSTS = (
-    'darwin',
-    'linux',
-    'windows',
-    'windows64',
+    Host('darwin'),
+    Host('linux'),
+    Host('windows'),
+    Host('windows64'),
 )
 
 

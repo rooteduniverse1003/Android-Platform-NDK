@@ -14,6 +14,10 @@
 # limitations under the License.
 #
 """Constants and helper functions for NDK ABIs."""
+from typing import NewType
+
+
+Arch = NewType('Arch', str)
 
 
 LP32_ABIS = (
@@ -32,10 +36,10 @@ ALL_ABIS = sorted(LP32_ABIS + LP64_ABIS)
 
 
 ALL_ARCHITECTURES = (
-    'arm',
-    'arm64',
-    'x86',
-    'x86_64',
+    Arch('arm'),
+    Arch('arm64'),
+    Arch('x86'),
+    Arch('x86_64'),
 )
 
 

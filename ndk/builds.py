@@ -19,12 +19,13 @@ Note: this isn't the ndk-build API, but the API for building the NDK itself.
 """
 from __future__ import absolute_import
 
+from enum import auto, Enum, unique
 import ntpath
 import os
 import shutil
 import stat
 import subprocess
-from typing import Iterable, Optional, Set
+from typing import Iterable, List, Optional, Set
 
 import ndk.abis
 import ndk.ext.shutil
@@ -33,21 +34,27 @@ import ndk.paths
 
 
 class ModuleValidateError(RuntimeError):
+    """The error raised when module validation fails."""
     pass
 
 
-class NoticeGroup:
+@unique
+class NoticeGroup(Enum):
     """An enum describing NOTICE file groupings.
 
     The NDK ships two NOTICE files: one for the toolchain, and one for
     everything else.
     """
-    BASE = 1
-    TOOLCHAIN = 2
+    BASE = auto()
+    TOOLCHAIN = auto()
 
 
 class BuildContext:
-    def __init__(self, out_dir, dist_dir, modules, host, arches, build_number):
+    """Class containing build context information."""
+
+    def __init__(self, out_dir: str, dist_dir: str, modules: List['Module'],
+                 host: ndk.hosts.Host, arches: List[ndk.abis.Arch],
+                 build_number: str) -> None:
         self.out_dir = out_dir
         self.dist_dir = dist_dir
         self.modules = {m.name: m for m in modules}
@@ -57,6 +64,8 @@ class BuildContext:
 
 
 class Module:
+    """Base module type for the build system."""
+
     name: str
     path: str
     deps: Set[str] = set()
@@ -95,29 +104,48 @@ class Module:
         self.validate()
 
     @property
-    def notices(self):
+    def notices(self) -> List[str]:
+        """Returns the list of notice files for this module."""
         if self.no_notice:
             return []
         if self.notice is None:
             return []
         return [self.notice]
 
-    def default_notice_path(self):  # pylint: disable=no-self-use
+    def default_notice_path(self) -> Optional[str]:
+        """Returns the path to the default notice for this module, if any."""
         return None
 
-    def validate_error(self, msg):
-        return ModuleValidateError('{}: {}'.format(self.name, msg))
+    def validate_error(self, msg: str) -> ModuleValidateError:
+        """Creates a validation error for this module.
 
-    def validate(self):
+        Automatically includes the module name in the error string.
+
+        Args:
+            msg: Detailed error message.
+        """
+        return ModuleValidateError(f'{self.name}: {msg}')
+
+    def validate(self) -> None:
+        """Validates module config.
+
+        Raises:
+            ModuleValidateError: The module configuration is not valid.
+        """
         if self.name is None:
-            raise ModuleValidateError('{} has no name'.format(self.__class__))
+            raise ModuleValidateError(f'{self.__class__} has no name')
         if self.path is None:
             raise self.validate_error('path property not set')
-        if self.notice_group not in (NoticeGroup.BASE, NoticeGroup.TOOLCHAIN):
+        if self.notice_group not in NoticeGroup:
             raise self.validate_error('invalid notice group')
         self.validate_notice()
 
-    def validate_notice(self):
+    def validate_notice(self) -> None:
+        """Validates the notice files of this module.
+
+        Raises:
+            ModuleValidateError: The module configuration is not valid.
+        """
         if self.no_notice:
             return
 
@@ -126,36 +154,76 @@ class Module:
         for notice in self.notices:
             if not os.path.exists(notice):
                 raise self.validate_error(
-                    'notice file {} does not exist'.format(notice))
+                    f'notice file {notice} does not exist')
 
-    def get_dep(self, name):
+    def get_dep(self, name: str) -> 'Module':
+        """Returns the module object for the given dependency.
+
+        Returns:
+            The module object for the given dependency.
+
+        Raises:
+            KeyError: The given name does not match any of this module's
+                dependencies.
+        """
         if name not in self.deps:
             raise KeyError
         return self.context.modules[name]
 
-    def get_build_host_install(self, arch=None):
+    def get_build_host_install(self,
+                               arch: Optional[ndk.abis.Arch] = None) -> str:
+        """Returns the module's install path for the current host.
+
+        In a cross-compiling context (i.e. building the Windows NDK from
+        Linux), this will return the install directory for the build OS rather
+        than the target OS.
+
+        Args:
+            arch: Architecture to fetch for architecture-specific modules.
+
+        Returns:
+            This module's install path for the build host.
+        """
         return self.get_install_path(ndk.hosts.get_default_host(), arch)
 
     @property
-    def out_dir(self):
+    def out_dir(self) -> str:
+        """Base out directory for the current build."""
         return self.context.out_dir
 
     @property
-    def dist_dir(self):
+    def dist_dir(self) -> str:
+        """Base dist directory for the current build."""
         return self.context.dist_dir
 
     @property
-    def host(self):
+    def host(self) -> ndk.hosts.Host:
+        """Host for the current build."""
         return self.context.host
 
     @property
-    def arches(self):
+    def arches(self) -> List[ndk.abis.Arch]:
+        """Architectures targeted by the current build."""
         return self.context.arches
 
-    def build(self):
+    def build(self) -> None:
+        """Builds the module.
+
+        A module's dependencies are guaranteed to have been installed before
+        its build begins.
+
+        The build phase should not modify the install directory.
+        """
         raise NotImplementedError
 
-    def install(self):
+    def install(self) -> None:
+        """Installs the module.
+
+        Install happens after the module has been built.
+
+        The install phase should only copy files, not create them. Compilation
+        should happen in the build phase.
+        """
         package_installs = ndk.packaging.expand_packages(
             self.name, self.path, self.host, self.arches)
 
@@ -168,12 +236,34 @@ class Module:
                 shutil.rmtree(install_path)
             ndk.packaging.extract_zip(package, install_path)
 
-    def get_install_paths(self, host, arches):
+    def get_install_paths(
+            self, host: ndk.hosts.Host,
+            arches: Optional[Iterable[ndk.abis.Arch]]) -> List[str]:
+        """Returns the install paths for the given archiectures."""
         install_subdirs = ndk.packaging.expand_paths(self.path, host, arches)
         install_base = ndk.paths.get_install_path(self.out_dir, host)
         return [os.path.join(install_base, d) for d in install_subdirs]
 
-    def get_install_path(self, host=None, arch=None):
+    def get_install_path(self, host: Optional[ndk.hosts.Host] = None,
+                         arch: Optional[ndk.abis.Arch] = None) -> str:
+        """Returns the install path for the given module config.
+
+        For an architecture-independent module, there should only ever be one
+        install path.
+
+        For an architecture-dependent module, the optional arch argument must
+        be provided to select between the install paths.
+
+        Args:
+            host: The host to use for a host-specific install path.
+            arch: The architecture to use for an architecure-dependent module.
+
+        Raises:
+            ValueError: This is an architecture-dependent module and no
+                architecture was provided.
+            RuntimeError: An architecture-independent module has non-unique
+                install paths.
+        """
         if host is None:
             host = self.host
 
@@ -194,7 +284,7 @@ class Module:
             arches = [self.build_arch]
         elif arch_dependent:
             raise ValueError(
-                'get_install_path for {} requires valid arch'.format(arch))
+                f'get_install_path for {arch} requires valid arch')
 
         install_subdirs = self.get_install_paths(host, arches)
 
@@ -206,7 +296,7 @@ class Module:
 
     def __str__(self):
         if self.split_build_by_arch and self.build_arch is not None:
-            return '{} [{}]'.format(self.name, self.build_arch)
+            return f'{self.name} [{self.build_arch}]'
         return self.name
 
     def __hash__(self):
@@ -219,26 +309,36 @@ class Module:
         return str(self) == str(other)
 
     @property
-    def log_file(self):
+    def log_file(self) -> str:
+        """Returns the basename of the log file for this module."""
         if self.split_build_by_arch and self.build_arch is not None:
-            return '{}-{}.log'.format(self.name, self.build_arch)
+            return f'{self.name}-{self.build_arch}.log'
         elif self.split_build_by_arch:
             raise RuntimeError('Called log_file on unsplit module')
         else:
-            return '{}.log'.format(self.name)
+            return f'{self.name}.log'
 
-    def log_path(self, log_dir):
+    def log_path(self, log_dir: str) -> str:
+        """Returns the path to the log file for this module."""
         return os.path.join(log_dir, self.log_file)
 
 
 class PackageModule(Module):
+    """A directory to be installed to the NDK.
+
+    No transformation is performed on the installed directory.
+    """
+
+    #: The absolute path to the directory to be installed.
     src: str
+
+    #: If true, create a repo.prop file for this module.
     create_repo_prop = False
 
-    def default_notice_path(self):
+    def default_notice_path(self) -> str:
         return os.path.join(self.src, 'NOTICE')
 
-    def validate(self):
+    def validate(self) -> None:
         super().validate()
 
         if ndk.packaging.package_varies_by(self.path, 'abi'):
@@ -254,10 +354,10 @@ class PackageModule(Module):
             raise self.validate_error(
                 'PackageModule cannot vary by triple')
 
-    def build(self):
+    def build(self) -> None:
         pass
 
-    def install(self):
+    def install(self) -> None:
         install_paths = self.get_install_paths(self.host,
                                                ndk.abis.ALL_ARCHITECTURES)
         assert len(install_paths) == 1
@@ -268,53 +368,78 @@ class PackageModule(Module):
 
 
 class InvokeExternalBuildModule(Module):
+    """A module that uses a build.py script.
+
+    These are legacy modules that have not yet been properly merged into
+    checkbuild.py.
+    """
+
+    #: The path to the build script relative to the top of the source tree.
     script: str
+
+    #: True if the module can be built in parallel per-architecture.
     arch_specific = False
 
-    def build(self):
+    def build(self) -> None:
         build_args = common_build_args(self.out_dir, self.dist_dir, self.host)
         if self.split_build_by_arch:
-            build_args.append('--arch={}'.format(self.build_arch))
+            build_args.append(f'--arch={self.build_arch}')
         elif self.arch_specific and len(self.arches) == 1:
-            build_args.append('--arch={}'.format(self.arches[0]))
+            build_args.append(f'--arch={self.arches[0]}')
         elif self.arches == ndk.abis.ALL_ARCHITECTURES:
             pass
         else:
             raise NotImplementedError(
-                'Module {} can only build all architectures or none'.format(
-                    self.name))
+                f'Module {self.name} can only build all architectures or none')
         script = self.get_script_path()
         invoke_external_build(script, build_args)
 
-    def get_script_path(self):
+    def get_script_path(self) -> str:
+        """Returns the absolute path to the build script."""
         return ndk.paths.android_path(self.script)
 
 
 class InvokeBuildModule(InvokeExternalBuildModule):
-    def get_script_path(self):
+    """A module that uses a build.py script within ndk/build/tools.
+
+    Identical to InvokeExternalBuildModule, but the script path is relative to
+    ndk/build/tools instead of the top of the source tree.
+    """
+
+    def get_script_path(self) -> str:
         return ndk.paths.ndk_path('build/tools', self.script)
 
 
 class FileModule(Module):
+    """A module that installs a single file to the NDK."""
+
+    #: Path to the file to be installed.
     src: str
 
-    # Used for things like the readme and the changelog. No notice needed.
+    #: True if no notice file is needed for this module.
     no_notice = True
 
-    def build(self):
+    def build(self) -> None:
         pass
 
-    def install(self):
+    def install(self) -> None:
         shutil.copy2(self.src, self.get_install_path())
 
 
 class MultiFileModule(Module):
+    """A module that installs multiple files to the NDK.
+
+    This is similar to FileModule, but allows multiple files to be installed
+    with a single module.
+    """
+
+    #: List of absolute paths to files to be installed.
     files: Iterable[str] = []
 
-    def build(self):
+    def build(self) -> None:
         pass
 
-    def install(self):
+    def install(self) -> None:
         install_dir = self.get_install_path()
         ndk.ext.shutil.create_directory(install_dir)
         for file_path in self.files:
@@ -322,13 +447,24 @@ class MultiFileModule(Module):
 
 
 class ScriptShortcutModule(Module):
+    """A module that installs a shortcut to another script in the NDK.
+
+    Some NDK tools are installed to a location other than the top of the NDK
+    (as a result of the modular NDK effort), but we want to make them
+    accessible from the top level because that is where they were Historically
+    installed.
+    """
+
+    #: The path to the installed NDK script, relative to the top of the NDK.
     script: str
+
+    #: The file extension for the called script on Windows.
     windows_ext: str
 
     # These are all trivial shell scripts that we generated. No notice needed.
     no_notice = True
 
-    def validate(self):
+    def validate(self) -> None:
         super().validate()
 
         if ndk.packaging.package_varies_by(self.script, 'abi'):
@@ -347,16 +483,17 @@ class ScriptShortcutModule(Module):
             raise self.validate_error(
                 'ScriptShortcutModule requires windows_ext')
 
-    def build(self):
+    def build(self) -> None:
         pass
 
-    def install(self):
+    def install(self) -> None:
         if self.host.startswith('windows'):
             self.make_cmd_helper()
         else:
             self.make_sh_helper()
 
-    def make_cmd_helper(self):
+    def make_cmd_helper(self) -> None:
+        """Makes a .cmd helper script for Windows."""
         script = self.get_script_path()
         full_path = ntpath.join(
             '%~dp0', ntpath.normpath(script) + self.windows_ext)
@@ -368,7 +505,8 @@ class ScriptShortcutModule(Module):
                 full_path + ' %*\n',
             ])
 
-    def make_sh_helper(self):
+    def make_sh_helper(self) -> None:
+        """Makes a bash helper script for POSIX systems."""
         script = self.get_script_path()
         full_path = os.path.join('$DIR', script)
 
@@ -383,7 +521,8 @@ class ScriptShortcutModule(Module):
         os.chmod(install_path,
                  mode | stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH)
 
-    def get_script_path(self):
+    def get_script_path(self) -> str:
+        """Returns the installed path of the script."""
         scripts = ndk.packaging.expand_paths(
             self.script, self.host, ndk.abis.ALL_ARCHITECTURES)
         assert len(scripts) == 1
@@ -391,43 +530,85 @@ class ScriptShortcutModule(Module):
 
 
 class PythonPackage(Module):
-    def default_notice_path(self):
+    """A Python package that should be packaged for distribution.
+
+    These are not installed within the NDK, but are packaged (as a source
+    distribution) for archival on the build servers.
+
+    These are used to archive the NDK's build and test tools so test artifacts
+    may be regnenerated using only artifacts from the build server.
+    """
+
+    def default_notice_path(self) -> str:
         # Assume there's a NOTICE file in the same directory as the setup.py.
         return os.path.join(os.path.dirname(self.path), 'NOTICE')
 
-    def build(self):
+    def build(self) -> None:
         cwd = os.path.dirname(self.path)
         subprocess.check_call(
             ['python3', self.path, 'sdist', '-d', self.out_dir], cwd=cwd)
 
-    def install(self):
+    def install(self) -> None:
         pass
 
 
-def _invoke_build(script, args):
-    if args is None:
-        args = []
+def invoke_external_build(script: str, args: List[str]) -> None:
+    """Invokes a build.py script rooted within the top level source tree.
+
+    Args:
+        script: Path to the script to be executed within the top level source
+            tree.
+        args: Command line arguments to be passed to the script.
+    """
     subprocess.check_call(['python3', ndk.paths.android_path(script)] + args)
 
 
-def invoke_build(script, args=None):
-    script_path = os.path.join('build/tools', script)
-    _invoke_build(ndk.paths.ndk_path(script_path), args)
+def common_build_args(out_dir: str, dist_dir: str,
+                      host: ndk.hosts.Host) -> List[str]:
+    """Returns a list of common arguments for build.py scripts.
 
+    Modules that have not been fully merged into checkbuild.py still use a
+    separately executed build.py script via InvokeBuildModule or
+    InvokeExternalBuildModule. These have a common command line interface for
+    determining out directories and target host.
 
-def invoke_external_build(script, args=None):
-    _invoke_build(ndk.paths.android_path(script), args)
+    Args:
+        out_dir: Base out directory for the target host.
+        dist_dir: Distribution directory for archived artifacts.
+        host: Target host.
 
-
-def common_build_args(out_dir, dist_dir, host):
+    Returns:
+        List of command line arguments to be used with build.py.
+    """
     return [
-        '--out-dir={}'.format(os.path.join(out_dir, host)),
-        '--dist-dir={}'.format(dist_dir),
-        '--host={}'.format(host),
+        f'--out-dir={os.path.join(out_dir, host)}',
+        f'--dist-dir={dist_dir}',
+        f'--host={host}',
     ]
 
 
-def install_directory(src, dst):
+def install_directory(src: str, dst: str) -> None:
+    """Copies a directory to an install location, ignoring some file types.
+
+    The destination will be removed prior to copying if it exists, ensuring a
+    clean install.
+
+    Some file types (currently python intermediates, editor swap files, git
+    directories) will be removed from the install location.
+
+    Args:
+        src: Directory to install.
+        dst: Install location. Will be removed prior to installation. The
+            source directory will be copied *to* this path, not *into* this
+            path.
+    """
+    # TODO: Remove the ignore patterns in favor of purging the install
+    # directory after install, since not everything uses install_directory.
+    #
+    # We already do this to some extent with package_ndk, but we don't cover
+    # all these file types, and we should also do this before packaging since
+    # packaging only runs when a full NDK is built (fine for the build servers,
+    # could potentially be wrong for local testing).
     if os.path.exists(dst):
         shutil.rmtree(dst)
     ignore_patterns = shutil.ignore_patterns(
@@ -435,7 +616,26 @@ def install_directory(src, dst):
     shutil.copytree(src, dst, ignore=ignore_patterns)
 
 
-def make_repo_prop(out_dir):
+def make_repo_prop(out_dir: str) -> None:
+    """Installs a repro.prop file to the given directory.
+
+    A repo.prop file is a file listing all of the git projects used and their
+    checked out revisions. i.e.
+
+        platform/bionic 40538268d43d82409a93637960f2da3c1226840a
+        platform/development 688f15246399db98897e660889d9a202559fe5d8
+        ...
+
+    Historically we installed one of these per "module" (from the attempted
+    modular NDK), but since the same information can be retrieved from the
+    build number we do not install them for most things now.
+
+    If this build is happening on the build server then there will be a
+    repo.prop file in the DIST_DIR for us to copy, otherwise we generate our
+    own.
+    """
+    # TODO: Finish removing users of this in favor of installing a single
+    # manifest.xml file in the root of the NDK.
     file_name = 'repo.prop'
 
     dist_dir = os.environ.get('DIST_DIR')
