@@ -20,7 +20,12 @@ For Android Studio issues, follow the docs on the [Android Studio site].
 
  * [LLD](https://lld.llvm.org/) is now available for testing. AOSP has switched
    to using LLD by default and the NDK will follow (timeline unknown). Test LLD
-   in your app by passing `-fuse-ld=lld` when linking.
+   in your app by passing `-fuse-ld=lld` when linking. Note that [Issue 843]
+   will affect builds using LLD with binutils strip and objcopy as opposed to
+   llvm-strip and llvm-objcopy.
+
+ * [Issue 843]: Build system maintainers should begin testing with llvm-strip
+   and llvm-objcopy. AOSP has switched to these and the NDK will follow.
 
  * The Play Store will require 64-bit support when uploading an APK beginning in
    August 2019. Start porting now to avoid surprises when the time comes. For
@@ -52,6 +57,10 @@ For Android Studio issues, follow the docs on the [Android Studio site].
    `-Wl,--build-id=sha1` instead of `-Wl,--build-id`. Third-party build systems
    need to apply the workaround manually. For more details, see the [Build
    System Maintainers Guide][maintainer_linkers].
+ * [Issue 843]: `llvm-strip` is now used instead of `strip` to avoid breaking
+   RelRO with LLD. Note that the Android Gradle Plugin performs its own
+   stripping, so most users will need to upgrade to Android Gradle Plugin
+   version 3.6 or newer to get the fix.
 
 [Issue 1004]: https://github.com/android-ndk/ndk/issues/1004
 [Issue 855]: https://github.com/android-ndk/ndk/issues/855
@@ -113,9 +122,14 @@ For Android Studio issues, follow the docs on the [Android Studio site].
    `No toolchains found in the NDK toolchains folder for ABI with prefix: mips64el-linux-android`,
    update your project file to [use plugin version 3.1 or newer]. You will also
    need to upgrade to Android Studio 3.1 or newer.
+ * [Issue 843]: Using LLD with binutils `strip` or `objcopy` breaks RelRO. Use
+   `llvm-strip` and `llvm-objcopy` instead. This issue has been resolved in
+   Android Gradle Plugin version 3.6 (for non-Gradle users, the fix is also in
+   ndk-build and our CMake toolchain file), but may affect other build systems.
 
 [Issue 360]: https://github.com/android-ndk/ndk/issues/360
 [Issue 70838247]: https://issuetracker.google.com/70838247
+[Issue 843]: https://github.com/android-ndk/ndk/issues/843
 [Issue 906]: https://github.com/android-ndk/ndk/issues/906
 [Issue 988]: https://github.com/android-ndk/ndk/issues/988
 [use plugin version 3.1 or newer]: https://developer.android.com/studio/releases/gradle-plugin#updating-plugin

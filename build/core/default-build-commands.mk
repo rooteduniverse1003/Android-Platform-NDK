@@ -84,9 +84,6 @@ endef
 
 cmd-strip = $(PRIVATE_STRIP) $(PRIVATE_STRIP_MODE) $(call host-path,$1)
 
-# The command objcopy --add-gnu-debuglink= will be needed for Valgrind
-cmd-add-gnu-debuglink = $(PRIVATE_OBJCOPY) --add-gnu-debuglink=$(strip $(call host-path,$2)) $(call host-path,$1)
-
 TARGET_LIBGCC = -lgcc -Wl,--exclude-libs,libgcc.a
 TARGET_LIBATOMIC = -latomic -Wl,--exclude-libs,libatomic.a
 TARGET_LDLIBS := -lc -lm
@@ -165,9 +162,7 @@ TARGET_LDFLAGS :=
 TARGET_AR = $(TOOLCHAIN_PREFIX)ar
 TARGET_ARFLAGS := crsD
 
-TARGET_STRIP    = $(TOOLCHAIN_PREFIX)strip
-
-TARGET_OBJCOPY  = $(TOOLCHAIN_PREFIX)objcopy
+TARGET_STRIP = $(LLVM_TOOLCHAIN_PREFIX)llvm-strip$(HOST_EXEEXT)
 
 TARGET_OBJ_EXTENSION := .o
 TARGET_LIB_EXTENSION := .a
