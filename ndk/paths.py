@@ -29,10 +29,12 @@ THIS_DIR = os.path.realpath(os.path.dirname(__file__))
 
 
 def android_path(*args):
+    """Returns the absolute path rooted within the top level source tree."""
     return os.path.normpath(os.path.join(THIS_DIR, '../../', *args))
 
 
 def ndk_path(*args):
+    """Returns the absolute path rooted within the NDK source tree."""
     return android_path('ndk', *args)
 
 
@@ -53,6 +55,18 @@ def toolchain_path(*args):
 
 
 def _get_dir_from_env(default, env_var):
+    """Returns the path to a directory specified by the environment.
+
+    If the environment variable is not set, the default will be used. The
+    directory is created if it does not exist.
+
+    Args:
+        default: The path used if the environment variable is not set.
+        env_var: The environment variable that contains the path, if any.
+
+    Returns:
+        The absolute path to the directory.
+    """
     path = os.path.realpath(os.getenv(env_var, default))
     if not os.path.isdir(path):
         os.makedirs(path)
@@ -60,10 +74,16 @@ def _get_dir_from_env(default, env_var):
 
 
 def get_out_dir():
+    """Returns the out directory."""
     return _get_dir_from_env(android_path('out'), 'OUT_DIR')
 
 
 def get_dist_dir(out_dir):
+    """Returns the distribution directory.
+
+    The contents of the distribution directory are archived on the build
+    servers. Suitable for build logs and final artifacts.
+    """
     return _get_dir_from_env(os.path.join(out_dir, 'dist'), 'DIST_DIR')
 
 
@@ -77,7 +97,7 @@ def path_in_out(dirname, out_dir=None):
                  relative to the NDK git project.
 
     Returns:
-        Absolute path to the created directory.
+        Absolute path within the out directory.
     """
     if out_dir is None:
         out_dir = get_out_dir()

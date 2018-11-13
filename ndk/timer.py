@@ -18,15 +18,27 @@ import timeit
 
 
 class Timer:
+    """Execution timer.
+
+    Can be used explicitly with stop/start, but preferably is used as a context
+    manager:
+
+    >>> timer = Timer()
+    >>> with timer:
+    >>>     do_something()
+    >>> print('do_something() took {}'.format(timer.duration))
+    """
     def __init__(self):
         self.start_time = None
         self.end_time = None
         self.duration = None
 
     def start(self):
+        """Start the timer."""
         self.start_time = timeit.default_timer()
 
     def finish(self):
+        """Stop the timer."""
         self.end_time = timeit.default_timer()
 
         # Not interested in partial seconds at this scale.
