@@ -24,7 +24,7 @@ import os
 import shutil
 import stat
 import subprocess
-from typing import Iterable, Optional, Set
+from typing import Iterable, Set
 
 import ndk.abis
 import ndk.ext.shutil
@@ -57,8 +57,8 @@ class BuildContext:
 
 
 class Module:
-    name: Optional[str] = None
-    path: Optional[str] = None
+    name: str
+    path: str
     deps: Set[str] = set()
 
     # Used to exclude a module from the build. If explicitly named it will
@@ -268,7 +268,7 @@ class PackageModule(Module):
 
 
 class InvokeExternalBuildModule(Module):
-    script: Optional[str] = None
+    script: str
     arch_specific = False
 
     def build(self):
@@ -322,8 +322,8 @@ class MultiFileModule(Module):
 
 
 class ScriptShortcutModule(Module):
-    script: Optional[str] = None
-    windows_ext: Optional[str] = None
+    script: str
+    windows_ext: str
 
     # These are all trivial shell scripts that we generated. No notice needed.
     no_notice = True
@@ -398,7 +398,7 @@ class PythonPackage(Module):
     def build(self):
         cwd = os.path.dirname(self.path)
         subprocess.check_call(
-            ['python', self.path, 'sdist', '-d', self.out_dir], cwd=cwd)
+            ['python3', self.path, 'sdist', '-d', self.out_dir], cwd=cwd)
 
     def install(self):
         pass
@@ -407,7 +407,7 @@ class PythonPackage(Module):
 def _invoke_build(script, args):
     if args is None:
         args = []
-    subprocess.check_call([ndk.paths.android_path(script)] + args)
+    subprocess.check_call(['python3', ndk.paths.android_path(script)] + args)
 
 
 def invoke_build(script, args=None):

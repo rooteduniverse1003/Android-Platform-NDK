@@ -254,10 +254,10 @@ def main():
         logging.basicConfig(level=logging.INFO)
 
     python_install = bootstrap()
-    subprocess.check_call([
-        os.path.join(python_install, 'bin/python3'),
-        ndk_path('do_checkbuild.py')
-    ] + sys.argv[1:])
+    bootstrap_bin = os.path.join(python_install, 'bin')
+    os.environ['PATH'] = os.pathsep.join([bootstrap_bin, os.environ['PATH']])
+    subprocess.check_call(['python3', ndk_path('do_checkbuild.py')] +
+                          sys.argv[1:])
 
 
 if __name__ == '__main__':
