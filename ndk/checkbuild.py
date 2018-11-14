@@ -227,7 +227,7 @@ def _install_file(src_file, dst_file):
 class Clang(ndk.builds.Module):
     name = 'clang'
     path = 'toolchains/llvm/prebuilt/{host}'
-    version = 'clang-r339409b'
+    version = 'clang-r344140b'
     notice_group = ndk.builds.NoticeGroup.TOOLCHAIN
 
     @property
