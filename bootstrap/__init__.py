@@ -190,14 +190,18 @@ class Timer(object):  # pylint: disable=useless-object-inheritance
         self.finish()
 
 
-def bootstrap():
-    """Creates a bootstrap Python 3 environment.
+def do_bootstrap(install_dir):
+    """Helper function for bootstrapping.
 
-    Builds and installs Python 3 for use on the current host. After execution,
-    the directory containing the python3 binary will be the first element in
-    the PATH.
+    Builds and installs Python 3 if necessary, but does not modify the
+    environment.
+
+    Args:
+        install_dir: Directory in which to install Python 3.
+
+    Returns:
+        Python 3 install directory.
     """
-    install_dir = path_in_out('bootstrap')
     build_dir = path_in_out('bootstrap-build')
 
     bootstrap_completed_file = path_in_out('.bootstrapped')
@@ -213,5 +217,15 @@ def bootstrap():
     with open(bootstrap_completed_file, 'w'):
         pass
 
+
+def bootstrap():
+    """Creates a bootstrap Python 3 environment.
+
+    Builds and installs Python 3 for use on the current host. After execution,
+    the directory containing the python3 binary will be the first element in
+    the PATH.
+    """
+    install_dir = path_in_out('bootstrap')
+    do_bootstrap(install_dir)
     bootstrap_bin = os.path.join(install_dir, 'bin')
     os.environ['PATH'] = os.pathsep.join([bootstrap_bin, os.environ['PATH']])
