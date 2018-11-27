@@ -121,7 +121,7 @@ def make_clang_scripts(install_dir, triple, api, windows):
         arch = 'armv7a'  # Target armv7, not armv5.
 
     target = '-'.join([arch, 'none', os_name, env])
-    flags = '-target {}{} -stdlib=libc++'.format(target, api)
+    flags = '-target {}{}'.format(target, api)
 
     # We only need mstackrealign to fix issues on 32-bit x86 pre-24. After 24,
     # this consumes an extra register unnecessarily, which can cause issues for
@@ -150,7 +150,7 @@ def make_clang_scripts(install_dir, triple, api, windows):
         clangpp.write(textwrap.dedent("""\
             #!/bin/bash
             if [ "$1" != "-cc1" ]; then
-                `dirname $0`/clang{version}++ {flags} "$@"
+                `dirname $0`/clang{version}++ -stdlib=libc++ {flags} "$@"
             else
                 # target/triple already spelled out.
                 `dirname $0`/clang{version}++ "$@"
