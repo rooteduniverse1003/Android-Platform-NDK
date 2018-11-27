@@ -54,6 +54,7 @@ Changes
 -------
 
  * Updated Clang to r339409.
+     * C++ compilation now defaults to C++14.
  * [Issue 780]: A complete NDK toolchain is now installed to the Clang
    directory. See the announcements section for more information.
  * ndk-build no longer removes artifacts from `NDK_LIBS_OUT` for ABIs not
