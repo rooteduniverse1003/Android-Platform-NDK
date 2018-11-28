@@ -84,6 +84,15 @@ ndk_headers {
     // List of headers to install. Relative to the Android.bp. Glob compatible.
     // The common case is "include/**/*.h".
     srcs: ["include/foo/bar/baz.h"],
+
+    // If true, makes the headers available to the platform but hides them from
+    // the NDK release. When actively developing an NDK API, `draft` should be
+    // set to true so the API isn't released until it is ready. It can still be
+    // used within the platform and CTS even if it is a draft.
+    //
+    // Note that false is the default, so when releasing an API this line may
+    // simply be removed.
+    draft: true,
 }
 ```
 
@@ -115,6 +124,9 @@ ndk_library {
     // The first API level a library was available. A library will be generated
     // for every API level beginning with this one.
     first_version: "9",
+
+    // Same behavior as the `draft` property in `ndk_headers`.
+    draft: true,
 }
 ```
 
