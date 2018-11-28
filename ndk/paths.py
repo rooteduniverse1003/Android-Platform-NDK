@@ -20,25 +20,28 @@ import contextlib
 import os
 import shutil
 import sys
+from typing import Generator, Optional
 
 import ndk.abis
 import ndk.config
+import ndk.hosts
 
 
 THIS_DIR = os.path.realpath(os.path.dirname(__file__))
 
 
-def android_path(*args):
+def android_path(*args: str) -> str:
     """Returns the absolute path rooted within the top level source tree."""
     return os.path.normpath(os.path.join(THIS_DIR, '../../', *args))
 
 
-def ndk_path(*args):
+def ndk_path(*args: str) -> str:
     """Returns the absolute path rooted within the NDK source tree."""
     return android_path('ndk', *args)
 
 
-def sysroot_path(toolchain):
+
+def sysroot_path(toolchain: str) -> str:
     arch = ndk.abis.toolchain_to_arch(toolchain)
     # Only ARM has more than one ABI, and they both have the same minimum
     # platform level.
@@ -50,11 +53,11 @@ def sysroot_path(toolchain):
     return android_path(prebuilt_ndk, sysroot_subpath)
 
 
-def toolchain_path(*args):
+def toolchain_path(*args: str) -> str:
     return android_path('toolchain', *args)
 
 
-def _get_dir_from_env(default, env_var):
+def _get_dir_from_env(default: str, env_var: str) -> str:
     """Returns the path to a directory specified by the environment.
 
     If the environment variable is not set, the default will be used. The
@@ -73,12 +76,12 @@ def _get_dir_from_env(default, env_var):
     return path
 
 
-def get_out_dir():
+def get_out_dir() -> str:
     """Returns the out directory."""
     return _get_dir_from_env(android_path('out'), 'OUT_DIR')
 
 
-def get_dist_dir(out_dir):
+def get_dist_dir(out_dir) -> str:
     """Returns the distribution directory.
 
     The contents of the distribution directory are archived on the build
@@ -87,7 +90,7 @@ def get_dist_dir(out_dir):
     return _get_dir_from_env(os.path.join(out_dir, 'dist'), 'DIST_DIR')
 
 
-def path_in_out(dirname, out_dir=None):
+def path_in_out(dirname: str, out_dir: Optional[str] = None) -> str:
     """Returns a path within the out directory."
 
     Args:
@@ -104,7 +107,8 @@ def path_in_out(dirname, out_dir=None):
     return os.path.join(out_dir, dirname)
 
 
-def get_install_path(out_dir=None, host=None):
+def get_install_path(out_dir: Optional[str] = None,
+                     host: Optional[str] = None) -> str:
     """Returns the built NDK install path.
 
     Note that the path returned might not actually contain the NDK. The NDK may
@@ -129,7 +133,7 @@ def get_install_path(out_dir=None, host=None):
 
 
 @contextlib.contextmanager
-def temp_dir_in_out(dirname, out_dir=None):
+def temp_dir_in_out(dirname: str, out_dir: Optional[str] = None) -> Generator:
     """Creates a well named temporary directory within the out directory.
 
     If the directory exists on context entry, RuntimeError will be raised. The
@@ -159,7 +163,7 @@ def temp_dir_in_out(dirname, out_dir=None):
         shutil.rmtree(abspath)
 
 
-def to_posix_path(path):
+def to_posix_path(path: str) -> str:
     if sys.platform == 'win32':
         return path.replace('\\', '/')
     else:
