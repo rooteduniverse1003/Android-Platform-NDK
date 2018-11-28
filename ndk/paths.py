@@ -16,12 +16,10 @@
 """Helper functions for NDK build and test paths."""
 from __future__ import absolute_import
 
-import contextlib
 import os
 from pathlib import Path
-import shutil
 import sys
-from typing import Generator, Optional
+from typing import Optional
 
 import ndk.abis
 import ndk.config
@@ -133,37 +131,6 @@ def get_install_path(out_dir: Optional[str] = None,
         host = ndk.hosts.get_default_host()
     release_name = f'android-ndk-{ndk.config.release}'
     return path_in_out(os.path.join(host.value, release_name), out_dir)
-
-
-@contextlib.contextmanager
-def temp_dir_in_out(dirname: str, out_dir: Optional[str] = None) -> Generator:
-    """Creates a well named temporary directory within the out directory.
-
-    If the directory exists on context entry, RuntimeError will be raised. The
-    directory is removed on context exit.
-
-    Args:
-        dirname: Name of the temporary directory.
-        out_dir: Optional base out directory. Inferred from $OUT_DIR if not
-                 supplied. If None and $OUT_DIR is not set, will use ../out
-                 relative to the NDK git project.
-
-    Returns:
-        Absolute path to the created directory.
-
-    Raises:
-        RuntimeError: The requested directory already exists.
-    """
-    path = path_in_out(dirname, out_dir)
-    if os.path.exists(path):
-        raise RuntimeError('Directory already exists: ' + path)
-
-    os.makedirs(path)
-    try:
-        abspath = os.path.abspath(path)
-        yield abspath
-    finally:
-        shutil.rmtree(abspath)
 
 
 def to_posix_path(path: str) -> str:
