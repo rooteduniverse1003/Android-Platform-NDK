@@ -130,6 +130,8 @@ def make_clang_scripts(install_dir, triple, api, windows):
     if arch == 'i686' and api < 24:
         flags += ' -mstackrealign'
 
+    cxx_flags = flags + ' -stdlib=libc++'
+
     clang_path = os.path.join(install_dir, 'bin/clang')
     with open(clang_path, 'w') as clang:
         clang.write(textwrap.dedent("""\
@@ -155,7 +157,7 @@ def make_clang_scripts(install_dir, triple, api, windows):
                 # target/triple already spelled out.
                 `dirname $0`/clang{version}++ "$@"
             fi
-        """.format(version=version_number, flags=flags)))
+        """.format(version=version_number, flags=cxx_flags)))
 
     mode = os.stat(clangpp_path).st_mode
     os.chmod(clangpp_path, mode | stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH)
@@ -167,6 +169,7 @@ def make_clang_scripts(install_dir, triple, api, windows):
 
     if windows:
         for pp_suffix in ('', '++'):
+            is_cpp = pp_suffix == '++'
             exe_name = 'clang{}{}.exe'.format(version_number, pp_suffix)
             clangbat_text = textwrap.dedent("""\
                 @echo off
@@ -191,7 +194,7 @@ def make_clang_scripts(install_dir, triple, api, windows):
                 exit /b
 
                 :done
-            """.format(exe=exe_name, flags=flags))
+            """.format(exe=exe_name, flags=cxx_flags if is_cpp else flags))
 
             for triple_prefix in ('', triple + '-'):
                 clangbat_path = os.path.join(
