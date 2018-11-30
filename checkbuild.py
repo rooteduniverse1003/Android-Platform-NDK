@@ -505,7 +505,6 @@ class Binutils(ndk.builds.Module):
         install_path = self.get_install_path(arch=arch)
         toolchain_path = get_binutils_prebuilt_path(self.host, arch)
         ndk.builds.install_directory(toolchain_path, install_path)
-        self.install_mock_gcc(install_path, arch)
 
         # We still need libgcc/libatomic. Copy them from the old GCC prebuilts.
         for subarch in get_subarches(arch):
@@ -554,77 +553,6 @@ class Binutils(ndk.builds.Module):
         else:
             libwinpthread = os.path.join(clang_bin, 'libwinpthread-1.dll')
             shutil.copy2(libwinpthread, bfd_plugins)
-
-    def install_mock_gcc(self, install_path, arch):
-        """Installs gcc scripts that invoke clang.
-
-        These are provided to ease porting to new NDKs for projects that are
-        not actually sensitive to changes in compiler, just changes to compiler
-        install path.
-        """
-        is_win = self.host.startswith('windows')
-        exe = '.exe' if is_win else ''
-        cmd = '.cmd' if is_win else ''
-        clang_install_path = os.path.relpath(
-            self.get_dep('clang').get_install_path(),
-            os.path.join(install_path, 'bin'))
-
-        shortcuts = {'gcc': 'clang', 'g++': 'clang++'}
-        for src, dst in shortcuts.items():
-            triple = ndk.abis.arch_to_triple(arch)
-            gcc = os.path.join(install_path, 'bin', triple + '-' + src + cmd)
-            clang = os.path.join(clang_install_path, 'bin', dst + exe)
-            if is_win:
-                self.install_cmd_clang_shortcut(gcc, clang, triple)
-            else:
-                self.install_sh_clang_shortcut(gcc, clang, triple)
-
-    def install_cmd_clang_shortcut(self, gcc, clang, triple):
-        clang = ntpath.normpath(clang)
-
-        flags = [
-            '-target',
-            triple,
-            '-gcc-toolchain',
-            '%_BIN_DIR%..',
-        ]
-
-        with open(gcc, 'w') as gcc_script:
-            gcc_script.write(
-                textwrap.dedent("""\
-                @echo off
-                setlocal
-                call :find_bin
-
-                set "_BIN_DIR=" && %_BIN_DIR%{clang} {flags} %*
-                if ERRORLEVEL 1 exit /b 1
-                goto :done
-
-                :find_bin
-                rem Accommodate a quoted arg0, e.g.: "clang"
-                rem https://github.com/android-ndk/ndk/issues/616
-                set _BIN_DIR=%~dp0
-                exit /b
-
-                :done
-                """.format(clang=clang, flags=' '.join(flags))))
-
-    def install_sh_clang_shortcut(self, gcc, clang, triple):
-        flags = [
-            '-target',
-            triple,
-            '-gcc-toolchain',
-            '`dirname $0`/..',
-        ]
-
-        with open(gcc, 'w') as gcc_script:
-            gcc_script.write(
-                textwrap.dedent("""\
-                    #!/bin/bash
-                    exec `dirname $0`/{clang} {flags} "$@"
-                    """.format(clang=clang, flags=' '.join(flags))))
-        mode = os.stat(gcc).st_mode
-        os.chmod(gcc, mode | stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH)
 
 
 class ShaderTools(ndk.builds.InvokeBuildModule):
