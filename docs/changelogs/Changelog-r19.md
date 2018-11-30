@@ -45,8 +45,12 @@ Announcements
  * ndk-depends has been removed. We believe that [ReLinker] is a better
    solution to native library loading issues on old Android versions.
 
+ * [Issue 862]: The GCC wrapper scripts which redirected to Clang have been
+   removed, as they are not functional enough to be drop in replacements.
+
 [Build System Maintainers]: https://android.googlesource.com/platform/ndk/+/master/docs/BuildSystemMaintainers.md
 [Issue 780]: https://github.com/android-ndk/ndk/issues/780
+[Issue 862]: https://github.com/android-ndk/ndk/issues/862
 [ReLinker]: https://github.com/KeepSafe/ReLinker
 [Standalone toolchains]: https://developer.android.com/ndk/guides/standalone_toolchain
 
