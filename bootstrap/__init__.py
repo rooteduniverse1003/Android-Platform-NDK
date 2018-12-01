@@ -155,6 +155,25 @@ def build_python(install_dir, build_dir):
         os.chdir(old_cwd)
 
 
+def install_requirements(install_dir, requirements):
+    """Installs required Python packages using pip.
+
+    Args:
+        install_dir: Directory in which Python 3 is installed.
+        requirements: Path to requirements.txt file to be passed to pip.
+    """
+    logger().info('Installing additional requirements...')
+    try:
+        check_output([
+            os.path.join(install_dir, 'bin/pip3'),
+            'install',
+            '-r',
+            requirements,
+        ])
+    except subprocess.CalledProcessError as ex:
+        log_failure_and_exit(ex.output)
+
+
 class Timer(object):  # pylint: disable=useless-object-inheritance
     """Execution timer.
 
@@ -190,7 +209,7 @@ class Timer(object):  # pylint: disable=useless-object-inheritance
         self.finish()
 
 
-def do_bootstrap(install_dir):
+def do_bootstrap(install_dir, requirements):
     """Helper function for bootstrapping.
 
     Builds and installs Python 3 if necessary, but does not modify the
@@ -198,6 +217,9 @@ def do_bootstrap(install_dir):
 
     Args:
         install_dir: Directory in which to install Python 3.
+        requirements: An optional path to a requirements.txt file. This will be
+            passed to pip to install additional dependencies. If None, no
+            additional packages will be installed.
 
     Returns:
         Python 3 install directory.
@@ -211,21 +233,27 @@ def do_bootstrap(install_dir):
     timer = Timer()
     with timer:
         build_python(install_dir, build_dir)
-    # TODO: Install any desired site-packages?
+        if requirements is not None:
+            install_requirements(install_dir, requirements)
     logger().info('Bootstrapping completed in %s', timer.duration)
 
     with open(bootstrap_completed_file, 'w'):
         pass
 
 
-def bootstrap():
+def bootstrap(requirements=None):
     """Creates a bootstrap Python 3 environment.
 
     Builds and installs Python 3 for use on the current host. After execution,
     the directory containing the python3 binary will be the first element in
     the PATH.
+
+    Args:
+        requirements: An optional path to a requirements.txt file. This will be
+            passed to pip to install additional dependencies. If None, no
+            additional packages will be installed.
     """
     install_dir = path_in_out('bootstrap')
-    do_bootstrap(install_dir)
+    do_bootstrap(install_dir, requirements)
     bootstrap_bin = os.path.join(install_dir, 'bin')
     os.environ['PATH'] = os.pathsep.join([bootstrap_bin, os.environ['PATH']])
