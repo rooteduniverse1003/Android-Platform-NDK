@@ -60,7 +60,8 @@ def _run_build_sh_test(test, build_dir, test_dir, ndk_path, ndk_build_flags,
         if abi is not None:
             test_env['APP_ABI'] = abi
         test_env['APP_PLATFORM'] = 'android-{}'.format(platform)
-        rc, out = ndk.ext.subprocess.call_output(build_cmd, env=test_env)
+        rc, out = ndk.ext.subprocess.call_output(
+            build_cmd, env=test_env, encoding='utf-8')
         if rc == 0:
             return ndk.test.result.Success(test)
         else:
@@ -132,11 +133,12 @@ def _run_cmake_build_test(test, obj_dir, dist_dir, test_dir, ndk_path,
     if platform is not None:
         args.append('-DANDROID_PLATFORM=android-{}'.format(platform))
     rc, out = ndk.ext.subprocess.call_output(
-        [cmake_bin] + cmake_flags + args)
+        [cmake_bin] + cmake_flags + args, encoding='utf-8')
     if rc != 0:
         return ndk.test.result.Failure(test, out)
     rc, out = ndk.ext.subprocess.call_output(
-        [cmake_bin, '--build', objs_dir, '--'] + _get_jobs_args())
+        [cmake_bin, '--build', objs_dir, '--'] + _get_jobs_args(),
+        encoding='utf-8')
     if rc != 0:
         return ndk.test.result.Failure(test, out)
     return ndk.test.result.Success(test)

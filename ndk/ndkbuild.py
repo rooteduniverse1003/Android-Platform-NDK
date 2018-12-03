@@ -23,7 +23,7 @@ import ndk.ext.subprocess
 
 def build(ndk_path, build_flags):
     ndk_build_path = os.path.join(ndk_path, 'ndk-build')
+    cmd = [ndk_build_path] + build_flags
     if os.name == 'nt':
-        return ndk.ext.subprocess.call_output(
-            ['cmd', '/c', ndk_build_path] + build_flags)
-    return ndk.ext.subprocess.call_output([ndk_build_path] + build_flags)
+        cmd = ['cmd', '/c'] + cmd
+    return ndk.ext.subprocess.call_output(cmd, encoding='utf-8')
