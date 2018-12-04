@@ -1,5 +1,4 @@
-Android Native Development Kit (NDK)
-====================================
+# Android Native Development Kit (NDK)
 
 The latest version of this document is available at
 https://android.googlesource.com/platform/ndk/+/master/README.md.
@@ -10,10 +9,15 @@ the NDK.
 The NDK allows Android application developers to include native code in their
 Android application packages, compiled as JNI shared libraries.
 
+This page provides an overview of what is contained in the NDK. For
+information on building or testing the NDK, the roadmap, or other information,
+see the navigation bar at the top of this page, or the [docs directory].
+
+[docs directory]: docs/
+
 [TOC]
 
-Other Resources
----------------
+## Other Resources
 
  * User documentation is available on the [Android Developer website].
  * Discussions related to the Android NDK happen on the [android-ndk Google
@@ -26,121 +30,38 @@ Other Resources
 [android-ndk Google Group]: http://groups.google.com/group/android-ndk
 [android-ndk-announce Google Group]: http://groups.google.com/group/android-ndk-announce
 
-Building the NDK
-================
-
-Both Linux and Windows NDKs are built on Linux machines. Windows host binaries
-are cross-compiled with MinGW.
-
-Building the NDK for Mac OS X requires at least 10.8.
-
-Components
-----------
+## Components
 
 The NDK components can be loosely grouped into host toolchains, target
 prebuilts, build systems, and support libraries.
 
-### Host Toolchains
+For more information, see the [Build System Maintainers] guide.
 
-* `toolchains/` contains GCC and Clang toolchains.
-    * `$TOOLCHAIN/config.mk` contains ARCH and ABIS this toolchain can handle.
-    * `$TOOLCHAIN/setup.mk` contains toolchain-specific default CFLAGS/LDFLAGS
-      when this toolchain is used.
-* `prebuilt/$HOST_TAG` contains build dependencies and additional tools.
-    * make, python, yasm, and for Windows: cmp.exe and echo.exe
-    * `ndk-stack` and `ndk-gdb` can also be found here.
-
-### Target Prebuilts
-
-* `sysroot/usr/include` contains the headers for the NDK. See [Unified Headers]
-  for more information.
-* `platforms/android-$VERSION/arch-$ARCH_NAME/` contains stub shared libraries
-  and a few static libraries for each API level. See [Platform APIs] for more
-  information.
-* `sources/cxx-stl/$STL` contains the headers and libraries for the various C++
-  STLs.
-* `prebuilt/android-$ARCH/gdbserver` contains gdbserver.
-
-[Unified Headers]: docs/UnifiedHeaders.md
-[Platform APIs]: docs/PlatformApis.md
+[Build System Maintainers]: docs/BuildSystemMaintainers.md
 
 ### Build Systems
 
-* `build/` contains ndk-build, the NDK's home grown build system. Most of the
-  implementation lives in `build/core`.
-* `build/cmake` contains components for using the NDK with CMake (at present
-  only a CMake toolchain file, but in the future it will contain CMake modules
-  that CMake will load, obviating the need for a toolchain file).
-* `build/tools` contains `make_standalone_toolchain.py`, but also contains
-  legacy sripts that were used to build the NDK. Eventually, this should contain
-  nothing but the standalone toolchain scripts.
-* The gradle plugins for the NDK are not included in the NDK.
+While the NDK is primarily a toolchain for building Android code, the package
+also includes some build system support.
+
+First, `$NDK/build/core` contains ndk-build. This is the NDK's home grown build
+system. The entry point for this build system is `$NDK/build/ndk-build` (or
+`$NDK/build/ndk-build.cmd`).
+
+A CMake toolchain file is included at
+`$NDK/build/cmake/android.toolchain.cmake`. This is separate from CMake's own
+support for the NDK.
+
+`$NDK/build/tools/make_standalone_toolchain.py` is a tool which can create a
+redistributable toolchain that targets a single Android ABI and API level. As of
+NDK r19 it is necessary, as the installed toolchain may be invoked directly, but
+it remains for compatibility.
+
+Since the Android Gradle plugin is responsible for both Java and native code, is
+not included as part of the NDK.
 
 ### Support Libraries
 
-* `sources/android` and `sources/third_party` contain modules that can be used
-  in apps (gtest, cpufeatures, native\_app\_glue, etc) via
-  `$(call import-module,$MODULE)`.
-
-Prerequisites
--------------
-
-* [AOSP NDK Repository](http://source.android.com/source/downloading.html)
-    * Check out the branch `master-ndk`
-
-        ```bash
-        repo init -u https://android.googlesource.com/platform/manifest \
-            -b master-ndk
-
-        # Googlers, use
-        repo init -u \
-            persistent-https://android.git.corp.google.com/platform/manifest \
-            -b master-ndk
-        ```
-
-Linux dependencies are listed in the [Dockerfile]. You can use docker to build
-the NDK:
-
-```bash
-docker build -t ndk-dev infra/docker
-docker run -it -u $UID -v `realpath ..`:/src -w /src/ndk ndk-dev ./checkbuild.py
-```
-
-Building on Mac OS X has similar dependencies as Linux, but also requires Xcode.
-
-Running tests requires that `adb` is in your `PATH`. This is provided as part of
-the [Android SDK].
-
-[Dockerfile]: infra/docker/Dockerfile
-[Android SDK]: https://developer.android.com/studio/index.html#downloads
-
-Building the NDK
-----------------
-
-### For Linux or Darwin:
-
-```bash
-$ python checkbuild.py
-```
-
-### For Windows, from Linux:
-
-```bash
-$ python checkbuild.py --system windows  # Or windows64.
-```
-
-`checkbuild.py` will also build all of the NDK tests. This takes about four
-times as long as building the NDK itself, so pass `--no-build-tests` to skip
-building the tests. They can be built later with `python run_tests.py
---rebuild`.
-
-`checkbuild.py` also accepts a variety of other options to speed up local
-builds, namely `--arch` and `--module`.
-
-Packaging
----------
-
-By default, `checkbuild.py` will also package the NDK. To skip the packaging
-step, use the `--no-package` flag. To avoid packaging an incomplete NDK,
-packaging will not be run if `--module` was passed unless `--force-package` was
-also provided.
+`sources/android` and `sources/third_party` contain modules that can be used in
+apps (gtest, cpufeatures, native\_app\_glue, etc) via `$(call
+import-module,$MODULE)` in ndk-build. CMake modules are not yet available.
