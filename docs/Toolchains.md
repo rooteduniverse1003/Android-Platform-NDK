@@ -1,33 +1,33 @@
-Working with the NDK Toolchains
-===============================
+# Working with the NDK Toolchains
 
 The latest version of this document is available at
-https://android.googlesource.com/platform/ndk/+/master/docs/Testing.md.
+https://android.googlesource.com/platform/ndk/+/master/docs/Toolchains.md.
 
 The toolchains shipped in the NDK are not built as a part of the NDK build
 process. Instead they are built separately and checked into git as prebuilts
-that are repackaged when shipped in the NDK. This applies to both Clang and GCC.
+that are repackaged when shipped in the NDK. This applies to both Clang and
+binutils.
 
 Both toolchains are built separately. An artifact of the build is a tarball of
 the compiler for distribution. That artifact is unpacked into a location in the
-Android tree and checked in. The NDK build step for each toolchain simply packs
-up the contents of the directory.
+Android tree and checked in. The NDK build step for the toolchain copies that
+directory into the NDK and makes minor modifications to make the toolchains suit
+the NDK rather than the platform.
 
 Note: Any changes to either toolchain need to be tested in the platform *and*
 the NDK. The platform and the NDK both get their toolchains from the same build.
 
-This process is far too manual. `checkbuild.py` should be updated (or additional
-scripts added) to ease this process.
+TODO: This process is far too manual. `checkbuild.py` should be updated (or
+additional scripts added) to ease this process.
 
-Clang
------
+## Clang
 
-Clang's build process is described in the platform's [ReadmeAndroid.md]. Note
-that Clang cannot be built from the NDK tree. The output tarball is extracted to
-`prebuilts/clang/host/$HOST/clang-$BUILD_NUMBER`.  `checkbuild.py --module
-clang` repackages this as-is as `$OUT_DIR/dist/llvm-$HOST_TAG.zip`.
+Clang's build process is described in the [Android LLVM Readme]. Note that Clang
+cannot be built from the NDK tree. The output tarball is extracted to
+`prebuilts/clang/host/$HOST/clang-$REVISION`. `checkbuild.py clang` repackages
+this into the NDK out directory.
 
-[ReadmeAndroid.md]: https://android.googlesource.com/platform/external/clang/+/dev/ReadmeAndroid.md
+[Android Clang Readme]: https://android.googlesource.com/toolchain/llvm_android/+/master/README.md
 
 ### Testing Local Changes
 
@@ -38,6 +38,8 @@ $ export CLANG_PREBUILTS=`realpath ../prebuilts/clang/host/linux-x86`
 $ rm -r $CLANG_PREBUILTS/clang-dev
 $ tar xf path/to/clang-dev-linux-x86_64.tar.bz2 -C $CLANG_PREBUILTS
 # Edit ndk/build/tools/build-llvm.py and change the version to 'clang-dev'.
+# Update the VERSION variable in get_llvm_toolchain_binprefix in
+# built/tools/prebuilt-common.sh.
 $ ../prebuilts/ndk/symlink-clang.py dev
 $ ./checkbuild.py
 # Run tests.
@@ -47,11 +49,11 @@ For details about running tests, see [Testing.md].
 
 [Testing.md]: Testing.md
 
-This installs the new Clang into the prebuilts directory so it can be packaged
-by the NDK build. The `symlink-clang.py` line updates the symlinks in prebuilts
-NDK to point at the new Clang. The Clang in `prebuilts/ndk` is used for building
-libc++ in the NDK. The difference between it and `prebuilts/clang` is the
-directory layout, which differs so that `ndk-build` can use it.
+This installs the new Clang into the prebuilts directory so it can be included
+in the NDK. The `symlink-clang.py` line updates the symlinks in prebuilts NDK to
+point at the new Clang. The Clang in `prebuilts/ndk` is used by legacy NDK build
+scripts in ndk/build/tools. The difference between it and `prebuilts/clang` is
+the directory layout, which differs so that `ndk-build` can use it.
 
 If you need to make changes to Clang after running the above steps, future
 updates can be done more quickly with:
@@ -59,74 +61,64 @@ updates can be done more quickly with:
 ```bash
 $ rm -r $CLANG_PREBUILTS/clang-dev
 $ tar xf path/to/clang-dev-linux-x86_64.bz2 -C $CLANG_PREBUILTS
-$ ./checkbuild.py --module clang --force-package
+$ ./checkbuild.py toolchain --force-package
 # Run tests.
 ```
 
 We don't need to rebuild the whole NDK since we've already built most of it.
-Note that any NDK modules that were built with Clang won't be rebuilt (e.g.
-libc++), so this is only going to be useful if you're debugging a test.
 
 ### Updating to a New Clang
 
 These steps need to be run after installing the new prebuilt from the build
-server to `prebuilts/clang` (see the [Clang docs]).
+server to `prebuilts/clang` (see the [update-prebuilts.py]).
 
-[Clang docs]: https://android.googlesource.com/platform/external/clang/+/dev/ToolchainPrebuilts.md
+[update-prebuilts.py]: https://android.googlesource.com/toolchain/llvm_android/+/master/update-prebuilts.py
 
 ```bash
 # Edit ndk/checkbuild.py and update `Clang.version`.
+# Update the VERSION variable in get_llvm_toolchain_binprefix in
+# built/tools/prebuilt-common.sh.
 $ ../prebuilts/ndk/symlink-clang.py # Latest version autodetected.
 $ ./checkbuid.py # `--module clang` to build just Clang.
 # Run tests.
 ```
 
-GCC (and binutils)
-------------------
+## Binutils
 
-GCC's build process is described in [GCC's README.md][GCCReadme]. Unlike Clang,
-GCC can be built from the NDK tree. The output tarball is extracted to
-`prebuilts/ndk/current/toolchains/$TOOLCHAIN/prebuilt/$HOST_TAG`. `checkbuild.py
---module gcc` repackages this as-is as `$OUT_DIR/dist/gcc-$ARCH-$HOST_TAG.zip`.
+Binutils is built using the [build.py] script in the toolchain/binutils.
 
-Note that GCC is a bit more complicated to update than Clang. `prebuilts/ndk`
-contains only a prebuilt GCC, not prebuilt target gnustl (GNU's libstdc++,
-referred to as gnustl in Android). As such, changes submitted to `toolchain/gcc`
-will affect the gnustl build (`checkbuild.py --module gnustl`) will take effect
-immediately.
+Unlike Clang, binutils can be built from the NDK tree. The output tarball is
+extracted to `prebuilts/ndk/binutils/$HOST/binutils-$ARCH-$HOST`. Like Clang,
+this is built with `checkbuild.py toolchain`.
 
-[GCCReadme]: https://android.googlesource.com/toolchain/gcc/+/master/README.md
+[build.py]: https://android.googlesource.com/toolchain/binutils/+/master/build.py
 
 ### Testing Local Changes
 
 To test a GCC you just built:
 
 ```bash
-$ export INSTALL_DIR=`realpath ../prebuilts/ndk/current`
-$ export TOOLCHAIN_DIR=$INSTALL_DIR/toolchains/$HOST_TAG
-$ rm -r $TOOLCHAIN_PATH/$TOOLCHAIN
-$ unzip ../out/dist/gcc-$ARCH-$HOST.zip -d $TOOLCHAIN_DIR
+$ export INSTALL_DIR=`realpath ../prebuilts/ndk/binutils/$HOST`
+$ rm -r INSTALL_DIR/binutils-$ARCH-$HOST
+$ unzip ../out/dist/binutils-$ARCH-$HOST.zip -d $INSTALL_DIR
 $ ./checkbuild.py
 # Run tests.
 ```
 
-We're building an NDK and then replacing it's GCC with our own.
-
 For details about running tests, see [Testing.md].
 
-Additional changes will not require a full `checkbuild.py`. Instead:
+Since the NDK is already built, additional changes will not require a full
+`checkbuild.py`. Instead:
 
 ```bash
-$ ./checkbuild.py --module gcc
-$ ./checkbuild.py --module gcclibs
-$ ./checkbuild.py --module gnustl --force-package
+$ ./checkbuild.py toolchain
 # Run tests.
 ```
 
-### Updating to a New GCC
+### Updating to a New Binutils
 
 ```bash
-$ ../prebuilts/ndk/update-gcc.py $BUILD_NUMBER
+$ ../prebuilts/ndk/update_binutils.py $BUILD_NUMBER
 $ ./checkbuild.py
 # Run tests.
 ```
