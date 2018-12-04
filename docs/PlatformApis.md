@@ -1,11 +1,9 @@
-Platform APIs
-=============
+# Platform APIs
 
 The latest version of this document is available at
 https://android.googlesource.com/platform/ndk/+/master/docs/PlatformApis.md.
 
-Implications of Adding a New Platform API
------------------------------------------
+## Implications of Adding a New Platform API
 
 Before adding a platform API to the NDK, there are some guarantees and
 restrictions that need to be considered.
@@ -52,8 +50,7 @@ exposed in the headers.
 NDK API headers can only depend on other NDK API headers. Platform headers from
 android-base, libcutils, libnativehelper, etc are not available to the NDK.
 
-For Platform Developers
------------------------
+## For Platform Developers
 
 To get your API into the NDK you'll generally need to define the two pieces that
 implement it: the headers and the libraries. Often the library is libandroid.so
@@ -164,22 +161,13 @@ yourself. If the `ndk_library` rule ends up in an Android.bp that never gets
 parsed and there are no tests built with the NDK that use that library, your
 build will still pass.
 
-For NDK Developers
-------------------
+## For NDK Developers
 
-The platform APIs reach the NDK via the "sysroot" and "platforms" modules in
-checkbuild.py. The sysroot currently is just the headers, whereas the libraries
-and CRT objects are in platforms.
-
-The sysroot module is copied from `prebuilts/ndk/platform/sysroot`. These
-prebuilts are updated with `prebuilts/ndk/update_platform.py`, which pulls NDK
-artifacts from the build servers.
-
-The platforms module is built partially from `prebuilts/ndk/platform/sysroot`
-and partially from `development/ndk/platforms`. The former contains the library
-stubs from the platform, and the latter contains the deprecated headers, the CRT
-objects, and static libraries. For more information on this process, see
-[Generating Sysroots](GeneratingSysroots.md).
+The platform APIs reach the NDK via the "toolchain" module of the NDK (currently
+via the intermediates of "sysroot" and "platforms". The sysroot currently is
+just the headers, whereas the libraries are in platforms and CRT objects are
+built as part of the NDK (an ELF note is added to the CRT objects so NDK
+binaries contain NDK version information).
 
 ### Updating the Sysroot
 
