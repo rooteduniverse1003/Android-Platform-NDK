@@ -37,7 +37,6 @@ import inspect
 import json
 import logging
 import multiprocessing
-import ntpath
 import os
 import pipes
 import re
