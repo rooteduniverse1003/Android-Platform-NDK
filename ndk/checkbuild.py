@@ -37,7 +37,6 @@ import inspect
 import json
 import logging
 import multiprocessing
-import ntpath
 import os
 import pipes
 import re
@@ -530,9 +529,7 @@ class Binutils(ndk.builds.Module):
 
         is_win = self.host.startswith('windows')
         libdir_name = 'lib' if self.host == 'windows' else 'lib64'
-        host_tag = ndk.hosts.host_to_tag(self.host)
-        clang_prebuilts = ndk.paths.android_path(
-            'prebuilts/ndk/current/toolchains', host_tag, 'llvm')
+        clang_prebuilts = self.get_dep('clang').get_install_path()
         clang_bin = os.path.join(clang_prebuilts, 'bin')
         clang_libs = os.path.join(clang_prebuilts, libdir_name)
 
