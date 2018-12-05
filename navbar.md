@@ -1,5 +1,5 @@
 * [Home](/README.md)
-* [Building](/README.md#Building-the-NDK)
+* [Building](/docs/Building.md)
 * [Clang Migration](/docs/ClangMigration.md)
 * [Testing](/docs/Testing.md)
 * [Platform APIs](/docs/PlatformApis.md)
