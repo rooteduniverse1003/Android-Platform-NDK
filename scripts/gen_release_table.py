@@ -17,6 +17,7 @@
 """Generates an HTML table for the downloads page."""
 from __future__ import print_function
 
+import argparse
 import logging
 import operator
 import os.path
@@ -24,20 +25,37 @@ import re
 import sys
 
 
+# pylint: disable=design
+
+
 def get_lines():
+    """Returns all stdin input until the first empty line."""
     lines = []
     while True:
-        line = raw_input()
+        line = raw_input()  # pylint: disable=undefined-variable
         if line.strip() == '':
             return lines
         lines.append(line)
 
 
+def parse_args():
+    """Parses and returns command line arguments."""
+    parser = argparse.ArgumentParser()
+
+    parser.add_argument(
+        '--beta', action='store_true',
+        help='Generate content for a beta release.')
+
+    return parser.parse_args()
+
+
 def main():
+    """Program entry point."""
+    args = parse_args()
     print('Paste the contents of the "New files" section of the SDK update '
           'email here. Terminate with an empty line.')
     lines = get_lines()
-    if len(lines) == 0:
+    if not lines:
         sys.exit('No input.')
 
     # The user may have pasted the following header line:
@@ -108,6 +126,8 @@ def main():
     print('</table>')
     print()
     print('For DAC:')
+
+    var_prefix = 'ndk_beta' if args.beta else 'ndk'
     for host, package, size, sha in artifacts:
         dac_host = {
             'Mac OS X': 'mac64',
@@ -117,12 +137,12 @@ def main():
         }[host]
         print()
         print('{{# {} #}}'.format(host))
-        print('{{% setvar ndk_{}_download %}}{}{{% endsetvar %}}'.format(
-            dac_host, package))
-        print('{{% setvar ndk_{}_bytes %}}{}{{% endsetvar %}}'.format(
-            dac_host, size))
-        print('{{% setvar ndk_{}_checksum %}}{}{{% endsetvar %}}'.format(
-            dac_host, sha))
+        print('{{% setvar {}_{}_download %}}{}{{% endsetvar %}}'.format(
+            var_prefix, dac_host, package))
+        print('{{% setvar {}_{}_bytes %}}{}{{% endsetvar %}}'.format(
+            var_prefix, dac_host, size))
+        print('{{% setvar {}_{}_checksum %}}{}{{% endsetvar %}}'.format(
+            var_prefix, dac_host, sha))
 
 
 if __name__ == '__main__':
