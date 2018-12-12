@@ -532,11 +532,7 @@ class Binutils(ndk.builds.Module):
         clang_prebuilts = self.get_dep('clang').get_install_path()
         clang_bin = os.path.join(clang_prebuilts, 'bin')
         clang_libs = os.path.join(clang_prebuilts, libdir_name)
-
-        if is_win:
-            llvmgold = os.path.join(clang_bin, 'LLVMgold' + so)
-        else:
-            llvmgold = os.path.join(clang_libs, 'LLVMgold' + so)
+        llvmgold = os.path.join(clang_libs, 'LLVMgold' + so)
 
         bfd_plugins = os.path.join(install_path, 'lib/bfd-plugins')
         os.makedirs(bfd_plugins)
