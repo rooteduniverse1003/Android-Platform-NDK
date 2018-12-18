@@ -257,12 +257,6 @@ if(NOT ANDROID_ARM_MODE)
   set(ANDROID_ARM_MODE thumb)
 endif()
 
-if(ANDROID_ABI STREQUAL "armeabi-v7a" AND NOT DEFINED ANDROID_ARM_NEON)
-  if(NOT ANDROID_PLATFORM_LEVEL LESS 23)
-    set(ANDROID_ARM_NEON TRUE)
-  endif()
-endif()
-
 # Export configurable variables for the try_compile() command.
 set(CMAKE_TRY_COMPILE_PLATFORM_VARIABLES
   ANDROID_TOOLCHAIN
@@ -351,10 +345,8 @@ if(ANDROID_STL STREQUAL system)
     endif()
   endif()
 elseif(ANDROID_STL STREQUAL c++_static)
-  list(APPEND ANDROID_COMPILER_FLAGS_CXX "-stdlib=libc++")
   list(APPEND ANDROID_LINKER_FLAGS "-static-libstdc++")
 elseif(ANDROID_STL STREQUAL c++_shared)
-  list(APPEND ANDROID_COMPILER_FLAGS_CXX "-stdlib=libc++")
 elseif(ANDROID_STL STREQUAL none)
   list(APPEND ANDROID_COMPILER_FLAGS_CXX "-nostdinc++")
   list(APPEND ANDROID_LINKER_FLAGS "-nostdlib++")
@@ -454,9 +446,6 @@ if(ANDROID_TOOLCHAIN STREQUAL clang)
 endif()
 
 # Toolchain and ABI specific flags.
-if(ANDROID_ABI STREQUAL armeabi-v7a)
-  list(APPEND ANDROID_COMPILER_FLAGS -mfpu=vfpv3-d16)
-endif()
 if(ANDROID_ABI STREQUAL x86 AND ANDROID_PLATFORM_LEVEL LESS 24)
   # http://b.android.com/222239
   # http://b.android.com/220159 (internal http://b/31809417)
@@ -523,7 +512,7 @@ endif()
 list(APPEND ANDROID_LINKER_FLAGS -Qunused-arguments)
 
 list(APPEND ANDROID_COMPILER_FLAGS -Wa,--noexecstack)
-list(APPEND ANDROID_LINKER_FLAGS -Wl,-z,noexecstack -Wl,-z,relro -Wl,-z,now)
+list(APPEND ANDROID_LINKER_FLAGS -Wl,-z,noexecstack)
 
 if(ANDROID_DISABLE_FORMAT_STRING_CHECKS)
   list(APPEND ANDROID_COMPILER_FLAGS

@@ -193,20 +193,6 @@ endif
 LOCAL_CFLAGS += -Wa,--noexecstack
 LOCAL_LDFLAGS += -Wl,-z,noexecstack
 
-# This flag is used to mark certain regions of the resulting executable or
-# shared library as being read-only after the dynamic linker has run. This makes
-# GOT overwrite security attacks harder to exploit.
-#
-# TODO: Should be a Clang default: https://github.com/android-ndk/ndk/issues/812
-LOCAL_LDFLAGS += -Wl,-z,relro
-
-# This flag instructs the loader to resolve relocations immediately. For Android
-# the loader always does this, but we should pass this flag in case the lazy
-# behavior is ever added.
-#
-# TODO: Should be a Clang default: https://github.com/android-ndk/ndk/issues/812
-LOCAL_LDFLAGS += -Wl,-z,now
-
 # We enable shared text relocation warnings by default. These are not allowed in
 # current versions of Android (android-21 for LP64 ABIs, android-23 for LP32
 # ABIs).
@@ -299,8 +285,6 @@ ifdef LOCAL_ARM_NEON
     $(call __ndk_info,LOCAL_ARM_NEON must be defined either to 'true' or 'false' in $(LOCAL_MAKEFILE), not '$(LOCAL_ARM_NEON)')\
     $(call __ndk_error,Aborting) \
   )
-else ifeq ($(true),$(call gte,$(TARGET_PLATFORM_LEVEL),23))
-  LOCAL_ARM_NEON := true
 endif
 
 ifeq ($(LOCAL_ARM_NEON),true)

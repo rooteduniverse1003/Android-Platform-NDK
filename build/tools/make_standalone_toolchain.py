@@ -130,7 +130,7 @@ def make_clang_scripts(install_dir, triple, api, windows):
     if arch == 'i686' and api < 24:
         flags += ' -mstackrealign'
 
-    cxx_flags = flags + ' -stdlib=libc++'
+    cxx_flags = str(flags)
 
     clang_path = os.path.join(install_dir, 'bin/clang')
     with open(clang_path, 'w') as clang:
