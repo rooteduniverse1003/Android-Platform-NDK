@@ -226,7 +226,7 @@ def _install_file(src_file, dst_file):
 class Clang(ndk.builds.Module):
     name = 'clang'
     path = 'toolchains/llvm/prebuilt/{host}'
-    version = 'clang-r344140b'
+    version = 'clang-r346389b'
     notice_group = ndk.builds.NoticeGroup.TOOLCHAIN
 
     @property
@@ -342,21 +342,13 @@ class Clang(ndk.builds.Module):
         # The Clang prebuilts have the platform toolchain libraries in
         # lib64/clang. The libraries we want are in runtimes_ndk_cxx.
         ndk_runtimes = os.path.join(linux_prebuilt_path, 'runtimes_ndk_cxx')
-        runtime_arches = ['aarch64', 'arm', 'i386', 'x86_64']
         versions = os.listdir(install_clanglib)
         for version in versions:
             version_dir = os.path.join(install_clanglib, version)
             dst_lib_dir = os.path.join(version_dir, 'lib/linux')
-            for arch in runtime_arches:
-                src_arch_dir = os.path.join(ndk_runtimes, arch)
-                dst_arch_dir = os.path.join(dst_lib_dir, arch)
+            shutil.rmtree(dst_lib_dir)
+            shutil.copytree(ndk_runtimes, dst_lib_dir)
 
-                # The install directory currently contains the platform
-                # libraries with the wrong arch name. We need to remove the
-                # wrongly named wrong libraries before we fix the arch name.
-                shutil.rmtree(dst_arch_dir)
-
-                shutil.copytree(src_arch_dir, dst_arch_dir)
 
         # Also remove the other libraries that we installed, but they were only
         # installed on Linux.

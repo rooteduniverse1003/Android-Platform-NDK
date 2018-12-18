@@ -164,6 +164,16 @@ LOCAL_LDFLAGS += -Wl,--build-id
 ifneq ($(NDK_APP_STL),system)
     LOCAL_CFLAGS += -nostdinc++
     LOCAL_LDFLAGS += -nostdlib++
+else
+    # TODO: Remove when https://reviews.llvm.org/D55856 is merged.
+    #
+    # The system STL Android.mk will export -lstdc++, but the Clang driver will
+    # helpfully rewrite -lstdc++ to whatever the default C++ stdlib linker
+    # arguments are, except in the presence of -nostdlib and -nodefaultlibs.
+    # That part of the driver does not account for -nostdlib++. We can fix the
+    # behavior by using -stdlib=libstdc++ so it rewrites -lstdc++ to -lstdc++
+    # instead of -lc++.
+    LOCAL_LDFLAGS += -stdlib=libstdc++
 endif
 
 #
