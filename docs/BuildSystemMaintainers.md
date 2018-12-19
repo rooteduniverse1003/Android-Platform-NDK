@@ -89,8 +89,8 @@ Enabling NEON can significantly improve application performance.
 
 To enable NEON, pass `-mfpu=neon` when compiling.
 
-Note: The NDK's supported build systems (ndk-build and the CMake toolchain file)
-automatically enable NEON for API levels 23 (Marshmallow) and higher.
+Note: Clang automatically enables NEON for API levels 23 (Marshmallow) and
+higher.
 
 [Android CDD]: https://source.android.com/compatibility/cdd
 [NEON]: https://developer.arm.com/technologies/neon
@@ -252,11 +252,11 @@ to the first API level the library is introduced.
 ### libc++
 
 The STL provided by the NDK is [libc++]. Its headers are installed to
-`<NDK>/sysroot/usr/include/c++/v1`. To use this STL, use the `-stdlib=libc++`
-flag. This STL comes in both a static and shared variant. The shared variant is
-used by default. To use the static variant, pass `-static-libstdc++` when
-linking. If using the shared variant, libc++_shared.so must be included in the
-APK. This library is installed to `<NDK>/sysroot/usr/lib/<triple>`.
+`<NDK>/sysroot/usr/include/c++/v1`. This STL is used by default. This STL comes
+in both a static and shared variant. The shared variant is used by default. To
+use the static variant, pass `-static-libstdc++` when linking. If using the
+shared variant, libc++_shared.so must be included in the APK. This library is
+installed to `<NDK>/sysroot/usr/lib/<triple>`.
 
 Warning: There are a number of things to consider when selecting between the
 shared and static STLs. See the [Important Considerations] section of the C++
@@ -337,18 +337,8 @@ All flags discussed in this section should be automatically selected by Clang,
 but they are not yet. Check back in a future NDK release to see if any can be
 removed from your build system.
 
-32-bit ARM targets should use `-mfpu=vfpv3-d16` when compiling unless using
-[NEON]. This allows the compiler to make use of the FPU.
-
-C++ builds should use `-stdlib=libc++` when using libc++. This flag is used both
-when compiling and when linking. This allows the compiler to find the correct
-C++ standard headers and libraries.
-
 For x86 targets prior to Android Nougat (API 24), `-mstackrealign` is needed to
 properly align stacks for global constructors. See [Issue 635].
-
-All code must be linked with `-Wl,-z,relro`, which causes relocations to be
-made read-only after relocation is performed.
 
 Android requires [Position-independent executables] beginning with API 21. Clang
 builds PIE executables by default. If invoking the linker directly or not using

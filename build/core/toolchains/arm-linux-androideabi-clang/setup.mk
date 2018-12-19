@@ -19,9 +19,7 @@ LLVM_TRIPLE := armv7-none-linux-androideabi
 TARGET_ASAN_BASENAME := libclang_rt.asan-arm-android.so
 TARGET_UBSAN_BASENAME := libclang_rt.ubsan_standalone-arm-android.so
 
-TARGET_CFLAGS := \
-    -fpic \
-    -mfpu=vfpv3-d16 \
+TARGET_CFLAGS := -fpic
 
 TARGET_LDFLAGS :=
 

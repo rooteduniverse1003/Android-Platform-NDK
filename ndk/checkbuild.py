@@ -1355,17 +1355,14 @@ def write_clang_wrapper(install_dir, api, triple, is_windows):
     if triple.startswith('i686') and api < 24:
         flags.append('-mstackrealign')
 
-    # TODO: Fix driver default.
-    cxx_flags = flags + ['-stdlib=libc++']
-
     # Write shell scripts even for Windows to support WSL and Cygwin.
     write_clang_shell_script(wrapper_path, 'clang' + exe_suffix, flags)
-    write_clang_shell_script(wrapperxx_path, 'clang++' + exe_suffix, cxx_flags)
+    write_clang_shell_script(wrapperxx_path, 'clang++' + exe_suffix, flags)
     if is_windows:
         write_clang_batch_script(wrapper_path + '.cmd', 'clang' + exe_suffix,
                                  flags)
         write_clang_batch_script(wrapper_path + '.cmd', 'clang++' + exe_suffix,
-                                 cxx_flags)
+                                 flags)
 
 
 class BaseToolchain(ndk.builds.Module):
