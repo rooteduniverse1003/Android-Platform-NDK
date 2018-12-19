@@ -57,7 +57,7 @@ def make_standalone_toolchain(ndk_path, arch, api, extra_args, install_dir):
         cmd = [python_path] + cmd
 
     rc, out = call_output(cmd)
-    return rc == 0, out
+    return rc == 0, out.decode('utf-8')
 
 
 def test_standalone_toolchain(install_dir, test_source, flags):
@@ -71,7 +71,7 @@ def test_standalone_toolchain(install_dir, test_source, flags):
         # tries to load the batch file as an executable. Invoke it with cmd.
         cmd = ['cmd', '/c'] + cmd
     rc, out = call_output(cmd)
-    return rc == 0, out
+    return rc == 0, out.decode('utf-8')
 
 
 def run_test(ndk_path, abi, api, test_source, extra_args, flags):
