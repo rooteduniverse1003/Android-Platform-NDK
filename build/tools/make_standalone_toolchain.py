@@ -130,6 +130,9 @@ def make_clang_scripts(install_dir, triple, api, windows):
     if arch == 'i686' and api < 24:
         flags += ' -mstackrealign'
 
+    # TODO: Remove when https://github.com/android-ndk/ndk/issues/884 is fixed.
+    flags += ' -fno-addrsig'
+
     cxx_flags = str(flags)
 
     clang_path = os.path.join(install_dir, 'bin/clang')
