@@ -464,6 +464,9 @@ if(ANDROID_ABI STREQUAL x86 AND ANDROID_PLATFORM_LEVEL LESS 24)
   list(APPEND ANDROID_COMPILER_FLAGS -mstackrealign)
 endif()
 
+# TODO: Remove when https://github.com/android-ndk/ndk/issues/884 is fixed.
+list(APPEND ANDROID_COMPILER_FLAGS -fno-addrsig)
+
 # STL specific flags.
 if(ANDROID_STL MATCHES "^c\\+\\+_")
   if(ANDROID_ABI MATCHES "^armeabi")
