@@ -128,6 +128,9 @@ GLOBAL_CFLAGS += \
     -Wno-invalid-command-line-argument \
     -Wno-unused-command-line-argument \
 
+# TODO: Remove when https://github.com/android-ndk/ndk/issues/884 is fixed.
+GLOBAL_CFLAGS += -fno-addrsig
+
 GLOBAL_LDFLAGS = \
     -target $(LLVM_TRIPLE)$(TARGET_PLATFORM_LEVEL) \
     -no-canonical-prefixes \

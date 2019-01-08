@@ -344,7 +344,12 @@ Android requires [Position-independent executables] beginning with API 21. Clang
 builds PIE executables by default. If invoking the linker directly or not using
 Clang, use `-pie` when linking.
 
+Clang uses `-faddrsig` by default, but this produces output that is incompatible
+with GNU binutils. To workaround this, `-fno-addrsig` must be passed to Clang
+when using GNU binutils. See [Issue 884].
+
 [Issue 635]: https://github.com/android-ndk/ndk/issues/635
+[Issue 884]: https://github.com/android-ndk/ndk/issues/884
 [Position-independent executables]: https://en.wikipedia.org/wiki/Position-independent_code#Position-independent_executables
 
 ## Useful Arguments
