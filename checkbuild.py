@@ -1365,6 +1365,9 @@ def write_clang_wrapper(install_dir, api, triple, is_windows):
     if triple.startswith('i686') and api < 24:
         flags.append('-mstackrealign')
 
+    # TODO: Remove when https://github.com/android-ndk/ndk/issues/884 is fixed.
+    flags.append('-fno-addrsig')
+
     # TODO: Fix driver default.
     cxx_flags = flags + ['-stdlib=libc++']
 
