@@ -38,6 +38,9 @@ def android_path(*args):
     return os.path.normpath(os.path.join(THIS_DIR, '../..', *args))
 
 
+PYTHON_SOURCE = android_path('external/python/cpython3')
+
+
 def _get_dir_from_env(default, env_var):
     """Returns the path to a directory specified by the environment.
 
@@ -130,9 +133,8 @@ def build_python(install_dir, build_dir):
     try:
         os.chdir(build_dir)
 
-        python_src = android_path('external/python/cpython3')
         check_output([
-            os.path.join(python_src, 'configure'),
+            os.path.join(PYTHON_SOURCE, 'configure'),
             '--prefix=' + install_dir,
 
             # This enables PGO and requires running all the Python tests to
@@ -209,6 +211,93 @@ class Timer(object):  # pylint: disable=useless-object-inheritance
         self.finish()
 
 
+def read_requirements(requirements):
+    """Returns the contents of a requirements file or None.
+
+    Args:
+        requirements: Path to a requirements.txt file that may or may not
+        exist, or none.
+
+    Returns:
+        The contents of the requirements file if it exists, or None if the
+        requirequirements file is None or does not exist.
+    """
+
+    if requirements is None:
+        return None
+
+    if not os.path.exists(requirements):
+        return None
+
+    with open(requirements) as requirements_file:
+        return requirements_file.read()
+
+
+class BootstrapManifest(object):  # pylint: disable=useless-object-inheritance
+    """Describes the contents of the bootstrapped directory."""
+
+    SOURCE_MANIFEST_PATH = os.path.join(PYTHON_SOURCE, 'README.rst')
+
+    def __init__(self, install_path, requirements):
+        self.install_path = install_path
+        self.manifest_file = os.path.join(self.install_path, '.bootstrapped')
+
+        self.requested_requirements_path = requirements
+        self.bootstrapped_requirements_path = os.path.join(
+            self.install_path, 'requirements.txt')
+
+        self.requested_requirements = read_requirements(
+            self.requested_requirements_path)
+        self.bootstrapped_requirements = read_requirements(
+            self.bootstrapped_requirements_path)
+
+    def is_up_to_date(self):
+        """Returns True if the bootstrap install is up to date."""
+        if not os.path.exists(self.manifest_file):
+            return False
+        if not self.versions_match():
+            logger().info('Bootstrap out of date: Python has changed.')
+            return False
+        if self.requested_requirements != self.bootstrapped_requirements:
+            logger().info('Bootstrap out of date: requirements have changed.')
+            return False
+        return True
+
+    def versions_match(self):
+        """Returns True if the bootstrap has an up to date Python."""
+        # Ideally this would be a check of the git revision of the Python
+        # source, but we can't assume that information is available on the
+        # build servers. For now, assume the README.rst will change for any
+        # update. This should be fine since updates should include a change to
+        # the version number.
+
+        # This function should not be called if this file does not exist.
+        assert os.path.exists(self.manifest_file)
+
+        with open(self.SOURCE_MANIFEST_PATH) as readme_rst:
+            source_manifest = readme_rst.read()
+        with open(self.manifest_file) as manifest_file:
+            bootstrapped_manifest = manifest_file.read()
+
+        return source_manifest == bootstrapped_manifest
+
+    def save(self):
+        """Saves the bootstrap manifest to disk."""
+        self.save_python_version()
+        self.save_requirements()
+
+    def save_python_version(self):
+        shutil.copy2(self.SOURCE_MANIFEST_PATH, self.manifest_file)
+
+    def save_requirements(self):
+        if self.requested_requirements is not None:
+            shutil.copy2(self.requested_requirements_path,
+                         self.bootstrapped_requirements_path)
+        # An existing bootstrap directory is removed if it needed to be
+        # updated, so no need to remove an existing requirements file in the
+        # case where a requirements file was used but no longer is.
+
+
 def do_bootstrap(install_dir, requirements):
     """Helper function for bootstrapping.
 
@@ -226,9 +315,14 @@ def do_bootstrap(install_dir, requirements):
     """
     build_dir = path_in_out('bootstrap-build')
 
-    bootstrap_completed_file = path_in_out('.bootstrapped')
-    if os.path.exists(bootstrap_completed_file):
+    bootstrap_manifest = BootstrapManifest(install_dir, requirements)
+    if bootstrap_manifest.is_up_to_date():
         return
+
+    # If the bootstrap exists but is not up to date, purge it to ensure no
+    # stale files remain.
+    if os.path.exists(install_dir):
+        shutil.rmtree(install_dir)
 
     timer = Timer()
     with timer:
@@ -237,8 +331,7 @@ def do_bootstrap(install_dir, requirements):
             install_requirements(install_dir, requirements)
     logger().info('Bootstrapping completed in %s', timer.duration)
 
-    with open(bootstrap_completed_file, 'w'):
-        pass
+    bootstrap_manifest.save()
 
 
 def bootstrap(requirements=None):
