@@ -88,7 +88,16 @@ def get_toolchain_path_or_die(host_tag):
     return toolchain_path
 
 
-def make_clang_scripts(install_dir, triple, api, windows):
+def make_clang_target(triple, api):
+    """Returns the Clang target for the given GNU triple and API combo."""
+    arch, os_name, env = triple.split('-')
+    if arch == 'arm':
+        arch = 'armv7a'  # Target armv7, not armv5.
+
+    return '{}-{}-{}{}'.format(arch, os_name, env, api)
+
+
+def make_clang_scripts(install_dir, arch, api, windows):
     """Creates Clang wrapper scripts.
 
     The Clang in standalone toolchains historically was designed to be used as
@@ -116,12 +125,9 @@ def make_clang_scripts(install_dir, triple, api, windows):
                 os.path.join(bin_dir, 'clang{}++'.format(
                     version_number) + exe))
 
-    arch, os_name, env = triple.split('-')
-    if arch == 'arm':
-        arch = 'armv7a'  # Target armv7, not armv5.
-
-    target = '-'.join([arch, 'none', os_name, env])
-    flags = '-target {}{} -stdlib=libc++'.format(target, api)
+    triple = get_triple(arch)
+    target = make_clang_target(triple, api)
+    flags = '-target {} -stdlib=libc++'.format(target)
 
     # We only need mstackrealign to fix issues on 32-bit x86 pre-24. After 24,
     # this consumes an extra register unnecessarily, which can cause issues for
@@ -223,8 +229,7 @@ def create_toolchain(install_path, arch, api, toolchain_path, host_tag):
     """Create a standalone toolchain."""
     copy_tree(toolchain_path, install_path)
     triple = get_triple(arch)
-    make_clang_scripts(
-        install_path, triple, api, host_tag.startswith('windows'))
+    make_clang_scripts(install_path, arch, api, host_tag.startswith('windows'))
     replace_gcc_wrappers(install_path, triple, host_tag.startswith('windows'))
 
     prebuilt_path = os.path.join(NDK_DIR, 'prebuilt', host_tag)
@@ -236,20 +241,22 @@ def create_toolchain(install_path, arch, api, toolchain_path, host_tag):
     shutil.copytree(gdbserver_path, gdbserver_install)
 
 
-def warn_unnecessary(is_windows):
-    if is_windows:
+def warn_unnecessary(arch, api, host_tag):
+    """Emits a warning that this script is no longer needed."""
+    if host_tag.startswith('windows'):
         ndk_var = '%NDK%'
         prompt = 'C:\\>'
     else:
         ndk_var = '$NDK'
         prompt = '$ '
 
+    target = make_clang_target(get_triple(arch), api)
     standalone_toolchain = os.path.join(ndk_var, 'build', 'tools',
                                         'make_standalone_toolchain.py')
-    toolchain_dir = os.path.join(ndk_var, 'toolchain', 'bin')
+    toolchain_dir = os.path.join(ndk_var, 'toolchains', 'llvm', 'prebuilt',
+                                 host_tag, 'bin')
     old_clang = os.path.join('toolchain', 'bin', 'clang++')
-    new_clang = os.path.join(ndk_var, 'toolchain', 'bin',
-                             'armv7a-linux-androideabi21-clang++')
+    new_clang = os.path.join(toolchain_dir, target + '-clang++')
 
     logger().warning(
         textwrap.dedent("""\
@@ -258,7 +265,7 @@ def warn_unnecessary(is_windows):
         the same task. For example, instead of:
 
             {prompt}python {standalone_toolchain} \\
-                --arch arm --api 21 --install-dir toolchain
+                --arch {arch} --api {api} --install-dir toolchain
             {prompt}{old_clang} src.cpp
 
         Instead use:
@@ -268,6 +275,8 @@ def warn_unnecessary(is_windows):
             toolchain_dir=toolchain_dir,
             prompt=prompt,
             standalone_toolchain=standalone_toolchain,
+            arch=arch,
+            api=api,
             old_clang=old_clang,
             new_clang=new_clang)))
 
@@ -322,7 +331,7 @@ def main():
 
     host_tag = get_host_tag_or_die()
 
-    warn_unnecessary(host_tag.startswith('windows'))
+    warn_unnecessary(args.arch, args.api, host_tag)
 
     check_ndk_or_die()
 
