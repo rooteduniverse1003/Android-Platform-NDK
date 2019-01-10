@@ -1112,12 +1112,13 @@ class LibShaderc(ndk.builds.Module):
                     'include/spirv/1.0/spirv.py',
                     'include/spirv/1.1/spirv.py',
                     'include/spirv/1.2/spirv.py'
+                    'include/spirv/uinified1/spirv.py'
                 ],
             },
             {
                 'source_dir': os.path.join(self.src, 'glslang'),
                 'dest_dir': 'shaderc/third_party/glslang',
-                'files': ['glslang/OSDependent/osinclude.h'],
+                'files': ['Android.mk', 'glslang/OSDependent/osinclude.h'],
                 'dirs': [
                     'SPIRV',
                     'OGLCompilersDLL',

@@ -37,9 +37,18 @@ def main(args):
 
     # TODO(danalbert): use ndk/sources/third_party/googletest/googletest
     # after it has been updated to a version with CMakeLists
-    gtest_cmd = ('-DSHADERC_GOOGLE_TEST_DIR=' +
-                 os.path.join(build_support.android_path(),
-                              'external', 'googletest'))
+    gtest_dir = build_support.android_path('external', 'googletest')
+    gtest_cmd = f'-DSHADERC_GOOGLE_TEST_DIR={gtest_dir}'
+
+    # SPIRV-Tools tests require effcee and re2.
+    # Don't enable RE2 testing because it's long and not useful to us.
+    effcee_dir = build_support.android_path('external', 'effcee')
+    re2_dir = build_support.android_path('external', 'regex-re2')
+    effcee_args = [('-DSHADERC_EFFCEE_DIR=' + effcee_dir),
+                   ('-DSHADERC_RE2_DIR=' + re2_dir),
+                   ('-DEFFCEE_GOOGLETEST_DIR=' + gtest_dir),
+                   ('-DEFFCEE_RE2_DIR=' + re2_dir),
+                   ('-DRE2_BUILD_TESTING=OFF')]
 
     obj_out = os.path.join(args.out_dir, 'shader_tools/obj')
     install_dir = os.path.join(args.out_dir, 'shader_tools/install')
@@ -49,20 +58,19 @@ def main(args):
                             host_tag])
     package_name = '-'.join(['shader-tools', host_tag])
 
-    source_root = os.path.join(build_support.android_path(), 'external',
-                               'shaderc')
+    source_root = build_support.android_path('external', 'shaderc')
     shaderc_shaderc_dir = os.path.join(source_root, 'shaderc')
     spirv_headers_dir = os.path.join(source_root, 'spirv-headers')
 
-    cmake = os.path.join(build_support.android_path(),
-                         'prebuilts', 'cmake', build_host_tag, 'bin', 'cmake')
-    ctest = os.path.join(build_support.android_path(),
-                         'prebuilts', 'cmake', build_host_tag, 'bin', 'ctest')
-    ninja = os.path.join(build_support.android_path(),
-                         'prebuilts', 'ninja', build_host_tag, 'ninja')
+    cmake = build_support.android_path('prebuilts', 'cmake',
+                                       build_host_tag, 'bin', 'cmake')
+    ctest = build_support.android_path('prebuilts', 'cmake',
+                                       build_host_tag, 'bin', 'ctest')
+    ninja = build_support.android_path('prebuilts', 'ninja',
+                                       build_host_tag, 'ninja')
     file_extension = ''
 
-    additional_args = []
+    additional_args = list(effcee_args)
     if args.host.startswith("windows"):
         gtest_cmd = ''
         mingw_root = os.path.join(build_support.android_path(),
@@ -71,12 +79,11 @@ def main(args):
         mingw_compilers = os.path.join(mingw_root, 'bin', 'x86_64-w64-mingw32')
         mingw_toolchain = os.path.join(source_root, 'shaderc',
                                        'cmake', 'linux-mingw-toolchain.cmake')
-        gtest_root = os.path.join(build_support.android_path(), 'external',
-                                  'googletest')
-        additional_args = ['-DCMAKE_TOOLCHAIN_FILE=' + mingw_toolchain,
-                           '-DMINGW_SYSROOT=' + mingw_root,
-                           '-DMINGW_COMPILER_PREFIX=' + mingw_compilers,
-                           '-DSHADERC_GOOGLE_TEST_DIR=' + gtest_root]
+        gtest_root = build_support.android_path('external', 'googletest')
+        additional_args.extend(['-DCMAKE_TOOLCHAIN_FILE=' + mingw_toolchain,
+                                '-DMINGW_SYSROOT=' + mingw_root,
+                                '-DMINGW_COMPILER_PREFIX=' + mingw_compilers,
+                                '-DSHADERC_GOOGLE_TEST_DIR=' + gtest_root])
         file_extension = '.exe'
         if args.host == "windows64":
             additional_args.extend(
@@ -112,7 +119,9 @@ def main(args):
                      'spirv-dis' + file_extension,
                      'spirv-val' + file_extension,
                      'spirv-cfg' + file_extension,
-                     'spirv-opt' + file_extension]
+                     'spirv-opt' + file_extension,
+                     'spirv-link' + file_extension,
+                     'spirv-reduce' + file_extension]
     scripts_to_copy = ['spirv-lesspipe.sh',]
     files_to_copy.extend(scripts_to_copy)
 
