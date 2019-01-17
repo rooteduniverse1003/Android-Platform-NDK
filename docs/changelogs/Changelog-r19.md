@@ -54,6 +54,12 @@ Announcements
 [ReLinker]: https://github.com/KeepSafe/ReLinker
 [Standalone toolchains]: https://developer.android.com/ndk/guides/standalone_toolchain
 
+r19b
+----
+
+ * Fixed unused command line argument warning when using standalone toolchains
+   to compile C code.
+
 Changes
 -------
 

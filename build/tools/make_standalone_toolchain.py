@@ -127,7 +127,7 @@ def make_clang_scripts(install_dir, arch, api, windows):
 
     triple = get_triple(arch)
     target = make_clang_target(triple, api)
-    flags = '-target {} -stdlib=libc++'.format(target)
+    flags = '-target {}'.format(target)
 
     # We only need mstackrealign to fix issues on 32-bit x86 pre-24. After 24,
     # this consumes an extra register unnecessarily, which can cause issues for
