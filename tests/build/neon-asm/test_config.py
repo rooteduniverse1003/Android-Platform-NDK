@@ -1,6 +1,6 @@
-def build_unsupported(abi, api):
-    if abi != 'armeabi-v7a':
-        return abi
+def build_unsupported(test):
+    if test.config.abi != 'armeabi-v7a':
+        return test.config.abi
     return None
 
 

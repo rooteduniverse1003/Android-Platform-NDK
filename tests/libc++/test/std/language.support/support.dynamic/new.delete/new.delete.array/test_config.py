@@ -1,7 +1,7 @@
-def run_broken(abi, device_api, name):
+def run_broken(test, device):
     failing_tests = [
         'new_array_nothrow_replace.pass',
     ]
-    if name in failing_tests and device_api < 18:
-        return 'android-{}'.format(device_api), 'http://b/2643900'
+    if test.case_name in failing_tests and device.version < 18:
+        return f'android-{device.version}', 'http://b/2643900'
     return None, None

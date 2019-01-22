@@ -2,8 +2,8 @@
 from __future__ import absolute_import
 
 
-def build_unsupported(abi, _api_level):
+def build_unsupported(test):
     # -mthumb is only relevant for 32-bit ARM.
-    if abi not in ('armeabi', 'armeabi-v7a'):
-        return abi
+    if test.config.abi != 'armeabi-v7a':
+        return test.config.abi
     return None

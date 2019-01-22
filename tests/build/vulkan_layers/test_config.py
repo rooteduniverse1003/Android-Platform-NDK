@@ -1,10 +1,10 @@
-def build_unsupported(_abi, platform):
+def build_unsupported(test):
     # Major build time regression.
     return True
     # pylint: disable=unreachable
 
     # Vulkan support wasn't added until android-24
-    if platform < 24:
-        return platform
+    if test.config.api < 24:
+        return test.config.api
 
     return None

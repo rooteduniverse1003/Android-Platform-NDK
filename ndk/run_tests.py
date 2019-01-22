@@ -118,12 +118,10 @@ class BasicTestCase(TestCase):
         return ndk.test.config.DeviceTestConfig.from_test_dir(test_dir)
 
     def check_unsupported(self, device):
-        return self.get_test_config().run_unsupported(
-            self.config.abi, device.version, self.executable)
+        return self.get_test_config().run_unsupported(self, device)
 
     def check_broken(self, device):
-        return self.get_test_config().run_broken(
-            self.config.abi, device.version, self.executable)
+        return self.get_test_config().run_broken(self, device)
 
     def run(self, device):
         config = self.check_unsupported(device)
@@ -162,25 +160,24 @@ class LibcxxTestCase(TestCase):
         self.suite = suite
         self.executable = executable
 
+    @property
+    def case_name(self):
+        # Executable is foo.pass.cpp.exe, we want foo.pass.
+        return os.path.splitext(os.path.splitext(self.executable)[0])[0]
+
     def get_test_config(self):
         _, _, test_subdir = self.suite.partition('/')
         test_dir = os.path.join(self.test_src_dir, 'libc++/test', test_subdir)
         return ndk.test.config.LibcxxTestConfig.from_test_dir(test_dir)
 
     def check_unsupported(self, device):
-        # Executable is foo.pass.cpp.exe, we want foo.pass.
-        name = os.path.splitext(os.path.splitext(self.executable)[0])[0]
-        config = self.get_test_config().run_unsupported(
-            self.config.abi, device.version, name)
+        config = self.get_test_config().run_unsupported(self, device)
         if config is not None:
             return config
         return None
 
     def check_broken(self, device):
-        # Executable is foo.pass.cpp.exe, we want foo.pass.
-        name = os.path.splitext(os.path.splitext(self.executable)[0])[0]
-        config, bug = self.get_test_config().run_broken(
-            self.config.abi, device.version, name)
+        config, bug = self.get_test_config().run_broken(self, device)
         if config is not None:
             return config, bug
         return None, None

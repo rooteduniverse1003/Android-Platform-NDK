@@ -198,11 +198,10 @@ class BuildTest(Test):
         raise NotImplementedError
 
     def check_broken(self):
-        return self.get_test_config().build_broken(self.abi, self.platform)
+        return self.get_test_config().build_broken(self)
 
     def check_unsupported(self):
-        return self.get_test_config().build_unsupported(
-            self.abi, self.platform)
+        return self.get_test_config().build_unsupported(self)
 
     def is_negative_test(self):
         return self.get_test_config().is_negative_test()
@@ -657,6 +656,10 @@ class XunitResult(Test):
         super().__init__(name, test_dir, config, ndk_path)
         self.test_base_dir = test_base_dir
 
+    @property
+    def case_name(self):
+        return os.path.splitext(os.path.basename(self.name))[0]
+
     def run(self, _out_dir, _dist_dir, _test_filters):
         raise NotImplementedError
 
@@ -665,9 +668,7 @@ class XunitResult(Test):
         return ndk.test.config.LibcxxTestConfig.from_test_dir(test_config_dir)
 
     def check_broken(self):
-        name = os.path.splitext(os.path.basename(self.name))[0]
-        config, bug = self.get_test_config().build_broken(
-            self.config.abi, self.config.api, name)
+        config, bug = self.get_test_config().build_broken(self)
         if config is not None:
             return config, bug
         return None, None

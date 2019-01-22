@@ -1,5 +1,5 @@
-def run_unsupported(_abi, device_api, name):
+def run_unsupported(test, device):
     # Can't replace SIGABRT on old releases.
-    if device_api < 21 and name == 'debug_abort.pass':
-        return device_api
+    if device.version < 21 and test.case_name == 'debug_abort.pass':
+        return device.version
     return None
