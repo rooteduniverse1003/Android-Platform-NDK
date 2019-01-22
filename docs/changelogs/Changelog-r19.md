@@ -17,7 +17,9 @@ Announcements
    release cycle with no major unresolved issues (estimated r21). Test LLD in
    your app by passing `-fuse-ld=lld` when linking.
 
-   Note: lld does not currently work on Windows. See [Issue 888].
+   Note: lld does not currently support compressed symbols on Windows. See
+   [Issue 888]. Clang also cannot generate compressed symbols on Windows, but
+   this can be a problem when using artifacts built from Darwin or Linux.
 
  * The Play Store will require 64-bit support when uploading an APK beginning in
    August 2019. Start porting now to avoid surprises when the time comes. For
@@ -106,7 +108,9 @@ Known Issues
 ------------
 
  * This is not intended to be a comprehensive list of all outstanding bugs.
- * [Issue 888]: lld does not work on Windows.
+ * [Issue 888]: lld does not support compressed symbols on Windows. Clang also
+   cannot generate compressed symbols on Windows, but this can be a problem when
+   using artifacts built from Darwin or Linux.
  * [Issue 360]: `thread_local` variables with non-trivial destructors will cause
    segfaults if the containing library is `dlclose`ed on devices running M or
    newer, or devices before M when using a static STL. The simple workaround is
