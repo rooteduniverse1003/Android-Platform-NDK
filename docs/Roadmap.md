@@ -18,30 +18,6 @@ have gone according to plan until then.
 
 ---
 
-## NDK r19
-
-Estimated release: Q4 2018
-
-### Make all toolchains be standalone toolchains
-
-Now that the NDK is down to a single compiler and STL, if we just taught the
-Clang driver to emit `-D__ANDROID_API__=foo` and to link libc.so.18 instead of
-libc.so, standalone toolchains would be obsolete because the compiler would
-already be a standalone toolchain. The NDK toolchain would Just Work regardless
-of build system, and the logic contained in each build system could be greatly
-reduced.
-
-Related to this (but maybe occurring in a later release), we'll want to
-switch from `libgcc` to `libcompiler-rt` and our own unwinder.
-
-See the corresponding bug
-[make all toolchains standalone toolchains](https://github.com/android-ndk/ndk/issues/780)
-for detailed discussion of the implementation and sub-tasks.
-
-### Bugs
-
-See the [r19 hotlist](https://github.com/android-ndk/ndk/milestone/14).
-
 ## NDK r20
 
 Estimated release: Q1 2019
@@ -244,6 +220,14 @@ Full [history] is available, but this section summarizes major changes
 in recent releases.
 
 [history]: https://developer.android.com/ndk/downloads/revision_history.html
+
+### NDK r19
+
+Reorganized the toolchain packaging and modified Clang so that standalone
+toolchains are now unnecessary. Clang can now be invoked directly from its
+installed location in the NDK.
+
+C++ compilation defaults to C++14.
 
 ### NDK r18
 
