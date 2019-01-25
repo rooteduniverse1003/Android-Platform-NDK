@@ -92,7 +92,10 @@ def log_failure_and_exit(output):
     Args:
         output: Output of the failed command.
     """
-    log_path = os.path.join(get_dist_dir(), 'logs/build_error.log')
+    log_dir = os.path.join(get_dist_dir(), 'logs')
+    if not os.path.exists(log_dir):
+        os.makedirs(log_dir)
+    log_path = os.path.join(log_dir, 'build_error.log')
     with open(log_path, 'w') as error_log:
         error_log.write('Bootstrapping failed!\n')
         error_log.write(output)
