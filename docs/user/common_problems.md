@@ -1,13 +1,11 @@
-Common Problems and Solutions
-=============================
+# Common Problems and Solutions
 
 This document lists common issues that users encounter when using the NDK. It is
 by no means complete, but represents some of the most common non-bugs we see
 filed.
 
 
-Using `_FILE_OFFSET_BITS=64` With Early API Levels
---------------------------------------------------
+## Using `_FILE_OFFSET_BITS=64` With Early API Levels
 
 Prior to [Unified Headers], the NDK did not support `_FILE_OFFSET_BITS=64`. If
 you defined it when building, it was silently ignored. With [Unified Headers]
@@ -52,8 +50,7 @@ to mitigate this instance of this issue.
 TODO: Update this section once we know what the next most common problem is.
 
 
-Target API Set Higher Than Device API
--------------------------------------
+## Target API Set Higher Than Device API
 
 The target API level in the NDK has a very different meaning than
 `targetSdkVersion` does in Java. The NDK target API level is your app's
@@ -99,8 +96,7 @@ There are a handful of other symbols that are also affected by this.
 TODO: Figure out what the other ones were.
 
 
-Undefined Reference to `__atomic_*`
------------------------------------
+## Undefined Reference to `__atomic_*`
 
 **Problem**: Some ABIs (particularly armeabi) need libatomic to provide some
 implementations for atomic operations.
@@ -116,8 +112,33 @@ you. For non libc++ standalone toolchains or a different build system, you may
 need to do this manually.
 
 
-Using Mismatched Prebuilt Libraries
------------------------------------
+## RTTI/Exceptions Not Working Across Library Boundaries
+
+**Problem**: Exceptions are not being caught when thrown across shared library
+boundaries, or `dynamic_cast` is failing.
+
+**Solution**: Add a [key function] to your types. A key function is the first
+non-pure, out-of-line virtual function for a type. For an example, see the
+discussion on [Issue 533].
+
+The [C++ ABI] states that two objects have the same type if and only if their
+`type_info` pointers are identical. Exceptions may only be caught if the
+`type_info` for the catch matches the thrown exception. The same rule applies
+for `dynamic_cast`.
+
+When a type does not have a key function, its typeinfo is emitted as a weak
+symbol and matching type infos are merged when libraries are loaded. When
+loading libraries dynamically after the executable has been loaded (i.e. via
+`dlopen` or `System.loadLibrary`), it may not be possible for the loader to
+merge type infos for the loaded libraries. When this happens, the two types are
+not considered equal.
+
+[C++ ABI]: https://itanium-cxx-abi.github.io/cxx-abi/abi.html#rtti
+[Issue 533]: https://github.com/android-ndk/ndk/issues/533#issuecomment-335977747
+[key function]: https://itanium-cxx-abi.github.io/cxx-abi/abi.html#vague-vtable
+
+
+## Using Mismatched Prebuilt Libraries
 
 Using prebuilt libraries (third-party libraries, typically) in your application
 requires a bit of extra care. In general, the following rules need to be
