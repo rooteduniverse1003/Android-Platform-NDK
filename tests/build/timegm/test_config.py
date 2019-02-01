@@ -1,4 +1,4 @@
-def build_unsupported(_abi, api):
-    if api < 12:
-        return api
+def build_unsupported(test):
+    if test.config.api < 12:
+        return test.config.api
     return None

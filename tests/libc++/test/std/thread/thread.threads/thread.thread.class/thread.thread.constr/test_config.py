@@ -1,4 +1,4 @@
-def run_broken(abi, device_api, name):
-    if name == 'F.pass' and device_api < 18:
-        return 'android-{}'.format(device_api), 'http://b/2643900'
+def run_broken(test, device):
+    if test.case_name == 'F.pass' and device.version < 18:
+        return f'android-{device.version}', 'http://b/2643900'
     return None, None

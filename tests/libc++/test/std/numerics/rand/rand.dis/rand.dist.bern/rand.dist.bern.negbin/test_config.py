@@ -1,5 +1,5 @@
-def run_broken(_abi, api, name):
-    if api < 21 and name == 'io.pass':
+def run_broken(test, device):
+    if device.version < 21 and test.case_name == 'io.pass':
         bug = 'https://issuetracker.google.com/36988114'
-        return 'android-{}'.format(api), bug
+        return f'android-{device.version}', bug
     return None, None

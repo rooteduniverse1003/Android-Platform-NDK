@@ -1,4 +1,4 @@
-def build_broken(abi, api, name):
-    if name == 'quick_exit.pass' and api < 21:
-        return 'android-{}'.format(api), 'http://b/34719339'
+def build_broken(test):
+    if test.case_name == 'quick_exit.pass' and test.config.api < 21:
+        return f'android-{test.config.api}', 'http://b/34719339'
     return None, None

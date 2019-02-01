@@ -1,4 +1,4 @@
-def build_unsupported(_abi, api):
-    if api >= 21:
-        return 'android-{}'.format(api)
+def build_unsupported(test):
+    if test.config.api >= 21:
+        return f'android-{test.config.api}'
     return None

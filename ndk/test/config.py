@@ -15,6 +15,7 @@
 #
 import imp
 import os
+from typing import List, Optional, Tuple, Union
 
 
 class TestConfig:
@@ -48,7 +49,7 @@ class TestConfig:
 
         # pylint: disable=unused-argument
         @staticmethod
-        def build_broken(abi, platform):
+        def build_broken(test) -> Union[Tuple[None, None], Tuple[str, str]]:
             """Tests if a given configuration is known broken.
 
             A broken test is a known failing test that should be fixed.
@@ -65,7 +66,7 @@ class TestConfig:
             return None, None
 
         @staticmethod
-        def build_unsupported(abi, platform):
+        def build_unsupported(test) -> Optional[str]:
             """Tests if a given configuration is unsupported.
 
             An unsupported test is a test that do not make sense to run for a
@@ -78,16 +79,16 @@ class TestConfig:
             return None
 
         @staticmethod
-        def extra_cmake_flags():
+        def extra_cmake_flags() -> List[str]:
             return []
 
         @staticmethod
-        def extra_ndk_build_flags():
+        def extra_ndk_build_flags() -> List[str]:
             """Returns extra flags that should be passed to ndk-build."""
             return []
 
         @staticmethod
-        def is_negative_test():
+        def is_negative_test() -> bool:
             """Returns True if this test should pass if the build fails.
 
             Note that this is different from build_broken. Use build_broken to
@@ -162,15 +163,16 @@ class DeviceTestConfig(TestConfig):
     class NullTestConfig(TestConfig.NullTestConfig):
         # pylint: disable=unused-argument
         @staticmethod
-        def run_broken(abi, device_api, subtest):
+        def run_broken(test,
+                       device) -> Union[Tuple[None, None], Tuple[str, str]]:
             return None, None
 
         @staticmethod
-        def run_unsupported(abi, device_api, subtest):
+        def run_unsupported(test, device) -> Optional[str]:
             return None
 
         @staticmethod
-        def extra_cmake_flags():
+        def extra_cmake_flags() -> List[str]:
             return []
         # pylint: enable=unused-argument
 
@@ -206,18 +208,19 @@ class LibcxxTestConfig(DeviceTestConfig):
     class NullTestConfig(TestConfig.NullTestConfig):
         # pylint: disable=unused-argument,arguments-differ
         @staticmethod
-        def build_unsupported(abi, api, name):
+        def build_unsupported(test) -> Optional[str]:
             return None
 
         @staticmethod
-        def build_broken(abi, api, name):
+        def build_broken(test) -> Union[Tuple[None, None], Tuple[str, str]]:
             return None, None
 
         @staticmethod
-        def run_unsupported(abi, device_api, name):
+        def run_unsupported(test, device) -> Optional[str]:
             return None
 
         @staticmethod
-        def run_broken(abi, device_api, name):
+        def run_broken(test,
+                       device) -> Union[Tuple[None, None], Tuple[str, str]]:
             return None, None
         # pylint: enable=unused-argument,arguments-differ
