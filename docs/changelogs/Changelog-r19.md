@@ -65,9 +65,11 @@ r19b
    toolchains to compile C code.
  * [Issue 890]: Fixed `CMAKE_FIND_ROOT_PATH`. CMake projects will no longer
    search the host's sysroot for headers and libraries.
+ * [Issue 907]: Fixed `find_path` for NDK headers in CMake.
 
 [Issue 849]: https://github.com/android-ndk/ndk/issues/849
 [Issue 890]: https://github.com/android-ndk/ndk/issues/890
+[Issue 907]: https://github.com/android-ndk/ndk/issues/907
 
 Changes
 -------
