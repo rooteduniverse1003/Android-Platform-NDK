@@ -61,6 +61,10 @@ Announcements
 r19b
 ----
 
+ * [Issue 855]: ndk-build automatically disables multithreaded linking for LLD
+   on Windows, where it may hang. It is not possible for the NDK to detect this
+   situation for CMake, so CMake users and custom build systems must pass
+   `-Wl,--no-threads` when linking with LLD on Windows.
  * [Issue 849]: Fixed unused command line argument warning when using standalone
    toolchains to compile C code.
  * [Issue 890]: Fixed `CMAKE_FIND_ROOT_PATH`. CMake projects will no longer
@@ -124,6 +128,10 @@ Known Issues
    to not call `dlclose`.
  * [Issue 70838247]: Gold emits broken debug information for AArch64. AArch64
    still uses BFD by default.
+ * [Issue 855]: LLD may hang on Windows when using multithreaded linking.
+   ndk-build will automatically disable multithreaded linking in this situation,
+   but CMake users and custom build systems should pass `-Wl,--no-threads` when
+   using LLD on Windows. The other linkers and operating systems are unaffected.
  * [Issue 884]: Third-party build systems must pass `-fno-addrsig` to Clang for
    compatibility with binutils. ndk-build, CMake, and standalone toolchains
    handle this automatically.
@@ -135,6 +143,7 @@ Known Issues
 
 [Issue 360]: https://github.com/android-ndk/ndk/issues/360
 [Issue 70838247]: https://issuetracker.google.com/70838247
+[Issue 855]: https://github.com/android-ndk/ndk/issues/855
 [Issue 884]: https://github.com/android-ndk/ndk/issues/884
 [Issue 888]: https://github.com/android-ndk/ndk/issues/888
 [use plugin version 3.1 or newer]: https://developer.android.com/studio/releases/gradle-plugin#updating-plugin
