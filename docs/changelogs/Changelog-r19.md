@@ -61,8 +61,13 @@ Announcements
 r19b
 ----
 
- * Fixed unused command line argument warning when using standalone toolchains
-   to compile C code.
+ * [Issue 849]: Fixed unused command line argument warning when using standalone
+   toolchains to compile C code.
+ * [Issue 890]: Fixed `CMAKE_FIND_ROOT_PATH`. CMake projects will no longer
+   search the host's sysroot for headers and libraries.
+
+[Issue 849]: https://github.com/android-ndk/ndk/issues/849
+[Issue 890]: https://github.com/android-ndk/ndk/issues/890
 
 Changes
 -------
