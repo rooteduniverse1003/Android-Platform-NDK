@@ -210,7 +210,13 @@ installed to the triple directory and is not triple-prefixed, but rather is only
 installed as `<NDK>/toolchains/llvm/prebuilt/<host-tag>/bin/ld.lld` because the
 one binary supports all ABIs.
 
+
+Warning: Multithreaded linking with LLD may hang on Windows. This feature is on
+by default. To workaround this, `-Wl,--no-threads` must be passed to Clang when
+using LLD on Windows. See [Issue 855].
+
 [Issue 70838247]: https://issuetracker.google.com/70838247
+[Issue 855]: https://github.com/android-ndk/ndk/issues/855
 
 ## Sysroot
 
