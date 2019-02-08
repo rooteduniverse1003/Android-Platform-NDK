@@ -387,9 +387,19 @@ set(ANDROID_TOOLCHAIN_PREFIX
 # the libraries rather than just the sysroot. Set up CMAKE_SYSTEM_LIBRARY_PATH
 # (https://cmake.org/cmake/help/v3.6/variable/CMAKE_SYSTEM_LIBRARY_PATH.html)
 # instead.
-set(ANDROID_SYSROOT "${ANDROID_TOOLCHAIN_ROOT}/sysroot")
+
+# NB: This variable causes CMake to automatically pass --sysroot to the
+# toolchain. Studio currently relies on this to recognize Android builds. If
+# this variable is removed, ensure that flag is still passed.
+# TODO: Teach Studio to recognize Android builds based on --target.
+set(CMAKE_SYSROOT "${ANDROID_TOOLCHAIN_ROOT}/sysroot")
+
+# Allows CMake to find headers in the architecture-specific include directories.
+set(CMAKE_LIBRARY_ARCHITECTURE "${ANDROID_TOOLCHAIN_NAME}")
+
+# Instructs CMake to search the correct API level for libraries.
 list(APPEND CMAKE_SYSTEM_LIBRARY_PATH
-  "${ANDROID_SYSROOT}/usr/lib/${ANDROID_TOOLCHAIN_NAME}/${ANDROID_PLATFORM_LEVEL}")
+  "/usr/lib/${ANDROID_TOOLCHAIN_NAME}/${ANDROID_PLATFORM_LEVEL}")
 
 set(ANDROID_HOST_PREBUILTS "${ANDROID_NDK}/prebuilt/${ANDROID_HOST_TAG}")
 
@@ -421,11 +431,6 @@ set(CMAKE_ASM_COMPILER_EXTERNAL_TOOLCHAIN "${ANDROID_TOOLCHAIN_ROOT}")
 set(ANDROID_AR "${ANDROID_TOOLCHAIN_PREFIX}ar${ANDROID_TOOLCHAIN_SUFFIX}")
 set(ANDROID_RANLIB
   "${ANDROID_TOOLCHAIN_PREFIX}ranlib${ANDROID_TOOLCHAIN_SUFFIX}")
-
-# This is unnecessary given the new toolchain layout, but Studio will not
-# recognize this as an Android build if there is no --sysroot flag.
-# TODO: Teach Studio to recognize Android builds based on --target.
-list(APPEND ANDROID_COMPILER_FLAGS "--sysroot ${ANDROID_SYSROOT}")
 
 # Generic flags.
 list(APPEND ANDROID_COMPILER_FLAGS
