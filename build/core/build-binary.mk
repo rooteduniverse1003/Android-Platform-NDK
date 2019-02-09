@@ -533,6 +533,15 @@ ifneq ($(filter armeabi%,$(TARGET_ARCH_ABI)),)
     my_ldflags += $(TARGET_$(my_link_arm_mode)_LDFLAGS)
 endif
 
+# https://github.com/android-ndk/ndk/issues/855
+ifeq ($(HOST_OS),windows)
+    ndk_fuse_ld_flags := $(filter -fuse-ld=%,$(my_ldflags))
+    ndk_used_linker := $(lastword $(ndk_fuse_ld_flags))
+    ifeq ($(ndk_used_linker),-fuse-ld=lld)
+        my_ldflags += -Wl,--no-threads
+    endif
+endif
+
 # When LOCAL_SHORT_COMMANDS is defined to 'true' we are going to write the
 # list of all object files and/or static/shared libraries that appear on the
 # command line to a file, then use the @<listfile> syntax to invoke it.
