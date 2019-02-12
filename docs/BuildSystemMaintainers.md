@@ -2,6 +2,10 @@
 
 The latest version of this document is available at
 https://android.googlesource.com/platform/ndk/+/master/docs/BuildSystemMaintainers.md.
+Ensure that you are using the version that corresponds to your NDK. Replace
+`master` in the URL with the appropriate NDK release branch. For example, the NDK
+r19 version of this document is located at
+https://android.googlesource.com/platform/ndk/+/ndk-release-r19/docs/BuildSystemMaintainers.md.
 
 The purpose of this guide is to instruct third-party build system maintainers in
 adding NDK support to their build systems. This guide will not be useful to most
