@@ -21,6 +21,10 @@ TARGET_UBSAN_BASENAME := libclang_rt.ubsan_standalone-arm-android.so
 
 TARGET_CFLAGS := -fpic
 
+# Clang does not set this up properly when using -fno-integrated-as.
+# https://github.com/android-ndk/ndk/issues/906
+TARGET_CFLAGS += -march=armv7-a
+
 TARGET_LDFLAGS :=
 
 TARGET_CFLAGS.neon := -mfpu=neon
