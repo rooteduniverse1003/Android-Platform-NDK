@@ -23,6 +23,10 @@ TARGET_CFLAGS := \
     -fpic \
     -mfpu=vfpv3-d16 \
 
+# Clang does not set this up properly when using -fno-integrated-as.
+# https://github.com/android-ndk/ndk/issues/906
+TARGET_CFLAGS += -march=armv7-a
+
 TARGET_LDFLAGS :=
 
 TARGET_CFLAGS.neon := -mfpu=neon

@@ -69,6 +69,10 @@ r19b
    toolchains to compile C code.
  * [Issue 890]: Fixed `CMAKE_FIND_ROOT_PATH`. CMake projects will no longer
    search the host's sysroot for headers and libraries.
+ * [Issue 906]: Explicitly set `-march=armv7-a` for 32-bit ARM to workaround
+   Clang not setting that flag automatically when using `-fno-integrated-as`.
+   This fix only affects ndk-build and CMake. Standalone toolchains and custom
+   build systems will need to apply this fix themselves.
  * [Issue 907]: Fixed `find_path` for NDK headers in CMake.
 
 [Issue 849]: https://github.com/android-ndk/ndk/issues/849
@@ -135,6 +139,13 @@ Known Issues
  * [Issue 884]: Third-party build systems must pass `-fno-addrsig` to Clang for
    compatibility with binutils. ndk-build, CMake, and standalone toolchains
    handle this automatically.
+ * [Issue 906]: Clang does not pass `-march=armv7-a` to the assembler when using
+   `-fno-integrated-as`. This results in the assembler generating ARMv5
+   instructions. Note that by default Clang uses the integrated assembler which
+   does not have this problem. To workaround this issue, explicitly use
+   `-march=armv7-a` when building for 32-bit ARM with the non-integrated
+   assembler, or use the integrated assembler. ndk-build and CMake already
+   contain these workarounds.
  * This version of the NDK is incompatible with the Android Gradle plugin
    version 3.0 or older. If you see an error like
    `No toolchains found in the NDK toolchains folder for ABI with prefix: mips64el-linux-android`,
@@ -146,4 +157,5 @@ Known Issues
 [Issue 855]: https://github.com/android-ndk/ndk/issues/855
 [Issue 884]: https://github.com/android-ndk/ndk/issues/884
 [Issue 888]: https://github.com/android-ndk/ndk/issues/888
+[Issue 906]: https://github.com/android-ndk/ndk/issues/906
 [use plugin version 3.1 or newer]: https://developer.android.com/studio/releases/gradle-plugin#updating-plugin

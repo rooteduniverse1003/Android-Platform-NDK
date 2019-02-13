@@ -336,7 +336,7 @@ Lollipop (API 21) if the device has been rooted. Direct users to the
 [debuggable]: https://developer.android.com/guide/topics/manifest/application-element#debug
 [wrap.sh]: https://developer.android.com/ndk/guides/wrap-script
 
-## Required Android Specific Arguments
+## Additional Required Arguments
 
 Note: It is a bug that any of these need to be specified by the build system.
 All flags discussed in this section should be automatically selected by Clang,
@@ -364,8 +364,15 @@ Clang uses `-faddrsig` by default, but this produces output that is incompatible
 with GNU binutils. To workaround this, `-fno-addrsig` must be passed to Clang
 when using GNU binutils. See [Issue 884].
 
+Clang does not properly set the ARMv7 architecture for the non-integrated
+assembler. If using `-fno-integrated-as`, you must explicitly pass
+`-march=armv7-a` when compiling for 32-bit ARM. Note that by default Clang will
+use the integrated assembler, and this flag is not needed in that case. See
+[Issue 906].
+
 [Issue 635]: https://github.com/android-ndk/ndk/issues/635
 [Issue 884]: https://github.com/android-ndk/ndk/issues/884
+[Issue 906]: https://github.com/android-ndk/ndk/issues/906
 [Position-independent executables]: https://en.wikipedia.org/wiki/Position-independent_code#Position-independent_executables
 
 ## Useful Arguments

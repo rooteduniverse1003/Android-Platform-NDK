@@ -520,6 +520,9 @@ if(NOT ANDROID_ALLOW_UNDEFINED_SYMBOLS)
     -Wl,--no-undefined)
 endif()
 if(ANDROID_ABI MATCHES "armeabi")
+  # Clang does not set this up properly when using -fno-integrated-as.
+  # https://github.com/android-ndk/ndk/issues/906
+  list(APPEND ANDROID_COMPILER_FLAGS "-march=armv7-a")
   if(ANDROID_ARM_MODE STREQUAL thumb)
     list(APPEND ANDROID_COMPILER_FLAGS -mthumb)
   elseif(ANDROID_ARM_MODE STREQUAL arm)
