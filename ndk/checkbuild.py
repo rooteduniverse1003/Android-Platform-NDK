@@ -639,8 +639,6 @@ class HostTools(ndk.builds.Module):
             shutil.copy2(
                 ndk.paths.ndk_path(f), os.path.join(install_dir, 'bin'))
 
-        ndk.builds.make_repo_prop(install_dir)
-
 
 def install_exe(out_dir, install_dir, name, system):
     is_win = system.startswith('windows')

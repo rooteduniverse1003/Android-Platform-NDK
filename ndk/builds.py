@@ -332,9 +332,6 @@ class PackageModule(Module):
     #: The absolute path to the directory to be installed.
     src: str
 
-    #: If true, create a repo.prop file for this module.
-    create_repo_prop = False
-
     def default_notice_path(self) -> str:
         return os.path.join(self.src, 'NOTICE')
 
@@ -363,8 +360,6 @@ class PackageModule(Module):
         assert len(install_paths) == 1
         install_path = install_paths[0]
         install_directory(self.src, install_path)
-        if self.create_repo_prop:
-            make_repo_prop(install_path)
 
 
 class InvokeExternalBuildModule(Module):
