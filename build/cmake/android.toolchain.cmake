@@ -277,12 +277,12 @@ set(CMAKE_SYSTEM_NAME Android)
 
 # https://github.com/android-ndk/ndk/issues/890
 #
-# ONLY doesn't do anything when CMAKE_FIND_ROOT_PATH is not set. Without this,
+# ONLY doesn't do anything when CMAKE_FIND_ROOT_PATH is empty. Without this,
 # CMake will wrongly search host sysroots for headers/libraries. The actual path
 # used here is fairly meaningless since CMake doesn't handle the NDK sysroot
 # layout (per-arch and per-verion subdirectories for libraries), so find_library
 # is handled separately by CMAKE_SYSTEM_LIBRARY_PATH.
-set(CMAKE_FIND_ROOT_PATH "${ANDROID_NDK}")
+list(APPEND CMAKE_FIND_ROOT_PATH "${ANDROID_NDK}")
 
 # Allow users to override these values in case they want more strict behaviors.
 # For example, they may want to prevent the NDK's libz from being picked up so

@@ -58,6 +58,14 @@ Announcements
 [ReLinker]: https://github.com/KeepSafe/ReLinker
 [Standalone toolchains]: https://developer.android.com/ndk/guides/standalone_toolchain
 
+r19c
+----
+
+ * [Issue 912]: Prevent the CMake toolchain file from clobbering a user
+   specified `CMAKE_FIND_ROOT_PATH`.
+
+[Issue 912]: https://github.com/android-ndk/ndk/issues/912
+
 r19b
 ----
 
