@@ -95,7 +95,7 @@ class Module:
     # each will have build_arch set to the architecture that should be built by
     # that module. If build_arch is None, the module has not yet been split.
     split_build_by_arch = False
-    build_arch = None
+    build_arch: Optional[ndk.abis.Arch] = None
 
     def __init__(self):
         self.context = None
