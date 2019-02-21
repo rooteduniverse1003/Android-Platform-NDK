@@ -39,7 +39,6 @@ import logging
 import multiprocessing
 import os
 import pipes
-import pprint
 import re
 import shutil
 import site
@@ -49,10 +48,7 @@ import sys
 import tempfile
 import textwrap
 import traceback
-from typing import (
-    Dict,
-    Optional,
-)
+from typing import Dict
 
 from build.lib import build_support
 import ndk.abis
@@ -571,7 +567,6 @@ class HostTools(ndk.builds.Module):
     name = 'host-tools'
     path = 'prebuilt/{host}'
     notice_group = ndk.builds.NoticeGroup.TOOLCHAIN
-    GDB_VERSION = '8.2'
 
     yasm_notices = [
         ndk.paths.android_path('toolchain/yasm/Artistic.txt'),
@@ -584,8 +579,7 @@ class HostTools(ndk.builds.Module):
     @property
     def notices(self):
         return [
-            ndk.paths.android_path(
-                f'toolchain/gdb/gdb-{self.GDB_VERSION}/COPYING'),
+            ndk.paths.android_path('toolchain/gdb/gdb-7.11/COPYING'),
             ndk.paths.android_path('toolchain/python/Python-2.7.5/LICENSE'),
             ndk.paths.ndk_path('sources/host-tools/make-3.81/COPYING'),
             ndk.paths.ndk_path('sources/host-tools/toolbox/NOTICE'),
@@ -619,7 +613,7 @@ class HostTools(ndk.builds.Module):
         ndk.ext.shutil.create_directory(install_dir)
 
         packages = [
-            f'gdb-multiarch-{self.GDB_VERSION}',
+            'gdb-multiarch-7.11',
             'ndk-make',
             'ndk-python',
             'ndk-yasm',
@@ -655,6 +649,24 @@ def install_exe(out_dir, install_dir, name, system):
 
     ndk.ext.shutil.create_directory(install_dir)
     shutil.copy2(src, dst)
+
+
+class GdbServer(ndk.builds.InvokeBuildModule):
+    name = 'gdbserver'
+    path = 'prebuilt/android-{arch}/gdbserver'
+    script = 'build-gdbserver.py'
+    notice = ndk.paths.android_path('toolchain/gdb/gdb-7.11/gdb/COPYING')
+    notice_group = ndk.builds.NoticeGroup.TOOLCHAIN
+    arch_specific = True
+    split_build_by_arch = True
+
+    def install(self):
+        src_dir = os.path.join(self.out_dir, self.host, self.name,
+                               self.build_arch, 'install')
+        install_path = self.get_install_path()
+        if os.path.exists(install_path):
+            shutil.rmtree(install_path)
+        shutil.copytree(src_dir, install_path)
 
 
 def make_linker_script(path, libs):
@@ -889,7 +901,7 @@ class Platforms(ndk.builds.Module):
         args = [
             cc,
             '-target',
-            ndk.abis.clang_target(arch),
+            build_support.arch_to_triple(arch),
             '--sysroot',
             self.prebuilt_path('sysroot'),
             '-gcc-toolchain',
@@ -1044,165 +1056,6 @@ class Platforms(ndk.builds.Module):
                 with open(os.path.join(root, '.keep_dir'), 'w') as keep_file:
                     keep_file.write(
                         'This file forces git to keep the directory.')
-
-
-class GdbServer(ndk.builds.Module):
-    name = 'gdbserver'
-    path = 'prebuilt/android-{arch}/gdbserver'
-    notice = ndk.paths.android_path(
-        f'toolchain/gdb/gdb-{HostTools.GDB_VERSION}/gdb/COPYING')
-    notice_group = ndk.builds.NoticeGroup.TOOLCHAIN
-    arch_specific = True
-    split_build_by_arch = True
-    deps = {
-        'toolchain',
-    }
-    max_api = Platforms().get_apis()[-1]
-
-    @property
-    def build_dir(self) -> str:
-        """Returns the build directory for the current architecture."""
-        assert self.build_arch is not None
-        return os.path.join(self.out_dir, self.name, self.build_arch)
-
-    @property
-    def libthread_db_a_path(self) -> str:
-        """Returns the path to the built libthread_db.a."""
-        return os.path.join(self.build_dir, 'libthread_db.a')
-
-    def get_tool(self, name: str, arch: Optional[ndk.abis.Arch] = None) -> str:
-        """Returns the path to the given tool in the toolchain.
-
-        Args:
-            name: Name of the tool. e.g. 'ar'.
-            arch: Optional architecture for architecture specific tools.
-
-        Returns:
-            Path to the specified tool.
-        """
-        toolchain_bin = os.path.join(
-            self.get_dep('toolchain').get_build_host_install(), 'bin')
-
-        if arch is not None:
-            triple = ndk.abis.arch_to_triple(arch)
-            name = f'{triple}-{name}'
-        return os.path.join(toolchain_bin, name)
-
-    def build_libthread_db(self, api_level: int) -> None:
-        """Builds libthread_db.a for the current architecture."""
-        assert self.build_arch is not None
-        src_dir = ndk.paths.ndk_path('sources/android/libthread_db')
-
-        libthread_db_c = os.path.join(src_dir, 'libthread_db.c')
-        libthread_db_o = os.path.join(self.build_dir, 'libthread_db.o')
-        cc_args = [
-            self.get_tool('clang'),
-            '-target',
-            ndk.abis.clang_target(self.build_arch, api_level),
-            '-I',
-            src_dir,
-            '-o',
-            libthread_db_o,
-            '-c',
-            libthread_db_c,
-        ]
-
-        print('Running: {}'.format(' '.join(
-            [pipes.quote(arg) for arg in cc_args])))
-        subprocess.run(cc_args, check=True)
-
-        ar_args = [
-            self.get_tool('ar', self.build_arch),
-            'rD',
-            self.libthread_db_a_path,
-            libthread_db_o,
-        ]
-
-        print('Running: {}'.format(' '.join(
-            [pipes.quote(arg) for arg in ar_args])))
-        subprocess.run(ar_args, check=True)
-
-    def configure(self, api_level: int) -> None:
-        """Configures the gdbserver build for the current architecture."""
-        assert self.build_arch is not None
-        gdbserver_host = {
-            'arm': 'arm-eabi-linux',
-            'arm64': 'aarch64-eabi-linux',
-            'x86': 'i686-linux-android',
-            'x86_64': 'x86_64-linux-android',
-        }[self.build_arch]
-
-        cflags = ['-O2']
-        if self.build_arch.startswith('arm'):
-            cflags.append('-fno-short-enums')
-        if self.build_arch.endswith('64'):
-            cflags.append('-DUAPI_HEADERS')
-
-        ldflags = '-static -fuse-ld=gold -Wl,-z,nocopyreloc -Wl,--no-undefined'
-
-        # Use --target as part of CC so it is used when linking as well.
-        clang = '{} --target={}'.format(
-            self.get_tool('clang'),
-            ndk.abis.clang_target(self.build_arch, api_level))
-        clangplusplus = '{} --target={}'.format(
-            self.get_tool('clang++'),
-            ndk.abis.clang_target(self.build_arch, api_level))
-        configure_env = {
-            'CC': clang,
-            'CXX': clangplusplus,
-            'AR': self.get_tool('ar', self.build_arch),
-            'RANLIB': self.get_tool('ranlib', self.build_arch),
-            'CFLAGS': ' '.join(cflags),
-            'CXXFLAGS': ' '.join(cflags),
-            'LDFLAGS': ldflags,
-        }
-
-        src_dir = ndk.paths.android_path(
-            'toolchain/gdb/gdb-8.2/gdb/gdbserver')
-        configure_args = [
-            os.path.join(src_dir, 'configure'),
-            '--build=x86_64-linux-gnu',
-            f'--host={gdbserver_host}',
-            f'--with-libthread-db={self.libthread_db_a_path}',
-            '--disable-inprocess-agent',
-            '--enable-werror=no',
-        ]
-
-        subproc_env = dict(os.environ)
-        subproc_env.update(configure_env)
-        print('Running: {} with env:\n{}'.format(
-            ' '.join([pipes.quote(arg) for arg in configure_args]),
-            pprint.pformat(configure_env, indent=4)))
-        subprocess.run(configure_args, env=subproc_env, check=True)
-
-    def make(self) -> None:
-        """Runs make for the configured build."""
-        subprocess.run(['make', build_support.jobs_arg()], check=True)
-
-    def build(self) -> None:
-        """Builds gdbserver."""
-        if not os.path.exists(self.build_dir):
-            os.makedirs(self.build_dir)
-
-        max_api = Platforms().get_apis()[-1]
-        with ndk.ext.os.cd(self.build_dir):
-            self.build_libthread_db(max_api)
-            self.configure(max_api)
-            self.make()
-
-    def install(self) -> None:
-        """Installs gdbserver."""
-        if os.path.exists(self.get_install_path()):
-            shutil.rmtree(self.get_install_path())
-        os.makedirs(self.get_install_path())
-
-        objcopy_args = [
-            self.get_tool('objcopy', self.build_arch),
-            '--strip-unneeded',
-            os.path.join(self.build_dir, 'gdbserver'),
-            os.path.join(self.get_install_path(), 'gdbserver'),
-        ]
-        subprocess.run(objcopy_args, check=True)
 
 
 class LibShaderc(ndk.builds.Module):
