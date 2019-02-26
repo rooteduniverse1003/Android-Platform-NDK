@@ -20,7 +20,7 @@ For Android Studio issues, follow the docs on the [Android Studio site].
 
 ## Changes
 
- * Updated Clang to r344140.
+ * Updated Clang to r349610.
 
 ## Known Issues
 
