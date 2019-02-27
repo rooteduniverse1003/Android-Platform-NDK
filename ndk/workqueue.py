@@ -44,7 +44,6 @@ class TaskError(Exception):
     for the TaskError is the stack trace of the original exception, and will be
     printed if the TaskError is not caught.
     """
-    pass
 
 
 def create_windows_process_group():
@@ -317,11 +316,9 @@ class DummyWorkQueue:
 
     def terminate(self):
         """Does nothing."""
-        pass
 
     def join(self):
         """Does nothing."""
-        pass
 
     @property
     def num_tasks(self):

@@ -349,7 +349,6 @@ class Clang(ndk.builds.Module):
             shutil.rmtree(dst_lib_dir)
             shutil.copytree(ndk_runtimes, dst_lib_dir)
 
-
         # Also remove the other libraries that we installed, but they were only
         # installed on Linux.
         if self.host == 'linux':

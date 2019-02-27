@@ -35,7 +35,6 @@ import ndk.paths
 
 class ModuleValidateError(RuntimeError):
     """The error raised when module validation fails."""
-    pass
 
 
 @unique
