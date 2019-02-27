@@ -1381,8 +1381,8 @@ def write_clang_wrapper(install_dir, api, triple, is_windows):
     if is_windows:
         write_clang_batch_script(wrapper_path + '.cmd', 'clang' + exe_suffix,
                                  flags)
-        write_clang_batch_script(wrapper_path + '.cmd', 'clang++' + exe_suffix,
-                                 flags)
+        write_clang_batch_script(wrapperxx_path + '.cmd',
+                                 'clang++' + exe_suffix, flags)
 
 
 class BaseToolchain(ndk.builds.Module):
