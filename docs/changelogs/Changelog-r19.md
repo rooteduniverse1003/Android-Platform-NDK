@@ -63,8 +63,10 @@ r19c
 
  * [Issue 912]: Prevent the CMake toolchain file from clobbering a user
    specified `CMAKE_FIND_ROOT_PATH`.
+ * [Issue 920]: Fix clang wrapper scripts on Windows.
 
 [Issue 912]: https://github.com/android-ndk/ndk/issues/912
+[Issue 920]: https://github.com/android-ndk/ndk/issues/920
 
 r19b
 ----
