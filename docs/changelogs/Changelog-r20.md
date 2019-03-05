@@ -21,6 +21,7 @@ For Android Studio issues, follow the docs on the [Android Studio site].
 ## Changes
 
  * Updated Clang to r349610.
+ * Updated libc++ to r350972.
 
 ## Known Issues
 
