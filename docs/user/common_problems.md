@@ -133,6 +133,10 @@ loading libraries dynamically after the executable has been loaded (i.e. via
 merge type infos for the loaded libraries. When this happens, the two types are
 not considered equal.
 
+Note that for non-polymorphic types, the type cannot have a key function. For
+non-polymorphic types, RTTI is unnecessary, as `std::is_same` can be used to
+determine type equality at compile time.
+
 [C++ ABI]: https://itanium-cxx-abi.github.io/cxx-abi/abi.html#rtti
 [Issue 533]: https://github.com/android-ndk/ndk/issues/533#issuecomment-335977747
 [key function]: https://itanium-cxx-abi.github.io/cxx-abi/abi.html#vague-vtable
