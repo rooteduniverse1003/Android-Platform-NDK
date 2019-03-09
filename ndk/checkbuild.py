@@ -67,6 +67,7 @@ from build.lib import build_support
 import ndk.abis
 from ndk.autoconf import AutoconfBuilder
 import ndk.ansi
+import ndk.autoconf
 import ndk.builds
 import ndk.config
 import ndk.deps
@@ -603,7 +604,6 @@ class HostTools(ndk.builds.Module):
     @property
     def notices(self) -> List[str]:
         return [
-            ndk.paths.android_path('toolchain/gdb/gdb-7.11/COPYING'),
             ndk.paths.android_path('toolchain/python/Python-2.7.5/LICENSE'),
             str(self.make_src / 'COPYING'),
             ndk.paths.ndk_path('sources/host-tools/toolbox/NOTICE'),
@@ -646,9 +646,6 @@ class HostTools(ndk.builds.Module):
         ndk.builds.invoke_external_build(
             'toolchain/python/build.py', build_args)
 
-        print('Building GDB...')
-        ndk.builds.invoke_external_build('toolchain/gdb/build.py', build_args)
-
         print('Building YASM...')
         ndk.builds.invoke_external_build('toolchain/yasm/build.py', build_args)
 
@@ -657,7 +654,6 @@ class HostTools(ndk.builds.Module):
         ndk.ext.shutil.create_directory(install_dir)
 
         packages = [
-            'gdb-multiarch-7.11',
             'ndk-python',
             'ndk-yasm',
         ]
@@ -1112,6 +1108,208 @@ class Platforms(ndk.builds.Module):
                 with open(os.path.join(root, '.keep_dir'), 'w') as keep_file:
                     keep_file.write(
                         'This file forces git to keep the directory.')
+
+
+class Gdb(ndk.builds.Module):
+    """Module for multi-arch host GDB.
+
+    Note that the device side, gdbserver, is a separate module because it needs
+    to be cross compiled for all four Android ABIs.
+    """
+
+    name = 'gdb'
+    path = 'prebuilt/{host}'
+
+    deps = {
+        'host-tools',
+    }
+
+    GDB_VERSION = '7.11'
+
+    expat_src = ndk.paths.ANDROID_DIR / 'toolchain/expat/expat-2.0.1'
+    lzma_src = ndk.paths.ANDROID_DIR / 'toolchain/xz'
+    gdb_src = ndk.paths.ANDROID_DIR / f'toolchain/gdb/gdb-{GDB_VERSION}'
+
+    notice_group = ndk.builds.NoticeGroup.TOOLCHAIN
+
+    _expat_builder: Optional[ndk.autoconf.AutoconfBuilder] = None
+    _lzma_builder: Optional[ndk.autoconf.AutoconfBuilder] = None
+    _gdb_builder: Optional[ndk.autoconf.AutoconfBuilder] = None
+
+    @property
+    def notices(self) -> List[str]:
+        return [
+            str(self.expat_src / 'COPYING'),
+            str(self.gdb_src / 'COPYING'),
+            str(self.lzma_src / 'COPYING'),
+        ]
+
+    @property
+    def intermediate_out_dir(self) -> Path:
+        """Path for intermediate outputs of this module."""
+        return Path(self.out_dir) / self.host.value / 'gdb'
+
+    @property
+    def expat_builder(self) -> ndk.autoconf.AutoconfBuilder:
+        """Returns the lazily initialized expat builder for this module."""
+        if self._expat_builder is None:
+            self._expat_builder = ndk.autoconf.AutoconfBuilder(
+                self.expat_src / 'configure',
+                self.intermediate_out_dir / 'expat', self.host)
+        return self._expat_builder
+
+    @property
+    def lzma_builder(self) -> ndk.autoconf.AutoconfBuilder:
+        """Returns the lazily initialized lzma builder for this module."""
+        if self._lzma_builder is None:
+            self._lzma_builder = ndk.autoconf.AutoconfBuilder(
+                self.lzma_src / 'configure',
+                self.intermediate_out_dir / 'lzma',
+                self.host,
+                add_toolchain_to_path=True)
+        return self._lzma_builder
+
+    @property
+    def gdb_builder(self) -> ndk.autoconf.AutoconfBuilder:
+        """Returns the lazily initialized gdb builder for this module."""
+        if self._gdb_builder is None:
+            self._gdb_builder = ndk.autoconf.AutoconfBuilder(
+                self.gdb_src / 'configure',
+                self.intermediate_out_dir / 'gdb', self.host)
+        return self._gdb_builder
+
+    @property
+    def gdb_stub_install_path(self) -> Path:
+        """The gdb stub install path."""
+        return self.gdb_builder.install_directory / 'bin/gdb-stub'
+
+    def build_expat(self) -> None:
+        """Builds the expat dependency."""
+        self.expat_builder.build([
+            '--disable-shared',
+            '--enable-static',
+        ])
+
+    def build_lzma(self) -> None:
+        """Builds the liblzma dependency."""
+        self.lzma_builder.build([
+            '--disable-shared',
+            '--enable-static',
+            '--disable-xz',
+            '--disable-xzdec',
+            '--disable-lzmadev',
+            '--disable-scripts',
+            '--disable-doc',
+        ])
+
+    def build_gdb(self) -> None:
+        """Builds GDB itself."""
+        targets = ' '.join(ndk.abis.ALL_TRIPLES)
+        # TODO: Cleanup Python module so we don't need this explicit path.
+        python_config = (Path(
+            self.out_dir) / self.host.value / 'python' / ndk.hosts.host_to_tag(
+                self.host) / 'install/host-tools/bin/python-config.sh')
+        configure_args = [
+            '--with-expat',
+            f'--with-libexpat-prefix={self.expat_builder.install_directory}',
+            f'--with-python={python_config}',
+            f'--enable-targets={targets}',
+            '--disable-shared',
+            '--disable-werror',
+            '--disable-nls',
+            '--disable-docs',
+            '--without-mpc',
+            '--without-mpfr',
+            '--without-gmp',
+            '--without-isl',
+            '--disable-sim',
+            '--enable-gdbserver=no',
+        ]
+
+        configure_args.extend([
+            '--with-lzma',
+            f'--with-liblzma-prefix={self.lzma_builder.install_directory}',
+        ])
+
+        self.gdb_builder.build(configure_args)
+
+    def build_gdb_stub(self) -> None:
+        """Builds a gdb wrapper to setup PYTHONHOME.
+
+        We need to use gdb with the Python it was built against, so we need to
+        setup PYTHONHOME to point to the NDK's Python, not the host's.
+        """
+        if self.host.is_windows:
+            # TODO: Does it really need to be an executable?
+            # It's probably an executable because the original author wanted a
+            # .exe rather than a .cmd. Not sure how disruptive this change
+            # would be now. Presumably hardly at all because everyone needs to
+            # use ndk-gdb for reasonable behavior anyway?
+            self.build_exe_gdb_stub()
+        else:
+            self.build_sh_gdb_stub()
+
+    def build_exe_gdb_stub(self) -> None:
+        # Don't need to worry about extension here because it'll be renamed on
+        # install anyway.
+        gdb_stub_path = self.gdb_builder.install_directory / 'bin/gdb-stub'
+        stub_src = ndk.paths.NDK_DIR / 'sources/host-tools/gdb-stub/gdb-stub.c'
+        mingw_path = (ndk.paths.ANDROID_DIR /
+                      'prebuilts/gcc/linux-x86/host/x86_64-w64-mingw32-4.8/bin'
+                      / 'x86_64-w64-mingw32-gcc')
+
+        cmd = [
+            str(mingw_path),
+            '-O2',
+            '-s',
+            '-DNDEBUG',
+            str(stub_src),
+            '-o',
+            str(gdb_stub_path),
+        ]
+        pp_cmd = ' '.join([pipes.quote(arg) for arg in cmd])
+        print('Running: {}'.format(pp_cmd))
+        subprocess.run(cmd, check=True)
+
+    def build_sh_gdb_stub(self) -> None:
+        self.gdb_stub_install_path.write_text(
+            textwrap.dedent("""\
+            #!/bin/bash
+            GDBDIR=$(cd $(dirname $0) && pwd)
+            PYTHONHOME="$GDBDIR/.." "$GDBDIR/gdb-orig" "$@"
+            """))
+        self.gdb_stub_install_path.chmod(0o755)
+
+    def build(self) -> None:
+        """Builds GDB."""
+        if self.intermediate_out_dir.exists():
+            shutil.rmtree(self.intermediate_out_dir)
+
+        self.build_expat()
+        self.build_lzma()
+        self.build_gdb()
+        self.build_gdb_stub()
+
+    def install(self) -> None:
+        """Installs GDB."""
+        install_dir = Path(self.get_install_path())
+        copy_tree(
+            str(self.gdb_builder.install_directory / 'bin'),
+            str(install_dir / 'bin'))
+        gdb_share_dir = self.gdb_builder.install_directory / 'share/gdb'
+        gdb_share_install_dir = install_dir / 'share/gdb'
+        if gdb_share_install_dir.exists():
+            shutil.rmtree(gdb_share_install_dir)
+        shutil.copytree(gdb_share_dir, gdb_share_install_dir)
+
+        # gdb is currently gdb(.exe)? and the gdb stub is currently gdb-stub.
+        # Make them gdb-orig(.exe)? and gdb(.exe)? respectively.
+        exe_suffix = '.exe' if self.host.is_windows else ''
+        gdb_exe = install_dir / ('bin/gdb' + exe_suffix)
+        gdb_exe.rename(install_dir / ('bin/gdb-orig' + exe_suffix))
+
+        gdb_stub = install_dir / 'bin/gdb-stub'
+        gdb_stub.rename(install_dir / ('bin/gdb' + exe_suffix))
 
 
 class LibShaderc(ndk.builds.Module):
@@ -2299,6 +2497,7 @@ ALL_MODULES = [
     Changelog(),
     Clang(),
     CpuFeatures(),
+    Gdb(),
     GdbServer(),
     Gtest(),
     HostTools(),
