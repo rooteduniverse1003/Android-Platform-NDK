@@ -20,7 +20,7 @@ For Android Studio issues, follow the docs on the [Android Studio site].
 
 ## Changes
 
- * Updated Clang to r344140.
+ * Updated Clang to r346389c.
  * Add Android Q Beta 1 APIs:
      * MIDI (`<amidi/AMidi.h>`).
      * Binder.
