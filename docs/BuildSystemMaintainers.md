@@ -464,8 +464,8 @@ these symbols from a shared library. If this library was built with the wrong
 unwinder, it is possible for one unwinder to call into the other. As they are
 not compatible, this will likely result in either a crash or a failed unwind. To
 avoid this problem, libraries should always be built with
-`-Wl,--exclude-library,libgcc.a` and `-Wl,--exclude-library,libunwind.a` (the
-latter is only necessary for 32-bit ARM) to ensure that unwind symbols are not
+`-Wl,--exclude-libs,libgcc.a` and `-Wl,--exclude-libs,libunwind.a` (the latter
+is only necessary for 32-bit ARM) to ensure that unwind symbols are not
 re-exported from shared libraries.
 
 Even with the above precautions, it is still possible for an improperly built
