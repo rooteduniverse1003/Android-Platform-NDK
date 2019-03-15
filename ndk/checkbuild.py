@@ -1155,7 +1155,9 @@ class Gdb(ndk.builds.Module):
         if self._expat_builder is None:
             self._expat_builder = ndk.autoconf.AutoconfBuilder(
                 self.expat_src / 'configure',
-                self.intermediate_out_dir / 'expat', self.host)
+                self.intermediate_out_dir / 'expat',
+                self.host,
+                use_clang=True)
         return self._expat_builder
 
     @property
@@ -1166,16 +1168,23 @@ class Gdb(ndk.builds.Module):
                 self.lzma_src / 'configure',
                 self.intermediate_out_dir / 'lzma',
                 self.host,
-                add_toolchain_to_path=True)
+                add_toolchain_to_path=True,
+                use_clang=True)
         return self._lzma_builder
 
     @property
     def gdb_builder(self) -> ndk.autoconf.AutoconfBuilder:
         """Returns the lazily initialized gdb builder for this module."""
         if self._gdb_builder is None:
+            # Awful Darwin hack. For some reason GDB doesn't produce a gdb
+            # executable when using --build/--host.
+            no_build_or_host = self.host == ndk.hosts.Host.Darwin
             self._gdb_builder = ndk.autoconf.AutoconfBuilder(
                 self.gdb_src / 'configure',
-                self.intermediate_out_dir / 'gdb', self.host)
+                self.intermediate_out_dir / 'gdb',
+                self.host,
+                use_clang=True,
+                no_build_or_host=no_build_or_host)
         return self._gdb_builder
 
     @property

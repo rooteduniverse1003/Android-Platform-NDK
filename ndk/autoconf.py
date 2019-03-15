@@ -144,14 +144,21 @@ class AutoconfBuilder:
                 automatically.
         """
         with self.cd():
-            build_triple = HOST_TRIPLE_MAP[get_default_host()]
-            host_triple = HOST_TRIPLE_MAP[self.host]
+            build_host_args: List[str]
+            if self.no_build_or_host:
+                build_host_args = []
+            else:
+                build_triple = HOST_TRIPLE_MAP[get_default_host()]
+                host_triple = HOST_TRIPLE_MAP[self.host]
+                build_host_args = [
+                    f'--build={build_triple}',
+                    f'--host={host_triple}',
+                ]
+
             configure_args = [
                 str(self.configure_script),
                 f'--prefix={self.install_directory}',
-                f'--build={build_triple}',
-                f'--host={host_triple}',
-            ] + args
+            ] + build_host_args + args
 
             flags_str = ' '.join(self.toolchain.flags + self.flags)
             cc = f'{self.toolchain.cc} {flags_str}'
