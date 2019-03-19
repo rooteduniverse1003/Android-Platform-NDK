@@ -23,10 +23,11 @@ class Timer:
     Can be used explicitly with stop/start, but preferably is used as a context
     manager:
 
-    >>> timer = Timer()
-    >>> with timer:
-    >>>     do_something()
-    >>> print('do_something() took {}'.format(timer.duration))
+    >>> def timer_example():
+    ...     timer = Timer()
+    ...     with timer:
+    ...         do_something()
+    ...     print(f'do_something() took {timer.duration}.')
     """
     def __init__(self):
         self.start_time = None
