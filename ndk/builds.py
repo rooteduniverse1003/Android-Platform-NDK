@@ -226,8 +226,7 @@ class Module:
         package_installs = ndk.packaging.expand_packages(
             self.name, self.path, self.host, self.arches)
 
-        install_base = ndk.paths.get_install_path(self.out_dir,
-                                                  self.host)
+        install_base = ndk.paths.get_install_path(self.out_dir, self.host)
         for package_name, package_install in package_installs:
             install_path = os.path.join(install_base, package_install)
             package = os.path.join(self.context.dist_dir, package_name)
@@ -481,7 +480,7 @@ class ScriptShortcutModule(Module):
         pass
 
     def install(self) -> None:
-        if self.host.startswith('windows'):
+        if self.host.is_windows:
             self.make_cmd_helper()
         else:
             self.make_sh_helper()
@@ -575,9 +574,9 @@ def common_build_args(out_dir: str, dist_dir: str,
         List of command line arguments to be used with build.py.
     """
     return [
-        f'--out-dir={os.path.join(out_dir, host)}',
+        f'--out-dir={os.path.join(out_dir, host.value)}',
         f'--dist-dir={dist_dir}',
-        f'--host={host}',
+        f'--host={host.value}',
     ]
 
 

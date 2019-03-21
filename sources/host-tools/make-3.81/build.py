@@ -21,8 +21,12 @@ import os
 import site
 
 site.addsitedir(os.path.join(os.path.dirname(__file__), '../../../build/lib'))
+site.addsitedir(os.path.join(os.path.dirname(__file__), '../../..'))
 
-import build_support  # pylint: disable=import-error
+# pylint: disable=import-error,wrong-import-position
+import build_support
+from ndk.hosts import Host
+# pylint: enable=import-error,wrong-import-position
 
 
 def main(args):
@@ -30,10 +34,10 @@ def main(args):
         'bash', 'build-make.sh',
     ]
 
-    if args.host in ('windows', 'windows64'):
+    if args.host.is_windows:
         build_cmd.append('--mingw')
 
-    if args.host != 'windows':
+    if args.host != Host.Windows:
         build_cmd.append('--try-64')
 
     build_cmd.append('--build-dir=' + os.path.join(args.out_dir, 'make'))

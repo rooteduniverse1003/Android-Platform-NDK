@@ -21,9 +21,10 @@ import os
 import shutil
 import subprocess
 import tempfile
+from typing import Iterable, List, Optional, Set
 
 import ndk.abis
-import ndk.hosts
+from ndk.hosts import Host, host_to_tag
 
 
 PACKAGE_VARIANTS = (
@@ -35,35 +36,36 @@ PACKAGE_VARIANTS = (
 )
 
 
-def expand_paths(package, host, arches):
+def expand_paths(package: str, host: Host,
+                 arches: Optional[Iterable[ndk.abis.Arch]]) -> List[str]:
     """Expands package definition tuple into list of full package names.
 
-    >>> expand_paths('gcc-{toolchain}-{host}', 'linux', ['arm', 'x86_64'])
+    >>> expand_paths('gcc-{toolchain}-{host}', Host.Linux, ['arm', 'x86_64'])
     ['gcc-arm-linux-androideabi-linux-x86_64', 'gcc-x86_64-linux-x86_64']
 
-    >>> expand_paths('gdbserver-{arch}', 'linux', ['arm64', 'x86_64'])
+    >>> expand_paths('gdbserver-{arch}', Host.Linux, ['arm64', 'x86_64'])
     ['gdbserver-arm64', 'gdbserver-x86_64']
 
-    >>> expand_paths('llvm-{host}', 'linux', None)
+    >>> expand_paths('llvm-{host}', Host.Linux, None)
     ['llvm-linux-x86_64']
 
-    >>> expand_paths('platforms', 'linux', ['arm'])
+    >>> expand_paths('platforms', Host.Linux, ['arm'])
     ['platforms']
 
-    >>> expand_paths('libc++-{abi}', 'linux', ['arm'])
+    >>> expand_paths('libc++-{abi}', Host.Linux, ['arm'])
     ['libc++-armeabi-v7a']
 
-    >>> expand_paths('binutils/{triple}', 'linux', ['arm', 'x86_64'])
+    >>> expand_paths('binutils/{triple}', Host.Linux, ['arm', 'x86_64'])
     ['binutils/arm-linux-androideabi', 'binutils/x86_64-linux-android']
 
-    >> expand_paths('toolchains/{toolchain}-4.9', 'linux', ['arm', 'x86'])
+    >> expand_paths('toolchains/{toolchain}-4.9', Host.Linux, ['arm', 'x86'])
     ['toolchains/arm-linux-androideabi-4.9', 'toolchains/x86-4.9']
     """
-    host_tag = ndk.hosts.host_to_tag(host)
+    host_tag = host_to_tag(host)
     if arches is None:
         return [package.format(host=host_tag)]
 
-    seen_packages = set()
+    seen_packages: Set[str] = set()
     packages = []
     for arch in arches:
         triple = ndk.abis.arch_to_triple(arch)

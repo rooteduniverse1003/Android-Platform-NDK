@@ -233,30 +233,39 @@ class Clang(ndk.builds.Module):
     def notices(self):
         # TODO: Why every host?
         return [
-            os.path.join(self.get_prebuilt_path('darwin'), 'NOTICE'),
-            os.path.join(self.get_prebuilt_path('linux'), 'NOTICE'),
-            os.path.join(self.get_prebuilt_path('windows'), 'NOTICE'),
-            os.path.join(self.get_prebuilt_path('windows64'), 'NOTICE'),
+            os.path.join(self.get_prebuilt_path(h), 'NOTICE')
+            for h in ndk.hosts.Host
         ]
 
-    def get_prebuilt_path(self, host=None):
+    def get_prebuilt_path(self, host: ndk.hosts.Host = None) -> str:
+        """Returns the path to the Clang prebuilt for the given host.
+
+        Args:
+            host: The host to return the prebuilt path for. If None, uses this
+            module's target host.
+
+        Returns: The path to the Clang prebuilt for the given host.
+
+        Raises:
+            RuntimeError: Could not find a prebuilt Clang.
+        """
         if host is None:
             host = self.host
 
         # The 32-bit Windows Clang is a part of the 64-bit Clang package in
         # prebuilts/clang.
-        if host == 'windows':
+        if host == ndk.hosts.Host.Windows:
             platform_host_tag = 'windows-x86_32'
-        elif host == 'windows64':
+        elif host == ndk.hosts.Host.Windows64:
             platform_host_tag = 'windows-x86'
         else:
-            platform_host_tag = host + '-x86'
+            platform_host_tag = f'{host.value}-x86'
 
-        rel_prebuilt_path = 'prebuilts/clang/host/{}'.format(platform_host_tag)
+        rel_prebuilt_path = f'prebuilts/clang/host/{platform_host_tag}'
         prebuilt_path = ndk.paths.android_path(rel_prebuilt_path, self.version)
         if not os.path.isdir(prebuilt_path):
             raise RuntimeError(
-                'Could not find prebuilt LLVM at {}'.format(prebuilt_path))
+                f'Could not find prebuilt LLVM at {prebuilt_path}')
         return prebuilt_path
 
     def build(self):
@@ -281,7 +290,7 @@ class Clang(ndk.builds.Module):
         cxx_includes_path = os.path.join(install_path, 'include')
         shutil.rmtree(cxx_includes_path)
 
-        if self.host in ('darwin', 'linux'):
+        if not self.host.is_windows:
             # The Linux and Darwin toolchains have Python compiler wrappers
             # that currently do nothing. We don't have these for Windows and we
             # want to make sure Windows behavior is consistent with the other
@@ -304,13 +313,13 @@ class Clang(ndk.builds.Module):
         #
         # Note that lld is experimental in the NDK. It is not the default for
         # any architecture and has received only minimal testing in the NDK.
-        bin_ext = '.exe' if self.host.startswith('windows') else ''
+        bin_ext = '.exe' if self.host.is_windows else ''
         os.remove(os.path.join(install_path, 'bin/ld64.lld' + bin_ext))
         os.remove(os.path.join(install_path, 'bin/lld' + bin_ext))
         os.remove(os.path.join(install_path, 'bin/lld-link' + bin_ext))
 
-        libdir_name = 'lib' if self.host == 'windows' else 'lib64'
-        if self.host.startswith('windows'):
+        libdir_name = 'lib' if self.host == ndk.hosts.Host.Windows else 'lib64'
+        if self.host.is_windows:
             # The toolchain prebuilts have LLVMgold.dll in the bin directory
             # rather than the lib directory that will actually be searched.
             bin_dir = os.path.join(install_path, 'bin')
@@ -324,7 +333,7 @@ class Clang(ndk.builds.Module):
                          os.path.join(lib_dir, 'libwinpthread-1.dll'))
 
         install_clanglib = os.path.join(install_path, libdir_name, 'clang')
-        linux_prebuilt_path = self.get_prebuilt_path('linux')
+        linux_prebuilt_path = self.get_prebuilt_path(ndk.hosts.Host.Linux)
 
         if self.host != 'linux':
             # We don't build target binaries as part of the Darwin or Windows
@@ -351,11 +360,12 @@ class Clang(ndk.builds.Module):
 
         # Also remove the other libraries that we installed, but they were only
         # installed on Linux.
-        if self.host == 'linux':
+        if self.host == ndk.hosts.Host.Linux:
             shutil.rmtree(os.path.join(install_path, 'runtimes_ndk_cxx'))
 
 
-def get_gcc_prebuilt_path(host, arch):
+def get_gcc_prebuilt_path(host: ndk.hosts.Host, arch: ndk.abis.Arch) -> str:
+    """Returns the path to the GCC prebuilt for the given host/arch."""
     host_tag = ndk.hosts.host_to_tag(host)
     toolchain = ndk.abis.arch_to_toolchain(arch) + '-4.9'
     rel_prebuilt_path = os.path.join(
@@ -367,28 +377,37 @@ def get_gcc_prebuilt_path(host, arch):
     return prebuilt_path
 
 
-def get_binutils_prebuilt_path(host, arch):
-    if host == 'windows':
-        host = 'win'
-    elif host == 'windows64':
-        host = 'win64'
+def get_binutils_prebuilt_path(host: ndk.hosts.Host,
+                               arch: ndk.abis.Arch) -> str:
+    if host == ndk.hosts.Host.Windows:
+        host_dir_name = 'win'
+    elif host == ndk.hosts.Host.Windows64:
+        host_dir_name = 'win64'
+    else:
+        host_dir_name = host.value
 
-    binutils_name = 'binutils-{}-{}'.format(arch, host)
-    prebuilt_path = ndk.paths.android_path(
-        'prebuilts/ndk', 'binutils', host, binutils_name)
+    binutils_name = f'binutils-{arch}-{host_dir_name}'
+    prebuilt_path = ndk.paths.android_path('prebuilts/ndk', 'binutils',
+                                           host_dir_name, binutils_name)
     if not os.path.isdir(prebuilt_path):
         raise RuntimeError(
-            'Could not find prebuilt binutils at {}'.format(prebuilt_path))
+            f'Could not find prebuilt binutils at {prebuilt_path}')
     return prebuilt_path
 
 
-def versioned_so(host, lib, version):
-    if host == 'darwin':
-        return '{}.{}.dylib'.format(lib, version)
-    elif host == 'linux':
-        return '{}.so.{}'.format(lib, version)
-    else:
-        raise ValueError('Unsupported host: {}'.format(host))
+def versioned_so(host: ndk.hosts.Host, lib: str, version: str) -> str:
+    """Returns the formatted versioned library for the given host.
+
+    >>> versioned_so(ndk.hosts.Host.Darwin, 'libfoo', '0')
+    'libfoo.0.dylib'
+    >>> versioned_so(ndk.hosts.Host.Linux, 'libfoo', '0')
+    'libfoo.so.0'
+    """
+    if host == ndk.hosts.Host.Darwin:
+        return f'{lib}.{version}.dylib'
+    elif host == ndk.hosts.Host.Linux:
+        return f'{lib}.so.{version}'
+    raise ValueError(f'Unsupported host: {host}')
 
 
 def install_gcc_lib(install_path, host, arch, subarch, lib_subdir, libname):
@@ -511,15 +530,14 @@ class Binutils(ndk.builds.Module):
 
         # Copy the LLVMgold plugin into the binutils plugin directory so ar can
         # use it.
-        if self.host == 'linux':
+        if self.host == ndk.hosts.Host.Linux:
             so = '.so'
-        elif self.host == 'darwin':
+        elif self.host == ndk.hosts.Host.Darwin:
             so = '.dylib'
         else:
             so = '.dll'
 
-        is_win = self.host.startswith('windows')
-        libdir_name = 'lib' if self.host == 'windows' else 'lib64'
+        libdir_name = 'lib' if self.host == ndk.hosts.Host.Windows else 'lib64'
         clang_prebuilts = self.get_dep('clang').get_install_path()
         clang_bin = os.path.join(clang_prebuilts, 'bin')
         clang_libs = os.path.join(clang_prebuilts, libdir_name)
@@ -529,7 +547,7 @@ class Binutils(ndk.builds.Module):
         os.makedirs(bfd_plugins)
         shutil.copy2(llvmgold, bfd_plugins)
 
-        if not is_win:
+        if not self.host.is_windows:
             libcxx_1 = os.path.join(
                 clang_libs, versioned_so(self.host, 'libc++', '1'))
 
@@ -592,7 +610,7 @@ class HostTools(ndk.builds.Module):
         ndk.builds.invoke_external_build(
             'ndk/sources/host-tools/make-3.81/build.py', build_args)
 
-        if self.host in ('windows', 'windows64'):
+        if self.host.is_windows:
             print('Building toolbox...')
             ndk.builds.invoke_external_build(
                 'ndk/sources/host-tools/toolbox/build.py', build_args)
@@ -607,7 +625,7 @@ class HostTools(ndk.builds.Module):
         print('Building YASM...')
         ndk.builds.invoke_external_build('toolchain/yasm/build.py', build_args)
 
-    def install(self):
+    def install(self) -> None:
         install_dir = self.get_install_path()
         ndk.ext.shutil.create_directory(install_dir)
 
@@ -622,14 +640,15 @@ class HostTools(ndk.builds.Module):
             'ndk-which',
         ]
 
-        if self.host in ('windows', 'windows64'):
+        if self.host.is_windows:
             packages.append('toolbox')
 
         host_tag = ndk.hosts.host_to_tag(self.host)
 
         package_names = [p + '-' + host_tag + '.tar.bz2' for p in packages]
         for package_name in package_names:
-            package_path = os.path.join(self.out_dir, self.host, package_name)
+            package_path = os.path.join(self.out_dir, self.host.value,
+                                        package_name)
             subprocess.check_call(
                 ['tar', 'xf', package_path, '-C', install_dir,
                  '--strip-components=1'])
@@ -639,9 +658,9 @@ class HostTools(ndk.builds.Module):
                 ndk.paths.ndk_path(f), os.path.join(install_dir, 'bin'))
 
 
-def install_exe(out_dir, install_dir, name, system):
-    is_win = system.startswith('windows')
-    ext = '.exe' if is_win else ''
+def install_exe(out_dir: str, install_dir: str, name: str,
+                host: ndk.hosts.Host) -> None:
+    ext = '.exe' if host.is_windows else ''
     exe_name = name + ext
     src = os.path.join(out_dir, exe_name)
     dst = os.path.join(install_dir, exe_name)
@@ -659,8 +678,9 @@ class GdbServer(ndk.builds.InvokeBuildModule):
     arch_specific = True
     split_build_by_arch = True
 
-    def install(self):
-        src_dir = os.path.join(self.out_dir, self.host, self.name,
+    def install(self) -> None:
+        assert self.build_arch is not None
+        src_dir = os.path.join(self.out_dir, self.host.value, self.name,
                                self.build_arch, 'install')
         install_path = self.get_install_path()
         if os.path.exists(install_path):
@@ -1427,7 +1447,7 @@ class BaseToolchain(ndk.builds.Module):
 
         copy_tree(sysroot_dir, os.path.join(install_dir, 'sysroot'))
 
-        exe = '.exe' if self.host.startswith('windows') else ''
+        exe = '.exe' if self.host.is_windows else ''
         shutil.copy2(
             os.path.join(host_tools_dir, 'bin', 'yasm' + exe),
             os.path.join(install_dir, 'bin'))
@@ -1455,7 +1475,7 @@ class BaseToolchain(ndk.builds.Module):
 
                 write_clang_wrapper(
                     os.path.join(install_dir, 'bin'), api, triple,
-                    self.host.startswith('windows'))
+                    self.host.is_windows)
 
         # Clang searches for libstdc++ headers at $GCC_PATH/../include/c++. It
         # maybe be worth adding a search for the same path within the usual
@@ -1804,7 +1824,7 @@ class SimplePerf(ndk.builds.Module):
     path = 'simpleperf'
     notice = ndk.paths.android_path('prebuilts/simpleperf/NOTICE')
 
-    def build(self):
+    def build(self) -> None:
         print('Building simpleperf...')
         install_dir = os.path.join(self.out_dir, 'simpleperf')
         if os.path.exists(install_dir):
@@ -1813,8 +1833,7 @@ class SimplePerf(ndk.builds.Module):
 
         simpleperf_path = ndk.paths.android_path('prebuilts/simpleperf')
         dirs = ['doc', 'inferno', 'bin/android']
-        is_win = self.host.startswith('windows')
-        host_bin_dir = 'windows' if is_win else self.host
+        host_bin_dir = 'windows' if self.host.is_windows else self.host.value
         dirs.append(os.path.join('bin/', host_bin_dir))
         for d in dirs:
             shutil.copytree(os.path.join(simpleperf_path, d),
@@ -1826,9 +1845,9 @@ class SimplePerf(ndk.builds.Module):
                 should_copy = True
             elif item == 'report_html.js':
                 should_copy = True
-            elif item == 'inferno.sh' and not is_win:
+            elif item == 'inferno.sh' and not self.host.is_windows:
                 should_copy = True
-            elif item == 'inferno.bat' and is_win:
+            elif item == 'inferno.bat' and self.host.is_windows:
                 should_copy = True
             if should_copy:
                 shutil.copy2(os.path.join(simpleperf_path, item), install_dir)
@@ -1878,7 +1897,7 @@ class NdkGdb(ndk.builds.MultiFileModule):
             ndk.paths.ndk_path('ndk-gdb.py'),
         ]
 
-        if self.host.startswith('windows'):
+        if self.host.is_windows:
             files.append(ndk.paths.ndk_path('ndk-gdb.cmd'))
 
         return files
@@ -1903,7 +1922,7 @@ class NdkStack(ndk.builds.MultiFileModule):
             ndk.paths.ndk_path('ndk-stack.py'),
         ]
 
-        if self.host.startswith('windows'):
+        if self.host.is_windows:
             files.append(ndk.paths.ndk_path('ndk-stack.cmd'))
 
         return files
@@ -2301,7 +2320,9 @@ def parse_args():
         '--release', help='Ignored. Temporarily compatibility.')
 
     parser.add_argument(
-        '--system', choices=('darwin', 'linux', 'windows', 'windows64'),
+        '--system',
+        choices=ndk.hosts.Host,
+        type=ndk.hosts.Host,
         default=ndk.hosts.get_default_host(),
         help='Build for the given OS.')
 
@@ -2419,7 +2440,7 @@ def build_ndk(modules, deps_only, out_dir, dist_dir, args):
 def build_ndk_for_cross_compile(out_dir, arches, args):
     args = copy.deepcopy(args)
     args.system = ndk.hosts.get_default_host()
-    if args.system != 'linux':
+    if args.system != ndk.hosts.Host.Linux:
         raise NotImplementedError
     module_names = NAMES_TO_MODULES.keys()
     modules, deps_only = get_modules_to_build(module_names, arches)
@@ -2462,7 +2483,7 @@ def main():
     # TODO(danalbert): wine?
     # We're building the Windows packages from Linux, so we can't actually run
     # any of the tests from here.
-    if args.system.startswith('windows') or not do_package:
+    if args.system.is_windows or not do_package:
         args.build_tests = False
 
     os.chdir(os.path.dirname(os.path.dirname(os.path.realpath(__file__))))
@@ -2489,7 +2510,7 @@ def main():
 
     print('Machine has {} CPUs'.format(multiprocessing.cpu_count()))
 
-    if args.system.startswith('windows') and not args.skip_deps:
+    if args.system.is_windows and not args.skip_deps:
         # Since the Windows NDK is cross compiled, we need to build a Linux NDK
         # first so we can build components like libc++.
         build_ndk_for_cross_compile(out_dir, arches, args)
