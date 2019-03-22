@@ -24,14 +24,18 @@ import shutil
 import subprocess
 
 site.addsitedir(os.path.join(os.path.dirname(__file__), '../lib'))
+site.addsitedir(os.path.join(os.path.dirname(__file__), '../..'))
 
+# pylint: disable=import-error,wrong-import-position
 import build_support
 from build_support import ArgParser
+import ndk.hosts
+# pylint: enable=import-error,wrong-import-position
 
 
 def main(args):
     host_tag = build_support.host_to_tag(args.host)
-    build_host_tag = build_support.get_default_host() + "-x86"
+    build_host_tag = build_support.get_default_host().value + "-x86"
 
     package_dir = args.dist_dir
 
@@ -71,7 +75,7 @@ def main(args):
     file_extension = ''
 
     additional_args = list(effcee_args)
-    if args.host.startswith("windows"):
+    if args.host.is_windows:
         gtest_cmd = ''
         mingw_root = os.path.join(build_support.android_path(),
                                   'prebuilts', 'gcc', build_host_tag, 'host',
@@ -85,7 +89,7 @@ def main(args):
                                 '-DMINGW_COMPILER_PREFIX=' + mingw_compilers,
                                 '-DSHADERC_GOOGLE_TEST_DIR=' + gtest_root])
         file_extension = '.exe'
-        if args.host == "windows64":
+        if args.host == ndk.hosts.Host.Windows64:
             additional_args.extend(
                 ['-DCMAKE_CXX_FLAGS=-fno-rtti -fno-exceptions'])
         else:
@@ -126,14 +130,14 @@ def main(args):
     files_to_copy.extend(scripts_to_copy)
 
     # Test, except on windows.
-    if (not args.host.startswith('windows')):
+    if not args.host.is_windows:
         subprocess.check_call([ctest, '--verbose'], cwd=obj_out)
 
     # Copy to install tree.
     for src in files_to_copy:
         shutil.copy2(os.path.join(install_dir, 'bin', src),
                      os.path.join(package_src, src))
-    if args.host.startswith('windows'):
+    if args.host.is_windows:
         for src in scripts_to_copy:
             # Convert line endings on scripts.
             # Do it in place to preserve executable permissions.

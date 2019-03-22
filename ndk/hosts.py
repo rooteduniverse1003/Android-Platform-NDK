@@ -16,20 +16,27 @@
 """Constants and helper functions for NDK hosts."""
 from __future__ import absolute_import
 
+import enum
 import os
 import sys
-from typing import NewType
 
 
-Host = NewType('Host', str)
+@enum.unique
+class Host(enum.Enum):
+    """Enumeration of supported hosts."""
+
+    Darwin = 'darwin'
+    Linux = 'linux'
+    Windows = 'windows'
+    Windows64 = 'windows64'
+
+    @property
+    def is_windows(self) -> bool:
+        """Returns True if the given host is Windows."""
+        return self in (Host.Windows, Host.Windows64)
 
 
-ALL_HOSTS = (
-    Host('darwin'),
-    Host('linux'),
-    Host('windows'),
-    Host('windows64'),
-)
+ALL_HOSTS = list(Host)
 
 
 def get_host_tag(ndk_path):
@@ -46,23 +53,34 @@ def get_host_tag(ndk_path):
     raise ValueError('Unknown host: {}'.format(sys.platform))
 
 
-def host_to_tag(host):
-    if host in ['darwin', 'linux']:
-        return host + '-x86_64'
-    elif host == 'windows':
+def host_to_tag(host: Host) -> str:
+    """Returns the host tag used for NDK prebuilt directories.
+
+    >>> host_to_tag(Host.Darwin)
+    'darwin-x86_64'
+    >>> host_to_tag(Host.Linux)
+    'linux-x86_64'
+    >>> host_to_tag(Host.Windows)
+    'windows'
+    >>> host_to_tag(Host.Windows64)
+    'windows-x86_64'
+    """
+    if not host.is_windows:
+        return host.value + '-x86_64'
+    elif host == Host.Windows:
         return 'windows'
-    elif host == 'windows64':
+    elif host == Host.Windows64:
         return 'windows-x86_64'
-    else:
-        raise RuntimeError('Unsupported host: {}'.format(host))
+    raise NotImplementedError
 
 
-def get_default_host():
+def get_default_host() -> Host:
+    """Returns the Host matching the current machine."""
     if sys.platform in ('linux', 'linux2'):
-        return 'linux'
+        return Host.Linux
     elif sys.platform == 'darwin':
-        return 'darwin'
+        return Host.Darwin
     elif sys.platform == 'win32':
-        return 'windows'
+        return Host.Windows
     else:
-        raise RuntimeError('Unsupported host: {}'.format(sys.platform))
+        raise RuntimeError(f'Unsupported host: {sys.platform}')

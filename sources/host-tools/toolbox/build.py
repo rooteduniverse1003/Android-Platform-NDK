@@ -25,24 +25,29 @@ import site
 import sys
 
 site.addsitedir(os.path.join(os.path.dirname(__file__), '../../../build/lib'))
+site.addsitedir(os.path.join(os.path.dirname(__file__), '../../..'))
 
-import build_support  # pylint: disable=import-error
+# pylint: disable=import-error,wrong-import-position
+import build_support
+from ndk.hosts import Host
+# pylint: enable=import-error,wrong-import-position
 
 
 def main(args):
-    if args.host not in ('windows', 'windows64'):
+    if not args.host.is_windows:
         sys.exit('Toolbox is only for Windows hosts.')
 
     build_cmd = [
         'bash', 'build-toolbox.sh',
     ]
 
-    if args.host != 'windows':
+    if args.host != Host.Windows:
         build_cmd.append('--try-64')
 
     build_cmd.append('--build-dir=' + os.path.join(args.out_dir, 'toolbox'))
 
     build_support.build(build_cmd, args, intermediate_package=True)
+
 
 if __name__ == '__main__':
     build_support.run(main)
