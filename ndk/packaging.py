@@ -141,7 +141,7 @@ def extract_zip(package_path, install_path):
         if len(dirs) > 1:
             msg = 'Package has more than one root directory: ' + package_name
             raise RuntimeError(msg)
-        elif not dirs:
+        if not dirs:
             raise RuntimeError('Package was empty: ' + package_name)
         parent_dir = os.path.dirname(install_path)
         if not os.path.exists(parent_dir):
