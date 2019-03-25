@@ -24,7 +24,7 @@ site.addsitedir(os.path.join(os.path.dirname(__file__), '../..'))
 
 # pylint: disable=import-error,wrong-import-position
 import build_support
-from ndk.hosts import Host, get_host_tag
+from ndk.hosts import Host, host_to_tag
 # pylint: enable=import-error,wrong-import-position
 
 
@@ -50,7 +50,7 @@ def main(args) -> None:
     prebuilt_path = get_rs_prebuilt_path(f'{os_name}-x86')
     print(f'prebuilt path: {prebuilt_path}')
 
-    package_name = f'renderscript-toolchain-{get_host_tag(host)}'
+    package_name = f'renderscript-toolchain-{host_to_tag(host)}'
     built_path = os.path.join(prebuilt_path, RS_VERSION)
     build_support.make_package(package_name, built_path, package_dir)
 
