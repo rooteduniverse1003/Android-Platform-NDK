@@ -18,6 +18,7 @@ from __future__ import absolute_import
 
 import contextlib
 import os
+from pathlib import Path
 import shutil
 import sys
 from typing import Generator, Optional
@@ -27,18 +28,18 @@ import ndk.config
 import ndk.hosts
 
 
-THIS_DIR = os.path.realpath(os.path.dirname(__file__))
+ANDROID_DIR = Path(__file__).resolve().parents[2]
+NDK_DIR = ANDROID_DIR / 'ndk'
 
 
 def android_path(*args: str) -> str:
     """Returns the absolute path rooted within the top level source tree."""
-    return os.path.normpath(os.path.join(THIS_DIR, '../../', *args))
+    return str(ANDROID_DIR.joinpath(*args))
 
 
 def ndk_path(*args: str) -> str:
     """Returns the absolute path rooted within the NDK source tree."""
     return android_path('ndk', *args)
-
 
 
 def sysroot_path(toolchain: str) -> str:

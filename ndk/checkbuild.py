@@ -38,6 +38,7 @@ import json
 import logging
 import multiprocessing
 import os
+from pathlib import Path
 import pipes
 import re
 import shutil
@@ -65,6 +66,7 @@ import ndk.test.builder
 import ndk.test.printers
 import ndk.test.spec
 import ndk.timer
+import ndk.toolchains
 import ndk.ui
 import ndk.workqueue
 
@@ -226,52 +228,20 @@ def _install_file(src_file, dst_file):
 class Clang(ndk.builds.Module):
     name = 'clang'
     path = 'toolchains/llvm/prebuilt/{host}'
-    version = 'clang-r349610b'
     notice_group = ndk.builds.NoticeGroup.TOOLCHAIN
 
     @property
     def notices(self):
         # TODO: Why every host?
         return [
-            os.path.join(self.get_prebuilt_path(h), 'NOTICE')
+            str(ndk.toolchains.ClangToolchain.path_for_host(h) / 'NOTICE')
             for h in ndk.hosts.Host
         ]
-
-    def get_prebuilt_path(self, host: ndk.hosts.Host = None) -> str:
-        """Returns the path to the Clang prebuilt for the given host.
-
-        Args:
-            host: The host to return the prebuilt path for. If None, uses this
-            module's target host.
-
-        Returns: The path to the Clang prebuilt for the given host.
-
-        Raises:
-            RuntimeError: Could not find a prebuilt Clang.
-        """
-        if host is None:
-            host = self.host
-
-        # The 32-bit Windows Clang is a part of the 64-bit Clang package in
-        # prebuilts/clang.
-        if host == ndk.hosts.Host.Windows:
-            platform_host_tag = 'windows-x86_32'
-        elif host == ndk.hosts.Host.Windows64:
-            platform_host_tag = 'windows-x86'
-        else:
-            platform_host_tag = f'{host.value}-x86'
-
-        rel_prebuilt_path = f'prebuilts/clang/host/{platform_host_tag}'
-        prebuilt_path = ndk.paths.android_path(rel_prebuilt_path, self.version)
-        if not os.path.isdir(prebuilt_path):
-            raise RuntimeError(
-                f'Could not find prebuilt LLVM at {prebuilt_path}')
-        return prebuilt_path
 
     def build(self):
         pass
 
-    def install(self):
+    def install(self) -> None:
         install_path = self.get_install_path()
 
         install_parent = os.path.dirname(install_path)
@@ -279,7 +249,9 @@ class Clang(ndk.builds.Module):
             shutil.rmtree(install_path)
         if not os.path.exists(install_parent):
             os.makedirs(install_parent)
-        shutil.copytree(self.get_prebuilt_path(), install_path)
+        shutil.copytree(
+            ndk.toolchains.ClangToolchain.path_for_host(self.host),
+            install_path)
 
         # clang-4053586 was patched in the prebuilts directory to add the
         # libc++ includes. These are almost certainly a different revision than
@@ -333,9 +305,10 @@ class Clang(ndk.builds.Module):
                          os.path.join(lib_dir, 'libwinpthread-1.dll'))
 
         install_clanglib = os.path.join(install_path, libdir_name, 'clang')
-        linux_prebuilt_path = self.get_prebuilt_path(ndk.hosts.Host.Linux)
+        linux_prebuilt_path = ndk.toolchains.ClangToolchain.path_for_host(
+            ndk.hosts.Host.Linux)
 
-        if self.host != 'linux':
+        if self.host != ndk.hosts.Host.Linux:
             # We don't build target binaries as part of the Darwin or Windows
             # build. These toolchains need to get these from the Linux
             # prebuilts.
@@ -344,13 +317,13 @@ class Clang(ndk.builds.Module):
             # for both toolchains, and those two are intended to be identical
             # between each host, so we can just replace them with the one from
             # the Linux toolchain.
-            linux_clanglib = os.path.join(linux_prebuilt_path, 'lib64/clang')
+            linux_clanglib = linux_prebuilt_path / 'lib64/clang'
             shutil.rmtree(install_clanglib)
             shutil.copytree(linux_clanglib, install_clanglib)
 
         # The Clang prebuilts have the platform toolchain libraries in
         # lib64/clang. The libraries we want are in runtimes_ndk_cxx.
-        ndk_runtimes = os.path.join(linux_prebuilt_path, 'runtimes_ndk_cxx')
+        ndk_runtimes = linux_prebuilt_path / 'runtimes_ndk_cxx'
         versions = os.listdir(install_clanglib)
         for version in versions:
             version_dir = os.path.join(install_clanglib, version)
