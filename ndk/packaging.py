@@ -21,7 +21,7 @@ import os
 import shutil
 import subprocess
 import tempfile
-from typing import Iterable, List, Optional, Set
+from typing import Iterable, List, Optional, Set, Tuple
 
 import ndk.abis
 from ndk.hosts import Host, host_to_tag
@@ -80,7 +80,7 @@ def expand_paths(package: str, host: Host,
     return packages
 
 
-def package_varies_by(install_path, variant):
+def package_varies_by(install_path: str, variant: str) -> bool:
     """Determines if a package varies by a given input.
 
     >>> package_varies_by('foo-{host}', 'host')
@@ -100,7 +100,8 @@ def package_varies_by(install_path, variant):
     return variant_replacement_str in install_path
 
 
-def expand_packages(package, install_path, host, arches):
+def expand_packages(package: str, install_path: str, host: Host,
+                    arches: List[ndk.abis.Arch]) -> Iterable[Tuple[str, str]]:
     """Returns a list of tuples of `(package, install_path)`."""
     package_template = package
     for variant in PACKAGE_VARIANTS:
@@ -112,7 +113,7 @@ def expand_packages(package, install_path, host, arches):
     return zip(expanded_packages, expanded_installs)
 
 
-def extract_zip(package_path, install_path):
+def extract_zip(package_path: str, install_path: str) -> None:
     """Extracts the contents of a zipfile to a directory.
 
     This behaves similar to the following shell commands (using tar instead of

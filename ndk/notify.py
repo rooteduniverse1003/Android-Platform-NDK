@@ -17,9 +17,10 @@
 from __future__ import absolute_import
 
 import subprocess
+from typing import Optional
 
 
-def toast(subject, body=None):
+def toast(subject: str, body: Optional[str] = None) -> None:
     """Presents a brief popup notification.
 
     Currently this is only implemented for systems with libnotify-bin installed

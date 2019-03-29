@@ -14,10 +14,12 @@
 # limitations under the License.
 #
 """Constants and helper functions for NDK ABIs."""
-from typing import NewType
+from typing import List, NewType
 
 
 Arch = NewType('Arch', str)
+Abi = NewType('Abi', str)
+Toolchain = NewType('Toolchain', str)
 
 
 LP32_ABIS = (
@@ -44,10 +46,10 @@ ALL_ARCHITECTURES = (
 
 
 ALL_TOOLCHAINS = (
-    'arm-linux-androideabi',
-    'aarch64-linux-android',
-    'x86',
-    'x86_64',
+    Toolchain('arm-linux-androideabi'),
+    Toolchain('aarch64-linux-android'),
+    Toolchain('x86'),
+    Toolchain('x86_64'),
 )
 
 
@@ -59,37 +61,42 @@ ALL_TRIPLES = (
 )
 
 
-def arch_to_toolchain(arch):
+def arch_to_toolchain(arch: Arch) -> Toolchain:
+    """Returns the NDK toolchain name for the given architecture."""
     return dict(zip(ALL_ARCHITECTURES, ALL_TOOLCHAINS))[arch]
 
 
-def arch_to_triple(arch):
+def arch_to_triple(arch: Arch) -> str:
+    """Returns the triple for the given architecture."""
     return dict(zip(ALL_ARCHITECTURES, ALL_TRIPLES))[arch]
 
 
-def toolchain_to_arch(toolchain):
+def toolchain_to_arch(toolchain: Toolchain) -> Arch:
+    """Returns the architecture for the given toolchain."""
     return dict(zip(ALL_TOOLCHAINS, ALL_ARCHITECTURES))[toolchain]
 
 
-def arch_to_abis(arch):
+def arch_to_abis(arch: Arch) -> List[Abi]:
+    """Returns the ABIs for the given architecture."""
     return {
-        'arm': ['armeabi-v7a'],
-        'arm64': ['arm64-v8a'],
-        'x86': ['x86'],
-        'x86_64': ['x86_64'],
+        Arch('arm'): [Abi('armeabi-v7a')],
+        Arch('arm64'): [Abi('arm64-v8a')],
+        Arch('x86'): [Abi('x86')],
+        Arch('x86_64'): [Abi('x86_64')],
     }[arch]
 
 
-def abi_to_arch(arch):
+def abi_to_arch(abi: Abi) -> Arch:
+    """Returns the architecture for the given ABI."""
     return {
-        'armeabi-v7a': 'arm',
-        'arm64-v8a': 'arm64',
-        'x86': 'x86',
-        'x86_64': 'x86_64',
-    }[arch]
+        Abi('armeabi-v7a'): Arch('arm'),
+        Abi('arm64-v8a'): Arch('arm64'),
+        Abi('x86'): Arch('x86'),
+        Abi('x86_64'): Arch('x86_64'),
+    }[abi]
 
 
-def min_api_for_abi(abi):
+def min_api_for_abi(abi: Abi) -> int:
     """Returns the minimum supported build API for the given ABI.
 
     >>> min_api_for_abi('arm64-v8a')

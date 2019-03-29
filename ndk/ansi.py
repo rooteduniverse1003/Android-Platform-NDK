@@ -21,6 +21,7 @@ import contextlib
 import os
 import subprocess
 import sys
+from typing import Any, Iterator, Optional, NamedTuple, TextIO
 
 try:
     import termios
@@ -29,29 +30,33 @@ except ImportError:
     HAVE_TERMIOS = False
 
 
-def cursor_up(lines):
+def cursor_up(num_lines: int) -> str:
+    """Returns the command to move the cursor up a given number of lines."""
     # \033[0A still goes up one line. Emit nothing.
-    if lines == 0:
+    if num_lines == 0:
         return ''
-    return '\033[{}A'.format(lines)
+    return f'\033[{num_lines}A'
 
 
-def cursor_down(lines):
+def cursor_down(num_lines: int) -> str:
+    """Returns the command to move the cursor down a given number of lines."""
     # \033[0B still goes down one line. Emit nothing.
-    if lines == 0:
+    if num_lines == 0:
         return ''
-    return '\033[{}B'.format(lines)
+    return f'\033[{num_lines}B'
 
 
-def goto_first_column():
+def goto_first_column() -> str:
+    """Returns the command to move the cursor to the first column."""
     return '\033[1G'
 
 
-def clear_line():
+def clear_line() -> str:
+    """Returns the command to clear the current line."""
     return '\033[K'
 
 
-def is_self_in_tty_foreground_group(fd):
+def is_self_in_tty_foreground_group(fd: TextIO) -> bool:
     """Is this process in the foreground process group of a tty identified
     by fd?"""
     return HAVE_TERMIOS and fd.isatty() and \
@@ -59,13 +64,16 @@ def is_self_in_tty_foreground_group(fd):
 
 
 @contextlib.contextmanager
-def disable_terminal_echo(fd):
+def disable_terminal_echo(fd: TextIO) -> Iterator[None]:
+    """Disables terminal echo on the given stream."""
     # If we call tcsetattr from a background process group, it will suspend
     # this process.
     if is_self_in_tty_foreground_group(fd):
         original = termios.tcgetattr(fd)
         termattr = termios.tcgetattr(fd)
-        termattr[3] &= ~termios.ECHO
+        # This is the example from the termios docs, but it doesn't pass type
+        # checking...
+        termattr[3] &= ~termios.ECHO  # type: ignore
         termios.tcsetattr(fd, termios.TCSANOW, termattr)
         try:
             yield
@@ -75,66 +83,94 @@ def disable_terminal_echo(fd):
         yield
 
 
-def get_console(stream=sys.stdout):
-    if stream.isatty() and os.name != 'nt':
-        return AnsiConsole(stream)
-    else:
-        return DumbConsole(stream)
+class ConsoleRect(NamedTuple):
+    """A pair of width and height for a console."""
+
+    #: Console width.
+    width: int
+
+    #: Console height.
+    height: int
 
 
-def get_console_size_linux():
-    return [int(s) for s in subprocess.check_output(['stty', 'size']).split()]
+def get_console_size_linux() -> ConsoleRect:
+    """Returns a pair of height, width for the TTY."""
+    height_str, width_str = subprocess.check_output(['stty', 'size']).split()
+    return ConsoleRect(width=int(width_str), height=int(height_str))
 
 
-def get_console_size_windows():
+def get_console_size_windows() -> ConsoleRect:
+    """Returns a pair of height, width for the TTY."""
     raise NotImplementedError
 
 
 class Console:
-    def __init__(self, stream):
-        self.stream = stream
+    """Manages the state of a console for a stream."""
 
-    def print(self, *args, **kwargs):
+    def __init__(self, stream: TextIO, smart_console: bool) -> None:
+        self.stream = stream
+        self.smart_console = smart_console
+
+    def print(self, *args: Any, **kwargs: Any) -> None:
+        """Prints the given message to the console.
+
+        Arguments are the same as for the builtin print() function, but file is
+        set by default.
+        """
         print(*args, file=self.stream, **kwargs)
         self.stream.flush()
 
     @contextlib.contextmanager
-    def cursor_hide_context(self):
+    def cursor_hide_context(self) -> Iterator[None]:
+        """A context manager for hiding the cursor on this console."""
         self.hide_cursor()
         try:
             yield
         finally:
             self.show_cursor()
 
-    def clear_lines(self, num_lines):
+    def clear_lines(self, num_lines: int) -> None:
+        """Clears num_lines lines and positions the cursor at the top left."""
         raise NotImplementedError
 
-    def hide_cursor(self):
+    def hide_cursor(self) -> None:
+        """Hides the cursor."""
         raise NotImplementedError
 
-    def show_cursor(self):
+    def show_cursor(self) -> None:
+        """Shows the cursor."""
         raise NotImplementedError
+
+
+def get_console(stream: TextIO = sys.stdout) -> Console:
+    """Returns a Console bound to the given stream."""
+    if stream.isatty() and os.name != 'nt':
+        return AnsiConsole(stream)
+    else:
+        return DumbConsole(stream)
 
 
 class AnsiConsole(Console):
+    """A console that supports ANSI control."""
+
     GOTO_HOME = '\r'
     CURSOR_UP = '\033[1A'
     CLEAR_LINE = '\033[K'
     HIDE_CURSOR = '\033[?25l'
     SHOW_CURSOR = '\033[?25h'
 
-    def __init__(self, stream):
-        super().__init__(stream)
-        self.smart_console = True
-        self._width = None
-        self._height = None
+    _size: Optional[ConsoleRect]
 
-    def _do(self, cmd):
+    def __init__(self, stream: TextIO) -> None:
+        super().__init__(stream, smart_console=True)
+        self._size = None
+
+    def _do(self, cmd: str) -> None:
+        """Performs the given command."""
         print(cmd, end='', file=self.stream)
         self.stream.flush()
 
-    def clear_lines(self, num_lines):
-        """Clears num_lines lines and positions the cursor at the top left."""
+    def clear_lines(self, num_lines: int) -> None:
         cmds = [self.GOTO_HOME]
         for idx in range(num_lines):
             # For the first line, we're already in place.
@@ -143,41 +179,47 @@ class AnsiConsole(Console):
             cmds.append(self.CLEAR_LINE)
         self._do(''.join(cmds))
 
-    def hide_cursor(self):
+    def hide_cursor(self) -> None:
         self._do(self.HIDE_CURSOR)
 
-    def show_cursor(self):
+    def show_cursor(self) -> None:
         self._do(self.SHOW_CURSOR)
 
-    def init_window_size(self):
+    def init_window_size(self) -> None:
+        """Initializes the console size."""
         if os.name == 'nt':
-            self._height, self._width = get_console_size_windows()
+            self._size = get_console_size_windows()
         else:
-            self._height, self._width = get_console_size_linux()
+            self._size = get_console_size_linux()
 
     @property
-    def height(self):
-        if self._height is None:
+    def height(self) -> int:
+        """The height of the console in characters."""
+        if self._size is None:
             self.init_window_size()
-        return self._height
+        assert self._size is not None
+        return self._size.height
 
     @property
-    def width(self):
-        if self._width is None:
+    def width(self) -> int:
+        """The width of the console in characters."""
+        if self._size is None:
             self.init_window_size()
-        return self._width
+        assert self._size is not None
+        return self._size.width
 
 
 class DumbConsole(Console):
-    def __init__(self, stream):
-        super().__init__(stream)
-        self.smart_console = False
+    """A console that does not support any ANSI features."""
 
-    def clear_lines(self, _num_lines):
+    def __init__(self, stream: TextIO) -> None:
+        super().__init__(stream, smart_console=False)
+
+    def clear_lines(self, _num_lines: int) -> None:
         pass
 
-    def hide_cursor(self):
+    def hide_cursor(self) -> None:
         pass
 
-    def show_cursor(self):
+    def show_cursor(self) -> None:
         pass

@@ -16,20 +16,29 @@
 """Defines WorkQueue for delegating asynchronous work to subprocesses."""
 from __future__ import absolute_import
 
+import ctypes  # pylint: disable=unused-import
 import collections
 import logging
 import multiprocessing
+import multiprocessing.managers
 import os
+from queue import Queue
 import signal
 import sys
 import traceback
+from types import FrameType
+from typing import Any, Callable, Deque, List, Mapping, Optional, Tuple, Union
 
 
-def logger():
+ProcessGroup = Optional['ctypes.wintypes.HANDLE']
+
+
+def logger() -> logging.Logger:
+    """Returns the module level logger."""
     return logging.getLogger(__name__)
 
 
-def worker_sigterm_handler(_signum, _frame):
+def worker_sigterm_handler(_signum: int, _frame: FrameType) -> None:
     """Raises SystemExit so atexit/finally handlers can be executed."""
     sys.exit()
 
@@ -46,7 +55,8 @@ class TaskError(Exception):
     """
 
 
-def create_windows_process_group():
+def create_windows_process_group() -> ProcessGroup:
+    """Creates a Windows process group for this process."""
     import ndk.win32
     job = ndk.win32.CreateJobObject()
 
@@ -57,16 +67,20 @@ def create_windows_process_group():
     ndk.win32.SetInformationJobObject(
         job, ndk.win32.JobObjectExtendedLimitInformation, limit_info)
     ndk.win32.AssignProcessToJobObject(job, ndk.win32.GetCurrentProcess())
+    return job
 
 
-def assign_self_to_new_process_group():
+def assign_self_to_new_process_group() -> ProcessGroup:
+    """Assigns this process to a new process group."""
     if sys.platform == 'win32':
         return create_windows_process_group()
     else:
-        return os.setpgrp()
+        os.setpgrp()
+        return None
 
 
-def kill_process_group(group):
+def kill_process_group(group: ProcessGroup) -> None:
+    """Kills the process group."""
     if sys.platform == 'win32':
         import ndk.win32
         ndk.win32.CloseHandle(group)
@@ -75,10 +89,13 @@ def kill_process_group(group):
 
 
 class Worker:
+    """A workqueue task executor."""
+
     IDLE_STATUS = 'IDLE'
     EXCEPTION_STATUS = 'EXCEPTION'
 
-    def __init__(self, data, task_queue, result_queue, manager):
+    def __init__(self, data: Any, task_queue: Queue, result_queue: Queue,
+                 manager: multiprocessing.managers.SyncManager) -> None:
         """Creates a Worker object.
 
         Args:
@@ -95,37 +112,54 @@ class Worker:
         self.process = multiprocessing.Process(target=self.main)
 
     @property
-    def status(self):
+    def status(self) -> str:
+        """The worker's current status."""
         with self._status_lock:
-            return self._status.value
+            # Typeshed has a seemingly incorrect definition of
+            # SyncManager.Value that just returns the wrapped type rather than
+            # the proxy type.
+            return self._status.value  # type: ignore
 
     @status.setter
-    def status(self, value):
+    def status(self, value: str) -> None:
+        """Sets the status for the worker."""
         with self._status_lock:
-            self._status.value = value
+            # Typeshed has a seemingly incorrect definition of
+            # SyncManager.Value that just returns the wrapped type rather than
+            # the proxy type.
+            self._status.value = value  # type: ignore
 
-    def put_result(self, result, status):
+    def put_result(self, result: Any, status: str) -> None:
+        """Puts a result onto the result queue."""
         with self._status_lock:
-            self._status.value = status
+            # Typeshed has a seemingly incorrect definition of
+            # SyncManager.Value that just returns the wrapped type rather than
+            # the proxy type.
+            self._status.value = status  # type: ignore
         self.result_queue.put(result)
 
     @property
-    def pid(self):
+    def pid(self) -> Optional[int]:
+        """The PID of the worker process."""
         return self.process.pid
 
-    def is_alive(self):
+    def is_alive(self) -> bool:
+        """True if the worker process is currently alive."""
         return self.process.is_alive()
 
-    def start(self):
+    def start(self) -> None:
+        """Starts the worker process."""
         self.process.start()
 
-    def terminate(self):
+    def terminate(self) -> None:
+        """Terminates the worker process."""
         self.process.terminate()
 
-    def join(self, timeout=None):
+    def join(self, timeout=None) -> None:
+        """Joins the worker process."""
         self.process.join(timeout)
 
-    def main(self):
+    def main(self) -> None:
         """Main loop for worker processes."""
         group = assign_self_to_new_process_group()
         signal.signal(signal.SIGTERM, worker_sigterm_handler)
@@ -154,7 +188,9 @@ class Worker:
 
 class Task:
     """A task to be executed by a worker process."""
-    def __init__(self, func, args, kwargs):
+
+    def __init__(self, func: Callable[..., Any], args: Tuple,
+                 kwargs: Mapping[Any, Any]) -> None:
         """Creates a task.
 
         Args:
@@ -166,7 +202,7 @@ class Task:
         self.args = args
         self.kwargs = kwargs
 
-    def run(self, worker_data):
+    def run(self, worker_data: Any) -> Any:
         """Invokes the task."""
         return self.func(worker_data, *self.args, **self.kwargs)
 
@@ -176,8 +212,11 @@ class ProcessPoolWorkQueue:
 
     join_timeout = 8  # Timeout for join before trying SIGKILL.
 
-    def __init__(self, num_workers=multiprocessing.cpu_count(),
-                 task_queue=None, result_queue=None, worker_data=None):
+    def __init__(self,
+                 num_workers: int = multiprocessing.cpu_count(),
+                 task_queue: Optional[Queue] = None,
+                 result_queue: Optional[Queue] = None,
+                 worker_data: Optional[Any] = None) -> None:
         """Creates a WorkQueue.
 
         Worker threads are spawned immediately and remain live until both
@@ -196,27 +235,30 @@ class ProcessPoolWorkQueue:
         """
         self.manager = multiprocessing.Manager()
 
-        self.task_queue = task_queue
-        self.owns_task_queue = False
         if task_queue is None:
             self.task_queue = self.manager.Queue()
             self.owns_task_queue = True
+        else:
+            self.task_queue = task_queue
+            self.owns_task_queue = False
 
-        self.result_queue = result_queue
-        self.owns_result_queue = False
         if result_queue is None:
             self.result_queue = self.manager.Queue()
             self.owns_result_queue = True
+        else:
+            self.result_queue = result_queue
+            self.owns_result_queue = False
 
         self.worker_data = worker_data
 
-        self.workers = []
+        self.workers: List[Worker] = []
         # multiprocessing.JoinableQueue's join isn't able to implement
         # finished() because it doesn't come in a non-blocking flavor.
         self.num_tasks = 0
         self._spawn_workers(num_workers)
 
-    def add_task(self, func, *args, **kwargs):
+    def add_task(self, func: Callable[..., Any], *args: Any,
+                 **kwargs: Any) -> None:
         """Queues up a new task for execution.
 
         Tasks are executed in order of insertion as worker processes become
@@ -230,7 +272,7 @@ class ProcessPoolWorkQueue:
         self.task_queue.put(Task(func, args, kwargs))
         self.num_tasks += 1
 
-    def get_result(self):
+    def get_result(self) -> Any:
         """Gets a result from the queue, blocking until one is available."""
         result = self.result_queue.get()
         if isinstance(result, TaskError):
@@ -238,13 +280,13 @@ class ProcessPoolWorkQueue:
         self.num_tasks -= 1
         return result
 
-    def terminate(self):
+    def terminate(self) -> None:
         """Terminates all worker processes."""
         for worker in self.workers:
             logger().debug('terminating %d', worker.pid)
             worker.terminate()
 
-    def join(self):
+    def join(self) -> None:
         """Waits for all worker processes to exit."""
         for worker in self.workers:
             logger().debug('joining %d', worker.pid)
@@ -252,15 +294,16 @@ class ProcessPoolWorkQueue:
             if worker.is_alive():
                 logger().error(
                     'worker %d will not die; sending SIGKILL', worker.pid)
-                os.killpg(worker.pid, signal.SIGKILL)
+                if worker.pid is not None:
+                    os.killpg(worker.pid, signal.SIGKILL)
                 worker.join()
         self.workers = []
 
-    def finished(self):
+    def finished(self) -> bool:
         """Returns True if all tasks have completed execution."""
         return self.num_tasks == 0
 
-    def _spawn_workers(self, num_workers):
+    def _spawn_workers(self, num_workers) -> None:
         """Spawns the worker processes.
 
         Args:
@@ -275,7 +318,8 @@ class ProcessPoolWorkQueue:
 
 
 class DummyWorker:
-    def __init__(self, data):
+    """A worker for a dummy workqueue."""
+    def __init__(self, data: Any) -> None:
         self.data = data
 
 
@@ -286,14 +330,18 @@ class DummyWorkQueue:
     by multiprocess specific behavior.
     """
     # pylint: disable=unused-argument
-    def __init__(self, num_workers=None, task_queue=None, result_queue=None,
-                 worker_data=None):
+    def __init__(self,
+                 num_workers: int = None,
+                 task_queue: Optional[Queue] = None,
+                 result_queue: Optional[Queue] = None,
+                 worker_data: Optional[Any] = None) -> None:
         """Creates a SerialWorkQueue."""
-        self.task_queue = collections.deque()
+        self.task_queue: Deque = collections.deque()
         self.worker_data = worker_data
     # pylint: enable=unused-argument
 
-    def add_task(self, func, *args, **kwargs):
+    def add_task(self, func: Callable[..., Any], *args: Any,
+                 **kwargs: Any) -> None:
         """Queues up a new task for execution.
 
         Tasks are executed when get_result is called.
@@ -305,7 +353,7 @@ class DummyWorkQueue:
         """
         self.task_queue.append(Task(func, args, kwargs))
 
-    def get_result(self):
+    def get_result(self) -> Any:
         """Executes a task and returns the result."""
         task = self.task_queue.popleft()
         try:
@@ -314,23 +362,26 @@ class DummyWorkQueue:
             trace = ''.join(traceback.format_exception(*sys.exc_info()))
             raise TaskError(trace)
 
-    def terminate(self):
+    def terminate(self) -> None:
         """Does nothing."""
 
-    def join(self):
+    def join(self) -> None:
         """Does nothing."""
 
     @property
-    def num_tasks(self):
+    def num_tasks(self) -> int:
+        """Number of tasks that have not yet been claimed."""
         return len(self.task_queue)
 
     @property
-    def workers(self):
+    def workers(self) -> List[Worker]:
+        """List of workers."""
         return []
 
-    def finished(self):
+    def finished(self) -> bool:
         """Returns True if all tasks have completed execution."""
         return self.num_tasks == 0
 
 
 WorkQueue = ProcessPoolWorkQueue
+AnyWorkQueue = Union[DummyWorkQueue, ProcessPoolWorkQueue]

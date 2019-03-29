@@ -22,31 +22,45 @@ import math
 import os
 import sys
 import time
+from typing import Iterable, List, Optional, Tuple, cast
 
 import ndk.ansi
+from ndk.workqueue import AnyWorkQueue
 
 
 class UiRenderer:
-    def __init__(self, console):
+    """Renders a UI to a console."""
+
+    def __init__(self, console: ndk.ansi.Console) -> None:
         self.console = console
 
-    def clear_last_render(self):
+    def clear_last_render(self) -> None:
+        """Clears the screen of the previous render."""
         raise NotImplementedError
 
-    def render(self, lines):
+    def render(self, lines: List[str]) -> None:
+        """Renders the given UI, described as a list of console lines."""
         raise NotImplementedError
 
 
 class AnsiUiRenderer(UiRenderer):
+    """Renders a UI to an ANSI console."""
+
     # Number of seconds to delay between each draw command when debugging.
     debug_draw_delay = 0.1
 
-    def __init__(self, console, debug_draw=False):
+    def __init__(self, console: ndk.ansi.Console,
+                 debug_draw: bool = False) -> None:
         super().__init__(console)
-        self.last_rendered_lines = []
+        self.last_rendered_lines: List[str] = []
         self.debug_draw = debug_draw
 
-    def changed_lines(self, new_lines):
+    def changed_lines(self, new_lines: List[str]) -> Iterable[Tuple[int, str]]:
+        """Returns a list of changed lines.
+
+        Returns: A list of tuples describing the changed lines in the format
+            (index, contents of new line).
+        """
         assert len(new_lines) == len(self.last_rendered_lines)
         old_lines = self.last_rendered_lines
         for idx, (old_line, new_line) in enumerate(zip(old_lines, new_lines)):
@@ -57,7 +71,12 @@ class AnsiUiRenderer(UiRenderer):
         self.console.clear_lines(len(self.last_rendered_lines))
         self.last_rendered_lines = []
 
-    def draw(self, commands):
+    def draw(self, commands: List[str]) -> None:
+        """Sends the given UI commands to the console.
+
+        If debug_draw is set, each command will be sent with a delay to make
+        the changes slowly enough to be visibly debugged.
+        """
         if self.debug_draw:
             for cmd in commands:
                 self.console.print(cmd, end='')
@@ -65,7 +84,7 @@ class AnsiUiRenderer(UiRenderer):
         else:
             self.console.print(''.join(commands), end='')
 
-    def render(self, lines):
+    def render(self, lines: List[str]) -> None:
         if not self.last_rendered_lines:
             self.console.print(os.linesep.join(lines), end='')
         elif len(lines) != len(self.last_rendered_lines):
@@ -91,15 +110,19 @@ class AnsiUiRenderer(UiRenderer):
 
 
 class DumbUiRenderer(UiRenderer):
-    def __init__(self, console, redraw_rate=30):
+    """Renders a UI to a dumb console."""
+
+    def __init__(self, console: ndk.ansi.Console,
+                 redraw_rate: int = 30) -> None:
         super().__init__(console)
         self.redraw_rate = redraw_rate
-        self.last_draw = None
+        self.last_draw: Optional[float] = None
 
-    def clear_last_render(self):
+    def clear_last_render(self) -> None:
         pass
 
-    def ready_for_draw(self):
+    def ready_for_draw(self) -> bool:
+        """Returns True if the redraw delay has elapsed."""
         if self.last_draw is None:
             return True
 
@@ -109,7 +132,7 @@ class DumbUiRenderer(UiRenderer):
 
         return False
 
-    def render(self, lines):
+    def render(self, lines: List[str]) -> None:
         if not self.ready_for_draw():
             return
 
@@ -119,33 +142,33 @@ class DumbUiRenderer(UiRenderer):
 
 
 class Ui:
-    def __init__(self, ui_renderer):
+    """Console UI base class."""
+
+    def __init__(self, ui_renderer: UiRenderer) -> None:
         self.ui_renderer = ui_renderer
 
-    def get_ui_lines(self):
+    def get_ui_lines(self) -> List[str]:
+        """Returns a list of lines describing the current UI state."""
         raise NotImplementedError
 
-    def clear(self):
+    def clear(self) -> None:
+        """Clears the UI."""
         self.ui_renderer.clear_last_render()
 
-    def draw(self):
+    def draw(self) -> None:
+        """Draws the UI."""
         self.ui_renderer.render(self.get_ui_lines())
 
 
-def get_build_progress_ui(console, workqueue):
-    if console.smart_console:
-        ui_renderer = AnsiUiRenderer(console)
-        return BuildProgressUi(ui_renderer, workqueue)
-    else:
-        return DumbBuildProgressUi()
-
-
 class BuildProgressUi(Ui):
-    def __init__(self, ui_renderer, workqueue):
+    """A UI for displaying build status."""
+
+    def __init__(self, ui_renderer: UiRenderer,
+                 workqueue: AnyWorkQueue) -> None:
         super().__init__(ui_renderer)
         self.workqueue = workqueue
 
-    def get_ui_lines(self):
+    def get_ui_lines(self) -> List[str]:
         lines = []
         for worker in self.workqueue.workers:
             status = worker.status
@@ -154,29 +177,48 @@ class BuildProgressUi(Ui):
         return lines
 
 
-class DumbBuildProgressUi:
-    def clear(self):
+def get_build_progress_ui(console: ndk.ansi.Console,
+                          workqueue: AnyWorkQueue) -> Ui:
+    """Returns the appropriate build console UI for the given console."""
+    if console.smart_console:
+        ui_renderer = AnsiUiRenderer(console)
+        return BuildProgressUi(ui_renderer, workqueue)
+    else:
+        ui_renderer = DumbUiRenderer(console)
+        return DumbBuildProgressUi(ui_renderer)
+
+
+class DumbBuildProgressUi(Ui):
+    """A UI for displaying build status to dumb consoles."""
+
+    def get_ui_lines(self) -> List[str]:
+        return []
+
+    def clear(self) -> None:
         pass
 
-    def draw(self):
+    def draw(self) -> None:
         # Don't flood the terminal with repeated status of what is still
-        # building. it will be printing the same three modules for most of the
+        # building. It will be printing the same three modules for most of the
         # build.
         pass
 
 
-def get_work_queue_ui(console, workqueue):
+def get_work_queue_ui(console: ndk.ansi.Console,
+                      workqueue: AnyWorkQueue) -> Ui:
+    """Returns the appropriate work queue console UI for the given console."""
+    ui_renderer: UiRenderer
     if console.smart_console:
-        ui_renderer = ndk.ui.AnsiUiRenderer(console)
+        ui_renderer = AnsiUiRenderer(console)
         show_worker_status = True
     else:
-        ui_renderer = ndk.ui.DumbUiRenderer(console)
+        ui_renderer = DumbUiRenderer(console)
         show_worker_status = False
-    return WorkQueueUi(
-        ui_renderer, show_worker_status, workqueue)
+    return WorkQueueUi(ui_renderer, show_worker_status, workqueue)
 
 
-def columnate(lines, max_width, max_height):
+def columnate(lines: List[str], max_width: int, max_height: int) -> List[str]:
+    """Distributes lines of text into height limited columns."""
     if os.name == 'nt':
         # Not yet implemented.
         return lines
@@ -194,14 +236,17 @@ def columnate(lines, max_width, max_height):
 
 
 class WorkQueueUi(Ui):
+    """A UI for showing the status of WorkQueue workers."""
+
     NUM_TESTS_DIGITS = 6
 
-    def __init__(self, ui_renderer, show_worker_status, workqueue):
+    def __init__(self, ui_renderer: UiRenderer, show_worker_status: bool,
+                 workqueue: AnyWorkQueue) -> None:
         super().__init__(ui_renderer)
         self.show_worker_status = show_worker_status
         self.workqueue = workqueue
 
-    def get_ui_lines(self):
+    def get_ui_lines(self) -> List[str]:
         lines = []
 
         if self.show_worker_status:
@@ -210,10 +255,10 @@ class WorkQueueUi(Ui):
 
         if self.ui_renderer.console.smart_console:
             # Keep some space at the top of the UI so we can see messages.
-            ui_height = self.ui_renderer.console.height - 10
+            ansi_console = cast(ndk.ansi.AnsiConsole, self.ui_renderer.console)
+            ui_height = ansi_console.height - 10
             if ui_height > 0:
-                lines = columnate(lines, self.ui_renderer.console.width,
-                                  ui_height)
+                lines = columnate(lines, ansi_console.width, ui_height)
 
         lines.append('{: >{width}} jobs remaining'.format(
             self.workqueue.num_tasks, width=self.NUM_TESTS_DIGITS))

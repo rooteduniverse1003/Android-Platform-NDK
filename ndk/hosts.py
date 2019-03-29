@@ -39,7 +39,12 @@ class Host(enum.Enum):
 ALL_HOSTS = list(Host)
 
 
-def get_host_tag(ndk_path):
+def get_host_tag(ndk_path: str) -> str:
+    """Returns the host tag used for testing on the current host.
+
+    For Windows, the result depends on the NDK in question since a 64-bit host
+    may be used to test the 32-bit NDK.
+    """
     if sys.platform.startswith('linux'):
         return 'linux-x86_64'
     elif sys.platform == 'darwin':

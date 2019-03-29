@@ -13,9 +13,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+"""APIs for string coloring on ANSI terminals."""
+
+# TODO: Move to ansi.py.
 
 
-def color_string(string, color):
+def color_string(string: str, color: str) -> str:
+    """Returns a string that will be colored when printed to a terminal."""
     colors = {
         'green': '\033[92m',
         'red': '\033[91m',
@@ -25,5 +29,6 @@ def color_string(string, color):
     return colors[color] + string + end_color
 
 
-def maybe_color(text, color, do_color):
+def maybe_color(text: str, color: str, do_color: bool) -> str:
+    """Returns an (optionally) colored string."""
     return color_string(text, color) if do_color else text

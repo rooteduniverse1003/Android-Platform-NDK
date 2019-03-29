@@ -13,8 +13,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+"""Timer APIs."""
 import datetime
 import timeit
+from typing import Optional
 
 
 class Timer:
@@ -29,17 +31,18 @@ class Timer:
     ...         do_something()
     ...     print(f'do_something() took {timer.duration}.')
     """
-    def __init__(self):
-        self.start_time = None
-        self.end_time = None
-        self.duration = None
+    def __init__(self) -> None:
+        self.start_time: Optional[float] = None
+        self.end_time: Optional[float] = None
+        self.duration: Optional[datetime.timedelta] = None
 
-    def start(self):
+    def start(self) -> None:
         """Start the timer."""
         self.start_time = timeit.default_timer()
 
-    def finish(self):
+    def finish(self) -> None:
         """Stop the timer."""
+        assert self.start_time is not None
         self.end_time = timeit.default_timer()
 
         # Not interested in partial seconds at this scale.
