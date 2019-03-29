@@ -25,6 +25,9 @@ For Android Studio issues, follow the docs on the [Android Studio site].
      * MIDI (`<amidi/AMidi.h>`).
      * Binder.
      * Extensions to several APIs from previous releases.
+ * [Issue 908]: `LOCAL_LDFLAGS` now take precedence over `APP_LDFLAGS`.
+
+[Issue 908]: https://github.com/android-ndk/ndk/issues/908
 
 ## Known Issues
 
