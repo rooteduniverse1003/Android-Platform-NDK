@@ -528,7 +528,7 @@ CLEAN_OBJS_DIRS     += $(LOCAL_OBJS_DIR)
 # Handle the static and shared libraries this module depends on
 #
 
-my_ldflags := $(TARGET_LDFLAGS) $(LOCAL_LDFLAGS) $(NDK_APP_LDFLAGS)
+my_ldflags := $(TARGET_LDFLAGS) $(NDK_APP_LDFLAGS) $(LOCAL_LDFLAGS)
 ifneq ($(filter armeabi%,$(TARGET_ARCH_ABI)),)
     my_ldflags += $(TARGET_$(my_link_arm_mode)_LDFLAGS)
 endif
