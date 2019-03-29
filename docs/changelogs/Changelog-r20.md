@@ -22,6 +22,9 @@ For Android Studio issues, follow the docs on the [Android Studio site].
 
  * Updated Clang to r346389c.
  * Updated libc++ to r350972.
+ * [Issue 908]: `LOCAL_LDFLAGS` now take precedence over `APP_LDFLAGS`.
+
+[Issue 908]: https://github.com/android-ndk/ndk/issues/908
 
 ## Known Issues
 
