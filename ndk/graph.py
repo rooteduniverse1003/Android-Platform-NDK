@@ -15,12 +15,14 @@
 #
 """Graph classes and functions."""
 import functools
+from typing import Iterable, List, Optional, Set
 
 
 @functools.total_ordering
 class Node:
     """A node in a directed graph."""
-    def __init__(self, name, outs):
+
+    def __init__(self, name: str, outs: Iterable['Node']) -> None:
         """Initializes a Node.
 
         Args:
@@ -30,22 +32,23 @@ class Node:
         self.name = name
         self.outs = sorted(list(outs))
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return self.name
 
-    def __eq__(self, other):
+    def __eq__(self, other) -> bool:
         return self.name == other.name
 
-    def __le__(self, other):
+    def __le__(self, other) -> bool:
         return self.name < other.name
 
-    def __hash__(self):
+    def __hash__(self) -> int:
         return hash(str(self))
 
 
 class Graph:
     """A directed graph."""
-    def __init__(self, nodes):
+
+    def __init__(self, nodes: Iterable[Node]) -> None:
         """Initializes a Graph.
 
         Args:
@@ -53,21 +56,25 @@ class Graph:
         """
         self.nodes = sorted(list(nodes))
 
-    def find_cycle(self):
+    def find_cycle(self) -> Optional[List[Node]]:
         """Finds a cycle in the graph if there is one.
 
         Returns:
             A list of nodes that make up a cycle or None if no cycle exists.
             The list will begin and end with the same node, i.e. [A, B, A].
         """
-        visited = set()
+        visited: Set[Node] = set()
         for node in self.nodes:
             cycle = self.find_cycle_from_node(node, visited)
             if cycle is not None:
                 return cycle
         return None
 
-    def find_cycle_from_node(self, node, visited, path=None):
+    def find_cycle_from_node(
+            self,
+            node: Node,
+            visited: Set[Node],
+            path: Optional[List[Node]] = None) -> Optional[List[Node]]:
         """Finds a cycle from a given node if there is one.
 
         Performs a recursive depth-first search to see if there are any cycles

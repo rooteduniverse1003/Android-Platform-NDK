@@ -42,7 +42,8 @@ def ndk_path(*args: str) -> str:
     return android_path('ndk', *args)
 
 
-def sysroot_path(toolchain: str) -> str:
+def sysroot_path(toolchain: ndk.abis.Toolchain) -> str:
+    """Returns the path to the prebuilt sysroot for the given toolchain."""
     arch = ndk.abis.toolchain_to_arch(toolchain)
     # Only ARM has more than one ABI, and they both have the same minimum
     # platform level.
@@ -55,6 +56,7 @@ def sysroot_path(toolchain: str) -> str:
 
 
 def toolchain_path(*args: str) -> str:
+    """Returns a path within the toolchain subdirectory."""
     return android_path('toolchain', *args)
 
 
@@ -165,6 +167,7 @@ def temp_dir_in_out(dirname: str, out_dir: Optional[str] = None) -> Generator:
 
 
 def to_posix_path(path: str) -> str:
+    """Replaces backslashes with forward slashes on Windows."""
     if sys.platform == 'win32':
         return path.replace('\\', '/')
     else:

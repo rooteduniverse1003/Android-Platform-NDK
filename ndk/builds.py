@@ -96,8 +96,8 @@ class Module:
     split_build_by_arch = False
     build_arch = None
 
-    def __init__(self):
-        self.context = None
+    def __init__(self) -> None:
+        self.context: Optional[BuildContext] = None
         if self.notice is None:
             self.notice = self.default_notice_path()
         self.validate()
@@ -167,6 +167,7 @@ class Module:
         """
         if name not in self.deps:
             raise KeyError
+        assert self.context is not None
         return self.context.modules[name]
 
     def get_build_host_install(self,
@@ -188,21 +189,25 @@ class Module:
     @property
     def out_dir(self) -> str:
         """Base out directory for the current build."""
+        assert self.context is not None
         return self.context.out_dir
 
     @property
     def dist_dir(self) -> str:
         """Base dist directory for the current build."""
+        assert self.context is not None
         return self.context.dist_dir
 
     @property
     def host(self) -> ndk.hosts.Host:
         """Host for the current build."""
+        assert self.context is not None
         return self.context.host
 
     @property
     def arches(self) -> List[ndk.abis.Arch]:
         """Architectures targeted by the current build."""
+        assert self.context is not None
         return self.context.arches
 
     def build(self) -> None:
@@ -228,6 +233,7 @@ class Module:
 
         install_base = ndk.paths.get_install_path(self.out_dir, self.host)
         for package_name, package_install in package_installs:
+            assert self.context is not None
             install_path = os.path.join(install_base, package_install)
             package = os.path.join(self.context.dist_dir, package_name)
             if os.path.exists(install_path):
@@ -292,17 +298,17 @@ class Module:
 
         return install_subdirs[0]
 
-    def __str__(self):
+    def __str__(self) -> str:
         if self.split_build_by_arch and self.build_arch is not None:
             return f'{self.name} [{self.build_arch}]'
         return self.name
 
-    def __hash__(self):
+    def __hash__(self) -> int:
         # The string representation of each module must be unique. This is true
         # both pre- and post-arch split.
         return hash(str(self))
 
-    def __eq__(self, other):
+    def __eq__(self, other) -> bool:
         # As with hash(), the str must be unique across all modules.
         return str(self) == str(other)
 

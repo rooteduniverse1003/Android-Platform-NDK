@@ -14,18 +14,21 @@
 # limitations under the License.
 #
 """Performs dependency tracking for ndk.builds modules."""
+from typing import Dict, Iterable, List, Set
+
+from ndk.builds import Module
 import ndk.graph
 
 
 class CyclicDependencyError(RuntimeError):
     """An error indicating a cyclic dependency in the module graph."""
-    def __init__(self, modules):
+    def __init__(self, modules: Iterable[ndk.graph.Node]) -> None:
         """Initializes a CyclicDependencyError."""
         super().__init__('Detected cyclic dependency: {}'.format(' -> '.join(
             [m.name for m in modules])))
 
 
-def prove_acyclic(modules):
+def prove_acyclic(modules: Iterable[Module]) -> None:
     """Proves that the graph is acyclic or raises an error.
 
     Args:
@@ -38,7 +41,6 @@ def prove_acyclic(modules):
     for module in modules:
         for dep in module.deps:
             nodes[module.name].outs.append(nodes[dep])
-            # nodes[dep].outs.append(nodes[module.name])
     graph = ndk.graph.Graph(nodes.values())
     cycle = graph.find_cycle()
     if cycle is not None:
@@ -54,7 +56,7 @@ class DependencyManager:
     the DependencyManager is informated of a module build being completed via
     DependencyManager.complete().
     """
-    def __init__(self, all_modules):
+    def __init__(self, all_modules: Iterable[Module]) -> None:
         """Initializes a DependencyManager."""
         if not all_modules:
             raise ValueError
@@ -69,12 +71,15 @@ class DependencyManager:
 
         # Reverse map from a module to all of its dependents used to speed up
         # lookups.
-        self.deps_to_modules = {m.name: [] for m in all_modules}
+        self.deps_to_modules: Dict[str, List[Module]] = {
+            m.name: []
+            for m in all_modules
+        }
         for module in all_modules:
             for dep in module.deps:
                 self.deps_to_modules[dep].append(module)
 
-    def get_buildable(self):
+    def get_buildable(self) -> Set[Module]:
         """Returns a set of modules that are ready to be built.
 
         Retrieving the list of buildable modules removes them from the
@@ -86,7 +91,7 @@ class DependencyManager:
         self.buildable_modules = set()
         return buildable
 
-    def complete(self, module):
+    def complete(self, module: Module) -> None:
         """Signals that the given module has complete building.
 
         Removes the module from the list of buildable modules and updates the
