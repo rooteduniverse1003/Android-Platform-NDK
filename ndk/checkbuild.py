@@ -1491,9 +1491,11 @@ class Vulkan(ndk.builds.Module):
         base = ndk.paths.android_path('external')
         headers_dir = os.path.join(base, 'vulkan-headers')
         layers_dir = os.path.join(base, 'vulkan-validation-layers')
+        tools_dir = os.path.join(base, 'vulkan-tools')
         return [
             os.path.join(headers_dir, 'NOTICE'),
             os.path.join(layers_dir, 'NOTICE'),
+            os.path.join(tools_dir, 'NOTICE')
         ]
 
 
@@ -1503,6 +1505,8 @@ class Vulkan(ndk.builds.Module):
             'external/vulkan-validation-layers')
         vulkan_headers_root_dir = ndk.paths.android_path(
             'external/vulkan-headers')
+        vulkan_tools_root_dir = ndk.paths.android_path(
+            'external/vulkan-tools')
 
         copies = [
             {
@@ -1521,6 +1525,15 @@ class Vulkan(ndk.builds.Module):
                 ],
                 'dirs': [
                     'include', 'registry'
+                ],
+            },
+            {
+                'source_dir': vulkan_tools_root_dir,
+                'dest_dir': 'vulkan/src',
+                'files': [
+                ],
+                'dirs': [
+                    'common'
                 ],
             }
         ]
