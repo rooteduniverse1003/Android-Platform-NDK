@@ -1477,8 +1477,18 @@ class BaseToolchain(ndk.builds.Module):
 class Vulkan(ndk.builds.Module):
     name = 'vulkan'
     path = 'sources/third_party/vulkan'
-    notice = ndk.paths.android_path(
-        'external/vulkan-validation-layers/LICENSE.txt')
+    notice_group = ndk.builds.NoticeGroup.TOOLCHAIN
+
+    @property
+    def notices(self):
+        base = ndk.paths.android_path('external')
+        headers_dir = os.path.join(base, 'vulkan-headers')
+        layers_dir = os.path.join(base, 'vulkan-validation-layers')
+        return [
+            os.path.join(headers_dir, 'NOTICE'),
+            os.path.join(layers_dir, 'NOTICE'),
+        ]
+
 
     def build(self):
         print('Constructing Vulkan validation layer source...')
