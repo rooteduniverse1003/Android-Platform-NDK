@@ -180,6 +180,7 @@ class BuildProgressUi(Ui):
 def get_build_progress_ui(console: ndk.ansi.Console,
                           workqueue: AnyWorkQueue) -> Ui:
     """Returns the appropriate build console UI for the given console."""
+    ui_renderer: UiRenderer
     if console.smart_console:
         ui_renderer = AnsiUiRenderer(console)
         return BuildProgressUi(ui_renderer, workqueue)
