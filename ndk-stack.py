@@ -42,7 +42,14 @@ def find_llvm_symbolizer():
     # And from there construct the llvm-symbolizer path.
     llvm_bin = os.path.join(ndk_root, 'toolchains', 'llvm', 'prebuilt', arch,
                             'bin')
-    return os.path.join(llvm_bin, 'llvm-symbolizer')
+    path = os.path.join(llvm_bin, 'llvm-symbolizer')
+    if os.path.exists(path):
+        return path
+
+    # Okay, maybe we're a standalone toolchain? (https://github.com/android-ndk/ndk/issues/931)
+    # In that case, llvm-symbolizer and ndk-stack are conveniently in
+    # the same directory...
+    return os.path.abspath(os.path.join(ndk_bin, 'llvm-symbolizer'))
 
 
 def main():
