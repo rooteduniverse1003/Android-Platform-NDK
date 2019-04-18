@@ -250,12 +250,11 @@ file extension and must be included in the app's APK if used. System stub
 libraries are a special type of shared library that should not be included in
 the APK. The system stub libraries define the interface of a library that is
 provided by the Android OS but contain no implementation. They can be identified
-by their .so file extension and their presence in the [system_libs list] in
-ndk-build. The entries in this file are a key/value pair that maps library names
-to the first API level the library is introduced.
+by their .so file extension and their presence in `<NDK>/meta/system_libs.json`.
+The entries in this file are a key/value pair that maps library names to the
+first API level the library is introduced.
 
 [Issue 801]: https://github.com/android-ndk/ndk/issues/801
-[system_libs list]: https://android.googlesource.com/platform/ndk/+/master/meta/system_libs.json
 
 ## STL
 
