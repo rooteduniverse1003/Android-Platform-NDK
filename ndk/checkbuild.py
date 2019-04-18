@@ -2071,10 +2071,10 @@ def create_notice_file(path, for_group):
 
     licenses = set()
     for notice_path in notice_files:
-        with open(notice_path) as notice_file:
+        with open(notice_path, encoding='utf-8') as notice_file:
             licenses.add(notice_file.read())
 
-    with open(path, 'w') as output_file:
+    with open(path, 'w', encoding='utf-8') as output_file:
         # Sorting the contents here to try to make things deterministic.
         output_file.write(os.linesep.join(sorted(list(licenses))))
 
