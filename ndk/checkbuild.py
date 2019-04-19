@@ -38,7 +38,6 @@ import json
 import logging
 import multiprocessing
 import os
-from pathlib import Path
 import pipes
 import re
 import shutil
@@ -49,7 +48,17 @@ import sys
 import tempfile
 import textwrap
 import traceback
-from typing import Dict
+from typing import (
+    Any,
+    Callable,
+    Dict,
+    Iterable,
+    Iterator,
+    List,
+    Set,
+    Tuple,
+    Union,
+)
 
 from build.lib import build_support
 import ndk.abis
@@ -71,7 +80,7 @@ import ndk.ui
 import ndk.workqueue
 
 
-def _make_tar_package(package_path, base_dir, path):
+def _make_tar_package(package_path: str, base_dir: str, path: str) -> str:
     """Creates a tarball package for distribution.
 
     Args:
@@ -92,7 +101,7 @@ def _make_tar_package(package_path, base_dir, path):
     return package_path
 
 
-def _make_zip_package(package_path, base_dir, path):
+def _make_zip_package(package_path: str, base_dir: str, path: str) -> str:
     """Creates a zip package for distribution.
 
     Args:
@@ -111,7 +120,8 @@ def _make_zip_package(package_path, base_dir, path):
         os.chdir(cwd)
 
 
-def package_ndk(ndk_dir, dist_dir, host_tag, build_number):
+def package_ndk(ndk_dir: str, dist_dir: str, host_tag: str,
+                build_number: str) -> str:
     """Packages the built NDK for distribution.
 
     Args:
@@ -130,14 +140,15 @@ def package_ndk(ndk_dir, dist_dir, host_tag, build_number):
                 os.remove(os.path.join(path, file_name))
 
     base_dir = os.path.dirname(ndk_dir)
-    files = os.path.basename(ndk_dir)
+    package_files = os.path.basename(ndk_dir)
     if host_tag.startswith('windows'):
-        return _make_zip_package(package_path, base_dir, files)
+        return _make_zip_package(package_path, base_dir, package_files)
     else:
-        return _make_tar_package(package_path, base_dir, files)
+        return _make_tar_package(package_path, base_dir, package_files)
 
 
-def build_ndk_tests(out_dir, dist_dir, args):
+def build_ndk_tests(out_dir: str, dist_dir: str,
+                    args: argparse.Namespace) -> bool:
     """Builds the NDK tests.
 
     Args:
@@ -189,7 +200,7 @@ def build_ndk_tests(out_dir, dist_dir, args):
     return report.successful
 
 
-def install_file(file_name, src_dir, dst_dir):
+def install_file(file_name: str, src_dir: str, dst_dir: str) -> None:
     src_file = os.path.join(src_dir, file_name)
     dst_file = os.path.join(dst_dir, file_name)
 
@@ -202,14 +213,14 @@ def install_file(file_name, src_dir, dst_dir):
         _install_file(src_file, dst_file)
 
 
-def _install_dir(src_dir, dst_dir):
+def _install_dir(src_dir: str, dst_dir: str) -> None:
     parent_dir = os.path.normpath(os.path.join(dst_dir, '..'))
     if not os.path.exists(parent_dir):
         os.makedirs(parent_dir)
     shutil.copytree(src_dir, dst_dir, symlinks=True)
 
 
-def _install_symlink(src_file, dst_file):
+def _install_symlink(src_file: str, dst_file: str) -> None:
     dirname = os.path.dirname(dst_file)
     if not os.path.exists(dirname):
         os.makedirs(dirname)
@@ -217,7 +228,7 @@ def _install_symlink(src_file, dst_file):
     os.symlink(link_target, dst_file)
 
 
-def _install_file(src_file, dst_file):
+def _install_file(src_file: str, dst_file: str) -> None:
     dirname = os.path.dirname(dst_file)
     if not os.path.exists(dirname):
         os.makedirs(dirname)
@@ -231,14 +242,14 @@ class Clang(ndk.builds.Module):
     notice_group = ndk.builds.NoticeGroup.TOOLCHAIN
 
     @property
-    def notices(self):
+    def notices(self) -> List[str]:
         # TODO: Why every host?
         return [
             str(ndk.toolchains.ClangToolchain.path_for_host(h) / 'NOTICE')
             for h in ndk.hosts.Host
         ]
 
-    def build(self):
+    def build(self) -> None:
         pass
 
     def install(self) -> None:
@@ -383,7 +394,9 @@ def versioned_so(host: ndk.hosts.Host, lib: str, version: str) -> str:
     raise ValueError(f'Unsupported host: {host}')
 
 
-def install_gcc_lib(install_path, host, arch, subarch, lib_subdir, libname):
+def install_gcc_lib(install_path: str, host: ndk.hosts.Host,
+                    arch: ndk.abis.Arch, subarch: str, lib_subdir: str,
+                    libname: str) -> None:
     gcc_prebuilt = get_gcc_prebuilt_path(host, arch)
     lib_install_dir = os.path.join(install_path, lib_subdir, subarch)
     if not os.path.exists(lib_install_dir):
@@ -393,13 +406,18 @@ def install_gcc_lib(install_path, host, arch, subarch, lib_subdir, libname):
         os.path.join(lib_install_dir, libname))
 
 
-def install_gcc_crtbegin(install_path, host, arch, subarch):
+def install_gcc_crtbegin(install_path: str, host: ndk.hosts.Host,
+                         arch: ndk.abis.Arch, subarch: str) -> None:
     triple = ndk.abis.arch_to_triple(arch)
     subdir = os.path.join('lib/gcc', triple, '4.9.x')
     install_gcc_lib(install_path, host, arch, subarch, subdir, 'crtbegin.o')
 
 
-def install_libgcc(install_path, host, arch, subarch, new_layout=False):
+def install_libgcc(install_path: str,
+                   host: ndk.hosts.Host,
+                   arch: ndk.abis.Arch,
+                   subarch: str,
+                   new_layout: bool = False) -> None:
     triple = ndk.abis.arch_to_triple(arch)
     subdir = os.path.join('lib/gcc', triple, '4.9.x')
     install_gcc_lib(install_path, host, arch, subarch, subdir, 'libgcc.a')
@@ -443,14 +461,15 @@ def install_libgcc(install_path, host, arch, subarch, new_layout=False):
             script.write('INPUT({})'.format(libs))
 
 
-def install_libatomic(install_path, host, arch, subarch):
+def install_libatomic(install_path: str, host: ndk.hosts.Host,
+                      arch: ndk.abis.Arch, subarch: str) -> None:
     triple = ndk.abis.arch_to_triple(arch)
     subdir = os.path.join(triple, 'lib64' if arch.endswith('64') else 'lib')
     install_gcc_lib(install_path, host, arch, subarch, subdir, 'libatomic.a')
 
 
-def get_subarches(arch):
-    if arch != 'arm':
+def get_subarches(arch: ndk.abis.Arch) -> List[str]:
+    if arch != ndk.abis.Arch('arm'):
         return ['']
 
     return [
@@ -472,7 +491,7 @@ class Binutils(ndk.builds.Module):
     }
 
     @property
-    def notices(self):
+    def notices(self) -> List[str]:
         notices = []
         for host in ndk.hosts.ALL_HOSTS:
             for arch in ndk.abis.ALL_ARCHITECTURES:
@@ -480,14 +499,14 @@ class Binutils(ndk.builds.Module):
                 notices.append(os.path.join(prebuilt_path, 'NOTICE'))
         return notices
 
-    def build(self):
+    def build(self) -> None:
         pass
 
-    def install(self):
+    def install(self) -> None:
         for arch in self.arches:
             self.install_arch(arch)
 
-    def install_arch(self, arch):
+    def install_arch(self, arch: ndk.abis.Arch) -> None:
         install_path = self.get_install_path(arch=arch)
         toolchain_path = get_binutils_prebuilt_path(self.host, arch)
         ndk.builds.install_directory(toolchain_path, install_path)
@@ -541,7 +560,7 @@ class ShaderTools(ndk.builds.InvokeBuildModule):
     notice_group = ndk.builds.NoticeGroup.TOOLCHAIN
 
     @property
-    def notices(self):
+    def notices(self) -> List[str]:
         base = ndk.paths.android_path('external/shaderc')
         shaderc_dir = os.path.join(base, 'shaderc')
         spirv_dir = os.path.join(base, 'spirv-headers')
@@ -567,7 +586,7 @@ class HostTools(ndk.builds.Module):
     ]
 
     @property
-    def notices(self):
+    def notices(self) -> List[str]:
         return [
             ndk.paths.android_path('toolchain/gdb/gdb-7.11/COPYING'),
             ndk.paths.android_path('toolchain/python/Python-2.7.5/LICENSE'),
@@ -575,7 +594,7 @@ class HostTools(ndk.builds.Module):
             ndk.paths.ndk_path('sources/host-tools/toolbox/NOTICE'),
         ] + self.yasm_notices
 
-    def build(self):
+    def build(self) -> None:
         build_args = ndk.builds.common_build_args(self.out_dir, self.dist_dir,
                                                   self.host)
 
@@ -661,11 +680,12 @@ class GdbServer(ndk.builds.InvokeBuildModule):
         shutil.copytree(src_dir, install_path)
 
 
-def make_linker_script(path, libs):
+def make_linker_script(path: str, libs: List[str]) -> None:
     ndk.file.write_file(path, 'INPUT({})\n'.format(' '.join(libs)))
 
 
-def create_libcxx_linker_scripts(lib_dir, abi, api):
+def create_libcxx_linker_scripts(lib_dir: str, abi: ndk.abis.Abi,
+                                 api: int) -> None:
     static_libs = ['-lc++_static', '-lc++abi']
     is_arm = abi == 'armeabi-v7a'
     needs_android_support = api < 21
@@ -703,21 +723,21 @@ class Libcxx(ndk.builds.Module):
     libcxx_path = ndk.paths.android_path('external/libcxx')
 
     @property
-    def obj_out(self):
+    def obj_out(self) -> str:
         return os.path.join(self.out_dir, 'libcxx/obj')
 
     @property
-    def lib_out(self):
+    def lib_out(self) -> str:
         return os.path.join(self.out_dir, 'libcxx/libs')
 
     @property
-    def abis(self):
+    def abis(self) -> List[ndk.abis.Abi]:
         abis = []
         for arch in self.arches:
             abis.extend(ndk.abis.arch_to_abis(arch))
         return abis
 
-    def build(self):
+    def build(self) -> None:
         ndk_build = os.path.join(
             self.get_dep('ndk-build').get_build_host_install(), 'ndk-build')
         bionic_path = ndk.paths.android_path('bionic')
@@ -751,7 +771,7 @@ class Libcxx(ndk.builds.Module):
         print('Running: ' + ' '.join([pipes.quote(arg) for arg in build_cmd]))
         subprocess.check_call(build_cmd)
 
-    def install(self):
+    def install(self) -> None:
         install_root = self.get_install_path()
 
         if os.path.exists(install_root):
@@ -796,7 +816,7 @@ class Libcxx(ndk.builds.Module):
 
                 create_libcxx_linker_scripts(lib_dir, abi, api)
 
-    def install_static_libs(self, lib_dir, abi):
+    def install_static_libs(self, lib_dir: str, abi: ndk.abis.Abi) -> None:
         static_lib_dir = os.path.join(self.obj_out, 'local', abi)
 
         shutil.copy2(os.path.join(static_lib_dir, 'libc++abi.a'), lib_dir)
@@ -838,26 +858,28 @@ class Platforms(ndk.builds.Module):
     # will be the end state when we merge the two anyway.
     notice = ndk.paths.android_path('prebuilts/ndk/platform/sysroot/NOTICE')
 
-    def prebuilt_path(self, *args):  # pylint: disable=no-self-use
+    def prebuilt_path(self, *args: str) -> str:  # pylint: disable=no-self-use
         return ndk.paths.android_path('prebuilts/ndk/platform', *args)
 
-    def src_path(self, *args):  # pylint: disable=no-self-use
+    def src_path(self, *args: str) -> str:  # pylint: disable=no-self-use
         return ndk.paths.android_path('development/ndk/platforms', *args)
 
-    def binutils_tool(self, tool, arch):
+    def binutils_tool(self, tool: str, arch: ndk.abis.Arch) -> str:
         triple = build_support.arch_to_triple(arch)
         binutils = self.get_dep('binutils').get_build_host_install(arch)
         return os.path.join(binutils, 'bin', triple + '-' + tool)
 
-    def libdir_name(self, arch):  # pylint: disable=no-self-use
+    # pylint: disable=no-self-use
+    def libdir_name(self, arch: ndk.abis.Arch) -> str:
         if arch == 'x86_64':
             return 'lib64'
         else:
             return 'lib'
+    # pylint: enable=no-self-use
 
-    def get_apis(self):
+    def get_apis(self) -> List[Union[int, str]]:
         codenamed_apis = []
-        apis = []
+        apis: List[Union[int, str]] = []
         for name in os.listdir(self.prebuilt_path('platforms')):
             if not name.startswith('android-'):
                 continue
@@ -869,6 +891,10 @@ class Platforms(ndk.builds.Module):
                     apis.append(api)
             except ValueError:
                 # Codenamed release like android-O, android-O-MR1, etc.
+                # TODO: Remove this code path.
+                # I don't think we're actually using this. Since having
+                # non-integer API directories breaks all kinds of tools, we
+                # rename them when we check them in.
                 apis.append(api_str)
                 codenamed_apis.append(api_str)
 
@@ -876,13 +902,18 @@ class Platforms(ndk.builds.Module):
             self.codename_api_map[api_str] = api_num
         return sorted(apis)
 
-    def get_arches(self, api):  # pylint: disable=no-self-use
-        arches = ['arm', 'x86']
-        if api >= 21:
-            arches.extend(['arm64', 'x86_64'])
+    # pylint: disable=no-self-use
+    def get_arches(self, api: Union[int, str]) -> List[ndk.abis.Arch]:
+        arches = [ndk.abis.Arch('arm'), ndk.abis.Arch('x86')]
+        # All codenamed APIs are at 64-bit capable.
+        if isinstance(api, str) or api >= 21:
+            arches.extend([ndk.abis.Arch('arm64'), ndk.abis.Arch('x86_64')])
         return arches
+    # pylint: enable=no-self-use
 
-    def get_build_cmd(self, dst, srcs, api, arch, build_number):
+    def get_build_cmd(self, dst: str, srcs: List[str], api: int,
+                      arch: ndk.abis.Arch,
+                      build_number: Union[int, str]) -> List[str]:
         bionic_includes = ndk.paths.android_path(
             'bionic/libc/arch-common/bionic')
 
@@ -917,21 +948,24 @@ class Platforms(ndk.builds.Module):
 
         return args
 
-    def check_elf_note(self, obj_file):
+    def check_elf_note(self, obj_file: str) -> None:
         # readelf is a cross platform tool, so arch doesn't matter.
-        readelf = self.binutils_tool('readelf', 'arm')
+        readelf = self.binutils_tool('readelf', ndk.abis.Arch('arm'))
         out = subprocess.check_output([readelf, '--notes', obj_file])
         if 'Android' not in out.decode('utf-8'):
             raise RuntimeError(
                 '{} does not contain NDK ELF note'.format(obj_file))
 
-    def build_crt_object(self, dst, srcs, api, arch, build_number, defines):
+    def build_crt_object(self, dst: str, srcs: List[str], api: Union[int, str],
+                         arch: ndk.abis.Arch, build_number: Union[int, str],
+                         defines: List[str]) -> None:
         try:
             # No-op for stable releases.
             api_num = int(api)
         except ValueError:
             # ValueError means this was a codenamed release. We need the
             # integer matching this release for ABI_ANDROID_API in crtbrand.
+            assert isinstance(api, str)
             api_num = self.codename_api_map[api]
 
         cc_args = self.get_build_cmd(dst, srcs, api_num, arch, build_number)
@@ -940,7 +974,9 @@ class Platforms(ndk.builds.Module):
         print('Running: ' + ' '.join([pipes.quote(arg) for arg in cc_args]))
         subprocess.check_call(cc_args)
 
-    def build_crt_objects(self, dst_dir, api, arch, build_number):
+    def build_crt_objects(self, dst_dir: str, api: Union[int, str],
+                          arch: ndk.abis.Arch,
+                          build_number: Union[int, str]) -> None:
         src_dir = ndk.paths.android_path('bionic/libc/arch-common/bionic')
         crt_brand = ndk.paths.ndk_path('sources/crt/crtbrand.S')
 
@@ -977,7 +1013,7 @@ class Platforms(ndk.builds.Module):
             if name.startswith('crtbegin'):
                 self.check_elf_note(dst_path)
 
-    def build(self):
+    def build(self) -> None:
         build_dir = os.path.join(self.out_dir, self.path)
         if os.path.exists(build_dir):
             shutil.rmtree(build_dir)
@@ -991,10 +1027,11 @@ class Platforms(ndk.builds.Module):
                 arch_name = 'arch-{}'.format(arch)
                 dst_dir = os.path.join(build_dir, platform, arch_name)
                 os.makedirs(dst_dir)
+                assert self.context is not None
                 self.build_crt_objects(dst_dir, api, arch,
                                        self.context.build_number)
 
-    def install(self):
+    def install(self) -> None:
         build_dir = os.path.join(self.out_dir, self.path)
         install_dir = self.get_install_path()
 
@@ -1057,7 +1094,7 @@ class LibShaderc(ndk.builds.Module):
     notice_group = ndk.builds.NoticeGroup.TOOLCHAIN
 
     @property
-    def notices(self):
+    def notices(self) -> List[str]:
         shaderc_dir = os.path.join(self.src, 'shaderc')
         return [
             os.path.join(shaderc_dir, 'LICENSE'),
@@ -1065,7 +1102,7 @@ class LibShaderc(ndk.builds.Module):
             os.path.join(shaderc_dir, 'third_party', 'LICENSE.spirv-tools'),
         ]
 
-    def build(self):
+    def build(self) -> None:
         copies = [
             {
                 'source_dir': os.path.join(self.src, 'shaderc'),
@@ -1135,8 +1172,11 @@ class LibShaderc(ndk.builds.Module):
         try:
             for properties in copies:
                 source_dir = properties['source_dir']
+                assert isinstance(source_dir, str)
+                assert isinstance(properties['dest_dir'], str)
                 dest_dir = os.path.join(temp_dir, properties['dest_dir'])
                 for d in properties['dirs']:
+                    assert isinstance(d, str)
                     src = os.path.join(source_dir, d)
                     dst = os.path.join(dest_dir, d)
                     print(src, " -> ", dst)
@@ -1147,6 +1187,7 @@ class LibShaderc(ndk.builds.Module):
                     # Only copy if the source file exists.  That way
                     # we can update this script in anticipation of
                     # source files yet-to-come.
+                    assert isinstance(f, str)
                     if os.path.exists(os.path.join(source_dir, f)):
                         install_file(f, source_dir, dest_dir)
                     else:
@@ -1181,7 +1222,7 @@ class Gtest(ndk.builds.PackageModule):
     path = 'sources/third_party/googletest'
     src = ndk.paths.android_path('external/googletest/googletest')
 
-    def install(self):
+    def install(self) -> None:
         super().install()
 
         # GTest renamed these files to be all lower case, but the SDK patcher
@@ -1206,7 +1247,7 @@ class Sysroot(ndk.builds.Module):
     path = 'sysroot'
     notice = ndk.paths.android_path('prebuilts/ndk/platform/sysroot/NOTICE')
 
-    def build(self):
+    def build(self) -> None:
         temp_dir = tempfile.mkdtemp()
         try:
             path = ndk.paths.android_path('prebuilts/ndk/platform/sysroot')
@@ -1242,6 +1283,7 @@ class Sysroot(ndk.builds.Module):
                 minor = ndk.config.hotfix
                 beta = ndk.config.beta
                 canary = '1' if ndk.config.canary else '0'
+                assert self.context is not None
                 build = self.context.build_number
                 if build == 'dev':
                     build = '0'
@@ -1295,7 +1337,8 @@ class Sysroot(ndk.builds.Module):
             shutil.rmtree(temp_dir)
 
 
-def write_clang_shell_script(wrapper_path, clang_name, flags):
+def write_clang_shell_script(wrapper_path: str, clang_name: str,
+                             flags: List[str]) -> None:
     with open(wrapper_path, 'w') as wrapper:
         wrapper.write(textwrap.dedent("""\
             #!/bin/bash
@@ -1311,7 +1354,8 @@ def write_clang_shell_script(wrapper_path, clang_name, flags):
     os.chmod(wrapper_path, mode | stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH)
 
 
-def write_clang_batch_script(wrapper_path, clang_name, flags):
+def write_clang_batch_script(wrapper_path: str, clang_name: str,
+                             flags: List[str]) -> None:
     with open(wrapper_path, 'w') as wrapper:
         wrapper.write(textwrap.dedent("""\
             @echo off
@@ -1339,7 +1383,8 @@ def write_clang_batch_script(wrapper_path, clang_name, flags):
         """.format(clang=clang_name, flags=' '.join(flags))))
 
 
-def write_clang_wrapper(install_dir, api, triple, is_windows):
+def write_clang_wrapper(install_dir: str, api: int, triple: str,
+                        is_windows: bool) -> None:
     """Writes a target-specific Clang wrapper.
 
     This wrapper can be used to target the given architecture/API combination
@@ -1401,15 +1446,15 @@ class BaseToolchain(ndk.builds.Module):
     }
 
     @property
-    def notices(self):
+    def notices(self) -> List[str]:
         return (Binutils().notices + Clang().notices + HostTools().yasm_notices
                 + LibAndroidSupport().notices + Platforms().notices +
                 Sysroot().notices + SystemStl().notices)
 
-    def build(self):
+    def build(self) -> None:
         pass
 
-    def install(self):
+    def install(self) -> None:
         install_dir = self.get_install_path()
         host_tools_dir = self.get_dep('host-tools').get_install_path()
         libandroid_support_dir = self.get_dep(
@@ -1429,12 +1474,14 @@ class BaseToolchain(ndk.builds.Module):
             binutils_dir = self.get_dep('binutils').get_install_path(arch=arch)
             copy_tree(binutils_dir, install_dir)
 
-        for api in self.get_dep('platforms').get_apis():
+        platforms = self.get_dep('platforms')
+        assert isinstance(platforms, Platforms)
+        for api in platforms.get_apis():
             if api in Platforms.skip_apis:
                 continue
 
             platform = 'android-{}'.format(api)
-            for arch in self.get_dep('platforms').get_arches(api):
+            for arch in platforms.get_arches(api):
                 triple = ndk.abis.arch_to_triple(arch)
                 arch_name = 'arch-{}'.format(arch)
                 lib_dir = 'lib64' if arch == 'x86_64' else 'lib'
@@ -1446,6 +1493,7 @@ class BaseToolchain(ndk.builds.Module):
                 # TODO: Remove duplicate static libraries from this directory.
                 # We already have them in the version-generic directory.
 
+                assert isinstance(api, int)
                 write_clang_wrapper(
                     os.path.join(install_dir, 'bin'), api, triple,
                     self.host.is_windows)
@@ -1480,7 +1528,7 @@ class Vulkan(ndk.builds.Module):
     notice_group = ndk.builds.NoticeGroup.TOOLCHAIN
 
     @property
-    def notices(self):
+    def notices(self) -> List[str]:
         base = ndk.paths.android_path('external')
         headers_dir = os.path.join(base, 'vulkan-headers')
         layers_dir = os.path.join(base, 'vulkan-validation-layers')
@@ -1491,8 +1539,7 @@ class Vulkan(ndk.builds.Module):
             os.path.join(tools_dir, 'NOTICE')
         ]
 
-
-    def build(self):
+    def build(self) -> None:
         print('Constructing Vulkan validation layer source...')
         vulkan_root_dir = ndk.paths.android_path(
             'external/vulkan-validation-layers')
@@ -1541,6 +1588,8 @@ class Vulkan(ndk.builds.Module):
         vulkan_path = os.path.join(base_vulkan_path, 'src')
         for properties in copies:
             source_dir = properties['source_dir']
+            assert isinstance(source_dir, str)
+            assert isinstance(properties['dest_dir'], str)
             dest_dir = os.path.join(self.out_dir, properties['dest_dir'])
             for d in properties['dirs']:
                 src = os.path.join(source_dir, d)
@@ -1602,13 +1651,13 @@ class Toolchain(ndk.builds.Module):
     }
 
     @property
-    def notices(self):
+    def notices(self) -> List[str]:
         return Libcxx().notices + Libcxxabi().notices
 
-    def build(self):
+    def build(self) -> None:
         pass
 
-    def install(self):
+    def install(self) -> None:
         install_dir = self.get_install_path()
         libcxx_dir = self.get_dep('libc++').get_install_path()
         libcxxabi_dir = self.get_dep('libc++abi').get_install_path()
@@ -1651,11 +1700,13 @@ class Toolchain(ndk.builds.Module):
             for lib in libs:
                 shutil.copy2(os.path.join(libcxx_lib_dir, lib), sysroot_dst)
 
-        for api in self.get_dep('platforms').get_apis():
+        platforms = self.get_dep('platforms')
+        assert isinstance(platforms, Platforms)
+        for api in platforms.get_apis():
             if api in Platforms.skip_apis:
                 continue
 
-            for arch in self.get_dep('platforms').get_arches(api):
+            for arch in platforms.get_arches(api):
                 triple = ndk.abis.arch_to_triple(arch)
                 dst_dir = os.path.join(install_dir, 'sysroot/usr/lib', triple,
                                        str(api))
@@ -1665,6 +1716,7 @@ class Toolchain(ndk.builds.Module):
                 # because libandroid_support is only used on pre-21 API levels.
                 static_script = ['-lc++_static', '-lc++abi']
                 shared_script = ['-lc++_shared']
+                assert isinstance(api, int)
                 if api < 21:
                     static_script.append('-landroid_support')
                     shared_script.insert(0, '-landroid_support')
@@ -1678,33 +1730,33 @@ class Toolchain(ndk.builds.Module):
                     script.write('INPUT({})'.format(' '.join(static_script)))
 
 
-def make_format_value(value):
+def make_format_value(value: Any) -> Any:
     if isinstance(value, list):
         return ' '.join(value)
     return value
 
 
-def var_dict_to_make(var_dict):
+def var_dict_to_make(var_dict: Dict[str, Any]) -> str:
     lines = []
     for name, value in var_dict.items():
         lines.append('{} := {}'.format(name, make_format_value(value)))
     return os.linesep.join(lines)
 
 
-def cmake_format_value(value):
+def cmake_format_value(value: Any) -> Any:
     if isinstance(value, list):
         return ';'.join(value)
     return value
 
 
-def var_dict_to_cmake(var_dict):
+def var_dict_to_cmake(var_dict: Dict[str, Any]) -> str:
     lines = []
     for name, value in var_dict.items():
         lines.append('set({} "{}")'.format(name, cmake_format_value(value)))
     return os.linesep.join(lines)
 
 
-def abis_meta_transform(metadata):
+def abis_meta_transform(metadata: Dict) -> Dict[str, Any]:
     default_abis = []
     deprecated_abis = []
     lp32_abis = []
@@ -1735,7 +1787,7 @@ def abis_meta_transform(metadata):
     return meta_vars
 
 
-def platforms_meta_transform(metadata):
+def platforms_meta_transform(metadata: Dict) -> Dict[str, Any]:
     meta_vars = {
         'NDK_MIN_PLATFORM_LEVEL': metadata['min'],
         'NDK_MAX_PLATFORM_LEVEL': metadata['max'],
@@ -1748,7 +1800,7 @@ def platforms_meta_transform(metadata):
     return meta_vars
 
 
-def system_libs_meta_transform(metadata):
+def system_libs_meta_transform(metadata: Dict) -> Dict[str, Any]:
     # This file also contains information about the first supported API level
     # for each library. We could use this to provide better diagnostics in
     # ndk-build, but currently do not.
@@ -1765,7 +1817,7 @@ class NdkBuild(ndk.builds.PackageModule):
         'meta',
     }
 
-    def install(self):
+    def install(self) -> None:
         super().install()
 
         self.generate_language_specific_metadata('abis', abis_meta_transform)
@@ -1776,7 +1828,8 @@ class NdkBuild(ndk.builds.PackageModule):
         self.generate_language_specific_metadata('system_libs',
                                                  system_libs_meta_transform)
 
-    def generate_language_specific_metadata(self, name, func):
+    def generate_language_specific_metadata(
+            self, name: str, func: Callable[[Dict], Dict[str, Any]]) -> None:
         install_path = self.get_install_path()
         json_path = os.path.join(
             self.get_dep('meta').get_install_path(), name + '.json')
@@ -1864,7 +1917,7 @@ class RenderscriptToolchain(ndk.builds.InvokeBuildModule):
     script = 'build-renderscript.py'
 
     @property
-    def notices(self):
+    def notices(self) -> List[str]:
         base = ndk.paths.android_path('prebuilts/renderscript/host')
         return [
             os.path.join(base, 'darwin-x86/current/NOTICE'),
@@ -1887,7 +1940,7 @@ class NdkGdb(ndk.builds.MultiFileModule):
     notice = ndk.paths.ndk_path('NOTICE')
 
     @property
-    def files(self):
+    def files(self) -> Iterable[str]:
         files = [
             ndk.paths.ndk_path('ndk-gdb'),
             ndk.paths.ndk_path('ndk-gdb.py'),
@@ -1912,7 +1965,7 @@ class NdkStack(ndk.builds.MultiFileModule):
     notice = ndk.paths.ndk_path('NOTICE')
 
     @property
-    def files(self):
+    def files(self) -> Iterable[str]:
         files = [
             ndk.paths.ndk_path('ndk-stack'),
             ndk.paths.ndk_path('ndk-stack.py'),
@@ -1966,10 +2019,10 @@ class CanaryReadme(ndk.builds.Module):
     path = 'README.canary'
     no_notice = True
 
-    def build(self):
+    def build(self) -> None:
         pass
 
-    def install(self):
+    def install(self) -> None:
         if ndk.config.canary:
             canary_path = self.get_install_path()
             with open(canary_path, 'w') as canary_file:
@@ -1986,11 +2039,11 @@ class Meta(ndk.builds.PackageModule):
         'base-toolchain',
     }
 
-    def install(self):
+    def install(self) -> None:
         super().install()
         self.create_system_libs_meta()
 
-    def create_system_libs_meta(self):
+    def create_system_libs_meta(self) -> None:
         # Build system_libs.json based on what we find in the toolchain. We
         # only need to scan a single 32-bit architecture since these libraries
         # do not vary in availability across architectures.
@@ -1998,7 +2051,7 @@ class Meta(ndk.builds.PackageModule):
             self.get_dep('base-toolchain').get_install_path(),
             'sysroot/usr/lib/arm-linux-androideabi')
 
-        system_libs = {}
+        system_libs: Dict[str, str] = {}
         for api_name in sorted(os.listdir(sysroot_base)):
             path = os.path.join(sysroot_base, api_name)
 
@@ -2046,12 +2099,13 @@ class SourceProperties(ndk.builds.Module):
     path = 'source.properties'
     no_notice = True
 
-    def build(self):
+    def build(self) -> None:
         pass
 
-    def install(self):
+    def install(self) -> None:
         path = self.get_install_path()
         with open(path, 'w') as source_properties:
+            assert self.context is not None
             build = self.context.build_number
             if build == 'dev':
                 build = '0'
@@ -2082,7 +2136,7 @@ class NdkPy(ndk.builds.PythonPackage):
     path = ndk.paths.ndk_path('setup.py')
 
 
-def create_notice_file(path, for_group):
+def create_notice_file(path: str, for_group: ndk.builds.NoticeGroup) -> None:
     # Using sets here so we can perform some amount of duplicate reduction. In
     # a lot of cases there will be minor differences that cause lots of
     # "duplicates", but might as well catch what we can.
@@ -2102,7 +2156,8 @@ def create_notice_file(path, for_group):
         output_file.write(os.linesep.join(sorted(list(licenses))))
 
 
-def launch_build(worker, module, log_dir):
+def launch_build(worker: ndk.workqueue.Worker, module: ndk.builds.Module,
+                 log_dir: str) -> Tuple[bool, ndk.builds.Module]:
     result = do_build(worker, module, log_dir)
     if not result:
         return result, module
@@ -2110,7 +2165,8 @@ def launch_build(worker, module, log_dir):
     return True, module
 
 
-def do_build(worker, module, log_dir):
+def do_build(worker: ndk.workqueue.Worker, module: ndk.builds.Module,
+             log_dir: str) -> bool:
     with open(module.log_path(log_dir), 'w') as log_file:
         os.dup2(log_file.fileno(), sys.stdout.fileno())
         os.dup2(log_file.fileno(), sys.stderr.fileno())
@@ -2123,12 +2179,14 @@ def do_build(worker, module, log_dir):
             return False
 
 
-def do_install(worker, module):
+def do_install(worker: ndk.workqueue.Worker,
+               module: ndk.builds.Module) -> None:
     worker.status = 'Installing {}...'.format(module)
     module.install()
 
 
-def split_module_by_arch(module, arches):
+def split_module_by_arch(module: ndk.builds.Module, arches: List[ndk.abis.Arch]
+                         ) -> Iterator[ndk.builds.Module]:
     if module.split_build_by_arch:
         for arch in arches:
             build_module = copy.deepcopy(module)
@@ -2138,7 +2196,9 @@ def split_module_by_arch(module, arches):
         yield module
 
 
-def _get_transitive_module_deps(module, deps, unknown_deps, seen):
+def _get_transitive_module_deps(
+        module: ndk.builds.Module, deps: Set[ndk.builds.Module],
+        unknown_deps: Set[str], seen: Set[ndk.builds.Module]) -> None:
     seen.add(module)
 
     for name in module.deps:
@@ -2157,15 +2217,18 @@ def _get_transitive_module_deps(module, deps, unknown_deps, seen):
         _get_transitive_module_deps(dep, deps, unknown_deps, seen)
 
 
-def get_transitive_module_deps(module):
-    seen = set()
-    deps = set()
-    unknown_deps = set()
+def get_transitive_module_deps(
+        module: ndk.builds.Module) -> Tuple[Set[ndk.builds.Module], Set[str]]:
+    seen: Set[ndk.builds.Module] = set()
+    deps: Set[ndk.builds.Module] = set()
+    unknown_deps: Set[str] = set()
     _get_transitive_module_deps(module, deps, unknown_deps, seen)
     return deps, unknown_deps
 
 
-def get_modules_to_build(module_names, arches):
+def get_modules_to_build(
+        module_names: Iterable[str], arches: List[ndk.abis.Arch]
+) -> Tuple[List[ndk.builds.Module], Set[ndk.builds.Module]]:
     """Returns a list of modules to be built given a list of module names.
 
     The module names are those given explicitly by the user or the full list.
@@ -2257,18 +2320,18 @@ ALL_MODULES = [
 NAMES_TO_MODULES = {m.name: m for m in ALL_MODULES}
 
 
-def get_all_module_names():
+def get_all_module_names() -> List[str]:
     return [m.name for m in ALL_MODULES if m.enabled]
 
 
-def build_number_arg(value):
+def build_number_arg(value: str) -> str:
     if value.startswith('P'):
         # Treehugger build. Treat as a local development build.
         return '0'
     return value
 
 
-def parse_args():
+def parse_args() -> Tuple[argparse.Namespace, List[str]]:
     parser = argparse.ArgumentParser(
         description=inspect.getdoc(sys.modules[__name__]))
 
@@ -2331,7 +2394,7 @@ def parse_args():
     return parser.parse_known_args()
 
 
-def log_build_failure(log_path, dist_dir):
+def log_build_failure(log_path: str, dist_dir: str) -> None:
     with open(log_path, 'r') as log_file:
         contents = log_file.read()
         print(contents)
@@ -2345,7 +2408,10 @@ def log_build_failure(log_path, dist_dir):
             error_log.write(contents)
 
 
-def launch_buildable(deps, workqueue, log_dir, skip_deps, skip_modules):
+def launch_buildable(deps: ndk.deps.DependencyManager,
+                     workqueue: ndk.workqueue.AnyWorkQueue, log_dir: str,
+                     skip_deps: bool,
+                     skip_modules: Set[ndk.builds.Module]) -> None:
     # If args.skip_deps is true, we could get into a case where we just
     # dequeued the only module that was still building and the only
     # items in get_buildable() are modules that will be skipped.
@@ -2363,8 +2429,10 @@ def launch_buildable(deps, workqueue, log_dir, skip_deps, skip_modules):
             workqueue.add_task(launch_build, module, log_dir)
 
 
-def wait_for_build(deps, workqueue, dist_dir, log_dir, skip_deps,
-                   skip_modules):
+def wait_for_build(deps: ndk.deps.DependencyManager,
+                   workqueue: ndk.workqueue.AnyWorkQueue, dist_dir: str,
+                   log_dir: str, skip_deps: bool,
+                   skip_modules: Set[ndk.builds.Module]):
     console = ndk.ansi.get_console()
     ui = ndk.ui.get_build_progress_ui(console, workqueue)
     with ndk.ansi.disable_terminal_echo(sys.stdin):
@@ -2390,8 +2458,10 @@ def wait_for_build(deps, workqueue, dist_dir, log_dir, skip_deps,
             print('Build finished')
 
 
-def build_ndk(modules, deps_only, out_dir, dist_dir, args):
-    arches = ndk.abis.ALL_ARCHITECTURES
+def build_ndk(modules: List[ndk.builds.Module],
+              deps_only: Set[ndk.builds.Module], out_dir: str, dist_dir: str,
+              args: argparse.Namespace) -> str:
+    arches = list(ndk.abis.ALL_ARCHITECTURES)
     if args.arch is not None:
         arches = [args.arch]
 
@@ -2419,7 +2489,7 @@ def build_ndk(modules, deps_only, out_dir, dist_dir, args):
         if deps.get_buildable():
             raise RuntimeError(
                 'Builder stopped early. Modules are still '
-                'buildable: {}'.format(', '.join(deps.get_buildable())))
+                'buildable: {}'.format(', '.join(str(deps.get_buildable()))))
 
         create_notice_file(
             os.path.join(ndk_dir, 'NOTICE'),
@@ -2433,7 +2503,8 @@ def build_ndk(modules, deps_only, out_dir, dist_dir, args):
         workqueue.join()
 
 
-def build_ndk_for_cross_compile(out_dir, arches, args):
+def build_ndk_for_cross_compile(out_dir: str, arches: List[ndk.abis.Arch],
+                                args: argparse.Namespace) -> None:
     args = copy.deepcopy(args)
     args.system = ndk.hosts.get_default_host()
     if args.system != ndk.hosts.Host.Linux:
@@ -2445,21 +2516,23 @@ def build_ndk_for_cross_compile(out_dir, arches, args):
     build_ndk(modules, deps_only, out_dir, out_dir, args)
 
 
-def create_ndk_symlink(out_dir):
+def create_ndk_symlink(out_dir: str) -> None:
     this_host_ndk = ndk.paths.get_install_path()
     ndk_symlink = os.path.join(out_dir, os.path.basename(this_host_ndk))
     if not os.path.exists(ndk_symlink):
         os.symlink(this_host_ndk, ndk_symlink)
 
 
-def get_directory_size(path):
+def get_directory_size(path: str) -> int:
     du_str = subprocess.check_output(['du', '-sm', path])
     match = re.match(r'^(\d+)', du_str.decode('utf-8'))
+    if match is None:
+        raise RuntimeError(f'Could not determine the size of {path}')
     size_str = match.group(1)
     return int(size_str)
 
 
-def main():
+def main() -> None:
     logging.basicConfig()
 
     total_timer = ndk.timer.Timer()
@@ -2497,7 +2570,7 @@ def main():
 
     os.environ['ANDROID_BUILD_TOP'] = ndk.paths.android_path()
 
-    arches = ndk.abis.ALL_ARCHITECTURES
+    arches = list(ndk.abis.ALL_ARCHITECTURES)
     if args.arch is not None:
         arches = [args.arch]
 
@@ -2562,7 +2635,7 @@ def main():
 
 
 @contextlib.contextmanager
-def _assign_self_to_new_process_group(fd):
+def _assign_self_to_new_process_group(fd) -> Iterator[None]:
     # It seems the build servers run us in our own session, in which case we
     # get EPERM from `setpgrp`. No need to call this in that case because we
     # will already be the process group leader.
@@ -2583,7 +2656,7 @@ def _assign_self_to_new_process_group(fd):
         yield
 
 
-def _run_main_in_new_process_group():
+def _run_main_in_new_process_group() -> None:
     with _assign_self_to_new_process_group(sys.stdin):
         main()
 

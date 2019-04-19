@@ -94,7 +94,7 @@ class Module:
     # each will have build_arch set to the architecture that should be built by
     # that module. If build_arch is None, the module has not yet been split.
     split_build_by_arch = False
-    build_arch = None
+    build_arch: Optional[ndk.abis.Arch] = None
 
     def __init__(self) -> None:
         self.context: Optional[BuildContext] = None
@@ -385,7 +385,7 @@ class InvokeExternalBuildModule(Module):
             build_args.append(f'--arch={self.build_arch}')
         elif self.arch_specific and len(self.arches) == 1:
             build_args.append(f'--arch={self.arches[0]}')
-        elif self.arches == ndk.abis.ALL_ARCHITECTURES:
+        elif set(self.arches) == set(ndk.abis.ALL_ARCHITECTURES):
             pass
         else:
             raise NotImplementedError(
@@ -432,8 +432,10 @@ class MultiFileModule(Module):
     with a single module.
     """
 
-    #: List of absolute paths to files to be installed.
-    files: Iterable[str] = []
+    @property
+    def files(self) -> Iterable[str]:
+        """List of absolute paths to files to be installed."""
+        return []
 
     def build(self) -> None:
         pass
