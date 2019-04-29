@@ -21,7 +21,12 @@ import os
 import re
 import shutil
 import subprocess
-from typing import List
+from typing import (
+    List,
+    Optional,
+    Tuple,
+    Union,
+)
 import xml.etree.ElementTree
 
 import ndk.abis
@@ -99,6 +104,18 @@ class Test:
         return ndk.test.config.TestConfig.from_test_dir(self.test_dir)
 
     def run(self, obj_dir, dist_dir, test_filters):
+        raise NotImplementedError
+
+    def is_negative_test(self) -> bool:
+        raise NotImplementedError
+
+    def check_broken(self) -> Union[Tuple[None, None], Tuple[str, str]]:
+        return self.get_test_config().build_broken(self)
+
+    def check_unsupported(self) -> Optional[str]:
+        return self.get_test_config().build_unsupported(self)
+
+    def get_build_dir(self, out_dir: str) -> str:
         raise NotImplementedError
 
     def __str__(self):
