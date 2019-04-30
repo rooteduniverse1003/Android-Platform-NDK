@@ -25,23 +25,90 @@ import random
 import shutil
 import sys
 import traceback
+from typing import (
+    Any,
+    Callable,
+    Dict,
+    List,
+    Tuple,
+)
 
 import ndk.abis
-import ndk.test.filters
-import ndk.test.report
-import ndk.test.scanner
+from ndk.test.filters import TestFilter
+from ndk.test.printers import Printer
+from ndk.test.report import Report
+from ndk.test.scanner import TestScanner
 import ndk.test.spec
 import ndk.test.suites
+from ndk.test.types import Test
 import ndk.test.ui
 import ndk.workqueue
 
 
-def logger():
+def logger() -> logging.Logger:
     """Returns the module logger."""
     return logging.getLogger(__name__)
 
 
-def test_spec_from_config(test_config):
+class LoadRestrictingWorkQueue:
+    """Specialized work queue for building tests.
+
+    Building the libc++ tests is very demanding and we should not be running
+    more than one libc++ build at a time. The LoadRestrictingWorkQueue has a
+    normal task queue as well as a task queue served by only one worker.
+    """
+
+    def __init__(self, num_workers: int = multiprocessing.cpu_count()) -> None:
+        self.manager = multiprocessing.Manager()
+        self.result_queue = self.manager.Queue()
+
+        assert num_workers >= 2
+
+        self.main_task_queue = self.manager.Queue()
+        self.restricted_task_queue = self.manager.Queue()
+
+        self.main_work_queue = ndk.workqueue.WorkQueue(
+            num_workers - 1, task_queue=self.main_task_queue,
+            result_queue=self.result_queue)
+
+        self.restricted_work_queue = ndk.workqueue.WorkQueue(
+            1, task_queue=self.restricted_task_queue,
+            result_queue=self.result_queue)
+
+        self.num_tasks = 0
+
+    def add_task(self, func: Callable[..., Any], *args: Any,
+                 **kwargs: Any) -> None:
+        self.main_task_queue.put(ndk.workqueue.Task(func, args, kwargs))
+        self.num_tasks += 1
+
+    def add_load_restricted_task(self, func: Callable[..., Any], *args: Any,
+                                 **kwargs: Any) -> None:
+        self.restricted_task_queue.put(ndk.workqueue.Task(func, args, kwargs))
+        self.num_tasks += 1
+
+    def get_result(self) -> Any:
+        """Gets a result from the queue, blocking until one is available."""
+        result = self.result_queue.get()
+        if isinstance(result, ndk.workqueue.TaskError):
+            raise result
+        self.num_tasks -= 1
+        return result
+
+    def terminate(self) -> None:
+        self.main_work_queue.terminate()
+        self.restricted_work_queue.terminate()
+
+    def join(self) -> None:
+        self.main_work_queue.join()
+        self.restricted_work_queue.join()
+
+    def finished(self) -> bool:
+        """Returns True if all tasks have completed execution."""
+        return self.num_tasks == 0
+
+
+def test_spec_from_config(test_config: Dict) -> ndk.test.spec.TestSpec:
     """Returns a TestSpec based on the test config file."""
     abis = test_config.get('abis', ndk.abis.ALL_ABIS)
     suites = test_config.get('suites', ndk.test.suites.ALL_SUITES)
@@ -49,13 +116,13 @@ def test_spec_from_config(test_config):
     return ndk.test.spec.TestSpec(abis, suites)
 
 
-def write_build_report(build_report, results):
-    with open(build_report, 'w') as build_report_file:
+def write_build_report(build_report: str, results: Report) -> None:
+    with open(build_report, 'wb') as build_report_file:
         pickle.dump(results, build_report_file)
 
 
-def scan_test_suite(suite_dir, test_scanner):
-    tests = []
+def scan_test_suite(suite_dir: str, test_scanner: TestScanner) -> List[Test]:
+    tests: List[Test] = []
     for dentry in os.listdir(suite_dir):
         path = os.path.join(suite_dir, dentry)
         if os.path.isdir(path):
@@ -64,7 +131,8 @@ def scan_test_suite(suite_dir, test_scanner):
     return tests
 
 
-def _fixup_expected_failure(result, config, bug):
+def _fixup_expected_failure(result: ndk.test.result.TestResult, config: str,
+                            bug: str) -> ndk.test.result.TestResult:
     if isinstance(result, ndk.test.result.Failure):
         return ndk.test.result.ExpectedFailure(result.test, config, bug)
     elif isinstance(result, ndk.test.result.Success):
@@ -73,7 +141,8 @@ def _fixup_expected_failure(result, config, bug):
         return result
 
 
-def _fixup_negative_test(result):
+def _fixup_negative_test(
+        result: ndk.test.result.TestResult) -> ndk.test.result.TestResult:
     if isinstance(result, ndk.test.result.Failure):
         return ndk.test.result.Success(result.test)
     elif isinstance(result, ndk.test.result.Success):
@@ -83,7 +152,9 @@ def _fixup_negative_test(result):
         return result
 
 
-def _run_test(worker, suite, test, obj_dir, dist_dir, test_filters):
+def _run_test(worker: ndk.workqueue.Worker, suite: str, test: Test,
+              obj_dir: str, dist_dir: str, test_filters: TestFilter
+              ) -> Tuple[str, ndk.test.result.TestResult, List[Test]]:
     """Runs a given test according to the given filters.
 
     Args:
@@ -112,6 +183,7 @@ def _run_test(worker, suite, test, obj_dir, dist_dir, test_filters):
         if config is not None:
             # We need to check change each pass/fail to either an
             # ExpectedFailure or an UnexpectedSuccess as necessary.
+            assert bug is not None
             result = _fixup_expected_failure(result, config, bug)
     except Exception:  # pylint: disable=broad-except
         result = ndk.test.result.Failure(test, traceback.format_exc())
@@ -120,10 +192,12 @@ def _run_test(worker, suite, test, obj_dir, dist_dir, test_filters):
 
 
 class TestBuilder:
-    def __init__(self, test_spec, test_options, printer):
+    def __init__(self, test_spec: ndk.test.spec.TestSpec,
+                 test_options: ndk.test.spec.TestOptions,
+                 printer: Printer) -> None:
         self.printer = printer
-        self.tests = {}
-        self.build_dirs = {}
+        self.tests: Dict[str, List[Test]] = {}
+        self.build_dirs: Dict[str, Tuple[str, Test]] = {}
 
         self.test_options = test_options
 
@@ -132,7 +206,7 @@ class TestBuilder:
 
         self.find_tests(test_spec)
 
-    def find_tests(self, test_spec):
+    def find_tests(self, test_spec: ndk.test.spec.TestSpec) -> None:
         scanner = ndk.test.scanner.BuildTestScanner(self.test_options.ndk_path)
         nodist_scanner = ndk.test.scanner.BuildTestScanner(
             self.test_options.ndk_path, dist=False)
@@ -156,20 +230,24 @@ class TestBuilder:
             self.add_suite('libc++', test_src, libcxx_scanner)
 
     @classmethod
-    def from_config_file(cls, config_path, test_options, printer):
+    def from_config_file(cls, config_path: str,
+                         test_options: ndk.test.spec.TestOptions,
+                         printer: Printer) -> 'TestBuilder':
         with open(config_path) as test_config_file:
             test_config = json.load(test_config_file)
         spec = test_spec_from_config(test_config)
         return cls(spec, test_options, printer)
 
-    def add_suite(self, name, path, test_scanner):
+    def add_suite(self, name: str, path: str,
+                  test_scanner: TestScanner) -> None:
         if name in self.tests:
             raise KeyError('suite {} already exists'.format(name))
         new_tests = scan_test_suite(path, test_scanner)
         self.check_no_overlapping_build_dirs(name, new_tests)
         self.tests[name] = new_tests
 
-    def check_no_overlapping_build_dirs(self, suite, new_tests):
+    def check_no_overlapping_build_dirs(self, suite: str,
+                                        new_tests: List[Test]) -> None:
         for test in new_tests:
             build_dir = test.get_build_dir('')
             if build_dir in self.build_dirs:
@@ -179,30 +257,29 @@ class TestBuilder:
                         dup_suite, dup_test, suite, test))
             self.build_dirs[build_dir] = (suite, test)
 
-    def make_out_dirs(self):
+    def make_out_dirs(self) -> None:
         if not os.path.exists(self.obj_dir):
             os.makedirs(self.obj_dir)
         if not os.path.exists(self.dist_dir):
             os.makedirs(self.dist_dir)
 
-    def clean_out_dir(self):
+    def clean_out_dir(self) -> None:
         if os.path.exists(self.test_options.out_dir):
             shutil.rmtree(self.test_options.out_dir)
 
-    def build(self):
+    def build(self) -> Report:
         if self.test_options.clean:
             self.clean_out_dir()
         self.make_out_dirs()
 
-        test_filters = ndk.test.filters.TestFilter.from_string(
-            self.test_options.test_filter)
+        test_filters = TestFilter.from_string(self.test_options.test_filter)
         result = self.do_build(test_filters)
         if self.test_options.build_report:
             write_build_report(self.test_options.build_report, result)
         return result
 
-    def do_build(self, test_filters):
-        workqueue = ndk.test.builder.LoadRestrictingWorkQueue()
+    def do_build(self, test_filters: TestFilter) -> Report:
+        workqueue = LoadRestrictingWorkQueue()
         try:
             for suite, tests in self.tests.items():
                 # Each test configuration was expanded when each test was
@@ -223,7 +300,7 @@ class TestBuilder:
                             _run_test, suite, test, self.obj_dir,
                             self.dist_dir, test_filters)
 
-            report = ndk.test.report.Report()
+            report = Report()
             self.wait_for_results(report, workqueue, test_filters)
 
             return report
@@ -231,7 +308,9 @@ class TestBuilder:
             workqueue.terminate()
             workqueue.join()
 
-    def wait_for_results(self, report, workqueue, test_filters):
+    def wait_for_results(self, report: Report,
+                         workqueue: LoadRestrictingWorkQueue,
+                         test_filters: TestFilter) -> None:
         console = ndk.ansi.get_console()
         ui = ndk.test.ui.get_test_build_progress_ui(console, workqueue)
         with ndk.ansi.disable_terminal_echo(sys.stdin):
@@ -259,59 +338,3 @@ class TestBuilder:
                     report.add_result(suite, result)
                     ui.draw()
                 ui.clear()
-
-
-class LoadRestrictingWorkQueue:
-    """Specialized work queue for building tests.
-
-    Building the libc++ tests is very demanding and we should not be running
-    more than one libc++ build at a time. The LoadRestrictingWorkQueue has a
-    normal task queue as well as a task queue served by only one worker.
-    """
-
-    def __init__(self, num_workers=multiprocessing.cpu_count()):
-        self.manager = multiprocessing.Manager()
-        self.result_queue = self.manager.Queue()
-
-        assert num_workers >= 2
-
-        self.main_task_queue = self.manager.Queue()
-        self.restricted_task_queue = self.manager.Queue()
-
-        self.main_work_queue = ndk.workqueue.WorkQueue(
-            num_workers - 1, task_queue=self.main_task_queue,
-            result_queue=self.result_queue)
-
-        self.restricted_work_queue = ndk.workqueue.WorkQueue(
-            1, task_queue=self.restricted_task_queue,
-            result_queue=self.result_queue)
-
-        self.num_tasks = 0
-
-    def add_task(self, func, *args, **kwargs):
-        self.main_task_queue.put(ndk.workqueue.Task(func, args, kwargs))
-        self.num_tasks += 1
-
-    def add_load_restricted_task(self, func, *args, **kwargs):
-        self.restricted_task_queue.put(ndk.workqueue.Task(func, args, kwargs))
-        self.num_tasks += 1
-
-    def get_result(self):
-        """Gets a result from the queue, blocking until one is available."""
-        result = self.result_queue.get()
-        if isinstance(result, ndk.workqueue.TaskError):
-            raise result
-        self.num_tasks -= 1
-        return result
-
-    def terminate(self):
-        self.main_work_queue.terminate()
-        self.restricted_work_queue.terminate()
-
-    def join(self):
-        self.main_work_queue.join()
-        self.restricted_work_queue.join()
-
-    def finished(self):
-        """Returns True if all tasks have completed execution."""
-        return self.num_tasks == 0
