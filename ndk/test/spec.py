@@ -15,11 +15,21 @@
 #
 """Configuration objects for describing test runs."""
 
+from typing import Iterable, List, Optional
+
+from ndk.abis import Abi
+
 
 class TestOptions:
     """Configuration for how tests should be run."""
-    def __init__(self, src_dir, ndk_path, out_dir, test_filter=None,
-                 clean=True, build_report=None):
+
+    def __init__(self,
+                 src_dir: str,
+                 ndk_path: str,
+                 out_dir: str,
+                 test_filter: str = None,
+                 clean: bool = True,
+                 build_report: str = None) -> None:
         """Initializes a TestOptions object.
 
         Args:
@@ -40,7 +50,7 @@ class TestOptions:
 
 class TestSpec:
     """Configuration for which tests should be run."""
-    def __init__(self, abis, suites):
+    def __init__(self, abis: Iterable[Abi], suites: Iterable[str]) -> None:
         self.abis = abis
         self.suites = suites
 
@@ -51,25 +61,26 @@ class BuildConfiguration:
     A TestSpec describes which BuildConfigurations should be included in a test
     run.
     """
-    def __init__(self, abi, api):
+    def __init__(self, abi: Abi, api: Optional[int]) -> None:
         self.abi = abi
         self.api = api
 
-    def __eq__(self, other):
+    def __eq__(self, other: object) -> bool:
+        assert isinstance(other, BuildConfiguration)
         if self.abi != other.abi:
             return False
         if self.api != other.api:
             return False
         return True
 
-    def __str__(self):
-        return '{}-{}'.format(self.abi, self.api)
+    def __str__(self) -> str:
+        return f'{self.abi}-{self.api}'
 
-    def __hash__(self):
+    def __hash__(self) -> int:
         return hash(str(self))
 
     @staticmethod
-    def from_string(config_string):
+    def from_string(config_string: str) -> 'BuildConfiguration':
         """Converts a string into a BuildConfiguration.
 
         Args:
@@ -92,14 +103,14 @@ class BuildConfiguration:
         api_str = rest
         api = int(api_str)
 
-        return BuildConfiguration(abi, api)
+        return BuildConfiguration(Abi(abi), api)
 
-    def get_extra_ndk_build_flags(self):
+    def get_extra_ndk_build_flags(self) -> List[str]:
         extra_flags = []
         extra_flags.append('V=1')
         return extra_flags
 
-    def get_extra_cmake_flags(self):
+    def get_extra_cmake_flags(self) -> List[str]:
         extra_flags = []
         extra_flags.append('-DCMAKE_VERBOSE_MAKEFILE=ON')
         return extra_flags
