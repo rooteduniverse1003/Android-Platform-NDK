@@ -16,10 +16,19 @@
 from __future__ import absolute_import
 
 import os
-from typing import List
+from typing import List, Optional, Set
 
-import ndk.test.spec
-import ndk.test.types
+from ndk.abis import Abi
+import ndk.paths
+from ndk.test.spec import BuildConfiguration
+from ndk.test.types import (
+    CMakeBuildTest,
+    LibcxxTest,
+    NdkBuildTest,
+    PythonBuildTest,
+    ShellBuildTest,
+    Test,
+)
 
 
 class TestScanner:
@@ -28,7 +37,7 @@ class TestScanner:
     A test scanner is used to turn a test directory into a list of Tests for
     any of the test types found in the directory.
     """
-    def find_tests(self, path, name):
+    def find_tests(self, path: str, name: str) -> List[Test]:
         """Searches a directory for tests.
 
         Args:
@@ -41,16 +50,15 @@ class TestScanner:
 
 
 class BuildTestScanner(TestScanner):
-    def __init__(self, ndk_path, dist=True):
+    def __init__(self, ndk_path: str, dist: bool = True) -> None:
         self.ndk_path = ndk_path
         self.dist = dist
-        self.build_configurations = set()
+        self.build_configurations: Set[BuildConfiguration] = set()
 
-    def add_build_configuration(self, abi, api):
-        self.build_configurations.add(ndk.test.spec.BuildConfiguration(
-            abi, api))
+    def add_build_configuration(self, abi: Abi, api: Optional[int]) -> None:
+        self.build_configurations.add(BuildConfiguration(abi, api))
 
-    def find_tests(self, path, name):
+    def find_tests(self, path: str, name: str) -> List[Test]:
         # If we have a build.sh, that takes precedence over the Android.mk.
         build_sh_path = os.path.join(path, 'build.sh')
         if os.path.exists(build_sh_path):
@@ -62,7 +70,7 @@ class BuildTestScanner(TestScanner):
             return self.make_test_py_tests(path, name)
 
         # But we can have both ndk-build and cmake tests in the same directory.
-        tests = []
+        tests: List[Test] = []
         android_mk_path = os.path.join(path, 'jni/Android.mk')
         if os.path.exists(android_mk_path):
             tests.extend(self.make_ndk_build_tests(path, name))
@@ -72,60 +80,50 @@ class BuildTestScanner(TestScanner):
             tests.extend(self.make_cmake_tests(path, name))
         return tests
 
-    def make_build_sh_tests(self, path, name):
-        tests = []
-        for config in self.build_configurations:
-            test = ndk.test.types.ShellBuildTest(
-                name, path, config, self.ndk_path)
-            tests.append(test)
-        return tests
+    def make_build_sh_tests(self, path: str, name: str) -> List[Test]:
+        return [
+            ShellBuildTest(name, path, config, self.ndk_path)
+            for config in self.build_configurations
+        ]
 
-    def make_test_py_tests(self, path, name):
-        tests = []
-        for config in self.build_configurations:
-            test = ndk.test.types.PythonBuildTest(
-                name, path, config, self.ndk_path)
-            tests.append(test)
-        return tests
+    def make_test_py_tests(self, path: str, name: str) -> List[Test]:
+        return [
+            PythonBuildTest(name, path, config, self.ndk_path)
+            for config in self.build_configurations
+        ]
 
-    def make_ndk_build_tests(self, path, name):
-        tests = []
-        for config in self.build_configurations:
-            test = ndk.test.types.NdkBuildTest(
-                name, path, config, self.ndk_path, self.dist)
-            tests.append(test)
-        return tests
+    def make_ndk_build_tests(self, path: str, name: str) -> List[Test]:
+        return [
+            NdkBuildTest(name, path, config, self.ndk_path, self.dist)
+            for config in self.build_configurations
+        ]
 
-    def make_cmake_tests(self, path, name):
-        tests = []
-        for config in self.build_configurations:
-            test = ndk.test.types.CMakeBuildTest(
-                name, path, config, self.ndk_path, self.dist)
-            tests.append(test)
-        return tests
+    def make_cmake_tests(self, path: str, name: str) -> List[Test]:
+        return [
+            CMakeBuildTest(name, path, config, self.ndk_path, self.dist)
+            for config in self.build_configurations
+        ]
 
 
 class LibcxxTestScanner(TestScanner):
     ALL_TESTS: List[str] = []
 
-    def __init__(self, ndk_path):
+    def __init__(self, ndk_path: str) -> None:
         self.ndk_path = ndk_path
-        self.build_configurations = set()
+        self.build_configurations: Set[BuildConfiguration] = set()
         LibcxxTestScanner.find_all_libcxx_tests(self.ndk_path)
 
-    def add_build_configuration(self, abi, api):
-        self.build_configurations.add(ndk.test.spec.BuildConfiguration(
-            abi, api))
+    def add_build_configuration(self, abi: Abi, api: Optional[int]) -> None:
+        self.build_configurations.add(BuildConfiguration(abi, api))
 
-    def find_tests(self, path, name):
-        tests = []
-        for config in self.build_configurations:
-            tests.append(ndk.test.types.LibcxxTest(
-                'libc++', path, config, self.ndk_path))
-        return tests
+    def find_tests(self, path: str, name: str) -> List[Test]:
+        return [
+            LibcxxTest('libc++', path, config, self.ndk_path)
+            for config in self.build_configurations
+        ]
 
     @classmethod
-    def find_all_libcxx_tests(cls, ndk_path):
+    def find_all_libcxx_tests(cls, ndk_path: str) -> None:
         # If we instantiate multiple LibcxxTestScanners, we still only need to
         # initialize this once. We only create these in the main thread, so
         # there's no risk of race.
