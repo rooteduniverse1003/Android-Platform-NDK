@@ -374,7 +374,7 @@ def _run_cmake_build_test(test: CMakeBuildTest, obj_dir: str, dist_dir: str,
 
     # Fail if we don't have a working cmake executable, either from the
     # prebuilts, or from the SDK, or if a new enough version is installed.
-    cmake_bin = ndk.ext.shutil.which('cmake', path=env_path)
+    cmake_bin = shutil.which('cmake', path=env_path)
     if cmake_bin is None:
         return ndk.test.result.Failure(test, 'cmake executable not found')
 
@@ -388,7 +388,7 @@ def _run_cmake_build_test(test: CMakeBuildTest, obj_dir: str, dist_dir: str,
         return ndk.test.result.Failure(test, 'cmake 3.6 or above required')
 
     # Also require a working ninja executable.
-    ninja_bin = ndk.ext.shutil.which('ninja', path=env_path)
+    ninja_bin = shutil.which('ninja', path=env_path)
     if ninja_bin is None:
         return ndk.test.result.Failure(test, 'ninja executable not found')
     rc, _ = ndk.ext.subprocess.call_output([ninja_bin, '--version'])
@@ -473,7 +473,7 @@ def get_lit_cmd():
     lit_path = ndk.paths.android_path('external/llvm/utils/lit/lit.py')
     if os.path.exists(lit_path):
         return ['python', lit_path]
-    elif ndk.ext.shutil.which('lit'):
+    elif shutil.which('lit'):
         return ['lit']
     return None
 

@@ -23,7 +23,7 @@ import ndk.ext.os
 
 
 class OsTest(unittest.TestCase):
-    def test_replace_environ(self):
+    def test_replace_environ(self) -> None:
         self.assertIn('PATH', os.environ)
         old_path = os.environ['PATH']
         self.assertNotIn('FOO', os.environ)
@@ -37,7 +37,7 @@ class OsTest(unittest.TestCase):
         self.assertEqual(os.environ['PATH'], old_path)
         self.assertNotIn('FOO', os.environ)
 
-    def test_modify_environ(self):
+    def test_modify_environ(self) -> None:
         self.assertIn('PATH', os.environ)
         old_path = os.environ['PATH']
         self.assertNotIn('FOO', os.environ)

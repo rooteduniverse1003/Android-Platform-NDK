@@ -18,6 +18,7 @@ from __future__ import print_function
 
 import logging
 import re
+import shutil
 import subprocess
 
 import ndk.ext.shutil
@@ -299,7 +300,7 @@ def create_device(_worker, serial, precache):
 
 def get_all_attached_devices(workqueue):
     """Returns a list of all connected devices."""
-    if ndk.ext.shutil.which('adb') is None:
+    if shutil.which('adb') is None:
         raise RuntimeError('Could not find adb.')
 
     # We could get the device name from `adb devices -l`, but we need to

@@ -18,28 +18,14 @@ from __future__ import absolute_import
 
 import errno
 import os
-import sys
+import shutil
+from typing import Optional
 
 
-def create_directory(path):
+def create_directory(path: str) -> None:
     """Creates a directory, ignoring errors if the directory exists."""
     try:
         os.makedirs(path)  # pylint: disable=no-member
     except OSError as ex:
         if ex.errno != errno.EEXIST:
             raise
-
-
-if sys.version_info >= (3, 3):
-    import shutil
-
-    def which(cmd, path=None):
-        return shutil.which(cmd, path=path)  # pylint: disable=no-member
-else:
-    # virtualenv does tricks for distutils, so this fails pylint in virtualenv.
-    import distutils.spawn  # pylint: disable=no-name-in-module,import-error
-
-    def which(cmd, path=None):
-        # pylint: disable=no-member
-        return distutils.spawn.find_executable(cmd, path=path)
-        # pylint: enable=no-member

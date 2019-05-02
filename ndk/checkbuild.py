@@ -90,7 +90,7 @@ def _make_tar_package(package_path: str, base_dir: str, path: str) -> str:
                            packaging (identical to tar's -C).
         path (string): Path to the directory to package.
     """
-    has_pbzip2 = ndk.ext.shutil.which('pbzip2') is not None
+    has_pbzip2 = shutil.which('pbzip2') is not None
     if has_pbzip2:
         compress_arg = '--use-compress-prog=pbzip2'
     else:
