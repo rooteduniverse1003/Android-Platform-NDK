@@ -56,6 +56,7 @@ from typing import (
     Iterator,
     List,
     Set,
+    TextIO,
     Tuple,
     Union,
 )
@@ -2432,7 +2433,7 @@ def launch_buildable(deps: ndk.deps.DependencyManager,
 def wait_for_build(deps: ndk.deps.DependencyManager,
                    workqueue: ndk.workqueue.AnyWorkQueue, dist_dir: str,
                    log_dir: str, skip_deps: bool,
-                   skip_modules: Set[ndk.builds.Module]):
+                   skip_modules: Set[ndk.builds.Module]) -> None:
     console = ndk.ansi.get_console()
     ui = ndk.ui.get_build_progress_ui(console, workqueue)
     with ndk.ansi.disable_terminal_echo(sys.stdin):
@@ -2635,7 +2636,7 @@ def main() -> None:
 
 
 @contextlib.contextmanager
-def _assign_self_to_new_process_group(fd) -> Iterator[None]:
+def _assign_self_to_new_process_group(fd: TextIO) -> Iterator[None]:
     # It seems the build servers run us in our own session, in which case we
     # get EPERM from `setpgrp`. No need to call this in that case because we
     # will already be the process group leader.
