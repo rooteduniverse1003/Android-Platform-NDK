@@ -18,6 +18,7 @@ from __future__ import absolute_import
 
 import ctypes  # pylint: disable=unused-import
 import collections
+import itertools
 import logging
 import multiprocessing
 import multiprocessing.managers
@@ -383,5 +384,70 @@ class DummyWorkQueue:
         return self.num_tasks == 0
 
 
+class LoadRestrictingWorkQueue:
+    """Specialized work queue for building tests.
+
+    Building the libc++ tests is very demanding and we should not be running
+    more than one libc++ build at a time. The LoadRestrictingWorkQueue has a
+    normal task queue as well as a task queue served by only one worker.
+    """
+
+    def __init__(self, num_workers: int = multiprocessing.cpu_count()) -> None:
+        self.manager = multiprocessing.Manager()
+        self.result_queue = self.manager.Queue()
+
+        assert num_workers >= 2
+
+        self.main_task_queue = self.manager.Queue()
+        self.restricted_task_queue = self.manager.Queue()
+
+        self.main_work_queue = WorkQueue(
+            num_workers - 1, task_queue=self.main_task_queue,
+            result_queue=self.result_queue)
+
+        self.restricted_work_queue = WorkQueue(
+            1, task_queue=self.restricted_task_queue,
+            result_queue=self.result_queue)
+
+        self.num_tasks = 0
+
+    def add_task(self, func: Callable[..., Any], *args: Any,
+                 **kwargs: Any) -> None:
+        self.main_task_queue.put(Task(func, args, kwargs))
+        self.num_tasks += 1
+
+    def add_load_restricted_task(self, func: Callable[..., Any], *args: Any,
+                                 **kwargs: Any) -> None:
+        self.restricted_task_queue.put(Task(func, args, kwargs))
+        self.num_tasks += 1
+
+    def get_result(self) -> Any:
+        """Gets a result from the queue, blocking until one is available."""
+        result = self.result_queue.get()
+        if isinstance(result, TaskError):
+            raise result
+        self.num_tasks -= 1
+        return result
+
+    def terminate(self) -> None:
+        self.main_work_queue.terminate()
+        self.restricted_work_queue.terminate()
+
+    def join(self) -> None:
+        self.main_work_queue.join()
+        self.restricted_work_queue.join()
+
+    @property
+    def workers(self) -> List[Worker]:
+        """List of workers."""
+        return list(
+            itertools.chain(self.main_work_queue.workers,
+                            self.restricted_work_queue.workers))
+
+    def finished(self) -> bool:
+        """Returns True if all tasks have completed execution."""
+        return self.num_tasks == 0
+
+
 WorkQueue = ProcessPoolWorkQueue
-AnyWorkQueue = Union[DummyWorkQueue, ProcessPoolWorkQueue]
+AnyWorkQueue = Union[DummyWorkQueue, LoadRestrictingWorkQueue, ProcessPoolWorkQueue]
