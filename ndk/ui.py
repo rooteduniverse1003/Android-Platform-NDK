@@ -67,7 +67,7 @@ class AnsiUiRenderer(UiRenderer):
             if old_line != new_line:
                 yield idx, new_line
 
-    def clear_last_render(self):
+    def clear_last_render(self) -> None:
         self.console.clear_lines(len(self.last_rendered_lines))
         self.last_rendered_lines = []
 
