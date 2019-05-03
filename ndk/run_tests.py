@@ -20,51 +20,122 @@ from __future__ import print_function
 
 import argparse
 import collections
+import datetime
 import json
 import logging
 import multiprocessing
 import os
 import posixpath
+from queue import Queue
 import random
 import site
 import subprocess
 import sys
 import time
 import traceback
+from typing import (
+    Any,
+    Callable,
+    Dict,
+    Iterable,
+    List,
+    Mapping,
+    Optional,
+    Sequence,
+    Tuple,
+    Union,
+)
 
+from ndk.abis import Abi
 import ndk.ansi
 import ndk.ext.subprocess
 import ndk.notify
 import ndk.paths
 import ndk.test.builder
-import ndk.test.config
-import ndk.test.devices
-import ndk.test.filters
-import ndk.test.printers
-import ndk.test.report
-import ndk.test.result
-import ndk.test.spec
+from ndk.test.config import DeviceTestConfig, LibcxxTestConfig
+from ndk.test.devices import (
+    Device,
+    DeviceFleet,
+    DeviceShardingGroup,
+    find_devices,
+)
+from ndk.test.filters import TestFilter
+from ndk.test.printers import Printer, StdoutPrinter
+from ndk.test.report import Report
+from ndk.test.result import (
+    ExpectedFailure,
+    Failure,
+    Skipped,
+    Success,
+    TestResult,
+    UnexpectedSuccess,
+)
+from ndk.test.spec import BuildConfiguration
 import ndk.test.types
 import ndk.test.ui
-import ndk.timer
+from ndk.timer import Timer
 import ndk.ui
-import ndk.workqueue
+from ndk.workqueue import Task, TaskError, Worker, WorkQueue
 
 
 DEVICE_TEST_BASE_DIR = '/data/local/tmp/tests'
 
 
-def logger():
+def logger() -> logging.Logger:
     """Returns the module logger."""
     return logging.getLogger(__name__)
 
 
-def shell_nocheck_wrap_errors(device, cmd):
+def shell_nocheck_wrap_errors(device: Device,
+                              cmd: Sequence[str]) -> Tuple[int, str, str]:
     """Invokes device.shell_nocheck and wraps exceptions as failed commands."""
     try:
         return device.shell_nocheck(cmd)
-    except RuntimeError as ex:
-        return 1, traceback.format_exc(ex), ''
+    except RuntimeError:
+        return 1, traceback.format_exc(), ''
+
+
+class ShardingWorkQueue:
+    def __init__(self, device_groups: Iterable[DeviceShardingGroup],
+                 procs_per_device: int) -> None:
+        self.manager = multiprocessing.Manager()
+        self.result_queue = self.manager.Queue()
+        self.task_queues: Dict[DeviceShardingGroup, Queue] = {}
+        self.work_queues: List[WorkQueue] = []
+        self.num_tasks = 0
+        for group in device_groups:
+            self.task_queues[group] = self.manager.Queue()
+            for device in group.devices:
+                self.work_queues.append(
+                    WorkQueue(
+                        procs_per_device, task_queue=self.task_queues[group],
+                        result_queue=self.result_queue, worker_data=[device]))
+
+    def add_task(self, group: DeviceShardingGroup, func: Callable[..., Any],
+                 *args: Any, **kwargs: Any) -> None:
+        self.task_queues[group].put(
+            Task(func, args, kwargs))
+        self.num_tasks += 1
+
+    def get_result(self) -> Any:
+        """Gets a result from the queue, blocking until one is available."""
+        result = self.result_queue.get()
+        if isinstance(result, TaskError):
+            raise result
+        self.num_tasks -= 1
+        return result
+
+    def terminate(self) -> None:
+        for work_queue in self.work_queues:
+            work_queue.terminate()
+
+    def join(self) -> None:
+        for work_queue in self.work_queues:
+            work_queue.join()
+
+    def finished(self) -> bool:
+        """Returns True if all tasks have completed execution."""
+        return self.num_tasks == 0
 
 
 # TODO: Extract a common interface from this and ndk.test.types.Test for the
@@ -77,20 +148,24 @@ class TestCase:
     will have a name, a build configuration, a build system, and a device
     directory.
     """
-    def __init__(self, name, test_src_dir, config, build_system, device_dir):
+
+    def __init__(self, name: str, test_src_dir: str,
+                 config: BuildConfiguration, build_system: str,
+                 device_dir: str) -> None:
         self.name = name
         self.test_src_dir = test_src_dir
         self.config = config
         self.build_system = build_system
         self.device_dir = device_dir
 
-    def check_unsupported(self, device):
+    def check_unsupported(self, device: Device) -> Optional[str]:
         raise NotImplementedError
 
-    def check_broken(self, device):
+    def check_broken(
+            self, device: Device) -> Union[Tuple[None, None], Tuple[str, str]]:
         raise NotImplementedError
 
-    def run(self, device):
+    def run(self, device: Device) -> Tuple[int, str, str]:
         raise NotImplementedError
 
 
@@ -102,33 +177,31 @@ class BasicTestCase(TestCase):
     $TEST_SUITE/$ABI/$TEST_FILES. $TEST_FILES includes both the shared
     libraries for the test and the test executables.
     """
-    def __init__(self, suite, executable, test_src_dir, config, build_system,
-                 device_dir):
+
+    def __init__(self, suite: str, executable: str, test_src_dir: str,
+                 config: BuildConfiguration, build_system: str,
+                 device_dir: str) -> None:
         name = '.'.join([suite, executable])
         super().__init__(name, test_src_dir, config, build_system, device_dir)
 
         self.suite = suite
         self.executable = executable
 
-    def get_test_config(self):
+    def get_test_config(self) -> DeviceTestConfig:
         # We don't run anything in tests/build, and the libc++ tests are
         # handled by a different LibcxxTest. We can safely assume that anything
         # here is in tests/device.
         test_dir = os.path.join(self.test_src_dir, 'device', self.suite)
-        return ndk.test.config.DeviceTestConfig.from_test_dir(test_dir)
+        return DeviceTestConfig.from_test_dir(test_dir)
 
-    def check_unsupported(self, device):
+    def check_unsupported(self, device: Device) -> Optional[str]:
         return self.get_test_config().run_unsupported(self, device)
 
-    def check_broken(self, device):
+    def check_broken(
+            self, device: Device) -> Union[Tuple[None, None], Tuple[str, str]]:
         return self.get_test_config().run_broken(self, device)
 
-    def run(self, device):
-        config = self.check_unsupported(device)
-        if config is not None:
-            message = 'test unsupported for {}'.format(config)
-            return ndk.test.result.Skipped(self, message)
-
+    def run(self, device: Device) -> Tuple[int, str, str]:
         cmd = 'cd {} && LD_LIBRARY_PATH={} ./{} 2>&1'.format(
             self.device_dir, self.device_dir, self.executable)
         logger().info('%s: shell_nocheck "%s"', device.name, cmd)
@@ -144,7 +217,9 @@ class LibcxxTestCase(TestCase):
     directory and any under it may contain test executables (always suffixed
     with ".exe") or test data (always suffixed with ".dat").
     """
-    def __init__(self, suite, executable, test_src_dir, config, device_dir):
+
+    def __init__(self, suite: str, executable: str, test_src_dir: str,
+                 config: BuildConfiguration, device_dir: str) -> None:
         # Tests in the top level don't need any mangling to match the filters.
         if suite == 'libc++':
             filter_name = executable
@@ -161,28 +236,29 @@ class LibcxxTestCase(TestCase):
         self.executable = executable
 
     @property
-    def case_name(self):
+    def case_name(self) -> str:
         # Executable is foo.pass.cpp.exe, we want foo.pass.
         return os.path.splitext(os.path.splitext(self.executable)[0])[0]
 
-    def get_test_config(self):
+    def get_test_config(self) -> DeviceTestConfig:
         _, _, test_subdir = self.suite.partition('/')
         test_dir = os.path.join(self.test_src_dir, 'libc++/test', test_subdir)
-        return ndk.test.config.LibcxxTestConfig.from_test_dir(test_dir)
+        return LibcxxTestConfig.from_test_dir(test_dir)
 
-    def check_unsupported(self, device):
+    def check_unsupported(self, device: Device) -> Optional[str]:
         config = self.get_test_config().run_unsupported(self, device)
         if config is not None:
             return config
         return None
 
-    def check_broken(self, device):
+    def check_broken(
+            self, device: Device) -> Union[Tuple[None, None], Tuple[str, str]]:
         config, bug = self.get_test_config().run_broken(self, device)
         if config is not None:
             return config, bug
         return None, None
 
-    def run(self, device):
+    def run(self, device: Device) -> Tuple[int, str, str]:
         libcxx_so_dir = posixpath.join(
             DEVICE_TEST_BASE_DIR, str(self.config), 'libcxx/libc++')
         cmd = 'cd {} && LD_LIBRARY_PATH={} ./{} 2>&1'.format(
@@ -193,51 +269,55 @@ class LibcxxTestCase(TestCase):
 
 class TestRun:
     """A test case mapped to the device group it will run on."""
-    def __init__(self, test_case, device_group):
+
+    def __init__(self, test_case: TestCase,
+                 device_group: DeviceShardingGroup) -> None:
         self.test_case = test_case
         self.device_group = device_group
 
     @property
-    def name(self):
+    def name(self) -> str:
         return self.test_case.name
 
     @property
-    def build_system(self):
+    def build_system(self) -> str:
         return self.test_case.build_system
 
     @property
-    def config(self):
+    def config(self) -> BuildConfiguration:
         return self.test_case.config
 
-    def make_result(self, adb_result_tuple, device):
+    def make_result(self, adb_result_tuple: Tuple[int, str, str],
+                    device: Device) -> TestResult:
         status, out, _ = adb_result_tuple
+        result: TestResult
         if status == 0:
-            result = ndk.test.result.Success(self)
+            result = Success(self)
         else:
             out = '\n'.join([str(device), out])
-            result = ndk.test.result.Failure(self, out)
+            result = Failure(self, out)
         return self.fixup_xfail(result, device)
 
-    def fixup_xfail(self, result, device):
+    def fixup_xfail(self, result: TestResult, device: Device) -> TestResult:
         config, bug = self.test_case.check_broken(device)
         if config is not None:
             if result.failed():
-                return ndk.test.result.ExpectedFailure(self, config, bug)
+                return ExpectedFailure(self, config, bug)
             elif result.passed():
-                return ndk.test.result.UnexpectedSuccess(self, config, bug)
+                return UnexpectedSuccess(self, config, bug)
             raise ValueError('Test result must have either failed or passed.')
         return result
 
-    def run(self, device):
+    def run(self, device: Device) -> TestResult:
         config = self.test_case.check_unsupported(device)
         if config is not None:
-            message = 'test unsupported for {}'.format(config)
-            return ndk.test.result.Skipped(self, message)
+            return Skipped(self, f'test unsupported for {config}')
         return self.make_result(self.test_case.run(device), device)
 
 
-def build_tests(test_src_dir, ndk_dir, out_dir, clean, printer, config,
-                test_filter):
+def build_tests(test_src_dir: str, ndk_dir: str, out_dir: str, clean: bool,
+                printer: Printer, config: Dict[Any, Any],
+                test_filter: str) -> Report:
     test_options = ndk.test.spec.TestOptions(
         test_src_dir, ndk_dir, out_dir, test_filter=test_filter, clean=clean)
 
@@ -247,9 +327,10 @@ def build_tests(test_src_dir, ndk_dir, out_dir, clean, printer, config,
     return builder.build()
 
 
-def enumerate_basic_tests(out_dir_base, test_src_dir, build_cfg, build_system,
-                          test_filter):
-    tests = []
+def enumerate_basic_tests(out_dir_base: str, test_src_dir: str,
+                          build_cfg: BuildConfiguration, build_system: str,
+                          test_filter: TestFilter) -> List[TestCase]:
+    tests: List[TestCase] = []
     tests_dir = os.path.join(out_dir_base, str(build_cfg), build_system)
     if not os.path.exists(tests_dir):
         return tests
@@ -274,9 +355,10 @@ def enumerate_basic_tests(out_dir_base, test_src_dir, build_cfg, build_system,
     return tests
 
 
-def enumerate_libcxx_tests(out_dir_base, test_src_dir, build_cfg, build_system,
-                           test_filter):
-    tests = []
+def enumerate_libcxx_tests(out_dir_base: str, test_src_dir: str,
+                           build_cfg: BuildConfiguration, build_system: str,
+                           test_filter: TestFilter) -> List[TestCase]:
+    tests: List[TestCase] = []
     tests_dir = os.path.join(out_dir_base, str(build_cfg), build_system)
     if not os.path.exists(tests_dir):
         return tests
@@ -317,8 +399,19 @@ def enumerate_libcxx_tests(out_dir_base, test_src_dir, build_cfg, build_system,
     return tests
 
 
-def enumerate_tests(test_dir, test_src_dir, test_filter, config_filter):
-    tests = {}
+class ConfigFilter:
+    def __init__(self, test_config: Dict[Any, Any]) -> None:
+        test_spec = ndk.test.builder.test_spec_from_config(test_config)
+        self.config_abis = test_spec.abis
+
+    def filter(self, build_config: BuildConfiguration) -> bool:
+        return build_config.abi in self.config_abis
+
+
+def enumerate_tests(test_dir: str, test_src_dir: str, test_filter: TestFilter,
+                    config_filter: ConfigFilter
+                    ) -> Dict[BuildConfiguration, List[TestCase]]:
+    tests: Dict[BuildConfiguration, List[TestCase]] = {}
 
     # The tests directory has a directory for each type of test. For example:
     #
@@ -332,14 +425,15 @@ def enumerate_tests(test_dir, test_src_dir, test_filter, config_filter):
     # type tests are build only, so we don't need to run them. The libc++ tests
     # are built by a test runner we don't control, so its output doesn't quite
     # match what we expect.
-    test_subdir_class_map = {
-        'cmake': enumerate_basic_tests,
-        'libcxx': enumerate_libcxx_tests,
-        'ndk-build': enumerate_basic_tests,
-    }
+    test_subdir_class_map: Dict[str, Callable[
+        [str, str, BuildConfiguration, str, TestFilter], List[TestCase]]] = {
+            'cmake': enumerate_basic_tests,
+            'libcxx': enumerate_libcxx_tests,
+            'ndk-build': enumerate_basic_tests,
+        }
 
     for build_cfg_str in os.listdir(test_dir):
-        build_cfg = ndk.test.spec.BuildConfiguration.from_string(build_cfg_str)
+        build_cfg = BuildConfiguration.from_string(build_cfg_str)
         if not config_filter.filter(build_cfg):
             continue
 
@@ -353,14 +447,14 @@ def enumerate_tests(test_dir, test_src_dir, test_filter, config_filter):
     return tests
 
 
-def clear_test_directory(_worker, device):
-    print('Clearing test directory on {}.'.format(device))
+def clear_test_directory(_worker: Worker, device: Device) -> None:
+    print(f'Clearing test directory on {device}')
     cmd = ['rm', '-r', DEVICE_TEST_BASE_DIR]
     logger().info('%s: shell_nocheck "%s"', device.name, cmd)
     device.shell_nocheck(cmd)
 
 
-def clear_test_directories(workqueue, fleet):
+def clear_test_directories(workqueue: WorkQueue, fleet: DeviceFleet) -> None:
     for group in fleet.get_unique_device_groups():
         for device in group.devices:
             workqueue.add_task(clear_test_directory, device)
@@ -369,7 +463,7 @@ def clear_test_directories(workqueue, fleet):
         workqueue.get_result()
 
 
-def adb_has_feature(feature):
+def adb_has_feature(feature: str) -> bool:
     cmd = ['adb', 'host-features']
     logger().info('check_output "%s"', ' '.join(cmd))
     output = subprocess.check_output(cmd).decode('utf-8')
@@ -378,9 +472,10 @@ def adb_has_feature(feature):
     return feature in features
 
 
-def push_tests_to_device(worker, src_dir, dest_dir, config, device,
-                         use_sync):
-    worker.status = 'Pushing {} tests to {}.'.format(config, device)
+def push_tests_to_device(worker: Worker, src_dir: str, dest_dir: str,
+                         config: BuildConfiguration, device: Device,
+                         use_sync: bool) -> None:
+    worker.status = f'Pushing {config} tests to {device}.'
     logger().info('%s: mkdir %s', device.name, dest_dir)
     device.shell_nocheck(['mkdir', dest_dir])
     logger().info(
@@ -391,7 +486,7 @@ def push_tests_to_device(worker, src_dir, dest_dir, config, device,
         device.shell(['chmod', '-R', '777', dest_dir])
 
 
-def finish_workqueue_with_ui(workqueue):
+def finish_workqueue_with_ui(workqueue: WorkQueue) -> None:
     console = ndk.ansi.get_console()
     ui = ndk.ui.get_work_queue_ui(console, workqueue)
     with ndk.ansi.disable_terminal_echo(sys.stdin):
@@ -403,7 +498,11 @@ def finish_workqueue_with_ui(workqueue):
             ui.clear()
 
 
-def push_tests_to_devices(workqueue, test_dir, groups_for_config, use_sync):
+def push_tests_to_devices(
+        workqueue: WorkQueue, test_dir: str,
+        groups_for_config: Mapping[BuildConfiguration,
+                                   Iterable[DeviceShardingGroup]],
+        use_sync: bool) -> None:
     dest_dir = DEVICE_TEST_BASE_DIR
     for config, groups in groups_for_config.items():
         src_dir = os.path.join(test_dir, str(config))
@@ -417,7 +516,7 @@ def push_tests_to_devices(workqueue, test_dir, groups_for_config, use_sync):
     print('Finished pushing tests')
 
 
-def disable_verity_and_wait_for_reboot(device):
+def disable_verity_and_wait_for_reboot(device: Device) -> None:
     if device.get_prop('ro.boot.veritymode') != 'enforcing':
         return
 
@@ -427,12 +526,10 @@ def disable_verity_and_wait_for_reboot(device):
     logger().info('%s: disable-verity', device.name)
     cmd = ['adb', '-s', device.serial, 'disable-verity']
     # disable-verity doesn't set exit status
-    _, out = ndk.ext.subprocess.call_output(cmd)
-    out = out.decode('utf-8')
+    _, out = ndk.ext.subprocess.call_output(cmd, encoding='utf-8')
     logger().info('%s: disable-verity:\n%s', device, out)
     if 'disabled on /' not in out:
-        raise RuntimeError('{}: adb disable-verity failed:\n{}'.format(
-            device, out))
+        raise RuntimeError(f'{device}: adb disable-verity failed:\n{out}')
 
     if 'reboot your device' in out:
         logger().info('%s: reboot', device.name)
@@ -441,14 +538,15 @@ def disable_verity_and_wait_for_reboot(device):
         device.wait()
 
 
-def run_test(worker, test):
+def run_test(worker: Worker, test: TestRun) -> TestResult:
     device = worker.data[0]
-    worker.status = 'Running {}'.format(test.name)
+    worker.status = f'Running {test.name}'
     return test.run(device)
 
 
-def print_test_stats(test_groups):
-    test_stats = {}
+def print_test_stats(
+        test_groups: Mapping[BuildConfiguration, Iterable[TestCase]]) -> None:
+    test_stats: Dict[BuildConfiguration, Dict[str, List[TestCase]]] = {}
     for config, tests in test_groups.items():
         test_stats[config] = {}
         for test in tests:
@@ -457,12 +555,12 @@ def print_test_stats(test_groups):
             test_stats[config][test.build_system].append(test)
 
     for config, build_system_groups in test_stats.items():
-        print('Config {}:'.format(config))
+        print(f'Config {config}:')
         for build_system, tests in build_system_groups.items():
-            print('\t{}: {} tests'.format(build_system, len(tests)))
+            print(f'\t{build_system}: {len(tests)} tests')
 
 
-def verify_have_all_requested_devices(fleet):
+def verify_have_all_requested_devices(fleet: DeviceFleet) -> bool:
     missing_configs = fleet.get_missing()
     if missing_configs:
         logger().warning(
@@ -471,12 +569,20 @@ def verify_have_all_requested_devices(fleet):
     return True
 
 
-def find_configs_with_no_device(groups_for_config):
+def find_configs_with_no_device(
+        groups_for_config: Mapping[BuildConfiguration,
+                                   Iterable[DeviceShardingGroup]]
+) -> List[BuildConfiguration]:
     return [c for c, gs in groups_for_config.items() if not gs]
 
 
-def match_configs_to_device_groups(fleet, configs):
-    groups_for_config = {config: [] for config in configs}
+def match_configs_to_device_groups(
+        fleet: DeviceFleet, configs: Iterable[BuildConfiguration]
+) -> Dict[BuildConfiguration, List[DeviceShardingGroup]]:
+    groups_for_config: Dict[BuildConfiguration, List[DeviceShardingGroup]] = {
+        config: []
+        for config in configs
+    }
     for config in configs:
         for group in fleet.get_unique_device_groups():
             # All devices in the group are identical.
@@ -488,7 +594,11 @@ def match_configs_to_device_groups(fleet, configs):
     return groups_for_config
 
 
-def pair_test_runs(test_groups, groups_for_config):
+def pair_test_runs(
+        test_groups: Mapping[BuildConfiguration, Iterable[TestCase]],
+        groups_for_config: Mapping[BuildConfiguration,
+                                   Iterable[DeviceShardingGroup]]
+) -> List[TestRun]:
     """Creates a TestRun object for each device/test case pairing."""
     test_runs = []
     for config, test_cases in test_groups.items():
@@ -500,7 +610,8 @@ def pair_test_runs(test_groups, groups_for_config):
     return test_runs
 
 
-def wait_for_results(report, workqueue, printer):
+def wait_for_results(report: Report, workqueue: ShardingWorkQueue,
+                     printer: Printer) -> None:
     console = ndk.ansi.get_console()
     ui = ndk.test.ui.get_test_progress_ui(console, workqueue)
     with ndk.ansi.disable_terminal_echo(sys.stdin):
@@ -519,10 +630,12 @@ def wait_for_results(report, workqueue, printer):
             ui.clear()
 
 
-def flake_filter(result):
-    if isinstance(result, ndk.test.result.UnexpectedSuccess):
+def flake_filter(result: TestResult) -> bool:
+    if isinstance(result, UnexpectedSuccess):
         # There are no flaky successes.
         return False
+
+    assert isinstance(result, Failure)
 
     # adb might return no text at all under high load.
     if 'Could not find exit status in shell output.' in result.message:
@@ -537,7 +650,7 @@ def flake_filter(result):
     return False
 
 
-def restart_flaky_tests(report, workqueue):
+def restart_flaky_tests(report: Report, workqueue: ShardingWorkQueue) -> None:
     """Finds and restarts any failing flaky tests."""
     rerun_tests = report.remove_all_failing_flaky(flake_filter)
     if rerun_tests:
@@ -553,7 +666,7 @@ def restart_flaky_tests(report, workqueue):
         workqueue.add_task(group, run_test, flaky_report.result.test)
 
 
-def get_config_dict(config, abis):
+def get_config_dict(config: str, abis: Iterable[Abi]) -> Dict[str, Any]:
     with open(config) as test_config_file:
         test_config = json.load(test_config_file)
     if abis is not None:
@@ -561,7 +674,7 @@ def get_config_dict(config, abis):
     return test_config
 
 
-def str_to_bool(s):
+def str_to_bool(s: str) -> bool:
     if s == 'true':
         return True
     elif s == 'false':
@@ -569,7 +682,7 @@ def str_to_bool(s):
     raise ValueError(s)
 
 
-def parse_args():
+def parse_args() -> argparse.Namespace:
     doc = ('https://android.googlesource.com/platform/ndk/+/master/'
            'docs/Testing.md')
     parser = argparse.ArgumentParser(
@@ -581,13 +694,19 @@ def parse_args():
     config_options.add_argument(
         '--abi', action='append', choices=ndk.abis.ALL_ABIS,
         help='Test only the given APIs.')
-    config_options.add_argument(
-        '--config', type=os.path.realpath, default='qa_config.json',
+
+    # The type ignore is needed because realpath is an overloaded function, and
+    # mypy is bad at those (it doesn't satisfy Callable[[str], AnyStr]).
+    config_options.add_argument(  # type: ignore
+        '--config',
+        type=os.path.realpath,
+        default='qa_config.json',
         help='Path to the config file describing the test run.')
 
     build_options = parser.add_argument_group('Build Options')
-    build_options.add_argument(
-        '--build-report', type=os.path.realpath,
+    build_options.add_argument(  # type: ignore
+        '--build-report',
+        type=os.path.realpath,
         help='Write the build report to the given path.')
 
     build_exclusive_group = build_options.add_mutually_exclusive_group()
@@ -620,96 +739,52 @@ def parse_args():
         '-v', '--verbose', action='count', default=0,
         help='Increase log level. Defaults to logging.WARNING.')
 
-    parser.add_argument(
-        '--ndk', type=os.path.realpath, default=ndk.paths.get_install_path(),
+    parser.add_argument(  # type: ignore
+        '--ndk',
+        type=os.path.realpath,
+        default=ndk.paths.get_install_path(),
         help='NDK to validate. Defaults to ../out/android-ndk-$RELEASE.')
-    parser.add_argument(
-        '--test-src', type=os.path.realpath,
+    parser.add_argument(  # type: ignore
+        '--test-src',
+        type=os.path.realpath,
         help='Path to test source directory. Defaults to ./tests.')
 
-    parser.add_argument(
-        'test_dir', metavar='TEST_DIR', type=os.path.realpath, nargs='?',
+    parser.add_argument(  # type: ignore
+        'test_dir',
+        metavar='TEST_DIR',
+        type=os.path.realpath,
+        nargs='?',
         default=ndk.paths.path_in_out('tests'),
         help='Directory containing built tests.')
 
     return parser.parse_args()
 
 
-class ConfigFilter:
-    def __init__(self, test_config):
-        test_spec = ndk.test.builder.test_spec_from_config(test_config)
-        self.config_abis = test_spec.abis
-
-    def filter(self, build_config):
-        return build_config.abi in self.config_abis
-
-
-class ShardingWorkQueue:
-    def __init__(self, device_groups, procs_per_device):
-        self.manager = multiprocessing.Manager()
-        self.result_queue = self.manager.Queue()
-        self.task_queues = {}
-        self.work_queues = []
-        self.num_tasks = 0
-        for group in device_groups:
-            self.task_queues[group] = self.manager.Queue()
-            for device in group.devices:
-                self.work_queues.append(
-                    ndk.workqueue.WorkQueue(
-                        procs_per_device, task_queue=self.task_queues[group],
-                        result_queue=self.result_queue, worker_data=[device]))
-
-    def add_task(self, group, func, *args, **kwargs):
-        self.task_queues[group].put(
-            ndk.workqueue.Task(func, args, kwargs))
-        self.num_tasks += 1
-
-    def get_result(self):
-        """Gets a result from the queue, blocking until one is available."""
-        result = self.result_queue.get()
-        if isinstance(result, ndk.workqueue.TaskError):
-            raise result
-        self.num_tasks -= 1
-        return result
-
-    def terminate(self):
-        for work_queue in self.work_queues:
-            work_queue.terminate()
-
-    def join(self):
-        for work_queue in self.work_queues:
-            work_queue.join()
-
-    def finished(self):
-        """Returns True if all tasks have completed execution."""
-        return self.num_tasks == 0
-
-
 class Results:
-    def __init__(self):
-        self.success = None
-        self.failure_message = None
-        self.times = collections.OrderedDict()
-        self.sizes = collections.OrderedDict()
+    def __init__(self) -> None:
+        self.success: Optional[bool] = None
+        self.failure_message: Optional[str] = None
+        self.times: Dict[str, datetime.timedelta] = collections.OrderedDict()
 
-    def passed(self):
+    def passed(self) -> None:
         if self.success is not None:
             raise ValueError
         self.success = True
 
-    def failed(self, message=None):
+    def failed(self, message: str = None) -> None:
         if self.success is not None:
             raise ValueError
         self.success = False
         self.failure_message = message
 
-    def add_timing_report(self, label, timer):
+    def add_timing_report(self, label: str, timer: Timer) -> None:
         if label in self.times:
             raise ValueError
+        assert timer.duration is not None
         self.times[label] = timer.duration
 
 
-def run_tests(args):
+def run_tests(args: argparse.Namespace) -> Results:
     results = Results()
 
     if not os.path.exists(args.test_dir):
@@ -721,7 +796,7 @@ def run_tests(args):
 
     test_config = get_config_dict(args.config, args.abi)
 
-    printer = ndk.test.printers.StdoutPrinter(show_all=args.show_all)
+    printer = StdoutPrinter(show_all=args.show_all)
 
     if args.test_src is None:
         args.test_src = os.path.realpath('tests')
@@ -730,7 +805,7 @@ def run_tests(args):
                 args.test_src))
 
     if args.build_only or args.rebuild:
-        build_timer = ndk.timer.Timer()
+        build_timer = Timer()
         with build_timer:
             report = build_tests(
                 args.test_src, args.ndk, args.test_dir, args.clean, printer,
@@ -752,10 +827,10 @@ def run_tests(args):
         return results
 
     test_dist_dir = os.path.join(args.test_dir, 'dist')
-    test_filter = ndk.test.filters.TestFilter.from_string(args.filter)
+    test_filter = TestFilter.from_string(args.filter)
     # dict of {BuildConfiguration: [Test]}
     config_filter = ConfigFilter(test_config)
-    test_discovery_timer = ndk.timer.Timer()
+    test_discovery_timer = Timer()
     with test_discovery_timer:
         test_groups = enumerate_tests(
             test_dist_dir, args.test_src, test_filter, config_filter)
@@ -792,12 +867,11 @@ def run_tests(args):
     # a warning. Then compare that list of devices against all our tests and
     # make sure each test is claimed by at least one device. For each
     # configuration that is unclaimed, print a warning.
-    workqueue = ndk.workqueue.WorkQueue()
+    workqueue = WorkQueue()
     try:
-        device_discovery_timer = ndk.timer.Timer()
+        device_discovery_timer = Timer()
         with device_discovery_timer:
-            fleet = ndk.test.devices.find_devices(
-                test_config['devices'], workqueue)
+            fleet = find_devices(test_config['devices'], workqueue)
         results.add_timing_report('Device discovery', device_discovery_timer)
 
         have_all_devices = verify_have_all_requested_devices(fleet)
@@ -810,15 +884,15 @@ def run_tests(args):
         for config in find_configs_with_no_device(groups_for_config):
             logger().warning('No device found for %s.', config)
 
-        report = ndk.test.report.Report()
-        clean_device_timer = ndk.timer.Timer()
+        report = Report()
+        clean_device_timer = Timer()
         if args.clean_device:
             with clean_device_timer:
                 clear_test_directories(workqueue, fleet)
             results.add_timing_report('Clean device', clean_device_timer)
 
         can_use_sync = adb_has_feature('push_sync')
-        push_timer = ndk.timer.Timer()
+        push_timer = Timer()
         with push_timer:
             push_tests_to_devices(
                 workqueue, test_dist_dir, groups_for_config, can_use_sync)
@@ -837,7 +911,7 @@ def run_tests(args):
         # at any given point in time are all running on the same device.
         test_runs = pair_test_runs(test_groups, groups_for_config)
         random.shuffle(test_runs)
-        test_run_timer = ndk.timer.Timer()
+        test_run_timer = Timer()
         with test_run_timer:
             for test_run in test_runs:
                 shard_queue.add_task(test_run.device_group, run_test, test_run)
@@ -860,7 +934,7 @@ def run_tests(args):
     return results
 
 
-def main():
+def main() -> None:
     args = parse_args()
 
     log_levels = [logging.WARNING, logging.INFO, logging.DEBUG]
@@ -871,7 +945,7 @@ def main():
     python_packages = os.path.join(args.ndk, 'python-packages')
     site.addsitedir(python_packages)
 
-    total_timer = ndk.timer.Timer()
+    total_timer = Timer()
     with total_timer:
         results = run_tests(args)
 
