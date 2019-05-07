@@ -18,38 +18,26 @@ from __future__ import absolute_import
 from __future__ import print_function
 
 import os
+from typing import List
 
-import ndk.ui
-
-
-def get_test_progress_ui(console, workqueue):
-    if console.smart_console:
-        ui_renderer = ndk.ui.AnsiUiRenderer(console)
-        show_worker_status = True
-        show_device_groups = True
-    elif os.name == 'nt':
-        ui_renderer = ndk.ui.DumbUiRenderer(console)
-        show_worker_status = False
-        show_device_groups = False
-    else:
-        ui_renderer = ndk.ui.DumbUiRenderer(console)
-        show_worker_status = False
-        show_device_groups = True
-    return TestProgressUi(
-        ui_renderer, show_worker_status, show_device_groups, workqueue)
+from ndk.ansi import AnsiConsole, Console
+from ndk.run_tests import ShardingWorkQueue
+from ndk.ui import Ui, UiRenderer, AnsiUiRenderer, DumbUiRenderer, columnate
+from ndk.workqueue import LoadRestrictingWorkQueue
 
 
-class TestProgressUi(ndk.ui.Ui):
+class TestProgressUi(Ui):
     NUM_TESTS_DIGITS = 6
 
-    def __init__(self, ui_renderer, show_worker_status, show_device_groups,
-                 workqueue):
+    def __init__(self, ui_renderer: UiRenderer, show_worker_status: bool,
+                 show_device_groups: bool,
+                 workqueue: ShardingWorkQueue) -> None:
         super().__init__(ui_renderer)
         self.show_worker_status = show_worker_status
         self.show_device_groups = show_device_groups
         self.workqueue = workqueue
 
-    def get_ui_lines(self):
+    def get_ui_lines(self) -> List[str]:
         lines = []
 
         if self.show_worker_status:
@@ -72,26 +60,35 @@ class TestProgressUi(ndk.ui.Ui):
         return lines
 
 
-def get_test_build_progress_ui(console, workqueue):
+def get_test_progress_ui(console: Console,
+                         workqueue: ShardingWorkQueue) -> TestProgressUi:
+    ui_renderer: UiRenderer
     if console.smart_console:
-        ui_renderer = ndk.ui.AnsiUiRenderer(console)
+        ui_renderer = AnsiUiRenderer(console)
         show_worker_status = True
-    else:
-        ui_renderer = ndk.ui.DumbUiRenderer(console)
+        show_device_groups = True
+    elif os.name == 'nt':
+        ui_renderer = DumbUiRenderer(console)
         show_worker_status = False
-    return TestBuildProgressUi(
-        ui_renderer, show_worker_status, workqueue)
+        show_device_groups = False
+    else:
+        ui_renderer = DumbUiRenderer(console)
+        show_worker_status = False
+        show_device_groups = True
+    return TestProgressUi(
+        ui_renderer, show_worker_status, show_device_groups, workqueue)
 
 
-class TestBuildProgressUi(ndk.ui.Ui):
+class TestBuildProgressUi(Ui):
     NUM_TESTS_DIGITS = 6
 
-    def __init__(self, ui_renderer, show_worker_status, workqueue):
+    def __init__(self, ui_renderer: UiRenderer, show_worker_status: bool,
+                 workqueue: LoadRestrictingWorkQueue):
         super().__init__(ui_renderer)
         self.show_worker_status = show_worker_status
         self.workqueue = workqueue
 
-    def get_ui_lines(self):
+    def get_ui_lines(self) -> List[str]:
         lines = []
 
         if self.show_worker_status:
@@ -101,12 +98,26 @@ class TestBuildProgressUi(ndk.ui.Ui):
                 lines.append(worker.status)
 
         if self.ui_renderer.console.smart_console:
+            assert isinstance(self.ui_renderer.console, AnsiConsole)
             # Keep some space at the top of the UI so we can see messages.
             ui_height = self.ui_renderer.console.height - 10
             if ui_height > 0:
-                lines = ndk.ui.columnate(lines, self.ui_renderer.console.width,
-                                         ui_height)
+                lines = columnate(lines, self.ui_renderer.console.width,
+                                  ui_height)
 
         lines.append('{: >{width}} tests remaining'.format(
             self.workqueue.num_tasks, width=self.NUM_TESTS_DIGITS))
         return lines
+
+
+def get_test_build_progress_ui(
+        console: Console,
+        workqueue: LoadRestrictingWorkQueue) -> TestBuildProgressUi:
+    ui_renderer: UiRenderer
+    if console.smart_console:
+        ui_renderer = AnsiUiRenderer(console)
+        show_worker_status = True
+    else:
+        ui_renderer = DumbUiRenderer(console)
+        show_worker_status = False
+    return TestBuildProgressUi(ui_renderer, show_worker_status, workqueue)

@@ -18,7 +18,6 @@ from __future__ import absolute_import
 
 import json
 import logging
-import multiprocessing
 import os
 import pickle
 import random
@@ -26,8 +25,6 @@ import shutil
 import sys
 import traceback
 from typing import (
-    Any,
-    Callable,
     Dict,
     List,
     Tuple,
@@ -42,70 +39,12 @@ import ndk.test.spec
 import ndk.test.suites
 from ndk.test.types import Test
 import ndk.test.ui
-import ndk.workqueue
+from ndk.workqueue import LoadRestrictingWorkQueue, Worker
 
 
 def logger() -> logging.Logger:
     """Returns the module logger."""
     return logging.getLogger(__name__)
-
-
-class LoadRestrictingWorkQueue:
-    """Specialized work queue for building tests.
-
-    Building the libc++ tests is very demanding and we should not be running
-    more than one libc++ build at a time. The LoadRestrictingWorkQueue has a
-    normal task queue as well as a task queue served by only one worker.
-    """
-
-    def __init__(self, num_workers: int = multiprocessing.cpu_count()) -> None:
-        self.manager = multiprocessing.Manager()
-        self.result_queue = self.manager.Queue()
-
-        assert num_workers >= 2
-
-        self.main_task_queue = self.manager.Queue()
-        self.restricted_task_queue = self.manager.Queue()
-
-        self.main_work_queue = ndk.workqueue.WorkQueue(
-            num_workers - 1, task_queue=self.main_task_queue,
-            result_queue=self.result_queue)
-
-        self.restricted_work_queue = ndk.workqueue.WorkQueue(
-            1, task_queue=self.restricted_task_queue,
-            result_queue=self.result_queue)
-
-        self.num_tasks = 0
-
-    def add_task(self, func: Callable[..., Any], *args: Any,
-                 **kwargs: Any) -> None:
-        self.main_task_queue.put(ndk.workqueue.Task(func, args, kwargs))
-        self.num_tasks += 1
-
-    def add_load_restricted_task(self, func: Callable[..., Any], *args: Any,
-                                 **kwargs: Any) -> None:
-        self.restricted_task_queue.put(ndk.workqueue.Task(func, args, kwargs))
-        self.num_tasks += 1
-
-    def get_result(self) -> Any:
-        """Gets a result from the queue, blocking until one is available."""
-        result = self.result_queue.get()
-        if isinstance(result, ndk.workqueue.TaskError):
-            raise result
-        self.num_tasks -= 1
-        return result
-
-    def terminate(self) -> None:
-        self.main_work_queue.terminate()
-        self.restricted_work_queue.terminate()
-
-    def join(self) -> None:
-        self.main_work_queue.join()
-        self.restricted_work_queue.join()
-
-    def finished(self) -> bool:
-        """Returns True if all tasks have completed execution."""
-        return self.num_tasks == 0
 
 
 def test_spec_from_config(test_config: Dict) -> ndk.test.spec.TestSpec:
@@ -152,7 +91,7 @@ def _fixup_negative_test(
         return result
 
 
-def _run_test(worker: ndk.workqueue.Worker, suite: str, test: Test,
+def _run_test(worker: Worker, suite: str, test: Test,
               obj_dir: str, dist_dir: str, test_filters: TestFilter
               ) -> Tuple[str, ndk.test.result.TestResult, List[Test]]:
     """Runs a given test according to the given filters.
