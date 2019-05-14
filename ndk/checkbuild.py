@@ -1526,7 +1526,6 @@ class BaseToolchain(ndk.builds.Module):
 class Vulkan(ndk.builds.Module):
     name = 'vulkan'
     path = 'sources/third_party/vulkan'
-    notice_group = ndk.builds.NoticeGroup.TOOLCHAIN
 
     @property
     def notices(self) -> List[str]:
