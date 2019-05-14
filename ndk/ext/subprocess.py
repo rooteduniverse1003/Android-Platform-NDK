@@ -19,14 +19,19 @@ from __future__ import absolute_import
 import logging
 import os
 import subprocess
+from typing import Any, Sequence, Tuple
 
 
-def logger():
+# TODO: Remove in favor of subprocess.run.
+
+
+def logger() -> logging.Logger:
     """Returns the logger for this module."""
     return logging.getLogger(__name__)
 
 
-def _call_output_inner(cmd, *args, **kwargs):
+def _call_output_inner(cmd: Sequence[str], *args: Any,
+                       **kwargs: Any) -> Tuple[int, Any]:
     """Does the real work of call_output.
 
     This inner function does the real work and the outer function handles the
@@ -34,13 +39,17 @@ def _call_output_inner(cmd, *args, **kwargs):
     defined on non-Windows systems).
     """
     logger().info('Popen: %s', ' '.join(cmd))
-    proc = subprocess.Popen(cmd, stdout=subprocess.PIPE,
-                            stderr=subprocess.STDOUT, *args, **kwargs)
+    kwargs.update({
+        'stdout': subprocess.PIPE,
+        'stderr': subprocess.STDOUT,
+    })
+    proc = subprocess.Popen(cmd, *args, **kwargs)
     out, _ = proc.communicate()
     return proc.returncode, out
 
 
-def call_output(cmd, *args, **kwargs):
+def call_output(cmd: Sequence[str], *args: Any,
+                **kwargs: Any) -> Tuple[int, Any]:
     """Invoke the specified command and return exit code and output.
 
     This is the missing subprocess.call_output, which is the combination of

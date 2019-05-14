@@ -18,10 +18,11 @@ from __future__ import absolute_import
 
 import contextlib
 import os
+from typing import ContextManager, MutableMapping, Iterator
 
 
 @contextlib.contextmanager
-def cd(path):
+def cd(path: str) -> Iterator[None]:
     # For some reason pylint can't detect that getcwd/chdir are in os because
     # we're ndk.ext.os, despite the fact that os.environ is fine.
     # pylint: disable=no-member
@@ -34,7 +35,7 @@ def cd(path):
 
 
 @contextlib.contextmanager
-def replace_environ(env):
+def replace_environ(env: MutableMapping[str, str]) -> Iterator[None]:
     """Replacing os.environ with env, restoring on context exit.
 
     The values in env replace the existing environment rather than adding to or
@@ -43,15 +44,15 @@ def replace_environ(env):
     Args:
         env: Environment dict to use as the new environment.
     """
-    old_environ = dict(os.environ)
+    old_environ: MutableMapping[str, str] = dict(os.environ)
     try:
-        os.environ = env
+        os.environ = env  # type: ignore
         yield
     finally:
-        os.environ = old_environ
+        os.environ = old_environ # type: ignore
 
 
-def modify_environ(env):
+def modify_environ(env: MutableMapping[str, str]) -> ContextManager:
     """Extends os.environ with the values in env, restoring on context exit.
 
     The values in env add to the existign environment rather than completely
