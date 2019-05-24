@@ -308,7 +308,7 @@ class Module:
         # both pre- and post-arch split.
         return hash(str(self))
 
-    def __eq__(self, other) -> bool:
+    def __eq__(self, other: object) -> bool:
         # As with hash(), the str must be unique across all modules.
         return str(self) == str(other)
 
