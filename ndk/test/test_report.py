@@ -16,6 +16,7 @@
 """Tests for ndk.test.report."""
 import unittest
 
+import ndk.run_tests
 import ndk.test.report
 
 
