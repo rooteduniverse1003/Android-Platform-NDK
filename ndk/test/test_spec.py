@@ -19,7 +19,7 @@ import ndk.test.spec
 
 
 class BuildConfigurationTest(unittest.TestCase):
-    def test_from_string(self):
+    def test_from_string(self) -> None:
         config = ndk.test.spec.BuildConfiguration.from_string('armeabi-v7a-16')
         self.assertEqual('armeabi-v7a', config.abi)
         self.assertEqual(16, config.api)
