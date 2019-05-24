@@ -14,12 +14,13 @@
 # limitations under the License.
 #
 """Test for ndk.graph."""
+from typing import cast, List, Optional
 import unittest
 
 import ndk.graph
 
 
-def cycle_test(paths):
+def cycle_test(paths: List[str]) -> Optional[List[str]]:
     """Forms a graph from the given paths and returns the found cycle, if any.
 
     Args:
@@ -42,7 +43,7 @@ def cycle_test(paths):
 
 
 class GraphTest(unittest.TestCase):
-    def cycle_test(self, paths, expected):
+    def cycle_test(self, paths: List[str], expected: str) -> None:
         """Checks that a given cycle is found in a graph.
 
         Args:
@@ -56,22 +57,24 @@ class GraphTest(unittest.TestCase):
             expected: An iterable describing the cycle path. For example, 'ABA'
                 describes the cycle A -> B -> A.
         """
-        self.assertListEqual(cycle_test(paths), list(expected))
+        cycle = cycle_test(paths)
+        self.assertIsNotNone(cycle)
+        self.assertListEqual(cast(List[str], cycle), list(expected))
 
-    def test_self_cyclic(self):
+    def test_self_cyclic(self) -> None:
         """Test that a cycle is found in a self-cyclic module."""
         self.cycle_test(['AA'], 'AA')
 
-    def test_no_source_raises(self):
+    def test_no_source_raises(self) -> None:
         """Test that a cycle is found in a graph with no source."""
         self.cycle_test(['ABCA'], 'ABCA')
 
-    def test_find_cycle(self):
+    def test_find_cycle(self) -> None:
         """Test that cycles can be found."""
         self.cycle_test(['ABCDB'], 'BCDB')
         self.cycle_test(['ABCB', 'BD'], 'BCB')
         self.cycle_test(['CBA', 'CDC'], 'CDC')
 
-    def test_no_cycle(self):
+    def test_no_cycle(self) -> None:
         """Test that None is returned when there is no cycle."""
         self.assertIsNone(cycle_test(['ABCD', 'CEF']))
