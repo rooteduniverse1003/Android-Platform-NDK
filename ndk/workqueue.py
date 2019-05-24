@@ -156,7 +156,7 @@ class Worker:
         """Terminates the worker process."""
         self.process.terminate()
 
-    def join(self, timeout=None) -> None:
+    def join(self, timeout: Optional[float] = None) -> None:
         """Joins the worker process."""
         self.process.join(timeout)
 
@@ -304,7 +304,7 @@ class ProcessPoolWorkQueue:
         """Returns True if all tasks have completed execution."""
         return self.num_tasks == 0
 
-    def _spawn_workers(self, num_workers) -> None:
+    def _spawn_workers(self, num_workers: int) -> None:
         """Spawns the worker processes.
 
         Args:
