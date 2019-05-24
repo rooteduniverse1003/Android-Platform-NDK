@@ -16,7 +16,8 @@
 """Timer APIs."""
 import datetime
 import timeit
-from typing import Optional
+from types import TracebackType
+from typing import Optional, Type
 
 
 class Timer:
@@ -49,8 +50,10 @@ class Timer:
         seconds = int(self.end_time - self.start_time)
         self.duration = datetime.timedelta(seconds=seconds)
 
-    def __enter__(self):
+    def __enter__(self) -> None:
         self.start()
 
-    def __exit__(self, _exc_type, _exc_value, _traceback):
+    def __exit__(self, _exc_type: Optional[Type[BaseException]],
+                 _exc_value: Optional[BaseException],
+                 _traceback: Optional[TracebackType]) -> None:
         self.finish()
