@@ -20,9 +20,13 @@ import logging
 import re
 import shutil
 import subprocess
+from typing import Dict, List, Optional, Set
 
+from ndk.abis import Abi
 import ndk.ext.shutil
 import ndk.paths
+from ndk.test.spec import BuildConfiguration
+from ndk.workqueue import Worker, WorkQueue
 
 try:
     import adb  # pylint: disable=import-error
@@ -32,7 +36,7 @@ except ImportError:
     import adb  # pylint: disable=import-error,ungrouped-imports
 
 
-def logger():
+def logger() -> logging.Logger:
     """Returns the module logger."""
     return logging.getLogger(__name__)
 
@@ -40,22 +44,22 @@ def logger():
 class Device(adb.AndroidDevice):
     """A device to be used for testing."""
     # pylint: disable=no-member
-    def __init__(self, serial, precache=False):
+    def __init__(self, serial: str, precache: bool = False) -> None:
         super().__init__(serial)
         self._did_cache = False
-        self._cached_abis = None
-        self._ro_build_characteristics = None
-        self._ro_build_id = None
-        self._ro_build_version_sdk = None
-        self._ro_build_version_codename = None
-        self._ro_debuggable = None
-        self._ro_product_name = None
+        self._cached_abis: Optional[List[Abi]] = None
+        self._ro_build_characteristics: Optional[str] = None
+        self._ro_build_id: Optional[str] = None
+        self._ro_build_version_sdk: Optional[str] = None
+        self._ro_build_version_codename: Optional[str] = None
+        self._ro_debuggable: Optional[bool] = None
+        self._ro_product_name: Optional[str] = None
 
         if precache:
             self.cache_properties()
 
-    def cache_properties(self):
-        """Returns a cached copy of the device's system properties."""
+    def cache_properties(self) -> None:
+        """Caches the device's system properties."""
         if not self._did_cache:
             self._ro_build_characteristics = self.get_prop(
                 'ro.build.characteristics')
@@ -75,7 +79,7 @@ class Device(adb.AndroidDevice):
                 'ro.product.cpu.abi2',
                 'ro.product.cpu.abilist',
             ]
-            abis = set()
+            abis: Set[Abi] = set()
             for abi_prop in abi_properties:
                 value = self.get_prop(abi_prop)
                 if value is not None:
@@ -84,44 +88,50 @@ class Device(adb.AndroidDevice):
             self._cached_abis = sorted(list(abis))
 
     @property
-    def name(self):
+    def name(self) -> str:
         self.cache_properties()
+        assert self._ro_product_name is not None
         return self._ro_product_name
 
     @property
-    def version(self):
+    def version(self) -> int:
         self.cache_properties()
+        assert self._ro_build_version_sdk is not None
         return int(self._ro_build_version_sdk)
 
     @property
-    def abis(self):
+    def abis(self) -> List[Abi]:
         """Returns a list of ABIs supported by the device."""
         self.cache_properties()
+        assert self._cached_abis is not None
         return self._cached_abis
 
     @property
-    def build_id(self):
+    def build_id(self) -> str:
         self.cache_properties()
+        assert self._ro_build_id is not None
         return self._ro_build_id
 
     @property
-    def is_release(self):
+    def is_release(self) -> bool:
         self.cache_properties()
         codename = self._ro_build_version_codename
         return codename == 'REL'
 
     @property
-    def is_emulator(self):
+    def is_emulator(self) -> bool:
         self.cache_properties()
         chars = self._ro_build_characteristics
         return chars == 'emulator'
 
     @property
-    def is_debuggable(self):
+    def is_debuggable(self) -> bool:
         self.cache_properties()
+        assert self._ro_debuggable is not None
         return int(self._ro_debuggable) != 0
 
-    def can_run_build_config(self, config):
+    def can_run_build_config(self, config: BuildConfiguration) -> bool:
+        assert config.api is not None
         if self.version < config.api:
             # Device is too old for this test.
             return False
@@ -132,17 +142,19 @@ class Device(adb.AndroidDevice):
         return True
 
     @property
-    def supports_pie(self):
+    def supports_pie(self) -> bool:
         return self.version >= 16
 
-    def __str__(self):
-        return 'android-{} {} {} {}'.format(
-            self.version, self.name, self.serial, self.build_id)
+    def __str__(self) -> str:
+        return (
+            f'android-{self.version} {self.name} {self.serial} {self.build_id}'
+        )
 
-    def __eq__(self, other):
+    def __eq__(self, other: object) -> bool:
+        assert isinstance(other, Device)
         return self.serial == other.serial
 
-    def __hash__(self):
+    def __hash__(self) -> int:
         return hash(self.serial)
 
 
@@ -152,7 +164,7 @@ class DeviceShardingGroup:
     For the moment, devices are only identical for testing purposes if they are
     the same hardware running the same build.
     """
-    def __init__(self, first_device):
+    def __init__(self, first_device: Device) -> None:
         self.devices = [first_device]
         self.abis = sorted(first_device.abis)
         self.version = first_device.version
@@ -160,14 +172,13 @@ class DeviceShardingGroup:
         self.is_release = first_device.is_release
         self.is_debuggable = first_device.is_debuggable
 
-    def add_device(self, device):
+    def add_device(self, device: Device) -> None:
         if not self.device_matches(device):
-            raise ValueError('{} does not match this device group.'.format(
-                device))
+            raise ValueError(f'{device} does not match this device group.')
 
         self.devices.append(device)
 
-    def device_matches(self, device):
+    def device_matches(self, device: Device) -> bool:
         if self.version != device.version:
             return False
         if self.abis != device.abis:
@@ -180,7 +191,8 @@ class DeviceShardingGroup:
             return False
         return True
 
-    def __eq__(self, other):
+    def __eq__(self, other: object) -> bool:
+        assert isinstance(other, DeviceShardingGroup)
         if self.version != other.version:
             return False
         if self.abis != other.abis:
@@ -197,10 +209,11 @@ class DeviceShardingGroup:
             return False
         return True
 
-    def __lt__(self, other):
+    def __lt__(self, other: object) -> bool:
+        assert isinstance(other, DeviceShardingGroup)
         return (self.version, self.abis) < (other.version, other.abis)
 
-    def __hash__(self):
+    def __hash__(self) -> int:
         return hash((
             self.version, self.is_emulator, self.is_release,
             self.is_debuggable, tuple(self.abis), tuple(self.devices)))
@@ -208,7 +221,7 @@ class DeviceShardingGroup:
 
 class DeviceFleet:
     """A collection of devices that can be used for testing."""
-    def __init__(self, test_configurations):
+    def __init__(self, test_configurations: Dict[int, List[Abi]]) -> None:
         """Initializes a device fleet.
 
         Args:
@@ -220,11 +233,11 @@ class DeviceFleet:
                         16: ['armeabi', 'armeabi-v7a', 'x86'],
                     }
         """
-        self.devices = {}
+        self.devices: Dict[int, Dict[Abi, Optional[DeviceShardingGroup]]] = {}
         for api, abis in test_configurations.items():
             self.devices[int(api)] = {abi: None for abi in abis}
 
-    def add_device(self, device):
+    def add_device(self, device: Device) -> None:
         """Fills a fleet device slot with a device, if appropriate."""
         if device.version not in self.devices:
             logger().info('Ignoring device for unwanted API level: %s', device)
@@ -259,7 +272,7 @@ class DeviceFleet:
             if not current_group.is_release and device.is_release:
                 self.devices[device.version][abi] = DeviceShardingGroup(device)
 
-    def get_unique_device_groups(self):
+    def get_unique_device_groups(self) -> Set[DeviceShardingGroup]:
         groups = set()
         for version in self.get_versions():
             for abi in self.get_abis(version):
@@ -268,7 +281,8 @@ class DeviceFleet:
                     groups.add(group)
         return groups
 
-    def get_device_group(self, version, abi):
+    def get_device_group(self, version: int,
+                         abi: Abi) -> Optional[DeviceShardingGroup]:
         """Returns the device group associated with the given API and ABI."""
         if version not in self.devices:
             return None
@@ -276,29 +290,29 @@ class DeviceFleet:
             return None
         return self.devices[version][abi]
 
-    def get_missing(self):
+    def get_missing(self) -> List[str]:
         """Describes desired configurations without available deices."""
         missing = []
         for version, abis in self.devices.items():
             for abi, group in abis.items():
                 if group is None:
-                    missing.append('android-{} {}'.format(version, abi))
+                    missing.append(f'android-{version} {abi}')
         return missing
 
-    def get_versions(self):
+    def get_versions(self) -> List[int]:
         """Returns a list of all API levels in this fleet."""
-        return self.devices.keys()
+        return list(self.devices.keys())
 
-    def get_abis(self, version):
+    def get_abis(self, version: int) -> List[Abi]:
         """Returns a list of all ABIs for the given API level in this fleet."""
-        return self.devices[version].keys()
+        return list(self.devices[version].keys())
 
 
-def create_device(_worker, serial, precache):
+def create_device(_worker: Worker, serial: str, precache: bool) -> Device:
     return Device(serial, precache)
 
 
-def get_all_attached_devices(workqueue):
+def get_all_attached_devices(workqueue: WorkQueue) -> List[Device]:
     """Returns a list of all connected devices."""
     if shutil.which('adb') is None:
         raise RuntimeError('Could not find adb.')
@@ -340,7 +354,8 @@ def get_all_attached_devices(workqueue):
     return devices
 
 
-def find_devices(sought_devices, workqueue):
+def find_devices(sought_devices: Dict[int, List[Abi]],
+                 workqueue: WorkQueue) -> DeviceFleet:
     """Detects connected devices and returns a set for testing.
 
     We get a list of devices by scanning the output of `adb devices` and
