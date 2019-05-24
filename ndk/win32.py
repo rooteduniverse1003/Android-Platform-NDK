@@ -15,6 +15,7 @@
 #
 """Python interfaces for win32 APIs."""
 from __future__ import absolute_import
+from typing import Optional
 
 import ctypes
 import ctypes.wintypes
@@ -63,13 +64,17 @@ class JOBOBJECT_EXTENDED_LIMIT_INFORMATION(ctypes.Structure):
 # mypy needs to ignore this line because this only typechecks successfully for
 # Windows.
 class UseLastErrorWinDLL(ctypes.WinDLL):  # type: ignore
-    def __init__(self, name, mode=ctypes.DEFAULT_MODE, handle=None):
+    def __init__(self,
+                 name: str,
+                 mode: int = ctypes.DEFAULT_MODE,
+                 handle: int = None) -> None:
         super().__init__(name, mode, handle, use_last_error=True)
 
 _LOADER = ctypes.LibraryLoader(UseLastErrorWinDLL)
 
 
-def CreateJobObject(attributes=None, name=None):
+def CreateJobObject(attributes: Optional[ctypes.Structure] = None,
+                    name: str = None) -> ctypes.wintypes.HANDLE:
     fn_CreateJobObjectW = _LOADER.kernel32.CreateJobObjectW
     fn_CreateJobObjectW.restype = ctypes.wintypes.HANDLE
     fn_CreateJobObjectW.argtypes = [ctypes.c_void_p, ctypes.c_wchar_p]
@@ -77,11 +82,12 @@ def CreateJobObject(attributes=None, name=None):
     if job is None:
         # Automatically calls GetLastError and FormatError for us to create the
         # WindowsError exception.
-        raise ctypes.WinError(ctypes.get_last_error())
+        raise ctypes.WinError(ctypes.get_last_error())  # type: ignore
     return job
 
 
-def SetInformationJobObject(job, info_class, info):
+def SetInformationJobObject(job: ctypes.wintypes.HANDLE, info_class: int,
+                            info: ctypes.Structure) -> None:
     fn_SetInformationJobObject = _LOADER.kernel32.SetInformationJobObject
     fn_SetInformationJobObject.restype = ctypes.wintypes.BOOL
     fn_SetInformationJobObject.argtypes = [
@@ -93,26 +99,27 @@ def SetInformationJobObject(job, info_class, info):
     result = fn_SetInformationJobObject(job, info_class, ctypes.pointer(info),
                                         ctypes.sizeof(info))
     if not result:
-        raise ctypes.WinError(ctypes.get_last_error())
+        raise ctypes.WinError(ctypes.get_last_error())  # type: ignore
 
 
-def AssignProcessToJobObject(job, process):
+def AssignProcessToJobObject(job: ctypes.wintypes.HANDLE,
+                             process: ctypes.wintypes.HANDLE) -> None:
     fn_AssignProcessToJobObject = _LOADER.kernel32.AssignProcessToJobObject
     fn_AssignProcessToJobObject.restype = ctypes.wintypes.BOOL
     fn_AssignProcessToJobObject.argtypes = [ctypes.wintypes.HANDLE, ctypes.wintypes.HANDLE]
     if not fn_AssignProcessToJobObject(job, process):
-        raise ctypes.WinError(ctypes.get_last_error())
+        raise ctypes.WinError(ctypes.get_last_error())  # type: ignore
 
 
-def GetCurrentProcess():
+def GetCurrentProcess() -> ctypes.wintypes.HANDLE:
     fn_GetCurrentProcess = _LOADER.kernel32.GetCurrentProcess
     fn_GetCurrentProcess.restype = ctypes.wintypes.HANDLE
     return fn_GetCurrentProcess()
 
 
-def CloseHandle(handle):
+def CloseHandle(handle: ctypes.wintypes.HANDLE) -> None:
     fn_CloseHandle = _LOADER.kernel32.CloseHandle
     fn_CloseHandle.restype = ctypes.wintypes.BOOL
     fn_CloseHandle.argtypes = [ctypes.wintypes.HANDLE]
     if not fn_CloseHandle(handle):
-        raise ctypes.WinError(ctypes.get_last_error())
+        raise ctypes.WinError(ctypes.get_last_error())  # type: ignore
