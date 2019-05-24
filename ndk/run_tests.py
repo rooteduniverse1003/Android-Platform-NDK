@@ -301,6 +301,7 @@ class TestRun:
     def fixup_xfail(self, result: TestResult, device: Device) -> TestResult:
         config, bug = self.test_case.check_broken(device)
         if config is not None:
+            assert bug is not None
             if result.failed():
                 return ExpectedFailure(self, config, bug)
             elif result.passed():

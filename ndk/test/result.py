@@ -14,105 +14,107 @@
 # limitations under the License.
 #
 """Test result classes."""
+from typing import Any
+
 import ndk.termcolor
 
 
+# TODO: Need to resolve the circular import between this and ndk.test.types.
+Test = Any
+
+
 class TestResult:
-    def __init__(self, test):
+    def __init__(self, test: Test):
         self.test = test
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return self.to_string(colored=False)
 
-    def passed(self):
+    def passed(self) -> bool:
         raise NotImplementedError
 
-    def failed(self):
+    def failed(self) -> bool:
         raise NotImplementedError
 
-    def to_string(self, colored=False):
+    def to_string(self, colored: bool = False) -> str:
         raise NotImplementedError
 
 
 class Failure(TestResult):
-    def __init__(self, test, message):
+    def __init__(self, test: Test, message: str) -> None:
         super().__init__(test)
         self.message = message
 
-    def passed(self):
+    def passed(self) -> bool:
         return False
 
-    def failed(self):
+    def failed(self) -> bool:
         return True
 
-    def to_string(self, colored=False):
+    def to_string(self, colored: bool = False) -> str:
         label = ndk.termcolor.maybe_color('FAIL', 'red', colored)
-        return '{} {} [{}]: {}'.format(
-            label, self.test.name, self.test.config, self.message)
+        return f'{label} {self.test.name} [{self.test.config}]: {self.message}'
 
 
 class Success(TestResult):
-    def passed(self):
+    def passed(self) -> bool:
         return True
 
-    def failed(self):
+    def failed(self) -> bool:
         return False
 
-    def to_string(self, colored=False):
+    def to_string(self, colored: bool = False) -> str:
         label = ndk.termcolor.maybe_color('PASS', 'green', colored)
-        return '{} {} [{}]'.format(label, self.test.name, self.test.config)
+        return f'{label} {self.test.name} [{self.test.config}]'
 
 
 class Skipped(TestResult):
-    def __init__(self, test, reason):
+    def __init__(self, test: Test, reason: str) -> None:
         super().__init__(test)
         self.reason = reason
 
-    def passed(self):
+    def passed(self) -> bool:
         return False
 
-    def failed(self):
+    def failed(self) -> bool:
         return False
 
-    def to_string(self, colored=False):
+    def to_string(self, colored: bool = False) -> str:
         label = ndk.termcolor.maybe_color('SKIP', 'yellow', colored)
-        return '{} {} [{}]: {}'.format(
-            label, self.test.name, self.test.config, self.reason)
+        return f'{label} {self.test.name} [{self.test.config}]: {self.reason}'
 
 
 class ExpectedFailure(TestResult):
-    def __init__(self, test, broken_config, bug):
+    def __init__(self, test: Test, broken_config: str, bug: str) -> None:
         super().__init__(test)
         self.broken_config = broken_config
         self.bug = bug
 
-    def passed(self):
+    def passed(self) -> bool:
         return True
 
-    def failed(self):
+    def failed(self) -> bool:
         return False
 
-    def to_string(self, colored=False):
+    def to_string(self, colored: bool = False) -> str:
         label = ndk.termcolor.maybe_color('KNOWN FAIL', 'yellow', colored)
-        return '{} {} [{}]: known failure for {} ({})'.format(
-            label, self.test.name, self.test.config, self.broken_config,
-            self.bug)
+        return (f'{label} {self.test.name} [{self.test.config}]: '
+                f'known failure for {self.broken_config} ({self.bug})')
 
 
 class UnexpectedSuccess(TestResult):
-    def __init__(self, test, broken_config, bug):
+    def __init__(self, test: Test, broken_config: str, bug: str) -> None:
         super().__init__(test)
         self.broken_config = broken_config
         self.bug = bug
 
-    def passed(self):
+    def passed(self) -> bool:
         return False
 
-    def failed(self):
+    def failed(self) -> bool:
         return True
 
-    def to_string(self, colored=False):
+    def to_string(self, colored: bool = False) -> str:
         label = ndk.termcolor.maybe_color('SHOULD FAIL', 'red', colored)
-        return '{} {} [{}]: unexpected success for {} ({})'.format(
-            label, self.test.name, self.test.config, self.broken_config,
-            self.bug)
+        return (f'{label} {self.test.name} [{self.test.config}]: '
+                f'unexpected success for {self.broken_config} ({self.bug})')
