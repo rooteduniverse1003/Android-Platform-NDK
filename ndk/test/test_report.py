@@ -21,12 +21,12 @@ import ndk.test.report
 
 
 class MockTest:
-    def __init__(self, name=''):
+    def __init__(self, name: str = '') -> None:
         self.name = name
 
 
 class ReportTest(unittest.TestCase):
-    def test_remove_all_failing_flaky(self):
+    def test_remove_all_failing_flaky(self) -> None:
         report = ndk.test.report.Report()
         # Success. Not filtered.
         report.add_result('build', ndk.test.result.Success(MockTest()))
