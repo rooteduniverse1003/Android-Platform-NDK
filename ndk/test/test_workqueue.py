@@ -16,46 +16,50 @@
 """Tests for ndk.workqueue."""
 import multiprocessing
 import os
+from queue import Queue
 import signal
 import sys
+from threading import Event
+from types import FrameType
 import time
 import unittest
 
-import ndk.workqueue
+from ndk.workqueue import DummyWorkQueue, TaskError, Worker, WorkQueue
 
 
-def put(_worker, i):
+def put(_worker: Worker, i: int) -> int:
     """Returns an the passed argument."""
     return i
 
 
 class Functor:
     """Functor that returns the argument passed to the constructor."""
-    def __init__(self, value):
+    def __init__(self, value: int) -> None:
         self.value = value
 
-    def __call__(self, _worker):
+    def __call__(self, _worker: Worker) -> int:
         return self.value
 
 
-def block_on_event(_worker, event):
+def block_on_event(_worker: Worker, event: Event) -> None:
     """Blocks until the event is signalled."""
     event.wait()
 
 
-def update_status(worker, ready_event, finish_event, new_status):
+def update_status(worker: Worker, ready_event: Event, finish_event: Event,
+                  new_status: str) -> None:
     """Updates the worker's status and waits for an event before finishing."""
     worker.status = new_status
     ready_event.set()
     finish_event.wait()
 
 
-def sigterm_handler(_signum, _trace):
+def sigterm_handler(_signum: int, _trace: FrameType) -> None:
     """Raises SystemExit."""
     sys.exit()
 
 
-def sleep_until_sigterm(pid_queue):
+def sleep_until_sigterm(pid_queue: Queue) -> None:
     """Sleeps until signalled, then passes the PID through the queue."""
     signal.signal(signal.SIGTERM, sigterm_handler)
     try:
@@ -65,7 +69,7 @@ def sleep_until_sigterm(pid_queue):
         pid_queue.put(os.getpid())
 
 
-def spawn_child(_worker, pid_queue):
+def spawn_child(_worker: Worker, pid_queue: Queue) -> None:
     """Spawns a child process to check behavior of terminate().
 
     The PIDs of both processes are returned via the pid_queue, and then both
@@ -78,16 +82,16 @@ def spawn_child(_worker, pid_queue):
     sleep_until_sigterm(pid_queue)
 
 
-def raise_error():
+def raise_error() -> None:
     """Raises a RuntimeError to be re-raised in the caller."""
     raise RuntimeError('Error in child')
 
 
 class WorkQueueTest(unittest.TestCase):
     """Tests for WorkQueue."""
-    def test_put_func(self):
+    def test_put_func(self) -> None:
         """Test that we can pass a function to the queue and get results."""
-        workqueue = ndk.workqueue.WorkQueue(4)
+        workqueue = WorkQueue(4)
 
         workqueue.add_task(put, 1)
         workqueue.add_task(put, 2)
@@ -101,9 +105,9 @@ class WorkQueueTest(unittest.TestCase):
         workqueue.terminate()
         workqueue.join()
 
-    def test_put_functor(self):
+    def test_put_functor(self) -> None:
         """Test that we can pass a functor to the queue and get results."""
-        workqueue = ndk.workqueue.WorkQueue(4)
+        workqueue = WorkQueue(4)
 
         workqueue.add_task(Functor(1))
         workqueue.add_task(Functor(2))
@@ -117,9 +121,9 @@ class WorkQueueTest(unittest.TestCase):
         workqueue.terminate()
         workqueue.join()
 
-    def test_finished(self):
+    def test_finished(self) -> None:
         """Tests that finished() returns the correct result."""
-        workqueue = ndk.workqueue.WorkQueue(4)
+        workqueue = WorkQueue(4)
         self.assertTrue(workqueue.finished())
 
         manager = multiprocessing.Manager()
@@ -134,29 +138,27 @@ class WorkQueueTest(unittest.TestCase):
         workqueue.join()
         self.assertTrue(workqueue.finished())
 
-    def test_status(self):
+    def test_status(self) -> None:
         """Tests that worker status can be accessed from the parent."""
-        workqueue = ndk.workqueue.WorkQueue(1)
+        workqueue = WorkQueue(1)
 
         manager = multiprocessing.Manager()
         ready_event = manager.Event()
         finish_event = manager.Event()
-        self.assertEqual(
-            ndk.workqueue.Worker.IDLE_STATUS, workqueue.workers[0].status)
+        self.assertEqual(Worker.IDLE_STATUS, workqueue.workers[0].status)
         workqueue.add_task(update_status, ready_event, finish_event, 'working')
         ready_event.wait()
         self.assertEqual('working', workqueue.workers[0].status)
         finish_event.set()
         workqueue.get_result()
-        self.assertEqual(
-            ndk.workqueue.Worker.IDLE_STATUS, workqueue.workers[0].status)
+        self.assertEqual(Worker.IDLE_STATUS, workqueue.workers[0].status)
 
         workqueue.terminate()
         workqueue.join()
 
-    def test_subprocesses_killed(self):
+    def test_subprocesses_killed(self) -> None:
         """Tests that terminate() kills descendents of worker processes."""
-        workqueue = ndk.workqueue.WorkQueue(4)
+        workqueue = WorkQueue(4)
 
         manager = multiprocessing.Manager()
         queue = manager.Queue()
@@ -176,13 +178,13 @@ class WorkQueueTest(unittest.TestCase):
         self.assertIn(killed_pid, pids)
         pids.remove(killed_pid)
 
-    def test_subprocess_exception(self):
+    def test_subprocess_exception(self) -> None:
         """Tests that exceptions raised in the task are re-raised."""
-        workqueue = ndk.workqueue.WorkQueue()
+        workqueue = WorkQueue()
 
         try:
             workqueue.add_task(raise_error)
-            with self.assertRaises(ndk.workqueue.TaskError):
+            with self.assertRaises(TaskError):
                 workqueue.get_result()
         finally:
             workqueue.terminate()
@@ -191,9 +193,9 @@ class WorkQueueTest(unittest.TestCase):
 
 class DummyWorkQueueTest(unittest.TestCase):
     """Tests for DummyWorkQueue."""
-    def test_put_func(self):
+    def test_put_func(self) -> None:
         """Test that we can pass a function to the queue and get results."""
-        workqueue = ndk.workqueue.DummyWorkQueue()
+        workqueue = DummyWorkQueue()
 
         workqueue.add_task(put, 1)
         workqueue.add_task(put, 2)
@@ -207,9 +209,9 @@ class DummyWorkQueueTest(unittest.TestCase):
         workqueue.terminate()
         workqueue.join()
 
-    def test_put_functor(self):
+    def test_put_functor(self) -> None:
         """Test that we can pass a functor to the queue and get results."""
-        workqueue = ndk.workqueue.DummyWorkQueue()
+        workqueue = DummyWorkQueue()
 
         workqueue.add_task(Functor(1))
         workqueue.add_task(Functor(2))
@@ -223,9 +225,9 @@ class DummyWorkQueueTest(unittest.TestCase):
         workqueue.terminate()
         workqueue.join()
 
-    def test_finished(self):
+    def test_finished(self) -> None:
         """Tests that finished() returns the correct result."""
-        workqueue = ndk.workqueue.WorkQueue()
+        workqueue = WorkQueue()
         self.assertTrue(workqueue.finished())
 
         workqueue.add_task(put, 1)
@@ -237,13 +239,13 @@ class DummyWorkQueueTest(unittest.TestCase):
         workqueue.join()
         self.assertTrue(workqueue.finished())
 
-    def test_subprocess_exception(self):
+    def test_subprocess_exception(self) -> None:
         """Tests that exceptions raised in the task are re-raised."""
-        workqueue = ndk.workqueue.DummyWorkQueue()
+        workqueue = DummyWorkQueue()
 
         try:
             workqueue.add_task(raise_error)
-            with self.assertRaises(ndk.workqueue.TaskError):
+            with self.assertRaises(TaskError):
                 workqueue.get_result()
         finally:
             workqueue.terminate()

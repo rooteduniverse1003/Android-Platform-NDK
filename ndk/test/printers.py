@@ -17,11 +17,14 @@ from __future__ import print_function
 
 import os
 import sys
+from typing import Optional, TextIO
 
 import ndk.termcolor
+from ndk.test.report import Report
+from ndk.test.result import TestResult
 
 
-def format_stats_str(report, use_color):
+def format_stats_str(report: Report, use_color: bool) -> str:
     pass_label = ndk.termcolor.maybe_color('PASS', 'green', use_color)
     fail_label = ndk.termcolor.maybe_color('FAIL', 'red', use_color)
     skip_label = ndk.termcolor.maybe_color('SKIP', 'yellow', use_color)
@@ -33,29 +36,34 @@ def format_stats_str(report, use_color):
 
 
 class Printer:
-    def print_result(self, result):
+    def print_result(self, result: TestResult) -> None:
         raise NotImplementedError
 
-    def print_summary(self, report):
+    def print_summary(self, report: Report) -> None:
         raise NotImplementedError
 
 
 class FilePrinter(Printer):
-    def __init__(self, to_file, use_color=None, show_all=False, quiet=False):
+    def __init__(self,
+                 to_file: TextIO,
+                 use_color: Optional[bool] = None,
+                 show_all: bool = False,
+                 quiet: bool = False) -> None:
         self.file = to_file
-        self.use_color = use_color
         self.show_all = show_all
         self.quiet = quiet
 
-        if self.use_color is None:
+        if use_color is None:
             self.use_color = to_file.isatty() and os.name != 'nt'
+        else:
+            self.use_color = use_color
 
-    def print_result(self, result):
+    def print_result(self, result: TestResult) -> None:
         if self.quiet and not result.failed():
             return
         print(result.to_string(colored=self.use_color), file=self.file)
 
-    def print_summary(self, report):
+    def print_summary(self, report: Report) -> None:
         print(file=self.file)
         formatted = format_stats_str(report, self.use_color)
         print(formatted, file=self.file)
@@ -70,5 +78,8 @@ class FilePrinter(Printer):
 
 
 class StdoutPrinter(FilePrinter):
-    def __init__(self, use_color=None, show_all=False, quiet=False):
+    def __init__(self,
+                 use_color: Optional[bool] = None,
+                 show_all: bool = False,
+                 quiet: bool = False) -> None:
         super().__init__(sys.stdout, use_color, show_all, quiet)

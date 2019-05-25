@@ -35,10 +35,12 @@ class Node:
     def __repr__(self) -> str:
         return self.name
 
-    def __eq__(self, other) -> bool:
+    def __eq__(self, other: object) -> bool:
+        assert isinstance(other, Node)
         return self.name == other.name
 
-    def __le__(self, other) -> bool:
+    def __le__(self, other: object) -> bool:
+        assert isinstance(other, Node)
         return self.name < other.name
 
     def __hash__(self) -> int:

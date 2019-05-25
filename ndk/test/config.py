@@ -15,7 +15,15 @@
 #
 import imp
 import os
-from typing import List, Optional, Tuple, Union
+from types import ModuleType
+from typing import Any, List, Optional, Tuple, Union
+
+from ndk.test.devices import Device
+
+
+# Need to refactor to resolve the circular import between this module and
+# ndk.test.types.
+Test = Any
 
 
 class TestConfig:
@@ -44,12 +52,10 @@ class TestConfig:
     """
 
     class NullTestConfig:
-        def __init__(self):
-            pass
-
         # pylint: disable=unused-argument
         @staticmethod
-        def build_broken(test) -> Union[Tuple[None, None], Tuple[str, str]]:
+        def build_broken(
+                test: Test) -> Union[Tuple[None, None], Tuple[str, str]]:
             """Tests if a given configuration is known broken.
 
             A broken test is a known failing test that should be fixed.
@@ -66,7 +72,7 @@ class TestConfig:
             return None, None
 
         @staticmethod
-        def build_unsupported(test) -> Optional[str]:
+        def build_unsupported(test: Test) -> Optional[str]:
             """Tests if a given configuration is unsupported.
 
             An unsupported test is a test that do not make sense to run for a
@@ -111,45 +117,50 @@ class TestConfig:
             return False
         # pylint: enable=unused-argument
 
-    def __init__(self, file_path):
+    def __init__(self, file_path: str) -> None:
         # Note that this namespace isn't actually meaningful from our side;
         # it's only what the loaded module's __name__ gets set to.
         dirname = os.path.dirname(file_path)
         namespace = '.'.join([dirname, 'test_config'])
 
         try:
-            self.module = imp.load_source(namespace, file_path)
+            self.module: Optional[ModuleType] = imp.load_source(
+                namespace, file_path)
         except IOError:
             self.module = None
 
+        # mypy doesn't understand that the type doesn't matter because we're
+        # checking for errors with AttributeError. It doesn't understand
+        # hasattr either.
+        # https://github.com/python/mypy/issues/1424
         try:
-            self.build_broken = self.module.build_broken
+            self.build_broken = self.module.build_broken  # type: ignore
         except AttributeError:
             self.build_broken = self.NullTestConfig.build_broken
 
         try:
-            self.build_unsupported = self.module.build_unsupported
+            self.build_unsupported = self.module.build_unsupported  # type: ignore
         except AttributeError:
             self.build_unsupported = self.NullTestConfig.build_unsupported
 
         try:
-            self.extra_cmake_flags = self.module.extra_cmake_flags
+            self.extra_cmake_flags = self.module.extra_cmake_flags  # type: ignore
         except AttributeError:
             self.extra_cmake_flags = self.NullTestConfig.extra_cmake_flags
 
         try:
-            self.extra_ndk_build_flags = self.module.extra_ndk_build_flags
+            self.extra_ndk_build_flags = self.module.extra_ndk_build_flags  # type: ignore
         except AttributeError:
             ntc = self.NullTestConfig
             self.extra_ndk_build_flags = ntc.extra_ndk_build_flags
 
         try:
-            self.is_negative_test = self.module.is_negative_test
+            self.is_negative_test = self.module.is_negative_test  # type: ignore
         except AttributeError:
             self.is_negative_test = self.NullTestConfig.is_negative_test
 
     @classmethod
-    def from_test_dir(cls, test_dir):
+    def from_test_dir(cls, test_dir: str) -> 'TestConfig':
         path = os.path.join(test_dir, 'test_config.py')
         return cls(path)
 
@@ -163,12 +174,12 @@ class DeviceTestConfig(TestConfig):
     class NullTestConfig(TestConfig.NullTestConfig):
         # pylint: disable=unused-argument
         @staticmethod
-        def run_broken(test,
-                       device) -> Union[Tuple[None, None], Tuple[str, str]]:
+        def run_broken(test: Test, device: Device
+                       ) -> Union[Tuple[None, None], Tuple[str, str]]:
             return None, None
 
         @staticmethod
-        def run_unsupported(test, device) -> Optional[str]:
+        def run_unsupported(test: Test, device: Device) -> Optional[str]:
             return None
 
         @staticmethod
@@ -176,16 +187,16 @@ class DeviceTestConfig(TestConfig):
             return []
         # pylint: enable=unused-argument
 
-    def __init__(self, file_path):
+    def __init__(self, file_path: str) -> None:
         super().__init__(file_path)
 
         try:
-            self.run_broken = self.module.run_broken
+            self.run_broken = self.module.run_broken  # type: ignore
         except AttributeError:
             self.run_broken = self.NullTestConfig.run_broken
 
         try:
-            self.run_unsupported = self.module.run_unsupported
+            self.run_unsupported = self.module.run_unsupported  # type: ignore
         except AttributeError:
             self.run_unsupported = self.NullTestConfig.run_unsupported
 
@@ -198,6 +209,11 @@ class DeviceTestConfig(TestConfig):
             # cases.
             raise RuntimeError('is_negative_test is invalid for device tests')
 
+    @classmethod
+    def from_test_dir(cls, test_dir: str) -> 'DeviceTestConfig':
+        path = os.path.join(test_dir, 'test_config.py')
+        return cls(path)
+
 
 class LibcxxTestConfig(DeviceTestConfig):
     """Specialization of test_config.py for libc++.
@@ -208,19 +224,20 @@ class LibcxxTestConfig(DeviceTestConfig):
     class NullTestConfig(TestConfig.NullTestConfig):
         # pylint: disable=unused-argument,arguments-differ
         @staticmethod
-        def build_unsupported(test) -> Optional[str]:
+        def build_unsupported(test: Test) -> Optional[str]:
             return None
 
         @staticmethod
-        def build_broken(test) -> Union[Tuple[None, None], Tuple[str, str]]:
+        def build_broken(
+                test: Test) -> Union[Tuple[None, None], Tuple[str, str]]:
             return None, None
 
         @staticmethod
-        def run_unsupported(test, device) -> Optional[str]:
+        def run_unsupported(test: Test, device: Device) -> Optional[str]:
             return None
 
         @staticmethod
-        def run_broken(test,
-                       device) -> Union[Tuple[None, None], Tuple[str, str]]:
+        def run_broken(test: Test, device: Device
+                       ) -> Union[Tuple[None, None], Tuple[str, str]]:
             return None, None
         # pylint: enable=unused-argument,arguments-differ

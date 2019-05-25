@@ -19,7 +19,7 @@ from ndk.test.filters import TestFilter
 
 
 class FilterTest(unittest.TestCase):
-    def test_filters(self):
+    def test_filters(self) -> None:
         filters = TestFilter.from_string('foo,ba*')
         self.assertTrue(filters.filter('foo'))
         self.assertTrue(filters.filter('bar'))
@@ -47,7 +47,7 @@ class FilterTest(unittest.TestCase):
         self.assertFalse(filters.filter('qux.foo'))
         self.assertFalse(filters.filter('qx.bar'))
 
-    def test_empty_filters(self):
+    def test_empty_filters(self) -> None:
         filters = TestFilter.from_string('')
         self.assertTrue(filters.filter('foo'))
         self.assertTrue(filters.filter('foo.bar'))

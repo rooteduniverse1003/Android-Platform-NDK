@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 #
 # Copyright (C) 2018 The Android Open Source Project
 #
@@ -20,67 +19,80 @@ import unittest
 
 from ndk.deps import CyclicDependencyError
 from ndk.deps import DependencyManager
+from ndk.builds import Module
+
+
+class DummyModule(Module):
+    """A no-op module base."""
+    def validate(self) -> None:
+        pass
+
+    def build(self) -> None:
+        pass
+
+    def install(self) -> None:
+        pass
 
 
 # A basic cycle. The cycle logic is tested more thoroughly in test_graph.py,
 # but we want to ensure that CyclicDependencyError is formatted nicely.
-class CycleA:
+class CycleA(DummyModule):
     name = 'cycleA'
     deps = {'cycleB'}
 
 
-class CycleB:
+class CycleB(DummyModule):
     name = 'cycleB'
     deps = {'cycleA'}
 
 
 # A module with no dependents or dependencies. Should be immediately buildable.
-class Isolated:
+class Isolated(DummyModule):
     name = 'isolated'
     deps: Set[str] = set()
 
 
 # A module that is not present in the build graph.
-class Unknown:
+class Unknown(DummyModule):
     name = 'unknown'
     deps: Set[str] = set()
 
 
 # A simple chain of two modules. The first should be immediately buildable, and
 # the second should become buildable after it completes.
-class SimpleA:
+class SimpleA(DummyModule):
     name = 'simpleA'
     deps: Set[str] = set()
 
 
-class SimpleB:
+class SimpleB(DummyModule):
     name = 'simpleB'
     deps = {'simpleA'}
 
 
 # Slightly more complex module graph.
-class ComplexA:
+class ComplexA(DummyModule):
     name = 'complexA'
     deps: Set[str] = set()
 
 
-class ComplexB:
+class ComplexB(DummyModule):
     name = 'complexB'
     deps = {'complexA'}
 
 
-class ComplexC:
+class ComplexC(DummyModule):
     name = 'complexC'
     deps = {'complexA'}
 
 
-class ComplexD:
+class ComplexD(DummyModule):
     name = 'complexD'
     deps = {'complexA', 'complexB'}
 
 
 class DependencyManagerTest(unittest.TestCase):
-    def test_cyclic_dependency_message(self):
+    def test_cyclic_dependency_message(self) -> None:
         """Test that a cycle raises the proper exception."""
         pattern = '^Detected cyclic dependency: cycleA -> cycleB -> cycleA$'
         # pylint: disable=deprecated-method
@@ -88,12 +100,12 @@ class DependencyManagerTest(unittest.TestCase):
         with self.assertRaisesRegexp(CyclicDependencyError, pattern):
             DependencyManager([CycleA(), CycleB()])
 
-    def test_empty_raises(self):
+    def test_empty_raises(self) -> None:
         """Test that an empty module list raises."""
         with self.assertRaises(ValueError):
             DependencyManager([])
 
-    def test_complete_invalid_module_raises(self):
+    def test_complete_invalid_module_raises(self) -> None:
         """Test that completing an unknown module raises."""
         isolated = Isolated()
         unknown = Unknown()
@@ -101,7 +113,7 @@ class DependencyManagerTest(unittest.TestCase):
         with self.assertRaises(KeyError):
             deps.complete(unknown)
 
-    def test_isolated(self):
+    def test_isolated(self) -> None:
         """Test module graph with a single isolated vertex."""
         isolated = Isolated()
         deps = DependencyManager([isolated])
@@ -110,7 +122,7 @@ class DependencyManagerTest(unittest.TestCase):
         self.assertSetEqual(set(), deps.buildable_modules)
         deps.complete(isolated)
 
-    def test_simple(self):
+    def test_simple(self) -> None:
         """Test module graph with a simple module chain."""
         simpleA = SimpleA()
         simpleB = SimpleB()
@@ -126,7 +138,7 @@ class DependencyManagerTest(unittest.TestCase):
         self.assertSetEqual(set(), deps.buildable_modules)
         deps.complete(simpleB)
 
-    def test_complex(self):
+    def test_complex(self) -> None:
         """Test module graph with a more complex module chain."""
         complexA = ComplexA()
         complexB = ComplexB()

@@ -14,24 +14,25 @@
 # limitations under the License.
 #
 import fnmatch
+from typing import List, Optional
 
 
 class FilterFunc:
-    def __init__(self, pattern):
+    def __init__(self, pattern: str) -> None:
         self.pattern = pattern
 
-    def __call__(self, test_name):
+    def __call__(self, test_name: str) -> bool:
         return fnmatch.fnmatch(test_name, self.pattern)
 
 
 class TestFilter:
-    def __init__(self, patterns):
-        self.early_filters = []
-        self.late_filters = []
+    def __init__(self, patterns: List[str]) -> None:
+        self.early_filters: List[FilterFunc] = []
+        self.late_filters: List[FilterFunc] = []
         for pattern in patterns:
             self.add_filter(pattern)
 
-    def filter(self, test_name):
+    def filter(self, test_name: str) -> bool:
         filter_set = self.early_filters
         if '.' in test_name:
             filter_set = self.late_filters
@@ -39,7 +40,7 @@ class TestFilter:
             return True
         return any(f(test_name) for f in filter_set)
 
-    def add_filter(self, pattern):
+    def add_filter(self, pattern: str) -> None:
         """Adds a filter function based on the provided pattern.
 
         There are two types of filters we need to handle.
@@ -79,12 +80,12 @@ class TestFilter:
         self._add_early_filter(early_pattern)
         self._add_late_filter(late_pattern)
 
-    def _add_early_filter(self, pattern):
+    def _add_early_filter(self, pattern: str) -> None:
         self.early_filters.append(FilterFunc(pattern))
 
-    def _add_late_filter(self, pattern):
+    def _add_late_filter(self, pattern: str) -> None:
         self.late_filters.append(FilterFunc(pattern))
 
     @classmethod
-    def from_string(cls, filter_string):
+    def from_string(cls, filter_string: Optional[str]) -> 'TestFilter':
         return cls(filter_string.split(',') if filter_string else [])

@@ -14,11 +14,14 @@
 # limitations under the License.
 #
 """Defines the format of test results from the test runner."""
+from typing import Callable, Dict, List
+
+from ndk.test.result import TestResult
 
 
 class SingleResultReport:
     """Stores the result of a single test with its config info."""
-    def __init__(self, suite, result):
+    def __init__(self, suite: str, result: TestResult) -> None:
         self.suite = suite
         self.result = result
 
@@ -29,14 +32,14 @@ class Report:
     A "test run" means any number of tests run in any number of (unique)
     configurations.
     """
-    def __init__(self):
-        self.reports = []
+    def __init__(self) -> None:
+        self.reports: List[SingleResultReport] = []
 
-    def add_result(self, suite, result):
+    def add_result(self, suite: str, result: TestResult) -> None:
         self.reports.append(SingleResultReport(suite, result))
 
-    def by_suite(self):
-        suite_reports = {}
+    def by_suite(self) -> Dict[str, 'Report']:
+        suite_reports: Dict[str, 'Report'] = {}
         for report in self.reports:
             if report.suite not in suite_reports:
                 suite_reports[report.suite] = Report()
@@ -44,50 +47,52 @@ class Report:
         return suite_reports
 
     @property
-    def successful(self):
+    def successful(self) -> bool:
         return self.num_failed == 0
 
     @property
-    def num_tests(self):
+    def num_tests(self) -> int:
         return len(self.reports)
 
     @property
-    def num_failed(self):
+    def num_failed(self) -> int:
         return len(self.all_failed)
 
     @property
-    def num_passed(self):
+    def num_passed(self) -> int:
         return len(self.all_passed)
 
     @property
-    def num_skipped(self):
+    def num_skipped(self) -> int:
         return len(self.all_skipped)
 
     @property
-    def all_failed(self):
-        failures = []
+    def all_failed(self) -> List[SingleResultReport]:
+        failures: List[SingleResultReport] = []
         for report in self.reports:
             if report.result.failed():
                 failures.append(report)
         return failures
 
     @property
-    def all_passed(self):
-        passes = []
+    def all_passed(self) -> List[SingleResultReport]:
+        passes: List[SingleResultReport] = []
         for report in self.reports:
             if report.result.passed():
                 passes.append(report)
         return passes
 
     @property
-    def all_skipped(self):
-        skips = []
+    def all_skipped(self) -> List[SingleResultReport]:
+        skips: List[SingleResultReport] = []
         for report in self.reports:
             if not report.result.passed() and not report.result.failed():
                 skips.append(report)
         return skips
 
-    def remove_all_failing_flaky(self, flake_filter):
+    def remove_all_failing_flaky(self,
+                                 flake_filter: Callable[[TestResult], bool]
+                                 ) -> List[SingleResultReport]:
         """Splits out the flaky tests that failed so they can be rerun.
 
         Any failing tests that are known flaky are removed from the list of

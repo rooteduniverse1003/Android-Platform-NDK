@@ -18,23 +18,29 @@ import os
 import shutil
 import subprocess
 import tempfile
+from typing import Any, List, Tuple
 
 import ndk.abis
 
 
-def logger():
+def logger() -> logging.Logger:
     return logging.getLogger(__name__)
 
 
-def call_output(cmd, *args, **kwargs):
+def call_output(cmd: List[str], *args: Any, **kwargs: Any) -> Tuple[int, Any]:
     logger().info('COMMAND: %s', ' '.join(cmd))
-    proc = subprocess.Popen(cmd, stdout=subprocess.PIPE,
-                            stderr=subprocess.STDOUT, *args, **kwargs)
+    kwargs.update({
+        'stdout': subprocess.PIPE,
+        'stderr': subprocess.STDOUT,
+    })
+    proc = subprocess.Popen(cmd, *args, **kwargs)
     out, _ = proc.communicate()
     return proc.returncode, out
 
 
-def make_standalone_toolchain(ndk_path, arch, api, extra_args, install_dir):
+def make_standalone_toolchain(ndk_path: str, arch: str, api: int,
+                              extra_args: List[str],
+                              install_dir: str) -> Tuple[bool, str]:
     make_standalone_toolchain_path = os.path.join(
         ndk_path, 'build/tools/make_standalone_toolchain.py')
 
@@ -60,7 +66,8 @@ def make_standalone_toolchain(ndk_path, arch, api, extra_args, install_dir):
     return rc == 0, out.decode('utf-8')
 
 
-def test_standalone_toolchain(install_dir, test_source, flags):
+def test_standalone_toolchain(install_dir: str, test_source: str,
+                              flags: List[str]) -> Tuple[bool, str]:
     compiler_name = 'clang++'
 
     compiler = os.path.join(install_dir, 'bin', compiler_name)
@@ -74,7 +81,8 @@ def test_standalone_toolchain(install_dir, test_source, flags):
     return rc == 0, out.decode('utf-8')
 
 
-def run_test(ndk_path, abi, api, test_source, extra_args, flags):
+def run_test(ndk_path: str, abi: ndk.abis.Abi, api: int, test_source: str,
+             extra_args: List[str], flags: List[str]) -> Tuple[bool, str]:
     arch = ndk.abis.abi_to_arch(abi)
 
     install_dir = tempfile.mkdtemp()
