@@ -21,9 +21,9 @@ import os
 from typing import List
 
 from ndk.ansi import AnsiConsole, Console
-from ndk.run_tests import ShardingWorkQueue
 from ndk.ui import Ui, UiRenderer, AnsiUiRenderer, DumbUiRenderer, columnate
-from ndk.workqueue import LoadRestrictingWorkQueue
+from ndk.test.devices import DeviceShardingGroup
+from ndk.workqueue import LoadRestrictingWorkQueue, ShardingWorkQueue
 
 
 class TestProgressUi(Ui):
@@ -50,6 +50,7 @@ class TestProgressUi(Ui):
 
         if self.show_device_groups:
             for group in sorted(self.workqueue.task_queues.keys()):
+                assert isinstance(group, DeviceShardingGroup)
                 group_id = '{} devices android-{} {}'.format(
                     len(group.devices), group.devices[0].version,
                     ', '.join(group.abis))

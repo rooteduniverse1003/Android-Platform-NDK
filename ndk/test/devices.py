@@ -20,13 +20,13 @@ import logging
 import re
 import shutil
 import subprocess
-from typing import Dict, List, Optional, Set
+from typing import Any, Dict, List, Optional, Set
 
 from ndk.abis import Abi
 import ndk.ext.shutil
 import ndk.paths
 from ndk.test.spec import BuildConfiguration
-from ndk.workqueue import Worker, WorkQueue
+from ndk.workqueue import ShardingGroup, Worker, WorkQueue
 
 try:
     import adb  # pylint: disable=import-error
@@ -158,7 +158,7 @@ class Device(adb.AndroidDevice):
         return hash(self.serial)
 
 
-class DeviceShardingGroup:
+class DeviceShardingGroup(ShardingGroup):
     """A collection of devices that should be identical for testing purposes.
 
     For the moment, devices are only identical for testing purposes if they are
@@ -171,6 +171,10 @@ class DeviceShardingGroup:
         self.is_emulator = first_device.is_emulator
         self.is_release = first_device.is_release
         self.is_debuggable = first_device.is_debuggable
+
+    @property
+    def shards(self) -> List[Any]:
+        return self.devices
 
     def add_device(self, device: Device) -> None:
         if not self.device_matches(device):

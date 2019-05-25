@@ -23,10 +23,8 @@ import collections
 import datetime
 import json
 import logging
-import multiprocessing
 import os
 import posixpath
-from queue import Queue
 import random
 import site
 import subprocess
@@ -75,7 +73,7 @@ import ndk.test.types
 import ndk.test.ui
 from ndk.timer import Timer
 import ndk.ui
-from ndk.workqueue import Task, TaskError, Worker, WorkQueue
+from ndk.workqueue import ShardingWorkQueue, Worker, WorkQueue
 
 
 DEVICE_TEST_BASE_DIR = '/data/local/tmp/tests'
@@ -93,49 +91,6 @@ def shell_nocheck_wrap_errors(device: Device,
         return device.shell_nocheck(cmd)
     except RuntimeError:
         return 1, traceback.format_exc(), ''
-
-
-class ShardingWorkQueue:
-    def __init__(self, device_groups: Iterable[DeviceShardingGroup],
-                 procs_per_device: int) -> None:
-        self.manager = multiprocessing.Manager()
-        self.result_queue = self.manager.Queue()
-        self.task_queues: Dict[DeviceShardingGroup, Queue] = {}
-        self.work_queues: List[WorkQueue] = []
-        self.num_tasks = 0
-        for group in device_groups:
-            self.task_queues[group] = self.manager.Queue()
-            for device in group.devices:
-                self.work_queues.append(
-                    WorkQueue(
-                        procs_per_device, task_queue=self.task_queues[group],
-                        result_queue=self.result_queue, worker_data=[device]))
-
-    def add_task(self, group: DeviceShardingGroup, func: Callable[..., Any],
-                 *args: Any, **kwargs: Any) -> None:
-        self.task_queues[group].put(
-            Task(func, args, kwargs))
-        self.num_tasks += 1
-
-    def get_result(self) -> Any:
-        """Gets a result from the queue, blocking until one is available."""
-        result = self.result_queue.get()
-        if isinstance(result, TaskError):
-            raise result
-        self.num_tasks -= 1
-        return result
-
-    def terminate(self) -> None:
-        for work_queue in self.work_queues:
-            work_queue.terminate()
-
-    def join(self) -> None:
-        for work_queue in self.work_queues:
-            work_queue.join()
-
-    def finished(self) -> bool:
-        """Returns True if all tasks have completed execution."""
-        return self.num_tasks == 0
 
 
 # TODO: Extract a common interface from this and ndk.test.types.Test for the

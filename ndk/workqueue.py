@@ -28,7 +28,18 @@ import signal
 import sys
 import traceback
 from types import FrameType
-from typing import Any, Callable, Deque, List, Mapping, Optional, Tuple, Union
+from typing import (
+    Any,
+    Callable,
+    Deque,
+    Dict,
+    Iterable,
+    List,
+    Mapping,
+    Optional,
+    Tuple,
+    Union,
+)
 
 
 ProcessGroup = Optional['ctypes.wintypes.HANDLE']
@@ -443,6 +454,55 @@ class LoadRestrictingWorkQueue:
         return list(
             itertools.chain(self.main_work_queue.workers,
                             self.restricted_work_queue.workers))
+
+    def finished(self) -> bool:
+        """Returns True if all tasks have completed execution."""
+        return self.num_tasks == 0
+
+
+class ShardingGroup:
+    @property
+    def shards(self) -> List[Any]:
+        raise NotImplementedError
+
+
+class ShardingWorkQueue:
+    def __init__(self, device_groups: Iterable[ShardingGroup],
+                 procs_per_device: int) -> None:
+        self.manager = multiprocessing.Manager()
+        self.result_queue = self.manager.Queue()
+        self.task_queues: Dict[ShardingGroup, Queue] = {}
+        self.work_queues: List[WorkQueue] = []
+        self.num_tasks = 0
+        for group in device_groups:
+            self.task_queues[group] = self.manager.Queue()
+            for shard in group.shards:
+                self.work_queues.append(
+                    WorkQueue(
+                        procs_per_device, task_queue=self.task_queues[group],
+                        result_queue=self.result_queue, worker_data=[shard]))
+
+    def add_task(self, group: ShardingGroup, func: Callable[..., Any],
+                 *args: Any, **kwargs: Any) -> None:
+        self.task_queues[group].put(
+            Task(func, args, kwargs))
+        self.num_tasks += 1
+
+    def get_result(self) -> Any:
+        """Gets a result from the queue, blocking until one is available."""
+        result = self.result_queue.get()
+        if isinstance(result, TaskError):
+            raise result
+        self.num_tasks -= 1
+        return result
+
+    def terminate(self) -> None:
+        for work_queue in self.work_queues:
+            work_queue.terminate()
+
+    def join(self) -> None:
+        for work_queue in self.work_queues:
+            work_queue.join()
 
     def finished(self) -> bool:
         """Returns True if all tasks have completed execution."""
