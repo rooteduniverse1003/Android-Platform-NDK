@@ -585,7 +585,7 @@ class HostTools(ndk.builds.Module):
         ndk.paths.android_path('toolchain/yasm/GNU_LGPL-2.0'),
     ]
 
-    make_src = ndk.paths.NDK_DIR / 'sources/host-tools/make-3.81'
+    make_src = ndk.paths.ANDROID_DIR / 'toolchain/make'
     _make_builder: Optional[AutoconfBuilder] = None
 
     @property
@@ -608,7 +608,8 @@ class HostTools(ndk.builds.Module):
         if self._make_builder is None:
             self._make_builder = AutoconfBuilder(
                 self.make_src / 'configure',
-                self.intermediate_out_dir / 'make', self.host)
+                self.intermediate_out_dir / 'make', self.host,
+                use_clang=True)
         return self._make_builder
 
     def build_make(self) -> None:
