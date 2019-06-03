@@ -54,8 +54,8 @@ support for the NDK.
 
 `$NDK/build/tools/make_standalone_toolchain.py` is a tool which can create a
 redistributable toolchain that targets a single Android ABI and API level. As of
-NDK r19 it is necessary, as the installed toolchain may be invoked directly, but
-it remains for compatibility.
+NDK r19 it is unnecessary, as the installed toolchain may be invoked directly,
+but it remains for compatibility.
 
 Since the Android Gradle plugin is responsible for both Java and native code, is
 not included as part of the NDK.
