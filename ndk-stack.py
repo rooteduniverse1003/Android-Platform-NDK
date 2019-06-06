@@ -32,6 +32,10 @@ def find_llvm_symbolizer():
 
     Returns: An absolute path to llvm-symbolizer(1)."""
 
+    llvm_symbolizer = 'llvm-symbolizer'
+    if os.name == 'nt':
+        # Windows has to include the exe or it won't be found.
+        llvm_symbolizer += '.exe'
     # ndk-stack is installed to $NDK/prebuilt/<platform>/bin, so from
     # `~/Downloads/android-ndk-r18/prebuilt/linux-x86_64/bin/ndk-stack`...
     # ...get `/usr/enh/Downloads/android-ndk-r18/`:
@@ -42,14 +46,14 @@ def find_llvm_symbolizer():
     # And from there construct the llvm-symbolizer path.
     llvm_bin = os.path.join(ndk_root, 'toolchains', 'llvm', 'prebuilt', arch,
                             'bin')
-    path = os.path.join(llvm_bin, 'llvm-symbolizer')
+    path = os.path.join(llvm_bin, llvm_symbolizer)
     if os.path.exists(path):
         return path
 
     # Okay, maybe we're a standalone toolchain? (https://github.com/android-ndk/ndk/issues/931)
     # In that case, llvm-symbolizer and ndk-stack are conveniently in
     # the same directory...
-    return os.path.abspath(os.path.join(ndk_bin, 'llvm-symbolizer'))
+    return os.path.abspath(os.path.join(ndk_bin, llvm_symbolizer))
 
 
 def main():
