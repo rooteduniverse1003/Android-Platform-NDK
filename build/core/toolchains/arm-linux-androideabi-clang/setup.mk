@@ -25,8 +25,6 @@ TARGET_CFLAGS := -fpic
 # https://github.com/android-ndk/ndk/issues/906
 TARGET_CFLAGS += -march=armv7-a
 
-TARGET_LDFLAGS :=
-
 TARGET_CFLAGS.neon := -mfpu=neon
 
 TARGET_arm_release_CFLAGS := \
