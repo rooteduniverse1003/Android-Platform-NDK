@@ -20,15 +20,16 @@ import subprocess
 import sys
 
 
-def run_test(ndk_path, abi, platform, build_flags):
+def run_test(ndk_path, abi, platform, linker, build_flags):
     """Checks that the proper wrap.sh scripts were installed."""
     ndk_build = os.path.join(ndk_path, 'ndk-build')
     if sys.platform == 'win32':
         ndk_build += '.cmd'
     project_path = 'project'
     ndk_args = build_flags + [
-        'APP_ABI=' + abi,
-        'APP_PLATFORM=android-{}'.format(platform),
+        f'APP_ABI={abi}',
+        f'APP_LD={linker.value}',
+        f'APP_PLATFORM=android-{platform}',
     ]
     proc = subprocess.Popen([ndk_build, '-C', project_path] + ndk_args,
                             stdout=subprocess.PIPE, stderr=subprocess.STDOUT)

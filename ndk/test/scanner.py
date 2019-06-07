@@ -29,6 +29,7 @@ from ndk.test.types import (
     ShellBuildTest,
     Test,
 )
+from ndk.toolchains import LinkerOption
 
 
 class TestScanner:
@@ -55,8 +56,9 @@ class BuildTestScanner(TestScanner):
         self.dist = dist
         self.build_configurations: Set[BuildConfiguration] = set()
 
-    def add_build_configuration(self, abi: Abi, api: Optional[int]) -> None:
-        self.build_configurations.add(BuildConfiguration(abi, api))
+    def add_build_configuration(self, abi: Abi, api: Optional[int],
+                                linker: LinkerOption) -> None:
+        self.build_configurations.add(BuildConfiguration(abi, api, linker))
 
     def find_tests(self, path: str, name: str) -> List[Test]:
         # If we have a build.sh, that takes precedence over the Android.mk.
@@ -114,8 +116,9 @@ class LibcxxTestScanner(TestScanner):
         self.build_configurations: Set[BuildConfiguration] = set()
         LibcxxTestScanner.find_all_libcxx_tests()
 
-    def add_build_configuration(self, abi: Abi, api: Optional[int]) -> None:
-        self.build_configurations.add(BuildConfiguration(abi, api))
+    def add_build_configuration(self, abi: Abi, api: Optional[int],
+                                linker: LinkerOption) -> None:
+        self.build_configurations.add(BuildConfiguration(abi, api, linker))
 
     def find_tests(self, path: str, name: str) -> List[Test]:
         return [

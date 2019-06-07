@@ -17,16 +17,17 @@ import os
 import subprocess
 
 
-def run_test(ndk_path, abi, platform, build_flags):
+def run_test(ndk_path, abi, platform, linker, build_flags):
     """Runs the static analyzer on a sample project."""
     ndk_build = os.path.join(ndk_path, 'ndk-build')
     project_path = 'project'
     analyzer_out = os.path.join(project_path, 'report')
     ndk_args = build_flags + [
-        'APP_ABI=' + abi,
-        'APP_PLATFORM=android-{}'.format(platform),
+        f'APP_ABI={abi}',
+        f'APP_LD={linker.value}',
+        f'APP_PLATFORM=android-{platform}',
         'NDK_ANALYZE=1',
-        'NDK_ANALYZER_OUT=' + analyzer_out,
+        f'NDK_ANALYZER_OUT={analyzer_out}',
     ]
     proc = subprocess.Popen([ndk_build, '-C', project_path] + ndk_args,
                             stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
@@ -39,8 +40,7 @@ def run_test(ndk_path, abi, platform, build_flags):
     analyzer_abi_out = os.path.join(analyzer_out, abi)
     # The out directory gets created even if the analyzer fails, so we
     # intentionally include bad code and make sure we get a failure report.
-    reports = os.listdir(analyzer_abi_out)
-    if len(reports) == 0:
+    if not os.listdir(analyzer_abi_out):
         return False, 'No analyzer output found in ' + analyzer_abi_out
 
     return True, out
