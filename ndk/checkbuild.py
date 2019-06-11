@@ -788,17 +788,6 @@ class Libcxx(ndk.builds.Module):
             os.path.join(install_root, 'include'))
         shutil.copytree(self.lib_out, os.path.join(install_root, 'libs'))
 
-        # TODO(danalbert): Fix the test runner to work with a separated test
-        # source and build output tree. The test runner itself works with this,
-        # but we need to do some work to separate the two when we invoke it.
-        shutil.copytree(
-            os.path.join(self.libcxx_path, 'test'),
-            os.path.join(install_root, 'test'),
-            symlinks=True)
-        shutil.copytree(
-            os.path.join(self.libcxx_path, 'utils'),
-            os.path.join(install_root, 'utils'))
-
         for abi in self.abis:
             lib_dir = os.path.join(install_root, 'libs', abi)
 
