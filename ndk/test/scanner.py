@@ -107,11 +107,12 @@ class BuildTestScanner(TestScanner):
 
 class LibcxxTestScanner(TestScanner):
     ALL_TESTS: List[str] = []
+    LIBCXX_SRC = ndk.paths.ANDROID_DIR / 'external/libcxx'
 
     def __init__(self, ndk_path: str) -> None:
         self.ndk_path = ndk_path
         self.build_configurations: Set[BuildConfiguration] = set()
-        LibcxxTestScanner.find_all_libcxx_tests(self.ndk_path)
+        LibcxxTestScanner.find_all_libcxx_tests()
 
     def add_build_configuration(self, abi: Abi, api: Optional[int]) -> None:
         self.build_configurations.add(BuildConfiguration(abi, api))
@@ -123,15 +124,14 @@ class LibcxxTestScanner(TestScanner):
         ]
 
     @classmethod
-    def find_all_libcxx_tests(cls, ndk_path: str) -> None:
+    def find_all_libcxx_tests(cls) -> None:
         # If we instantiate multiple LibcxxTestScanners, we still only need to
         # initialize this once. We only create these in the main thread, so
         # there's no risk of race.
         if cls.ALL_TESTS:
             return
 
-        test_base_dir = os.path.join(
-            ndk_path, 'sources/cxx-stl/llvm-libc++/test')
+        test_base_dir = os.path.join(cls.LIBCXX_SRC, 'test')
 
         for root, _dirs, files in os.walk(test_base_dir):
             for test_file in files:

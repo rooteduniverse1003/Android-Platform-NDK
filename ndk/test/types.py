@@ -18,6 +18,7 @@ import imp
 import logging
 import multiprocessing
 import os
+from pathlib import Path
 import re
 import shutil
 import subprocess
@@ -445,10 +446,9 @@ def _run_cmake_build_test(test: CMakeBuildTest, obj_dir: str, dist_dir: str,
     return Success(test)
 
 
-def get_xunit_reports(xunit_file: str, test_base_dir: str,
-                      config: BuildConfiguration,
-                      ndk_path: str) -> List[Test]:
-    tree = xml.etree.ElementTree.parse(xunit_file)
+def get_xunit_reports(xunit_file: Path, test_base_dir: str,
+                      config: BuildConfiguration, ndk_path: str) -> List[Test]:
+    tree = xml.etree.ElementTree.parse(str(xunit_file))
     root = tree.getroot()
     cases = root.findall('.//testcase')
 
@@ -461,7 +461,7 @@ def get_xunit_reports(xunit_file: str, test_base_dir: str,
         mangled_path = '/'.join([mangled_test_dir, test_case.get('name')])
 
         # ... that has had '.' in its path replaced with '_' because xunit.
-        test_matches = find_original_libcxx_test(mangled_path, ndk_path)
+        test_matches = find_original_libcxx_test(mangled_path)
         if not test_matches:
             raise RuntimeError('Found no matches for test ' + mangled_path)
         if len(test_matches) > 1:
@@ -503,7 +503,7 @@ def get_lit_cmd() -> Optional[List[str]]:
     return None
 
 
-def find_original_libcxx_test(name: str, ndk_path: str) -> List[str]:
+def find_original_libcxx_test(name: str) -> List[str]:
     """Finds the original libc++ test file given the xunit test name.
 
     LIT mangles test names to replace all periods with underscores because
@@ -534,7 +534,7 @@ def find_original_libcxx_test(name: str, ndk_path: str) -> List[str]:
     # works. We can't add the import because then there's a cyclic dependency
     # between this module and ndk.test.scanner. We'll need to refactor to fix
     # that.
-    ndk.test.scanner.LibcxxTestScanner.find_all_libcxx_tests(ndk_path)  # type: ignore
+    ndk.test.scanner.LibcxxTestScanner.find_all_libcxx_tests()  # type: ignore
 
     all_libcxx_tests = ndk.test.scanner.LibcxxTestScanner.ALL_TESTS  # type: ignore
     for match in fnmatch.filter(all_libcxx_tests, test_pattern):
@@ -561,9 +561,9 @@ class LibcxxTest(Test):
     def get_build_dir(self, out_dir: str) -> str:
         return os.path.join(out_dir, str(self.config), 'libcxx', self.name)
 
-    def run_lit(self, lit: List[str], build_dir: str,
+    def run_lit(self, lit: List[str], ndk_path: Path, libcxx_src: Path,
+                libcxx_install: Path, build_dir: str,
                 filters: List[str]) -> None:
-        libcxx_dir = os.path.join(self.ndk_path, 'sources/cxx-stl/llvm-libc++')
         device_dir = '/data/local/tmp/libcxx'
 
         arch = ndk.abis.abi_to_arch(self.abi)
@@ -576,31 +576,29 @@ class LibcxxTest(Test):
             ('api', self.api),
             ('arch', arch),
             ('host_tag', host_tag),
+            ('libcxx_install', libcxx_install),
+            ('libcxx_src', libcxx_src),
+            ('ndk_path', ndk_path),
             ('toolchain', toolchain),
-            ('triple', '{}{}'.format(triple, self.api)),
-            ('use_pie', True),
+            ('triple', f'{triple}{self.api}'),
             ('build_dir', build_dir),
         ]
         lit_cfg_args = []
         for key, value in replacements:
-            lit_cfg_args.append('--param={}={}'.format(key, value))
-
-        shutil.copy2(os.path.join(libcxx_dir, 'test/lit.ndk.cfg.in'),
-                     os.path.join(libcxx_dir, 'test/lit.site.cfg'))
+            lit_cfg_args.append(f'--param={key}={value}')
 
         xunit_output = os.path.join(build_dir, 'xunit.xml')
 
         lit_args = lit + [
             '-sv',
             '--param=device_dir=' + device_dir,
-            '--param=unified_headers=True',
             '--param=build_only=True',
             '--no-progress-bar',
             '--show-all',
             '--xunit-xml-output=' + xunit_output,
         ] + lit_cfg_args
 
-        default_test_path = os.path.join(libcxx_dir, 'test')
+        default_test_path = os.path.join(libcxx_src, 'test')
         test_paths = list(filters)
         if not test_paths:
             test_paths.append(default_test_path)
@@ -619,9 +617,7 @@ class LibcxxTest(Test):
             if logger().isEnabledFor(logging.INFO):
                 stdout = None
                 stderr = None
-            env = dict(os.environ)
-            env['NDK'] = self.ndk_path
-            subprocess.call(lit_args, env=env, stdout=stdout, stderr=stderr)
+            subprocess.call(lit_args, stdout=stdout, stderr=stderr)
 
     def run(self, obj_dir: str, dist_dir: str,
             test_filters: TestFilter) -> Tuple[TestResult, List[Test]]:
@@ -629,18 +625,23 @@ class LibcxxTest(Test):
         if lit is None:
             return Failure(self, 'Could not find lit'), []
 
+        libcxx_src = ndk.paths.ANDROID_DIR / 'external/libcxx'
+        if not libcxx_src.exists():
+            return Failure(self,
+                           f'Expected libc++ directory at {libcxx_src}'), []
+
         build_dir = self.get_build_dir(dist_dir)
 
         if not os.path.exists(build_dir):
             os.makedirs(build_dir)
 
-        xunit_output = os.path.join(build_dir, 'xunit.xml')
-        libcxx_subpath = 'sources/cxx-stl/llvm-libc++'
-        libcxx_path = os.path.join(self.ndk_path, libcxx_subpath)
-        libcxx_so_path = os.path.join(
-            libcxx_path, 'libs', self.config.abi, 'libc++_shared.so')
-        libcxx_test_path = os.path.join(libcxx_path, 'test')
-        shutil.copy2(libcxx_so_path, build_dir)
+        xunit_output = Path(build_dir) / 'xunit.xml'
+        libcxx_test_path = libcxx_src / 'test'
+        ndk_path = Path(self.ndk_path)
+        libcxx_install = (ndk_path / 'sources/cxx-stl/llvm-libc++' / 'libs' /
+                          str(self.config.abi))
+        libcxx_so_path = libcxx_install / 'libc++_shared.so'
+        shutil.copy2(str(libcxx_so_path), build_dir)
 
         # The libc++ test runner's filters are path based. Assemble the path to
         # the test based on the late_filters (early filters for a libc++ test
@@ -661,11 +662,12 @@ class LibcxxTest(Test):
             if path.endswith('*'):
                 # But the libc++ test runner won't like that, so strip it.
                 path = path[:-1]
-            else:
-                assert os.path.isfile(path)
+            elif not os.path.isfile(path):
+                raise RuntimeError(f'{path} does not exist')
 
             filters.append(path)
-        self.run_lit(lit, build_dir, filters)
+        self.run_lit(lit, ndk_path, libcxx_src, libcxx_install, build_dir,
+                     filters)
 
         for root, _, files in os.walk(libcxx_test_path):
             for test_file in files:
