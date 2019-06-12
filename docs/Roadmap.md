@@ -18,40 +18,13 @@ have gone according to plan until then.
 
 ---
 
-## NDK r20
+## Regular maintenance
 
-Estimated release: Q1 2019
+Every NDK release aims to include a new toolchain, new headers, and a new
+version of libc++.
 
-### Iterate on r19 toolchain improvements
-
-r19 covers the bulk of the work, but there are still a handful of flags required
-for building Android that should be lifted into the Clang driver. See [Issue
-812] for more information.
-
-[Issue 812]: https://github.com/android-ndk/ndk/issues/812
-
-### Default to lld (tentative)
-
-NDK r18 [made lld available](https://github.com/android-ndk/ndk/issues/683), r19
-encourages its use, and r20 will make it the default assuming there are no
-unresolved issues turned up in r19.
-
-### Bugs
-
-See the [r20 hotlist](https://github.com/android-ndk/ndk/milestone/16).
-
-## NDK r21
-
-Estimated release: Q2 2019
-
-### Remove gold and bfd (tentative)
-
-If r20 was able to switch the default to lld and no major unresolved issues
-remained, we should remove gold and bfd.
-
-### Bugs
-
-See the [r21 hotlist](https://github.com/android-ndk/ndk/milestone/20).
+We also maintain [hotlists](https://github.com/android-ndk/ndk/milestones) 
+of the bugs we intend to fix in any given NDK release.
 
 ---
 
@@ -104,25 +77,16 @@ own.
 
 See [Issue 463](https://github.com/android-ndk/ndk/issues/463) for discussion.
 
-### Weak symbols for API additions
+### Default to lld
 
-iOS developers are used to using weak symbols to refer to function that
-may be present in their equivalent of `targetSdkVersion` but not in their
-`minSdkVersion`. They use a run-time null check to decide whether the
-new function is available or not. Apparently clang also has some support
-for emitting a warning if you dereference one of these symbols without
-a corresponding null check.
+NDK r18 [made lld available](https://github.com/android-ndk/ndk/issues/683),
+r20 made it more usable, and a future release will make it the default once
+all the issues that turn up are resolved.
 
-This seems like a more convenient option than is currently available
-on Android, especially since no currently shipping version of Android
-includes a function to check which version of Android you're running on.
+### Remove gold and bfd
 
-We might not want to make this the default (because it's such a break
-with historical practice, and might be surprising), but we should offer
-this as an option.
-
-An interesting technical problem here will be dealing with the `DT_NEEDED`
-situation for "I need this library (but it might not exist yet)".
+Once we've switched the default to lld and no major issues remain,
+we should remove gold and bfd.
 
 ### C++ Modules
 
@@ -211,6 +175,13 @@ easily available for NDK users.
 
 We still need to update libc++ twice: once for the platform, and once
 for the NDK. We also still have two separate test runners.
+
+### Weak symbols for API additions
+
+iOS developers are used to using weak symbols to refer to function that
+may be present in their equivalent of `targetSdkVersion` but not in their
+`minSdkVersion`. We could potentially do something similar. See
+[issue 1003](https://github.com/android-ndk/ndk/issues/1003).
 
 ---
 
