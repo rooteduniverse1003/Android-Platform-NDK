@@ -31,14 +31,11 @@ from ndk.hosts import Host
 
 def main(args):
     build_cmd = [
-        'bash', 'build-make.sh',
+        'bash', 'build-make.sh', '--try-64',
     ]
 
     if args.host.is_windows:
         build_cmd.append('--mingw')
-
-    if args.host != Host.Windows:
-        build_cmd.append('--try-64')
 
     build_cmd.append('--build-dir=' + os.path.join(args.out_dir, 'make'))
 

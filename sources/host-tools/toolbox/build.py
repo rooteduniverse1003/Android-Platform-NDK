@@ -37,15 +37,13 @@ def main(args):
     if not args.host.is_windows:
         sys.exit('Toolbox is only for Windows hosts.')
 
+    toolbox_src = os.path.join(args.out_dir, 'toolbox')
     build_cmd = [
-        'bash', 'build-toolbox.sh',
+        'bash',
+        'build-toolbox.sh',
+        '--try-64',
+        f'--build-dir={toolbox_src}',
     ]
-
-    if args.host != Host.Windows:
-        build_cmd.append('--try-64')
-
-    build_cmd.append('--build-dir=' + os.path.join(args.out_dir, 'toolbox'))
-
     build_support.build(build_cmd, args, intermediate_package=True)
 
 

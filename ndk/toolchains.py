@@ -27,7 +27,6 @@ CLANG_VERSION = 'clang-r349610b'
 HOST_TRIPLE_MAP = {
     Host.Darwin: 'x86_64-apple-darwin',
     Host.Linux: 'x86_64-linux-gnu',
-    Host.Windows: 'i686-w64-mingw32',
     Host.Windows64: 'x86_64-w64-mingw32',
 }
 
@@ -146,7 +145,7 @@ class GccToolchain(Toolchain):
     @property
     def flags(self) -> List[str]:
         """The default flags to be used with the compiler."""
-        return ['-m32'] if self.target == Host.Windows else []
+        return []
 
     @property
     def ld(self) -> Path:
@@ -163,12 +162,10 @@ class GccToolchain(Toolchain):
         lib_dirs = [self.path / {
             Host.Darwin: 'lib/gcc/i686-apple-darwin11/4.2.1',
             Host.Linux: 'lib/gcc/x86_64-linux/4.8',
-            Host.Windows: 'lib/gcc/x86_64-w64-mingw32/4.8.3/32',
             Host.Windows64: 'lib/gcc/x86_64-w64-mingw32/4.8.3',
         }[self.target]]
         if self.target != Host.Darwin:
-            libdir = 'lib32' if self.target == Host.Windows else 'lib64'
-            lib_dirs.append(self.path / self.triple / libdir)
+            lib_dirs.append(self.path / self.triple / 'lib64')
         return lib_dirs
 
     @property
@@ -224,7 +221,6 @@ class GccToolchain(Toolchain):
         return {
             Host.Darwin: 'x86_64-apple-darwin11',
             Host.Linux: 'x86_64-linux',
-            Host.Windows: 'x86_64-w64-mingw32',
             Host.Windows64: 'x86_64-w64-mingw32',
         }[self.target]
 
@@ -242,7 +238,6 @@ class ClangToolchain(Toolchain):
         host_tag = {
             Host.Darwin: 'darwin-x86',
             Host.Linux: 'linux-x86',
-            Host.Windows: 'windows-x86_32',
             Host.Windows64: 'windows-x86',
         }[host]
         return (ndk.paths.ANDROID_DIR / 'prebuilts/clang/host' / host_tag /
