@@ -213,19 +213,18 @@ HOST_ARCH := $(strip $(HOST_ARCH))
 HOST_ARCH64 :=
 ifndef HOST_ARCH
     ifeq ($(HOST_OS_BASE),windows)
-        HOST_ARCH := $(PROCESSOR_ARCHITECTURE)
-        ifeq ($(HOST_ARCH),AMD64)
-            HOST_ARCH := x86
+        # In the case that we're a 32-bit make (shouldn't be the case, but maybe
+        # the user is using their own make binary rather than the NDK's), on a
+        # 64-bit OS, PROCESSOR_ARCHITECTURE will be x86 but
+        # PROCESSOR_ARCHITEW6432 will be AMD64. If PROCESSOR_ARCHITECTURE is x86
+        # and PROCESSOR_ARCHITEW6432 is empty, this is a 32-bit OS.
+        # https://blogs.msdn.microsoft.com/david.wang/2006/03/27/howto-detect-process-bitness/
+        ifeq ($(PROCESSOR_ARCHITECTURE)$(PROCESSOR_ARCHITEW6432),x86)
+            $(call __ndk_error,32-bit Windows is supported.)
         endif
-        # Windows is 64-bit if either ProgramW6432 or ProgramFiles(x86) is set
-        ifneq ("/",$(shell echo "%ProgramW6432%/%ProgramFiles(x86)%"))
-            HOST_ARCH64 := x86_64
-        endif
-        $(call ndk_log,Host CPU was auto-detected: $(HOST_ARCH))
-    else
-        HOST_ARCH := x86
-        HOST_ARCH64 := x86_64
     endif
+    HOST_ARCH := x86
+    HOST_ARCH64 := x86_64
 else
     $(call ndk_log,Host CPU from environment: $(HOST_ARCH))
 endif
@@ -265,12 +264,6 @@ ifeq ($(HOST_TAG),windows-x86)
 
     # special-case the host-tag
     HOST_TAG := windows
-
-    # For 32-bit systems, HOST_TAG64 should be HOST_TAG, but we just updated
-    # HOST_TAG, so update HOST_TAG64 to match.
-    ifeq ($(HOST_ARCH64),x86)
-        HOST_TAG64 = $(HOST_TAG)
-    endif
 endif
 
 $(call ndk_log,HOST_TAG set to $(HOST_TAG))
