@@ -364,9 +364,14 @@ assembler. If using `-fno-integrated-as`, you must explicitly pass
 use the integrated assembler, and this flag is not needed in that case. See
 [Issue 906].
 
+Clang outputs debug info with bad line number info when compiling for ARM64 and
+`-O0` (no optimizations). To work around this issue, pass
+`-fno-experimental-isel` to Clang. See [Issue 1004].
+
 [Issue 635]: https://github.com/android-ndk/ndk/issues/635
 [Issue 884]: https://github.com/android-ndk/ndk/issues/884
 [Issue 906]: https://github.com/android-ndk/ndk/issues/906
+[Issue 1004]: https://github.com/android-ndk/ndk/issues/1004
 [Position-independent executables]: https://en.wikipedia.org/wiki/Position-independent_code#Position-independent_executables
 
 ## Useful Arguments
