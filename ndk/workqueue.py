@@ -472,15 +472,18 @@ class ShardingWorkQueue:
         self.manager = multiprocessing.Manager()
         self.result_queue = self.manager.Queue()
         self.task_queues: Dict[ShardingGroup, Queue] = {}
-        self.work_queues: List[WorkQueue] = []
+
+        self.work_queues: Dict[ShardingGroup, Dict[Any, WorkQueue]] = {}
         self.num_tasks = 0
         for group in device_groups:
+            self.work_queues[group] = {}
             self.task_queues[group] = self.manager.Queue()
             for shard in group.shards:
-                self.work_queues.append(
-                    WorkQueue(
-                        procs_per_device, task_queue=self.task_queues[group],
-                        result_queue=self.result_queue, worker_data=[shard]))
+                self.work_queues[group][shard] = WorkQueue(
+                    procs_per_device,
+                    task_queue=self.task_queues[group],
+                    result_queue=self.result_queue,
+                    worker_data=[shard])
 
     def add_task(self, group: ShardingGroup, func: Callable[..., Any],
                  *args: Any, **kwargs: Any) -> None:
@@ -497,12 +500,14 @@ class ShardingWorkQueue:
         return result
 
     def terminate(self) -> None:
-        for work_queue in self.work_queues:
-            work_queue.terminate()
+        for group_queues in self.work_queues.values():
+            for work_queue in group_queues.values():
+                work_queue.terminate()
 
     def join(self) -> None:
-        for work_queue in self.work_queues:
-            work_queue.join()
+        for group_queues in self.work_queues.values():
+            for work_queue in group_queues.values():
+                work_queue.join()
 
     def finished(self) -> bool:
         """Returns True if all tasks have completed execution."""

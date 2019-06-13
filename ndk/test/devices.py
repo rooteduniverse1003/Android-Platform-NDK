@@ -172,6 +172,9 @@ class DeviceShardingGroup(ShardingGroup):
         self.is_release = first_device.is_release
         self.is_debuggable = first_device.is_debuggable
 
+    def __str__(self) -> str:
+        return f'android-{self.version} {" ".join(self.abis)}'
+
     @property
     def shards(self) -> List[Any]:
         return self.devices
