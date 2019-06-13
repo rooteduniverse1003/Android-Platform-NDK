@@ -22,8 +22,10 @@ import os
 import subprocess
 import sys
 
+from ndk.toolchains import LinkerOption
 
-def check_ndk_build(ndk_path, abi, platform, build_flags, use_lld):
+
+def check_ndk_build(ndk_path, abi, platform, build_flags, linker):
     """Checks --no-threads behavior with ndk-build.
 
     If use_lld is used, the test will build the ndk-build project with
@@ -34,7 +36,7 @@ def check_ndk_build(ndk_path, abi, platform, build_flags, use_lld):
     is_win = sys.platform == 'win32'
     if is_win:
         ndk_build += '.cmd'
-    if use_lld:
+    if linker == LinkerOption.Lld:
         build_flags.append('APP_LDFLAGS=-fuse-ld=lld')
     project_path = 'project'
     ndk_args = build_flags + [
@@ -51,7 +53,7 @@ def check_ndk_build(ndk_path, abi, platform, build_flags, use_lld):
         return proc.returncode == 0, out
 
     out_words = out.split(' ')
-    if is_win and use_lld:
+    if is_win and linker == LinkerOption.Lld:
         result = '-Wl,--no-threads' in out_words
     else:
         result = '-Wl,--no-threads' not in out_words
@@ -59,9 +61,6 @@ def check_ndk_build(ndk_path, abi, platform, build_flags, use_lld):
     return result, out
 
 
-def run_test(ndk_path, abi, platform, build_flags):
+def run_test(ndk_path, abi, platform, linker, build_flags):
     """Checks --no-threads-behavior."""
-    result, out = check_ndk_build(ndk_path, abi, platform, build_flags, False)
-    if not result:
-        return result, out
-    return check_ndk_build(ndk_path, abi, platform, build_flags, True)
+    return check_ndk_build(ndk_path, abi, platform, build_flags, linker)

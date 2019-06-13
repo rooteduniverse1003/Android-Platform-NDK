@@ -29,14 +29,15 @@ import subprocess
 import sys
 
 
-def build(ndk_dir, abi, platform, build_flags):
+def build(ndk_dir, abi, platform, linker, build_flags):
     ndk_build = os.path.join(ndk_dir, 'ndk-build')
     if sys.platform == 'win32':
         ndk_build += '.cmd'
     project_path = 'project'
     ndk_args = build_flags + [
-        'APP_ABI=' + abi,
-        'APP_PLATFORM=android-{}'.format(platform),
+        f'APP_ABI={abi}',
+        f'APP_LD={linker.value}',
+        f'APP_PLATFORM=android-{platform}',
         'V=1',
     ]
     proc = subprocess.Popen([ndk_build, '-C', project_path] + ndk_args,
@@ -45,7 +46,7 @@ def build(ndk_dir, abi, platform, build_flags):
     return proc.returncode == 0, out.decode('utf-8')
 
 
-def run_test(ndk_path, abi, _platform, build_flags):
+def run_test(ndk_path, abi, _platform, linker, build_flags):
     """Checks ndk-build V=1 output for correct compiler."""
     min_api = None
     max_api = None
@@ -70,7 +71,7 @@ def run_test(ndk_path, abi, _platform, build_flags):
 
     missing_platforms = sorted(list(set(range(min_api, max_api)) - set(apis)))
     for api in missing_platforms:
-        result, out = build(ndk_path, abi, api, build_flags)
+        result, out = build(ndk_path, abi, api, linker, build_flags)
         if not result:
             return result, out
 

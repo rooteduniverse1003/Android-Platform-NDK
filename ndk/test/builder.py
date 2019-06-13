@@ -39,6 +39,7 @@ import ndk.test.spec
 import ndk.test.suites
 from ndk.test.types import Test
 import ndk.test.ui
+from ndk.toolchains import LinkerOption
 from ndk.workqueue import LoadRestrictingWorkQueue, Worker
 
 
@@ -51,8 +52,13 @@ def test_spec_from_config(test_config: Dict) -> ndk.test.spec.TestSpec:
     """Returns a TestSpec based on the test config file."""
     abis = test_config.get('abis', ndk.abis.ALL_ABIS)
     suites = test_config.get('suites', ndk.test.suites.ALL_SUITES)
+    linkers_str = test_config.get('linkers', None)
+    if linkers_str is None:
+        linkers = list(LinkerOption)
+    else:
+        linkers = [LinkerOption(l) for l in linkers_str]
 
-    return ndk.test.spec.TestSpec(abis, suites)
+    return ndk.test.spec.TestSpec(abis, linkers, suites)
 
 
 def write_build_report(build_report: str, results: Report) -> None:
@@ -152,11 +158,14 @@ class TestBuilder:
         libcxx_scanner = ndk.test.scanner.LibcxxTestScanner(
             self.test_options.ndk_path)
         for abi in test_spec.abis:
-            build_api_level = None  # Always use the default.
+            for linker in test_spec.linkers:
+                build_api_level = None  # Always use the default.
 
-            scanner.add_build_configuration(abi, build_api_level)
-            nodist_scanner.add_build_configuration(abi, build_api_level)
-            libcxx_scanner.add_build_configuration(abi, build_api_level)
+                scanner.add_build_configuration(abi, build_api_level, linker)
+                nodist_scanner.add_build_configuration(abi, build_api_level,
+                                                       linker)
+                libcxx_scanner.add_build_configuration(abi, build_api_level,
+                                                       linker)
 
         if 'build' in test_spec.suites:
             test_src = os.path.join(self.test_options.src_dir, 'build')

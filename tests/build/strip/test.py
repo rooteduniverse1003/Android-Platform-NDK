@@ -19,7 +19,7 @@ import subprocess
 import sys
 
 
-def run_test(ndk_path, abi, api, build_flags):
+def run_test(ndk_path, abi, api, linker, build_flags):
     """Checks ndk-build V=1 output for --strip-unneeded flag."""
     if build_flags is None:
         build_flags = []
@@ -30,8 +30,9 @@ def run_test(ndk_path, abi, api, build_flags):
     project_path = 'project'
 
     ndk_args = build_flags + [
-        'APP_ABI=' + abi,
-        'APP_PLATFORM=android-{}'.format(api),
+        f'APP_ABI={abi}',
+        f'APP_LD={linker.value}',
+        f'APP_PLATFORM=android-{api}',
         'V=1',
     ]
     proc = subprocess.Popen([ndk_build, '-C', project_path] + ndk_args,

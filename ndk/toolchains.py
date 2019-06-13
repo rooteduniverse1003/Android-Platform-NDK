@@ -14,6 +14,7 @@
 # limitations under the License.
 #
 """APIs for accessing toolchains."""
+import enum
 from pathlib import Path
 from typing import List
 
@@ -29,6 +30,12 @@ HOST_TRIPLE_MAP = {
     Host.Linux: 'x86_64-linux-gnu',
     Host.Windows64: 'x86_64-w64-mingw32',
 }
+
+
+@enum.unique
+class LinkerOption(enum.Enum):
+    Default = 'default'
+    Lld = 'lld'
 
 
 class Toolchain:

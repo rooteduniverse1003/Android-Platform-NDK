@@ -16,6 +16,6 @@
 import ndk.testing.standalone_toolchain
 
 
-def run_test(ndk_path, abi, _api, _build_flags):
-    return ndk.testing.standalone_toolchain.run_test(
-        ndk_path, abi, 21, 'foo.cpp', [], [])
+def run_test(ndk_path, abi, _api, linker, _build_flags):
+    return ndk.testing.standalone_toolchain.run_test(ndk_path, abi, 21, linker,
+                                                     'foo.cpp', [], [])

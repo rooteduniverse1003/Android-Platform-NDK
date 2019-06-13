@@ -18,6 +18,7 @@
 from typing import Iterable, List, Optional
 
 from ndk.abis import Abi
+from ndk.toolchains import LinkerOption
 
 
 class TestOptions:
@@ -50,8 +51,11 @@ class TestOptions:
 
 class TestSpec:
     """Configuration for which tests should be run."""
-    def __init__(self, abis: Iterable[Abi], suites: Iterable[str]) -> None:
+
+    def __init__(self, abis: Iterable[Abi], linkers: Iterable[LinkerOption],
+                 suites: Iterable[str]) -> None:
         self.abis = abis
+        self.linkers = linkers
         self.suites = suites
 
 
@@ -61,9 +65,12 @@ class BuildConfiguration:
     A TestSpec describes which BuildConfigurations should be included in a test
     run.
     """
-    def __init__(self, abi: Abi, api: Optional[int]) -> None:
+
+    def __init__(self, abi: Abi, api: Optional[int],
+                 linker: LinkerOption) -> None:
         self.abi = abi
         self.api = api
+        self.linker = linker
 
     def __eq__(self, other: object) -> bool:
         assert isinstance(other, BuildConfiguration)
@@ -71,10 +78,15 @@ class BuildConfiguration:
             return False
         if self.api != other.api:
             return False
+        if self.linker != other.linker:
+            return False
         return True
 
+    def __repr__(self) -> str:
+        return f'BuildConfiguration({self.abi}, {self.api}, {self.linker})'
+
     def __str__(self) -> str:
-        return f'{self.abi}-{self.api}'
+        return f'{self.abi}-{self.api}-{self.linker.value}'
 
     def __hash__(self) -> int:
         return hash(str(self))
@@ -100,10 +112,11 @@ class BuildConfiguration:
             abi += '-v8a'
             _, _, rest = rest.partition('-')
 
-        api_str = rest
+        api_str, linker_str = rest.split('-')
         api = int(api_str)
+        linker = LinkerOption(linker_str)
 
-        return BuildConfiguration(Abi(abi), api)
+        return BuildConfiguration(Abi(abi), api, linker)
 
     def get_extra_ndk_build_flags(self) -> List[str]:
         extra_flags = []

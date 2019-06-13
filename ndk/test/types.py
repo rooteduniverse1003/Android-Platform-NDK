@@ -43,6 +43,7 @@ from ndk.test.config import LibcxxTestConfig, TestConfig
 from ndk.test.filters import TestFilter
 from ndk.test.spec import BuildConfiguration
 from ndk.test.result import Failure, Skipped, Success, TestResult
+from ndk.toolchains import LinkerOption
 
 
 def logger() -> logging.Logger:
@@ -165,7 +166,8 @@ class PythonBuildTest(BuildTest):
         api = config.api
         if api is None:
             api = ndk.abis.min_api_for_abi(config.abi)
-        config = ndk.test.spec.BuildConfiguration(config.abi, api)
+        config = ndk.test.spec.BuildConfiguration(config.abi, api,
+                                                  config.linker)
         super().__init__(name, test_dir, config, ndk_path)
 
         if self.abi not in ndk.abis.ALL_ABIS:
@@ -192,7 +194,7 @@ class PythonBuildTest(BuildTest):
         with ndk.ext.os.cd(build_dir):
             module = imp.load_source('test', 'test.py')
             success, failure_message = module.run_test(  # type: ignore
-                self.ndk_path, self.abi, self.platform, self.ndk_build_flags)
+                self.ndk_path, self.abi, self.platform, self.config.linker, self.ndk_build_flags)
             if success:
                 return Success(self), []
             else:
@@ -205,7 +207,8 @@ class ShellBuildTest(BuildTest):
         api = config.api
         if api is None:
             api = ndk.abis.min_api_for_abi(config.abi)
-        config = ndk.test.spec.BuildConfiguration(config.abi, api)
+        config = ndk.test.spec.BuildConfiguration(config.abi, api,
+                                                  config.linker)
         super().__init__(name, test_dir, config, ndk_path)
 
     def get_build_dir(self, out_dir: str) -> str:
@@ -222,13 +225,13 @@ class ShellBuildTest(BuildTest):
             assert self.api is not None
             result = _run_build_sh_test(self, build_dir, self.test_dir,
                                         self.ndk_path, self.ndk_build_flags,
-                                        self.abi, self.api)
+                                        self.abi, self.api, self.config.linker)
             return result, []
 
 
 def _run_build_sh_test(test: ShellBuildTest, build_dir: str, test_dir: str,
                        ndk_path: str, ndk_build_flags: List[str], abi: Abi,
-                       platform: int) -> TestResult:
+                       platform: int, linker: LinkerOption) -> TestResult:
     _prep_build_dir(test_dir, build_dir)
     with ndk.ext.os.cd(build_dir):
         build_cmd = ['bash', 'build.sh'] + _get_jobs_args() + ndk_build_flags
@@ -237,6 +240,7 @@ def _run_build_sh_test(test: ShellBuildTest, build_dir: str, test_dir: str,
         if abi is not None:
             test_env['APP_ABI'] = abi
         test_env['APP_PLATFORM'] = f'android-{platform}'
+        test_env['APP_LD'] = linker.value
         rc, out = ndk.ext.subprocess.call_output(
             build_cmd, env=test_env, encoding='utf-8')
         if rc == 0:
@@ -310,7 +314,8 @@ class NdkBuildTest(BuildTest):
     def __init__(self, name: str, test_dir: str, config: BuildConfiguration,
                  ndk_path: str, dist: bool) -> None:
         api = _get_or_infer_app_platform(config.api, test_dir, config.abi)
-        config = ndk.test.spec.BuildConfiguration(config.abi, api)
+        config = ndk.test.spec.BuildConfiguration(config.abi, api,
+                                                  config.linker)
         super().__init__(name, test_dir, config, ndk_path)
         self.dist = dist
 
@@ -329,25 +334,24 @@ class NdkBuildTest(BuildTest):
         obj_dir = self.get_build_dir(obj_dir)
         dist_dir = self.get_dist_dir(obj_dir, dist_dir)
         assert self.api is not None
-        result = _run_ndk_build_test(
-            self, obj_dir, dist_dir, self.test_dir, self.ndk_path,
-            self.ndk_build_flags, self.abi, self.api)
+        result = _run_ndk_build_test(self, obj_dir, dist_dir, self.test_dir,
+                                     self.ndk_path, self.ndk_build_flags,
+                                     self.abi, self.api, self.config.linker)
         return result, []
 
 
 def _run_ndk_build_test(test: NdkBuildTest, obj_dir: str, dist_dir: str,
                         test_dir: str, ndk_path: str,
                         ndk_build_flags: List[str], abi: Abi,
-                        platform: int) -> TestResult:
+                        platform: int, linker: LinkerOption) -> TestResult:
     _prep_build_dir(test_dir, obj_dir)
     with ndk.ext.os.cd(obj_dir):
         args = [
-            'APP_ABI=' + abi,
-            'NDK_LIBS_OUT=' + dist_dir,
-        ]
-        args.extend(_get_jobs_args())
-        if platform is not None:
-            args.append(f'APP_PLATFORM=android-{platform}')
+            f'APP_ABI={abi}',
+            f'APP_PLATFORM=android-{platform}',
+            f'APP_LD={linker.value}',
+            f'NDK_LIBS_OUT={dist_dir}',
+        ] + _get_jobs_args()
         rc, out = ndk.ndkbuild.build(ndk_path, args + ndk_build_flags)
         if rc == 0:
             return Success(test)
@@ -359,7 +363,8 @@ class CMakeBuildTest(BuildTest):
     def __init__(self, name: str, test_dir: str, config: BuildConfiguration,
                  ndk_path: str, dist: bool) -> None:
         api = _get_or_infer_app_platform(config.api, test_dir, config.abi)
-        config = ndk.test.spec.BuildConfiguration(config.abi, api)
+        config = ndk.test.spec.BuildConfiguration(config.abi, api,
+                                                  config.linker)
         super().__init__(name, test_dir, config, ndk_path)
         self.dist = dist
 
@@ -380,13 +385,14 @@ class CMakeBuildTest(BuildTest):
         assert self.api is not None
         result = _run_cmake_build_test(self, obj_dir, dist_dir, self.test_dir,
                                        self.ndk_path, self.cmake_flags,
-                                       self.abi, self.api)
+                                       self.abi, self.api, self.config.linker)
         return result, []
 
 
 def _run_cmake_build_test(test: CMakeBuildTest, obj_dir: str, dist_dir: str,
                           test_dir: str, ndk_path: str, cmake_flags: List[str],
-                          abi: str, platform: int) -> TestResult:
+                          abi: str, platform: int,
+                          linker: LinkerOption) -> TestResult:
     _prep_build_dir(test_dir, obj_dir)
 
     # Add prebuilts to PATH.
@@ -420,17 +426,18 @@ def _run_cmake_build_test(test: CMakeBuildTest, obj_dir: str, dist_dir: str,
 
     toolchain_file = os.path.join(ndk_path, 'build', 'cmake',
                                   'android.toolchain.cmake')
-    objs_dir = os.path.join(obj_dir, abi)
-    libs_dir = os.path.join(dist_dir, abi)
+    abi_obj_dir = os.path.join(obj_dir, abi)
+    abi_lib_dir = os.path.join(dist_dir, abi)
     args = [
-        '-H' + obj_dir,
-        '-B' + objs_dir,
-        '-DCMAKE_TOOLCHAIN_FILE=' + toolchain_file,
-        '-DANDROID_ABI=' + abi,
-        '-DCMAKE_RUNTIME_OUTPUT_DIRECTORY=' + libs_dir,
-        '-DCMAKE_LIBRARY_OUTPUT_DIRECTORY=' + libs_dir,
+        f'-H{obj_dir}',
+        f'-B{abi_obj_dir}',
+        f'-DCMAKE_TOOLCHAIN_FILE={toolchain_file}',
+        f'-DANDROID_ABI={abi}',
+        f'-DANDROID_LD={linker.value}',
+        f'-DCMAKE_RUNTIME_OUTPUT_DIRECTORY={abi_lib_dir}',
+        f'-DCMAKE_LIBRARY_OUTPUT_DIRECTORY={abi_lib_dir}',
         '-GNinja',
-        '-DCMAKE_MAKE_PROGRAM=' + ninja_bin,
+        f'-DCMAKE_MAKE_PROGRAM={ninja_bin}',
     ]
     if platform is not None:
         args.append('-DANDROID_PLATFORM=android-{}'.format(platform))
@@ -439,7 +446,7 @@ def _run_cmake_build_test(test: CMakeBuildTest, obj_dir: str, dist_dir: str,
     if rc != 0:
         return Failure(test, out)
     rc, out = ndk.ext.subprocess.call_output(
-        [cmake_bin, '--build', objs_dir, '--'] + _get_jobs_args(),
+        [cmake_bin, '--build', abi_obj_dir, '--'] + _get_jobs_args(),
         encoding='utf-8')
     if rc != 0:
         return Failure(test, out)
@@ -578,6 +585,7 @@ class LibcxxTest(Test):
             ('host_tag', host_tag),
             ('libcxx_install', libcxx_install),
             ('libcxx_src', libcxx_src),
+            ('linker', self.config.linker.value),
             ('ndk_path', ndk_path),
             ('toolchain', toolchain),
             ('triple', f'{triple}{self.api}'),
