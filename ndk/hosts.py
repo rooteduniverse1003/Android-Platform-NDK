@@ -27,13 +27,14 @@ class Host(enum.Enum):
 
     Darwin = 'darwin'
     Linux = 'linux'
-    Windows = 'windows'
+    # TODO: Just Windows now that we only have the one.
     Windows64 = 'windows64'
 
+    # TODO: Remove.
     @property
     def is_windows(self) -> bool:
         """Returns True if the given host is Windows."""
-        return self in (Host.Windows, Host.Windows64)
+        return self == Host.Windows64
 
 
 ALL_HOSTS = list(Host)
@@ -65,15 +66,13 @@ def host_to_tag(host: Host) -> str:
     'darwin-x86_64'
     >>> host_to_tag(Host.Linux)
     'linux-x86_64'
-    >>> host_to_tag(Host.Windows)
-    'windows'
     >>> host_to_tag(Host.Windows64)
     'windows-x86_64'
     """
+    # TODO: Clean up since this can all be + -x86_64 once we rename the windows
+    # value.
     if not host.is_windows:
         return host.value + '-x86_64'
-    elif host == Host.Windows:
-        return 'windows'
     elif host == Host.Windows64:
         return 'windows-x86_64'
     raise NotImplementedError
@@ -86,6 +85,6 @@ def get_default_host() -> Host:
     elif sys.platform == 'darwin':
         return Host.Darwin
     elif sys.platform == 'win32':
-        return Host.Windows
+        return Host.Windows64
     else:
         raise RuntimeError(f'Unsupported host: {sys.platform}')

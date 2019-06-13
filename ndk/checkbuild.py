@@ -302,12 +302,11 @@ class Clang(ndk.builds.Module):
         os.remove(os.path.join(install_path, 'bin/lld' + bin_ext))
         os.remove(os.path.join(install_path, 'bin/lld-link' + bin_ext))
 
-        libdir_name = 'lib' if self.host == ndk.hosts.Host.Windows else 'lib64'
         if self.host.is_windows:
             # The toolchain prebuilts have LLVMgold.dll in the bin directory
             # rather than the lib directory that will actually be searched.
             bin_dir = os.path.join(install_path, 'bin')
-            lib_dir = os.path.join(install_path, libdir_name)
+            lib_dir = os.path.join(install_path, 'lib64')
             os.rename(os.path.join(bin_dir, 'LLVMgold.dll'),
                       os.path.join(lib_dir, 'LLVMgold.dll'))
 
@@ -316,7 +315,7 @@ class Clang(ndk.builds.Module):
             shutil.copy2(os.path.join(bin_dir, 'libwinpthread-1.dll'),
                          os.path.join(lib_dir, 'libwinpthread-1.dll'))
 
-        install_clanglib = os.path.join(install_path, libdir_name, 'clang')
+        install_clanglib = os.path.join(install_path, 'lib64', 'clang')
         linux_prebuilt_path = ndk.toolchains.ClangToolchain.path_for_host(
             ndk.hosts.Host.Linux)
 
@@ -364,9 +363,7 @@ def get_gcc_prebuilt_path(host: ndk.hosts.Host, arch: ndk.abis.Arch) -> str:
 
 def get_binutils_prebuilt_path(host: ndk.hosts.Host,
                                arch: ndk.abis.Arch) -> str:
-    if host == ndk.hosts.Host.Windows:
-        host_dir_name = 'win'
-    elif host == ndk.hosts.Host.Windows64:
+    if host == ndk.hosts.Host.Windows64:
         host_dir_name = 'win64'
     else:
         host_dir_name = host.value
@@ -530,10 +527,9 @@ class Binutils(ndk.builds.Module):
         else:
             so = '.dll'
 
-        libdir_name = 'lib' if self.host == ndk.hosts.Host.Windows else 'lib64'
         clang_prebuilts = self.get_dep('clang').get_install_path()
         clang_bin = os.path.join(clang_prebuilts, 'bin')
-        clang_libs = os.path.join(clang_prebuilts, libdir_name)
+        clang_libs = os.path.join(clang_prebuilts, 'lib64')
         llvmgold = os.path.join(clang_libs, 'LLVMgold' + so)
 
         bfd_plugins = os.path.join(install_path, 'lib/bfd-plugins')

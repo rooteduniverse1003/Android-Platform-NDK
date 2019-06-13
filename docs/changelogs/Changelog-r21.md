@@ -9,6 +9,15 @@ For Android Studio issues, follow the docs on the [Android Studio site].
 
 ## Announcements
 
+ * 32-bit Windows is no longer supported. This does not affect the vast majority
+   of users. If you do still need to build NDK apps from 32-bit versions of
+   Windows, continue using NDK r20.
+
+   For more information on this change within Android Developer tools, see the
+   [blog post] on the topic.
+
+[blog post]: https://android-developers.googleblog.com/2019/06/moving-android-studio-and-android.html
+
  * [LLD](https://lld.llvm.org/) is now available for testing. AOSP has switched
    to using LLD by default and the NDK will follow (timeline unknown). Test LLD
    in your app by passing `-fuse-ld=lld` when linking.
