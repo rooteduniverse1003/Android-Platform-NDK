@@ -16,6 +16,7 @@
 """APIs for accessing toolchains."""
 import enum
 from pathlib import Path
+import subprocess
 from typing import List
 
 from ndk.hosts import Host, get_default_host
@@ -38,6 +39,42 @@ class LinkerOption(enum.Enum):
     Lld = 'lld'
 
 
+class DarwinSdk:
+    """The Darwin SDK."""
+    MACOSX_TARGET = '10.8'
+
+    def __init__(self) -> None:
+        proc_result = subprocess.run(['xcrun', '--show-sdk-path'],
+                                     stdout=subprocess.PIPE,
+                                     check=True, encoding='utf-8')
+        self.mac_sdk_path = Path(proc_result.stdout.strip())
+
+        self.ar = self.sdk_tool('ar')
+        self.asm = self.sdk_tool('as')
+        self.ld = self.sdk_tool('ld')
+        self.nm = self.sdk_tool('nm')
+        self.ranlib = self.sdk_tool('ranlib')
+        self.strings = self.sdk_tool('strings')
+        self.strip = self.sdk_tool('strip')
+
+    @property
+    def flags(self) -> List[str]:
+        """The default flags to be used with the SDK."""
+        return [
+            f'-mmacosx-version-min={self.MACOSX_TARGET}',
+            f'-DMACOSX_DEPLOYMENT_TARGET={self.MACOSX_TARGET}',
+            f'-isysroot{self.mac_sdk_path}',
+            f'-Wl,-syslibroot,{self.mac_sdk_path}',
+        ]
+
+    def sdk_tool(self, name: str) -> Path:
+        """Returns the path to the given SDK tool."""
+        proc_result = subprocess.run(['xcrun', '--find', name],
+                                     stdout=subprocess.PIPE,
+                                     check=True, encoding='utf-8')
+        return Path(proc_result.stdout.strip())
+
+
 class Toolchain:
     """A compiler toolchain.
 
@@ -50,6 +87,9 @@ class Toolchain:
             raise NotImplementedError
         self.host = host
         self.target = target
+
+        if self.target == Host.Darwin:
+            self.darwin_sdk = DarwinSdk()
 
     @property
     def ar(self) -> Path:
@@ -127,11 +167,15 @@ class GccToolchain(Toolchain):
     @property
     def ar(self) -> Path:
         """The path to the archiver."""
+        if self.target == Host.Darwin:
+            return self.darwin_sdk.ar
         return self.gcc_tool('ar')
 
     @property
     def asm(self) -> Path:
         """The path to the assembler."""
+        if self.target == Host.Darwin:
+            return self.darwin_sdk.asm
         return self.gcc_tool('as')
 
     @property
@@ -152,11 +196,15 @@ class GccToolchain(Toolchain):
     @property
     def flags(self) -> List[str]:
         """The default flags to be used with the compiler."""
+        if self.target == Host.Darwin:
+            return self.darwin_sdk.flags
         return []
 
     @property
     def ld(self) -> Path:
         """The path to the linker."""
+        if self.target == Host.Darwin:
+            return self.darwin_sdk.ld
         return self.gcc_tool('ld')
 
     @property
@@ -178,6 +226,8 @@ class GccToolchain(Toolchain):
     @property
     def nm(self) -> Path:
         """The path to nm."""
+        if self.target == Host.Darwin:
+            return self.darwin_sdk.nm
         return self.gcc_tool('nm')
 
     @property
@@ -196,6 +246,8 @@ class GccToolchain(Toolchain):
     @property
     def ranlib(self) -> Path:
         """The path to ranlib."""
+        if self.target == Host.Darwin:
+            return self.darwin_sdk.ranlib
         return self.gcc_tool('ranlib')
 
     @property
@@ -208,11 +260,15 @@ class GccToolchain(Toolchain):
     @property
     def strip(self) -> Path:
         """The path to strip."""
+        if self.target == Host.Darwin:
+            return self.darwin_sdk.strip
         return self.gcc_tool('strip')
 
     @property
     def strings(self) -> Path:
         """The path to strings."""
+        if self.target == Host.Darwin:
+            return self.darwin_sdk.strings
         return self.gcc_tool('strings')
 
     @property
@@ -289,17 +345,21 @@ class ClangToolchain(Toolchain):
             self.gcc_toolchain.path / self.gcc_toolchain.triple / 'bin')
         flags = [
             f'--target={host_triple}',
-            f'--sysroot={self.gcc_toolchain.sysroot}',
             f'-B{toolchain_bin}',
         ]
 
-        for lib_dir in self.gcc_toolchain.lib_dirs:
-            # Both -L and -B because Clang only searches for CRT
-            # objects in -B directories.
-            flags.extend([
-                f'-L{lib_dir}',
-                f'-B{lib_dir}',
-            ])
+        if self.target == Host.Darwin:
+            flags.extend(self.darwin_sdk.flags)
+        else:
+            flags.append(f'--sysroot={self.gcc_toolchain.sysroot}')
+
+            for lib_dir in self.gcc_toolchain.lib_dirs:
+                # Both -L and -B because Clang only searches for CRT
+                # objects in -B directories.
+                flags.extend([
+                    f'-L{lib_dir}',
+                    f'-B{lib_dir}',
+                ])
 
         return flags
 
