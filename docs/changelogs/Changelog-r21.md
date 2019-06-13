@@ -45,6 +45,9 @@ For Android Studio issues, follow the docs on the [Android Studio site].
    `-march=armv7-a` when building for 32-bit ARM with the non-integrated
    assembler, or use the integrated assembler. ndk-build and CMake already
    contain these workarounds.
+ * [Issue 1004]: Clang outputs debug info with bad line number info when
+   compiling for ARM64 and `-O0` (no optimizations). Third-party build systems
+   can pass `-fno-experimental-isel` to Clang to work around this issue.
  * This version of the NDK is incompatible with the Android Gradle plugin
    version 3.0 or older. If you see an error like
    `No toolchains found in the NDK toolchains folder for ABI with prefix: mips64el-linux-android`,
@@ -56,4 +59,5 @@ For Android Studio issues, follow the docs on the [Android Studio site].
 [Issue 855]: https://github.com/android-ndk/ndk/issues/855
 [Issue 884]: https://github.com/android-ndk/ndk/issues/884
 [Issue 906]: https://github.com/android-ndk/ndk/issues/906
+[Issue 1004]: https://github.com/android-ndk/ndk/issues/1004
 [use plugin version 3.1 or newer]: https://developer.android.com/studio/releases/gradle-plugin#updating-plugin
