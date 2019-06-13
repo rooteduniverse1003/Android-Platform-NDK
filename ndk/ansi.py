@@ -56,6 +56,21 @@ def clear_line() -> str:
     return '\033[K'
 
 
+def font_bold() -> str:
+    """Returns the command to set the font to bold."""
+    return '\033[1m'
+
+
+def font_faint() -> str:
+    """Returns the command to set the font to faint."""
+    return '\033[2m'
+
+
+def font_reset() -> str:
+    """Returns the command to reset the font style."""
+    return '\033[0m'
+
+
 def is_self_in_tty_foreground_group(fd: TextIO) -> bool:
     """Is this process in the foreground process group of a tty identified
     by fd?"""
