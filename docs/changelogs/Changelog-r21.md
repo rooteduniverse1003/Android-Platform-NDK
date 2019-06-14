@@ -30,6 +30,7 @@ For Android Studio issues, follow the docs on the [Android Studio site].
 
  * Updated Clang to r349610b.
  * Updated libc++ to r359726.
+ * Updated make to 4.2.1.
 
 ## Known Issues
 

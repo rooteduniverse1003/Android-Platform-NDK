@@ -38,6 +38,7 @@ import json
 import logging
 import multiprocessing
 import os
+from pathlib import Path
 import pipes
 import re
 import shutil
@@ -55,6 +56,7 @@ from typing import (
     Iterable,
     Iterator,
     List,
+    Optional,
     Set,
     TextIO,
     Tuple,
@@ -63,6 +65,7 @@ from typing import (
 
 from build.lib import build_support
 import ndk.abis
+from ndk.autoconf import AutoconfBuilder
 import ndk.ansi
 import ndk.builds
 import ndk.config
@@ -582,22 +585,45 @@ class HostTools(ndk.builds.Module):
         ndk.paths.android_path('toolchain/yasm/GNU_LGPL-2.0'),
     ]
 
+    make_src = ndk.paths.ANDROID_DIR / 'toolchain/make'
+    _make_builder: Optional[AutoconfBuilder] = None
+
     @property
     def notices(self) -> List[str]:
         return [
             ndk.paths.android_path('toolchain/gdb/gdb-7.11/COPYING'),
             ndk.paths.android_path('toolchain/python/Python-2.7.5/LICENSE'),
-            ndk.paths.ndk_path('sources/host-tools/make-3.81/COPYING'),
+            str(self.make_src / 'COPYING'),
             ndk.paths.ndk_path('sources/host-tools/toolbox/NOTICE'),
         ] + self.yasm_notices
+
+    @property
+    def intermediate_out_dir(self) -> Path:
+        """Path for intermediate outputs of this module."""
+        return Path(self.out_dir) / self.host.value
+
+    @property
+    def make_builder(self) -> AutoconfBuilder:
+        """Returns the lazily initialized make builder for this module."""
+        if self._make_builder is None:
+            self._make_builder = AutoconfBuilder(
+                self.make_src / 'configure',
+                self.intermediate_out_dir / 'make', self.host,
+                use_clang=True)
+        return self._make_builder
+
+    def build_make(self) -> None:
+        self.make_builder.build([
+            "--disable-nls",
+            "--disable-rpath",
+        ])
 
     def build(self) -> None:
         build_args = ndk.builds.common_build_args(self.out_dir, self.dist_dir,
                                                   self.host)
 
         print('Building make...')
-        ndk.builds.invoke_external_build(
-            'ndk/sources/host-tools/make-3.81/build.py', build_args)
+        self.build_make()
 
         if self.host.is_windows:
             print('Building toolbox...')
@@ -620,7 +646,6 @@ class HostTools(ndk.builds.Module):
 
         packages = [
             'gdb-multiarch-7.11',
-            'ndk-make',
             'ndk-python',
             'ndk-yasm',
         ]
@@ -645,6 +670,10 @@ class HostTools(ndk.builds.Module):
         for f in files:
             shutil.copy2(
                 ndk.paths.ndk_path(f), os.path.join(install_dir, 'bin'))
+
+        copy_tree(
+            str(self.make_builder.install_directory),
+            str(install_dir))
 
 
 def install_exe(out_dir: str, install_dir: str, name: str,
