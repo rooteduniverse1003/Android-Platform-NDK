@@ -4,7 +4,10 @@ LOCAL_PATH := $(call my-dir)
 # ASAN. (Avoid ASAN on x86 to work around http://b/37130178.)
 ASAN_FLAG :=
 ifneq ($(filter $(TARGET_ARCH_ABI),armeabi-v7a arm64-v8a),)
-    ASAN_FLAG := -fsanitize=address
+    # Only enable ASAN on API 19 and newer.
+    ifneq (,$(call gte,$(TARGET_PLATFORM_LEVEL),19))
+        ASAN_FLAG := -fsanitize=address
+    endif
 endif
 
 include $(CLEAR_VARS)
