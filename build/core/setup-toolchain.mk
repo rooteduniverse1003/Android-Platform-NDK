@@ -48,13 +48,7 @@ ifndef NDK_TOOLCHAIN
     # We default to using Clang, which is the last item in the list.
     TARGET_TOOLCHAIN := $(lastword $(TARGET_TOOLCHAIN_LIST))
 
-    ifeq ($(NDK_TOOLCHAIN_VERSION),4.9)
-        $(call __ndk_error,Invalid NDK_TOOLCHAIN_VERSION value: \
-            $(NDK_TOOLCHAIN_VERSION). GCC is no longer supported. See \
-            https://android.googlesource.com/platform/ndk/+/master/docs/ClangMigration.md.)
-    else
-        $(call ndk_log,Using target toolchain '$(TARGET_TOOLCHAIN)' for '$(TARGET_ARCH_ABI)' ABI)
-    endif
+    $(call ndk_log,Using target toolchain '$(TARGET_TOOLCHAIN)' for '$(TARGET_ARCH_ABI)' ABI)
 else # NDK_TOOLCHAIN is not empty
     TARGET_TOOLCHAIN_LIST := $(strip $(filter $(NDK_TOOLCHAIN),$(NDK_ABI.$(TARGET_ARCH_ABI).toolchains)))
     ifndef TARGET_TOOLCHAIN_LIST
