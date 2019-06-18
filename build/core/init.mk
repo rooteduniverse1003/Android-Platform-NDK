@@ -506,27 +506,6 @@ ifdef NDK_TOOLCHAIN
     $(call ndk_log, Using specific toolchain $(NDK_TOOLCHAIN))
 endif
 
-# Allow the user to define NDK_TOOLCHAIN_VERSION to override the toolchain
-# version number. Unlike NDK_TOOLCHAIN, this only changes the suffix of
-# the toolchain path we're using.
-#
-# For example, if GCC 4.8 is the default, defining NDK_TOOLCHAIN_VERSION=4.9
-# will ensure that ndk-build uses the following toolchains, depending on
-# the target architecture:
-#
-#    arm -> arm-linux-androideabi-4.9
-#    x86 -> x86-android-linux-4.9
-#    mips -> mips64el-linux-android-4.9
-#
-# This is used in setup-toolchain.mk
-#
-NDK_TOOLCHAIN_VERSION := $(strip $(NDK_TOOLCHAIN_VERSION))
-
-# Default to Clang.
-ifeq ($(NDK_TOOLCHAIN_VERSION),)
-    NDK_TOOLCHAIN_VERSION := clang
-endif
-
 $(call ndk_log, This NDK supports the following target architectures and ABIS:)
 $(foreach arch,$(NDK_ALL_ARCHS),\
     $(call ndk_log, $(space)$(space)$(arch): $(NDK_ARCH.$(arch).abis))\

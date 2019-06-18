@@ -83,9 +83,6 @@ for opt; do
           NDK_ANALYZER_OUT=*)
             NDK_ANALYZER_OUT=${opt#NDK_ANALYZER_OUT=}
             ;;
-          NDK_TOOLCHAIN_VERSION=*)
-            NDK_TOOLCHAIN_VERSION=${opt#NDK_TOOLCHAIN_VERSION=}
-            ;;
           APP_ABI=*)
             APP_ABI=${opt#APP_ABI=}
             ;;
@@ -242,9 +239,6 @@ if [ "$NDK_ANALYZE" = 1 ]; then
         if [ -n "$APP_ABI" ] ; then
             FLAGS=$FLAGS" APP_ABI=$APP_ABI"
         fi
-        if [ -n "$NDK_TOOLCHAIN_VERSION" ] ; then
-            FLAGS=$FLAGS" NDK_TOOLCHAIN_VERSION=$NDK_TOOLCHAIN_VERSION"
-        fi
         echo "$FLAGS"
     }
 
@@ -264,7 +258,6 @@ if [ "$NDK_ANALYZE" = 1 ]; then
     }
 
     APP_ABIS=`get_build_var APP_ABI`
-    TOOLCHAIN=`get_build_var NDK_TOOLCHAIN_VERSION`
     for ABI in $APP_ABIS; do
         LLVM_TOOLCHAIN_PREFIX=`get_build_var LLVM_TOOLCHAIN_PREFIX`
         ANALYZER_OUT=`get_build_var NDK_APP_ANALYZER_OUT`

@@ -19,9 +19,6 @@
 #         https://developer.android.com/ndk/guides/application_mk.html
 # if it makes sense for CMake, then replace LOCAL, APP, or NDK with ANDROID, and
 # we have that variable below.
-# The exception is ANDROID_TOOLCHAIN vs NDK_TOOLCHAIN_VERSION.
-# Since we only have one version of each gcc and clang, specifying a version
-# doesn't make much sense.
 #
 # ANDROID_TOOLCHAIN
 # ANDROID_ABI
