@@ -1106,7 +1106,7 @@ class Gdb(ndk.builds.Module):
         'host-tools',
     }
 
-    GDB_VERSION = '7.11'
+    GDB_VERSION = '8.3'
 
     expat_src = ndk.paths.ANDROID_DIR / 'toolchain/expat/expat-2.0.1'
     lzma_src = ndk.paths.ANDROID_DIR / 'toolchain/xz'

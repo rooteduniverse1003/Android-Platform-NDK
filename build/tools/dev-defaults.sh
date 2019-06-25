@@ -56,7 +56,6 @@ DEFAULT_LLVM_GCC32_VERSION=4.9
 DEFAULT_LLVM_GCC64_VERSION=4.9
 
 DEFAULT_BINUTILS_VERSION=2.27
-DEFAULT_GDB_VERSION=7.11
 DEFAULT_MPFR_VERSION=3.1.1
 DEFAULT_GMP_VERSION=5.0.5
 DEFAULT_MPC_VERSION=1.0.1
@@ -272,24 +271,4 @@ get_default_binutils_version_for_gcc ()
 get_default_binutils_version_for_llvm ()
 {
     echo "$DEFAULT_BINUTILS_VERSION"
-}
-
-# Return the gdb version to be used by default when building a given
-# version of GCC.
-#
-# $1: toolchain with version number (e.g. 'arm-linux-androideabi-4.8')
-#
-get_default_gdb_version_for_gcc ()
-{
-    echo "$DEFAULT_GDB_VERSION"
-}
-
-# Return the gdbserver version to be used by default when building a given
-# version of GCC.
-#
-# $1: toolchain with version number (e.g. 'arm-linux-androideabi-4.8')
-#
-get_default_gdbserver_version ()
-{
-    echo "$DEFAULT_GDB_VERSION"
 }
