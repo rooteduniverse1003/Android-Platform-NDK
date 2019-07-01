@@ -55,6 +55,22 @@ For Android Studio issues, follow the docs on the [Android Studio site].
    `-march=armv7-a` when building for 32-bit ARM with the non-integrated
    assembler, or use the integrated assembler. ndk-build and CMake already
    contain these workarounds.
+ * [Issue 988]: Exception handling with libc++_shared when using ASan via
+   wrap.sh can crash. To workaround this issue, ensure that your application's
+   libc++_shared.so is in `LD_PRELOAD` in your `wrap.sh` as in the following
+   example:
+
+   ```bash
+   #!/system/bin/sh
+   HERE="$(cd "$(dirname "$0")" && pwd)"
+   export ASAN_OPTIONS=log_to_syslog=false,allow_user_segv_handler=1
+   export LD_PRELOAD="$HERE/libclang_rt.asan-aarch64-android.so $HERE/libc++_shared.so"
+   exec "$@"
+   ```
+
+   Note that because this is a platform bug rather than an NDK bug this
+   workaround will be necessary for this use case to work on all devices until
+   at least Android R.
  * [Issue 1004]: Clang outputs debug info with bad line number info when
    compiling for ARM64 and `-O0` (no optimizations). Third-party build systems
    can pass `-fno-experimental-isel` to Clang to work around this issue.
@@ -69,5 +85,6 @@ For Android Studio issues, follow the docs on the [Android Studio site].
 [Issue 855]: https://github.com/android-ndk/ndk/issues/855
 [Issue 884]: https://github.com/android-ndk/ndk/issues/884
 [Issue 906]: https://github.com/android-ndk/ndk/issues/906
+[Issue 988]: https://github.com/android-ndk/ndk/issues/988
 [Issue 1004]: https://github.com/android-ndk/ndk/issues/1004
 [use plugin version 3.1 or newer]: https://developer.android.com/studio/releases/gradle-plugin#updating-plugin
