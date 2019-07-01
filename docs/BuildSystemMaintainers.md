@@ -325,9 +325,9 @@ than Valgrind (roughly 50% performance compared to an unsanitized application).
 To use ASan, pass `-fsanitize=address` when both compiling and linking. The
 sanitizer runtime libraries are installed to
 `<NDK>/toolchains/llvm/prebuilt/<host-tag>/lib64/clang/<clang-version>/lib/linux`.
-The library is named `libclang_rt.asan-<arch>-android.so`.  This library must be
-included in the APK. A [wrap.sh] file must also be included in the APK. Premade
-wrap.sh files for ASan are installed to `<NDK>/wrap.sh`.
+The library is named `libclang_rt.asan-<arch>-android.so`. This library must be
+included in the APK. A [wrap.sh] file must also be included in the APK. A
+premade wrap.sh file for ASan is installed to `<NDK>/wrap.sh`.
 
 Note: wrap.sh is only available for [debuggable] APKs running on Android Oreo
 (API 26) or higher. ASan can still be used devices prior to Oreo but at least

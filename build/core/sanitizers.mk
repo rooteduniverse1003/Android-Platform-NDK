@@ -44,7 +44,6 @@ include $(BUILD_SYSTEM)/install_sanitizer.mk
 # default ASAN wrap.sh for them.
 ifneq (,$(filter address,$(NDK_SANITIZERS)))
     ifeq ($(NDK_NO_USER_WRAP_SH),true)
-        NDK_APP_WRAP_SH_$(TARGET_ARCH_ABI) := \
-            $(NDK_ROOT)/wrap.sh/asan.$(TARGET_ARCH_ABI).sh
+        NDK_APP_WRAP_SH_$(TARGET_ARCH_ABI) := $(NDK_ROOT)/wrap.sh/asan.sh
     endif
 endif
