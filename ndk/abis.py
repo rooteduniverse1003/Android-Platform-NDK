@@ -96,6 +96,26 @@ def abi_to_arch(abi: Abi) -> Arch:
     }[abi]
 
 
+def clang_target(arch: Arch, api: int = None) -> str:
+    """Returns the Clang target to be used for the given arch/API combo.
+
+    Args:
+        arch: Architecture to compile for. 'arm' will target ARMv7.
+        api: API level to compile for. Defaults to the lowest supported API
+            level for the architecture if None.
+    """
+    if api is None:
+        # Currently there is only one ABI per arch.
+        abis = arch_to_abis(arch)
+        assert len(abis) == 1
+        abi = abis[0]
+        api = min_api_for_abi(abi)
+    triple = arch_to_triple(arch)
+    if arch == 'arm':
+        triple = 'armv7a-linux-androideabi'
+    return f'{triple}{api}'
+
+
 def min_api_for_abi(abi: Abi) -> int:
     """Returns the minimum supported build API for the given ABI.
 
