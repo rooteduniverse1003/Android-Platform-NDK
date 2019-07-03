@@ -159,7 +159,7 @@ ifeq ($(LOCAL_CPP_EXTENSION),)
 endif
 LOCAL_RS_EXTENSION := $(default-rs-extensions)
 
-LOCAL_LDFLAGS += -Wl,--build-id
+LOCAL_LDFLAGS += -Wl,--build-id=sha1
 
 ifneq ($(NDK_APP_STL),system)
     LOCAL_CFLAGS += -nostdinc++

@@ -445,7 +445,7 @@ list(APPEND ANDROID_COMPILER_FLAGS
   -fstack-protector-strong
   -no-canonical-prefixes)
 list(APPEND ANDROID_LINKER_FLAGS
-  -Wl,--build-id
+  -Wl,--build-id=sha1
   -Wl,--warn-shared-textrel
   -Wl,--fatal-warnings)
 list(APPEND ANDROID_LINKER_FLAGS_EXE -Wl,--gc-sections)
