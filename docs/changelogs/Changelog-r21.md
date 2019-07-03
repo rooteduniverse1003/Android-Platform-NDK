@@ -44,6 +44,8 @@ For Android Studio issues, follow the docs on the [Android Studio site].
            Neon to disallow your app from being installed on those devices.
  * Updated libc++ to r359726.
  * Updated make to 4.2.1.
+ * Updated glibc to 2.17.
+ * Updated gdb to 8.3.
  * [Issue 885]: For LLD+LLDB compatibility, the NDK build systems now pass
    `-Wl,--build-id=sha1` instead of `-Wl,--build-id`. Third-party build systems
    need to apply the workaround manually. For more details, see the [Build
