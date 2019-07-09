@@ -184,7 +184,7 @@ invoke `armv7a-linux-androideabi26-clang` or
 
 Note: Target specific Clangs are currently implemented as shell scripts. Linux
 and Mac NDKs have Bash scripts, Windows includes Bash scripts to support Cygwin
-and WSL but also batch scripts (with `.cmd` extensions`) for Windows command
+and WSL but also batch scripts (with `.cmd` extensions) for Windows command
 line support. For large numbers of relatively small source files, the additional
 overhead caused by these scripts may be noticably slower than using `--target`,
 especially on Windows where `CreateProcess` is slower than `fork`.
