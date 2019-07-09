@@ -31,6 +31,13 @@ For Android Studio issues, follow the docs on the [Android Studio site].
  * Updated Clang to r349610b.
  * Updated libc++ to r359726.
  * Updated make to 4.2.1.
+ * [Issue 885]: For LLD+LLDB compatibility, the NDK build systems now pass
+   `-Wl,--build-id=sha1` instead of `-Wl,--build-id`. Third-party build systems
+   need to apply the workaround manually. For more details, see the [Build
+   System Maintainers Guide][maintainer_linkers].
+
+[Issue 885]: https://github.com/android-ndk/ndk/issues/885
+[maintainer_linkers]: https://android.googlesource.com/platform/ndk/+/master/docs/BuildSystemMaintainers.md#Linkers
 
 ## Known Issues
 
