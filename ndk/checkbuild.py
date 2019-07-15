@@ -124,6 +124,18 @@ def _make_zip_package(package_path: str, base_dir: str, path: str) -> str:
         os.chdir(cwd)
 
 
+def purge_unwanted_files(ndk_dir: Path) -> None:
+    """Removes unwanted files from the NDK install path."""
+
+    for path, _dirs, files in os.walk(ndk_dir):
+        for file_name in files:
+            file_path = Path(path) / file_name
+            if file_name.endswith('.pyc'):
+                file_path.unlink()
+            elif file_name == 'Android.bp':
+                file_path.unlink()
+
+
 def package_ndk(ndk_dir: str, dist_dir: str, host_tag: str,
                 build_number: str) -> str:
     """Packages the built NDK for distribution.
@@ -138,10 +150,7 @@ def package_ndk(ndk_dir: str, dist_dir: str, host_tag: str,
     package_name = 'android-ndk-{}-{}'.format(build_number, host_tag)
     package_path = os.path.join(dist_dir, package_name)
 
-    for path, _dirs, files in os.walk(ndk_dir):
-        for file_name in files:
-            if file_name.endswith('.pyc'):
-                os.remove(os.path.join(path, file_name))
+    purge_unwanted_files(Path(ndk_dir))
 
     base_dir = os.path.dirname(ndk_dir)
     package_files = os.path.basename(ndk_dir)
@@ -2617,6 +2626,10 @@ def main() -> None:
         if do_package:
             print('Packaging NDK...')
             host_tag = ndk.hosts.host_to_tag(args.system)
+            # NB: Purging of unwanted files (.pyc, Android.bp, etc) happens as
+            # part of packaging. If testing is ever moved to happen before
+            # packaging, ensure that the directory is purged before and after
+            # building the tests.
             package_path = package_ndk(
                 ndk_dir, dist_dir, host_tag, args.build_number)
             packaged_size_bytes = os.path.getsize(package_path)
