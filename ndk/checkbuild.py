@@ -1639,15 +1639,6 @@ class Vulkan(ndk.builds.Module):
         shutil.copytree(src, dst, ignore=default_ignore_patterns)
         print('Copying finished')
 
-        build_cmd = [
-            'bash',
-            vulkan_path + '/build-android/android-generate.sh',
-            vulkan_path + '/registry',
-        ]
-        print('Generating generated layers...')
-        subprocess.check_call(build_cmd)
-        print('Generation finished')
-
         # TODO: Verify source packaged properly
         print('Packaging Vulkan source...')
         src = os.path.join(self.out_dir, 'vulkan')
