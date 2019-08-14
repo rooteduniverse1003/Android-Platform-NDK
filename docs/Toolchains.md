@@ -75,7 +75,7 @@ server to `prebuilts/clang` (see the [update-prebuilts.py]).
 [update-prebuilts.py]: https://android.googlesource.com/toolchain/llvm_android/+/master/update-prebuilts.py
 
 ```bash
-# Edit ndk/checkbuild.py and update `Clang.version`.
+# Edit ndk/toolchains.py and update `CLANG_VERSION`.
 # Update the VERSION variable in get_llvm_toolchain_binprefix in
 # built/tools/prebuilt-common.sh.
 $ ../prebuilts/ndk/symlink-clang.py # Latest version autodetected.
