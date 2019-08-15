@@ -37,10 +37,10 @@ To test a Clang you just built:
 $ export CLANG_PREBUILTS=`realpath ../prebuilts/clang/host/linux-x86`
 $ rm -r $CLANG_PREBUILTS/clang-dev
 $ tar xf path/to/clang-dev-linux-x86_64.tar.bz2 -C $CLANG_PREBUILTS
-# Edit ndk/build/tools/build-llvm.py and change the version to 'clang-dev'.
+# Edit ndk/toolchains.py and change the version to 'clang-dev'.
 # Update the VERSION variable in get_llvm_toolchain_binprefix in
 # built/tools/prebuilt-common.sh.
-$ ../prebuilts/ndk/symlink-clang.py dev
+$ python3 ../prebuilts/ndk/symlink-clang.py dev
 $ ./checkbuild.py
 # Run tests.
 ```
