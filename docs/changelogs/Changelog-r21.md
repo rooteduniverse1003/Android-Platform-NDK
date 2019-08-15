@@ -32,6 +32,16 @@ For Android Studio issues, follow the docs on the [Android Studio site].
      * [Issue 855]: LLD no longer hangs when using multithreaded linking on
        Windows.
      * [Issue 884]: Clang no longer passes `-faddrsig` by default.
+     * [Issue 859]: Clang now default to using Neon for all 32-bit Android Arm
+       targets.
+         * If your minSdkVersion is 23 or higher, or if you were already
+           enabling Neon manually, this change does not affect you.
+         * CPUs that do not support this feature are uncommon.
+         * If you need to continue supporting these devices you can disable
+           Neon explicitly by setting `LOCAL_ARM_NEON := false` in ndk-build or
+           passing `-DANDROID_ARM_NEON=false` to CMake.
+         * Alternatively, use the Play Console to [blacklist CPUs] without
+           Neon to disallow your app from being installed on those devices.
  * Updated libc++ to r359726.
  * Updated make to 4.2.1.
  * [Issue 885]: For LLD+LLDB compatibility, the NDK build systems now pass
@@ -44,6 +54,9 @@ For Android Studio issues, follow the docs on the [Android Studio site].
 
 [Issue 855]: https://github.com/android-ndk/ndk/issues/855
 [Issue 884]: https://github.com/android-ndk/ndk/issues/884
+
+[Issue 859]: https://github.com/android-ndk/ndk/issues/859
+[blacklist CPUs]: https://support.google.com/googleplay/android-developer/answer/7353455?hl=en
 
 ## Known Issues
 
