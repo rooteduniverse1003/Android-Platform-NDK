@@ -314,6 +314,9 @@ class Clang(ndk.builds.Module):
         os.remove(os.path.join(install_path, 'bin/lld' + bin_ext))
         os.remove(os.path.join(install_path, 'bin/lld-link' + bin_ext))
 
+        # Remove LLDB before it is ready for use.
+        os.remove(os.path.join(install_path, 'bin/lldb' + bin_ext))
+
         if self.host.is_windows:
             # The toolchain prebuilts have LLVMgold.dll in the bin directory
             # rather than the lib directory that will actually be searched.
