@@ -43,21 +43,12 @@
  #define dbg_printf(...) do {} while(0)
 #endif
 
-// When built for the Android NDK, values are
-// passed in on the GCC commandline, and when
-// built for mingw-builds, these defaults are
-// used.
-#ifndef GDB_TO_PYTHON_REL_DIR
- #define GDB_TO_PYTHON_REL_DIR "..\\opt\\bin"
-#endif
+#define GDB_TO_PYTHON_REL_DIR "."
 
-#ifndef GDB_EXECUTABLE_ORIG_FILENAME
- #define GDB_EXECUTABLE_ORIG_FILENAME "gdborig.exe"
-#endif
+#define GDB_EXECUTABLE_ORIG_FILENAME "gdb-orig.exe"
 
-#ifndef PYTHONHOME_REL_DIR
- #define PYTHONHOME_REL_DIR "..\\opt"
-#endif
+// The stub is installed to $PREBUILTS/bin, PYTHONHOME is $PREBUILTS.
+#define PYTHONHOME_REL_DIR ".."
 
 #define DIE_IF_FALSE(var) \
 	do { \

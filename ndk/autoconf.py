@@ -162,7 +162,7 @@ class AutoconfBuilder:
 
             flags_str = ' '.join(self.toolchain.flags + self.flags)
             cc = f'{self.toolchain.cc} {flags_str}'
-            cxx = f'{self.toolchain.cxx} {flags_str}'
+            cxx = f'{self.toolchain.cxx} -stdlib=libc++ {flags_str}'
 
             configure_env: Dict[str, str] = {
                 'CC': cc,

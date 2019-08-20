@@ -216,7 +216,7 @@ class GccToolchain(Toolchain):
         """
         lib_dirs = [self.path / {
             Host.Darwin: 'lib/gcc/i686-apple-darwin11/4.2.1',
-            Host.Linux: 'lib/gcc/x86_64-linux/4.8',
+            Host.Linux: 'lib/gcc/x86_64-linux/4.8.3',
             Host.Windows64: 'lib/gcc/x86_64-w64-mingw32/4.8.3',
         }[self.target]]
         if self.target != Host.Darwin:
@@ -238,7 +238,7 @@ class GccToolchain(Toolchain):
                     'prebuilts/gcc/darwin-x86/host/i686-apple-darwin-4.2.1')
         elif self.target == Host.Linux:
             return (ndk.paths.ANDROID_DIR /
-                    'prebuilts/gcc/linux-x86/host/x86_64-linux-glibc2.15-4.8')
+                    'prebuilts/gcc/linux-x86/host/x86_64-linux-glibc2.17-4.8')
         else:
             return (ndk.paths.ANDROID_DIR /
                     'prebuilts/gcc/linux-x86/host/x86_64-w64-mingw32-4.8')
@@ -339,6 +339,16 @@ class ClangToolchain(Toolchain):
         return self.clang_tool('clang++')
 
     @property
+    def lib_dirs(self) -> List[Path]:
+        lib_dirs = self.gcc_toolchain.lib_dirs
+        # libc++ library path. Static only for Windows.
+        if self.target.is_windows:
+            lib_dirs.append(self.path_for_host(self.target) / 'lib')
+        else:
+            lib_dirs.append(self.path / 'lib64')
+        return lib_dirs
+
+    @property
     def flags(self) -> List[str]:
         host_triple = HOST_TRIPLE_MAP[self.target]
         toolchain_bin = (
@@ -348,12 +358,15 @@ class ClangToolchain(Toolchain):
             f'-B{toolchain_bin}',
         ]
 
+        if self.target.is_windows:
+            flags.append('-I' + str(self.path_for_host(self.target) / 'include/c++/v1'))
+
         if self.target == Host.Darwin:
             flags.extend(self.darwin_sdk.flags)
         else:
             flags.append(f'--sysroot={self.gcc_toolchain.sysroot}')
 
-            for lib_dir in self.gcc_toolchain.lib_dirs:
+            for lib_dir in self.lib_dirs:
                 # Both -L and -B because Clang only searches for CRT
                 # objects in -B directories.
                 flags.extend([
