@@ -176,6 +176,10 @@ elseif(ANDROID_ABI MATCHES "^(mips|mips64)$")
   message(FATAL_ERROR "MIPS and MIPS64 are no longer supported.")
 endif()
 
+if(ANDROID_ABI STREQUAL armeabi-v7a AND NOT DEFINED ANDROID_ARM_NEON)
+  set(ANDROID_ARM_NEON TRUE)
+endif()
+
 include(${ANDROID_NDK}/build/cmake/platforms.cmake)
 
 # If no platform version was chosen by the user, default to the minimum version
@@ -529,9 +533,9 @@ if(ANDROID_ABI MATCHES "armeabi")
   else()
     message(FATAL_ERROR "Invalid Android ARM mode: ${ANDROID_ARM_MODE}.")
   endif()
-  if(ANDROID_ABI STREQUAL armeabi-v7a AND ANDROID_ARM_NEON)
+  if(ANDROID_ABI STREQUAL armeabi-v7a AND NOT ANDROID_ARM_NEON)
     list(APPEND ANDROID_COMPILER_FLAGS
-      -mfpu=neon)
+      -mfpu=vfpv3-d16)
   endif()
 endif()
 

@@ -267,9 +267,6 @@ $(call clear-all-src-tags)
 # files
 #
 
-neon_sources  := $(filter %.neon,$(LOCAL_SRC_FILES))
-neon_sources  := $(neon_sources:%.neon=%)
-
 LOCAL_ARM_NEON := $(strip $(LOCAL_ARM_NEON))
 ifdef LOCAL_ARM_NEON
   $(if $(filter-out true false,$(LOCAL_ARM_NEON)),\
@@ -278,22 +275,14 @@ ifdef LOCAL_ARM_NEON
   )
 endif
 
-ifeq ($(LOCAL_ARM_NEON),true)
-  neon_sources += $(LOCAL_SRC_FILES:%.neon=%)
+ifeq ($(LOCAL_ARM_NEON),false)
+  no_neon_sources := $(filter-out %.neon,$(LOCAL_SRC_FILES))
+  no_neon_sources := $(strip $(no_neon_sources))
+  $(call tag-src-files,$(no_neon_sources:%.arm=%),no_neon)
   # tag the precompiled header with 'neon' tag if it exists
   ifneq (,$(LOCAL_PCH))
-    $(call tag-src-files,$(LOCAL_PCH),neon)
+    $(call tag-src-files,$(LOCAL_PCH),no_neon)
   endif
-endif
-
-neon_sources := $(strip $(neon_sources))
-ifdef neon_sources
-  ifeq ($(filter $(TARGET_ARCH_ABI), armeabi-v7a arm64-v8a x86 x86_64),)
-    $(call __ndk_info,NEON support is only available for armeabi-v7a, arm64-v8a, x86, and x86_64 ABIs)
-    $(call __ndk_info,Please add checks against TARGET_ARCH_ABI in $(LOCAL_MAKEFILE))
-    $(call __ndk_error,Aborting)
-  endif
-  $(call tag-src-files,$(neon_sources:%.arm=%),neon)
 endif
 
 LOCAL_SRC_FILES := $(LOCAL_SRC_FILES:%.neon=%)

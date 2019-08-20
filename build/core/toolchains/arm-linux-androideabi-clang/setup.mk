@@ -25,7 +25,7 @@ TARGET_CFLAGS := -fpic
 # https://github.com/android-ndk/ndk/issues/906
 TARGET_CFLAGS += -march=armv7-a
 
-TARGET_CFLAGS.neon := -mfpu=neon
+TARGET_CFLAGS.no_neon := -mfpu=vfpv3-d16
 
 TARGET_arm_release_CFLAGS := \
     -O2 \
@@ -68,7 +68,7 @@ $(call set-src-files-target-cflags,\
     $(call set_intersection,$(__thumb_sources),$(__release_sources)),\
     $(TARGET_thumb_release_CFLAGS)) \
 $(call add-src-files-target-cflags,\
-    $(call get-src-files-with-tag,neon),\
-    $(TARGET_CFLAGS.neon)) \
+    $(call get-src-files-with-tag,no_neon),\
+    $(TARGET_CFLAGS.no_neon)) \
 $(call set-src-files-text,$(__arm_sources),arm) \
 $(call set-src-files-text,$(__thumb_sources),thumb)

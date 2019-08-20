@@ -28,7 +28,20 @@ For Android Studio issues, follow the docs on the [Android Studio site].
 
 ## Changes
 
- * Updated Clang to r349610b.
+ * Updated Clang and LLD to r365631.
+     * [Issue 855]: LLD no longer hangs when using multithreaded linking on
+       Windows.
+     * [Issue 884]: Clang no longer passes `-faddrsig` by default.
+     * [Issue 859]: Clang now default to using Neon for all 32-bit Android Arm
+       targets.
+         * If your minSdkVersion is 23 or higher, or if you were already
+           enabling Neon manually, this change does not affect you.
+         * CPUs that do not support this feature are uncommon.
+         * If you need to continue supporting these devices you can disable
+           Neon explicitly by setting `LOCAL_ARM_NEON := false` in ndk-build or
+           passing `-DANDROID_ARM_NEON=false` to CMake.
+         * Alternatively, use the Play Console to [blacklist CPUs] without
+           Neon to disallow your app from being installed on those devices.
  * Updated libc++ to r359726.
  * Updated make to 4.2.1.
  * [Issue 885]: For LLD+LLDB compatibility, the NDK build systems now pass
@@ -39,6 +52,12 @@ For Android Studio issues, follow the docs on the [Android Studio site].
 [Issue 885]: https://github.com/android-ndk/ndk/issues/885
 [maintainer_linkers]: https://android.googlesource.com/platform/ndk/+/master/docs/BuildSystemMaintainers.md#Linkers
 
+[Issue 855]: https://github.com/android-ndk/ndk/issues/855
+[Issue 884]: https://github.com/android-ndk/ndk/issues/884
+
+[Issue 859]: https://github.com/android-ndk/ndk/issues/859
+[blacklist CPUs]: https://support.google.com/googleplay/android-developer/answer/7353455?hl=en
+
 ## Known Issues
 
  * This is not intended to be a comprehensive list of all outstanding bugs.
@@ -48,13 +67,6 @@ For Android Studio issues, follow the docs on the [Android Studio site].
    to not call `dlclose`.
  * [Issue 70838247]: Gold emits broken debug information for AArch64. AArch64
    still uses BFD by default.
- * [Issue 855]: LLD may hang on Windows when using multithreaded linking.
-   ndk-build will automatically disable multithreaded linking in this situation,
-   but CMake users and custom build systems should pass `-Wl,--no-threads` when
-   using LLD on Windows. The other linkers and operating systems are unaffected.
- * [Issue 884]: Third-party build systems must pass `-fno-addrsig` to Clang for
-   compatibility with binutils. ndk-build, CMake, and standalone toolchains
-   handle this automatically.
  * [Issue 906]: Clang does not pass `-march=armv7-a` to the assembler when using
    `-fno-integrated-as`. This results in the assembler generating ARMv5
    instructions. Note that by default Clang uses the integrated assembler which
@@ -104,8 +116,6 @@ For Android Studio issues, follow the docs on the [Android Studio site].
 
 [Issue 360]: https://github.com/android-ndk/ndk/issues/360
 [Issue 70838247]: https://issuetracker.google.com/70838247
-[Issue 855]: https://github.com/android-ndk/ndk/issues/855
-[Issue 884]: https://github.com/android-ndk/ndk/issues/884
 [Issue 906]: https://github.com/android-ndk/ndk/issues/906
 [Issue 988]: https://github.com/android-ndk/ndk/issues/988
 [Issue 1004]: https://github.com/android-ndk/ndk/issues/1004

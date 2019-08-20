@@ -180,12 +180,6 @@ check_armv7_elf_binary ()
 
     echo "  found tags: CPU names:'$CPU_NAMES' VFP:'$VFP_ARCHS' NEON:'$NEON_ARCHS'"
 
-    # Clearly, any trace of NEON is a deal-breaker!
-    if [ "$NEON_ARCHS" ]; then
-        1>&2 echo "PANIC: Binary file should not contain NEON instructions: $1"
-        exit 1
-    fi
-
     if is_static_file "$1"; then
         # For static libraries / object files, it's ok to contain ARMv5TE binaries
         if [ "$CPU_NAMES" == "\"5TE\"" -a "$CPU_NAMES" != "\"7-A\"" -a "$CPU_NAMES" != "\"5TE\" \"7-A\"" ]; then
