@@ -138,6 +138,18 @@ stored in:
 devices
 - `system/core/rootdir/etc/public.libraries.iot.txt` for Android Things devices
 
+If a library is specific to either 32 or 64-bit ABI, append `32` or `64` to the
+line (with space) to specify the bitness. e.g. `libfoo.so 32`. If neither 32 nor
+64 is specified, the library is considered to be available for all ABIs of the
+device.
+
+By default, all the libraries listed in the above text file are preloaded when the
+app process is started. This behavior can be controlled per library by appending
+`nopreload` option. e.g. `libfoo.so nopreload`. Libraries with the option won't be
+preloaded, but will be loaded on demand.
+
+The `nopreload` option and the bitness option can be used together as in
+`libfoo.so 32 nopreload`.
 
 ### CTS
 
