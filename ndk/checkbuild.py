@@ -543,12 +543,15 @@ class Binutils(ndk.builds.Module):
         if not self.host.is_windows:
             libcxx_1 = os.path.join(
                 clang_libs, versioned_so(self.host, 'libc++', '1'))
+            libcxx_abi_1 = os.path.join(
+                clang_libs, versioned_so(self.host, 'libc++abi', '1'))
 
             # The rpath on LLVMgold.so is ../lib64, so we have to install to
             # lib/lib64 to have it be in the right place :(
             lib_dir = os.path.join(install_path, 'lib/lib64')
             os.makedirs(lib_dir)
             shutil.copy2(libcxx_1, lib_dir)
+            shutil.copy2(libcxx_abi_1, lib_dir)
         else:
             libwinpthread = os.path.join(clang_bin, 'libwinpthread-1.dll')
             shutil.copy2(libwinpthread, bfd_plugins)
