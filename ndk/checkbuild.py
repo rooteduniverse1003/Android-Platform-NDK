@@ -319,12 +319,6 @@ class Clang(ndk.builds.Module):
         # Remove LLDB before it is ready for use.
         os.remove(os.path.join(install_path, 'bin/lldb' + bin_ext))
 
-        if self.host.is_windows:
-            # Windows doesn't support rpath, so we need to copy
-            # libwinpthread-1.dll too.
-            shutil.copy2(os.path.join(bin_dir, 'libwinpthread-1.dll'),
-                         os.path.join(lib_dir, 'libwinpthread-1.dll'))
-
         install_clanglib = os.path.join(install_path, 'lib64', 'clang')
         linux_prebuilt_path = ndk.toolchains.ClangToolchain.path_for_host(
             ndk.hosts.Host.Linux)
