@@ -320,13 +320,6 @@ class Clang(ndk.builds.Module):
         os.remove(os.path.join(install_path, 'bin/lldb' + bin_ext))
 
         if self.host.is_windows:
-            # The toolchain prebuilts have LLVMgold.dll in the bin directory
-            # rather than the lib directory that will actually be searched.
-            bin_dir = os.path.join(install_path, 'bin')
-            lib_dir = os.path.join(install_path, 'lib64')
-            os.rename(os.path.join(bin_dir, 'LLVMgold.dll'),
-                      os.path.join(lib_dir, 'LLVMgold.dll'))
-
             # Windows doesn't support rpath, so we need to copy
             # libwinpthread-1.dll too.
             shutil.copy2(os.path.join(bin_dir, 'libwinpthread-1.dll'),
