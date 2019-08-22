@@ -343,7 +343,7 @@ class ClangToolchain(Toolchain):
         lib_dirs = self.gcc_toolchain.lib_dirs
         # libc++ library path. Static only for Windows.
         if self.target.is_windows:
-            lib_dirs.append(self.path_for_host(self.target) / 'lib')
+            lib_dirs.append(self.path_for_host(self.target) / 'lib64')
         else:
             lib_dirs.append(self.path / 'lib64')
         return lib_dirs
