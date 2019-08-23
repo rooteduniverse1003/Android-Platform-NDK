@@ -70,6 +70,11 @@ libs_in_ldflags := \
 
 include $(BUILD_SYSTEM)/system_libs.mk
 
+# The only way to statically link libomp.a is with
+# `-Wl,-Bstatic -lomp -Wl,-Bdynamic`, so we need to accept `-lomp`.
+# https://github.com/android-ndk/ndk/issues/1028
+NDK_SYSTEM_LIBS += libomp.so
+
 libs_in_ldflags := $(filter-out $(NDK_SYSTEM_LIBS:lib%.so=-l%),$(libs_in_ldflags))
 
 ifneq (,$(strip $(libs_in_ldflags)))
