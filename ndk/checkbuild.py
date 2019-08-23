@@ -576,41 +576,34 @@ class ShaderTools(ndk.builds.InvokeBuildModule):
         ]
 
 
-class Make(ndk.builds.Module):
+class Make(ndk.builds.AutoconfModule):
     name = 'make'
     path = 'prebuilt/{host}'
     notice_group = ndk.builds.NoticeGroup.TOOLCHAIN
-
-    make_src: Path = ndk.paths.ANDROID_DIR / 'toolchain/make'
-    _make_builder: Optional[AutoconfBuilder] = None
+    src: Path = ndk.paths.ANDROID_DIR / 'toolchain/make'
 
     @property
     def notices(self) -> List[str]:
-        return [str(self.make_src / 'COPYING')]
+        return [str(self.src / 'COPYING')]
+
+
+class Yasm(ndk.builds.AutoconfModule):
+    name = 'yasm'
+    path = 'prebuilt/{host}'
+    notice_group = ndk.builds.NoticeGroup.TOOLCHAIN
+    src: Path = ndk.paths.ANDROID_DIR / 'toolchain/yasm'
 
     @property
-    def make_builder(self) -> AutoconfBuilder:
-        """Returns the lazily initialized make builder for this module."""
-        if self._make_builder is None:
-            self._make_builder = AutoconfBuilder(
-                self.make_src / 'configure',
-                self.intermediate_out_dir,
-                self.host,
-                use_clang=True)
-        return self._make_builder
+    def notices(self) -> List[str]:
+        files = ['Artistic.txt', 'BSD.txt', 'COPYING', 'GNU_GPL-2.0',
+                 'GNU_LGPL-2.0']
+        return [str(self.src / f) for f in files]
 
-    def build(self) -> None:
-        print('Building make...')
-        self.make_builder.build([
-            "--disable-nls",
-            "--disable-rpath",
-        ])
 
-    def install(self) -> None:
-        install_dir = self.get_install_path()
-        copy_tree(
-            str(self.make_builder.install_directory),
-            str(install_dir))
+class NdkWhich(ndk.builds.FileModule):
+    name = 'ndk-which'
+    path = 'prebuilt/{host}/bin'
+    src = ndk.paths.ndk_path('ndk-which')
 
 
 class HostTools(ndk.builds.Module):
@@ -618,20 +611,12 @@ class HostTools(ndk.builds.Module):
     path = 'prebuilt/{host}'
     notice_group = ndk.builds.NoticeGroup.TOOLCHAIN
 
-    yasm_notices = [
-        ndk.paths.android_path('toolchain/yasm/Artistic.txt'),
-        ndk.paths.android_path('toolchain/yasm/BSD.txt'),
-        ndk.paths.android_path('toolchain/yasm/COPYING'),
-        ndk.paths.android_path('toolchain/yasm/GNU_GPL-2.0'),
-        ndk.paths.android_path('toolchain/yasm/GNU_LGPL-2.0'),
-    ]
-
     @property
     def notices(self) -> List[str]:
         return [
             ndk.paths.android_path('toolchain/python/Python-2.7.5/LICENSE'),
             ndk.paths.ndk_path('sources/host-tools/toolbox/NOTICE'),
-        ] + self.yasm_notices
+        ]
 
     def build(self) -> None:
         build_args = ndk.builds.common_build_args(self.out_dir, self.dist_dir,
@@ -646,20 +631,12 @@ class HostTools(ndk.builds.Module):
         ndk.builds.invoke_external_build(
             'toolchain/python/build.py', build_args)
 
-        print('Building YASM...')
-        ndk.builds.invoke_external_build('toolchain/yasm/build.py', build_args)
-
     def install(self) -> None:
         install_dir = self.get_install_path()
         ndk.ext.shutil.create_directory(install_dir)
 
         packages = [
-            'ndk-python',
-            'ndk-yasm',
-        ]
-
-        files = [
-            'ndk-which',
+            'ndk-python'
         ]
 
         if self.host.is_windows:
@@ -674,10 +651,6 @@ class HostTools(ndk.builds.Module):
             subprocess.check_call(
                 ['tar', 'xf', package_path, '-C', install_dir,
                  '--strip-components=1'])
-
-        for f in files:
-            shutil.copy2(
-                ndk.paths.ndk_path(f), os.path.join(install_dir, 'bin'))
 
 
 def install_exe(out_dir: str, install_dir: str, name: str,
@@ -1805,16 +1778,16 @@ class BaseToolchain(ndk.builds.Module):
     deps = {
         'binutils',
         'clang',
-        'host-tools',
         'libandroid_support',
         'platforms',
         'sysroot',
         'system-stl',
+        'yasm',
     }
 
     @property
     def notices(self) -> List[str]:
-        return (Binutils().notices + Clang().notices + HostTools().yasm_notices
+        return (Binutils().notices + Clang().notices + Yasm().notices
                 + LibAndroidSupport().notices + Platforms().notices +
                 Sysroot().notices + SystemStl().notices)
 
@@ -1823,7 +1796,7 @@ class BaseToolchain(ndk.builds.Module):
 
     def install(self) -> None:
         install_dir = self.get_install_path()
-        host_tools_dir = self.get_dep('host-tools').get_install_path()
+        yasm_dir = self.get_dep('yasm').get_install_path()
         libandroid_support_dir = self.get_dep(
             'libandroid_support').get_install_path()
         platforms_dir = self.get_dep('platforms').get_install_path()
@@ -1834,7 +1807,7 @@ class BaseToolchain(ndk.builds.Module):
 
         exe = '.exe' if self.host.is_windows else ''
         shutil.copy2(
-            os.path.join(host_tools_dir, 'bin', 'yasm' + exe),
+            os.path.join(yasm_dir, 'bin', 'yasm' + exe),
             os.path.join(install_dir, 'bin'))
 
         for arch in self.arches:
@@ -2659,6 +2632,7 @@ ALL_MODULES = [
     NdkPy(),
     NdkStack(),
     NdkStackShortcut(),
+    NdkWhich(),
     NdkWhichShortcut(),
     Platforms(),
     PythonPackages(),
@@ -2673,6 +2647,7 @@ ALL_MODULES = [
     Toolchain(),
     Vulkan(),
     WrapSh(),
+    Yasm(),
 ]
 
 

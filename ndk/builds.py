@@ -19,6 +19,9 @@ Note: this isn't the ndk-build API, but the API for building the NDK itself.
 """
 from __future__ import absolute_import
 
+# pylint: disable=import-error,no-name-in-module
+# https://github.com/PyCQA/pylint/issues/73
+from distutils.dir_util import copy_tree
 from enum import auto, Enum, unique
 import ntpath
 import os
@@ -29,6 +32,7 @@ import subprocess
 from typing import Iterable, List, Optional, Set
 
 import ndk.abis
+from ndk.autoconf import AutoconfBuilder
 import ndk.ext.shutil
 import ndk.packaging
 import ndk.paths
@@ -337,6 +341,41 @@ class Module:
         return os.path.join(log_dir, self.log_file)
 
 
+class AutoconfModule(Module):
+    # Path to the source code
+    src: Path
+
+    _builder: Optional[AutoconfBuilder] = None
+
+    @property
+    def builder(self) -> AutoconfBuilder:
+        """Returns the lazily initialized builder for this module."""
+        if self._builder is None:
+            self._builder = AutoconfBuilder(
+                self.src / 'configure',
+                self.intermediate_out_dir,
+                self.host,
+                use_clang=True)
+        return self._builder
+
+    @property
+    def configure_args(self) -> List[str]:
+        return [
+            "--disable-nls",
+            "--disable-rpath",
+        ]
+
+    def build(self) -> None:
+        self.builder.build(self.configure_args)
+
+    def install(self) -> None:
+        install_dir = self.get_install_path()
+        ndk.ext.shutil.create_directory(install_dir)
+        copy_tree(
+            str(self.builder.install_directory),
+            str(install_dir))
+
+
 class PackageModule(Module):
     """A directory to be installed to the NDK.
 
@@ -432,7 +471,9 @@ class FileModule(Module):
         pass
 
     def install(self) -> None:
-        shutil.copy2(self.src, self.get_install_path())
+        install_dir = self.get_install_path()
+        ndk.ext.shutil.create_directory(install_dir)
+        shutil.copy2(self.src, install_dir)
 
 
 class MultiFileModule(Module):
