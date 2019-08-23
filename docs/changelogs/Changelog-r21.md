@@ -42,7 +42,7 @@ For Android Studio issues, follow the docs on the [Android Studio site].
            passing `-DANDROID_ARM_NEON=false` to CMake.
          * Alternatively, use the Play Console to [blacklist CPUs] without
            Neon to disallow your app from being installed on those devices.
- * Updated libc++ to r359726.
+ * Updated libc++ to r369764.
  * Updated make to 4.2.1.
  * Updated glibc to 2.17.
  * Updated gdb to 8.3.
