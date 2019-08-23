@@ -22,6 +22,7 @@ from __future__ import absolute_import
 from enum import auto, Enum, unique
 import ntpath
 import os
+from pathlib import Path
 import shutil
 import stat
 import subprocess
@@ -297,6 +298,15 @@ class Module:
                 'non-unique install path for single arch: ' + self.path)
 
         return install_subdirs[0]
+
+    @property
+    def intermediate_out_dir(self) -> Path:
+        """Path for intermediate outputs of this module."""
+        base_path = Path(self.out_dir) / self.host.value / self.name
+        if self.split_build_by_arch:
+            return base_path / self.build_arch
+        else:
+            return base_path
 
     def __str__(self) -> str:
         if self.split_build_by_arch and self.build_arch is not None:
