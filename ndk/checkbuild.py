@@ -2238,7 +2238,7 @@ class SimplePerf(ndk.builds.Module):
         os.makedirs(install_dir)
 
         simpleperf_path = ndk.paths.android_path('prebuilts/simpleperf')
-        dirs = ['doc', 'inferno', 'bin/android']
+        dirs = ['doc', 'inferno', 'bin/android', 'app_api']
         host_bin_dir = 'windows' if self.host.is_windows else self.host.value
         dirs.append(os.path.join('bin/', host_bin_dir))
         for d in dirs:
