@@ -1375,7 +1375,7 @@ class GdbServer(ndk.builds.Module):
         if self.build_arch.endswith('64'):
             cflags.append('-DUAPI_HEADERS')
 
-        ldflags = '-static -fuse-ld=gold -Wl,-z,nocopyreloc -Wl,--no-undefined'
+        ldflags = '-static -Wl,-z,nocopyreloc -Wl,--no-undefined'
 
         # Use --target as part of CC so it is used when linking as well.
         clang = '{} --target={}'.format(
