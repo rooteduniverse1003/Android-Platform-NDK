@@ -49,7 +49,8 @@ class AutoconfBuilder:
                  host: Host,
                  add_toolchain_to_path: bool = False,
                  use_clang: bool = False,
-                 no_build_or_host: bool = False) -> None:
+                 no_build_or_host: bool = False,
+                 no_strip: bool = False) -> None:
         """Initializes an autoconf builder.
 
         Args:
@@ -63,6 +64,7 @@ class AutoconfBuilder:
                 don't allow all tools to be passed via the environment.
             use_clang: Set to True to use Clang to build this project.
             no_build_or_host: Don't pass --build or --host to configure.
+            no_strip: Don't pass -s to compiler.
         """
         self.configure_script = configure_script
         self.build_directory = build_dir
@@ -70,6 +72,7 @@ class AutoconfBuilder:
         self.add_toolchain_to_path = add_toolchain_to_path
         self.use_clang = use_clang
         self.no_build_or_host = no_build_or_host
+        self.no_strip = no_strip
 
         self.working_directory = self.build_directory / 'build'
         self.install_directory = self.build_directory / 'install'
@@ -84,10 +87,9 @@ class AutoconfBuilder:
         """Returns default cflags for the target."""
         # TODO: Are these the flags we want? These are what we've used
         # historically.
-        return [
+        flags = [
             '-Os',
             '-fomit-frame-pointer',
-            '-s',
 
             # AC_CHECK_HEADERS fails if the compiler emits any warnings. We're
             # guaranteed to hit -Wunused-command-line-argument since autoconf
@@ -97,6 +99,9 @@ class AutoconfBuilder:
             # until much later in the build.
             '-w',
         ]
+        if not self.no_strip:
+            flags.append('-s')
+        return flags
 
     def cd(self) -> ContextManager:
         """Context manager that moves into the working directory."""

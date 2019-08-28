@@ -1124,12 +1124,19 @@ class Gdb(ndk.builds.Module):
             # Awful Darwin hack. For some reason GDB doesn't produce a gdb
             # executable when using --build/--host.
             no_build_or_host = self.host == ndk.hosts.Host.Darwin
+            # -s caused mysterious linking error on old macOS like:
+            # "ld: internal error: atom not found in symbolIndex(...)"
+            # Seems old ld64 wrongly stripped some symbols.
+            # Remove this when build server upgrades to xcode 7.3
+            # (ld64-264.3.101) or above.
+            no_strip = self.host == ndk.hosts.Host.Darwin
             self._gdb_builder = ndk.autoconf.AutoconfBuilder(
                 self.gdb_src / 'configure',
                 self.intermediate_out_dir / 'gdb',
                 self.host,
                 use_clang=True,
-                no_build_or_host=no_build_or_host)
+                no_build_or_host=no_build_or_host,
+                no_strip=no_strip)
         return self._gdb_builder
 
     @property
@@ -1256,10 +1263,16 @@ class Gdb(ndk.builds.Module):
             shutil.rmtree(gdb_share_install_dir)
         shutil.copytree(gdb_share_dir, gdb_share_install_dir)
 
-        # gdb is currently gdb(.exe)? and the gdb stub is currently gdb-stub.
-        # Make them gdb-orig(.exe)? and gdb(.exe)? respectively.
         exe_suffix = '.exe' if self.host.is_windows else ''
         gdb_exe = install_dir / ('bin/gdb' + exe_suffix)
+
+        # Strip is skipped when build. Strip the binary now.
+        if self.host == ndk.hosts.Host.Darwin:
+            cmd = [str(self.gdb_builder.toolchain.strip), str(gdb_exe)]
+            subprocess.check_call(cmd)
+
+        # gdb is currently gdb(.exe)? and the gdb stub is currently gdb-stub.
+        # Make them gdb-orig(.exe)? and gdb(.exe)? respectively.
         gdb_exe.rename(install_dir / ('bin/gdb-orig' + exe_suffix))
 
         gdb_stub = install_dir / 'bin/gdb-stub'
