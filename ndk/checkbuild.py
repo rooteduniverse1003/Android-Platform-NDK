@@ -66,7 +66,6 @@ from typing import (
 
 from build.lib import build_support
 import ndk.abis
-from ndk.autoconf import AutoconfBuilder
 import ndk.ansi
 import ndk.autoconf
 import ndk.builds
@@ -1420,6 +1419,9 @@ class GdbServer(ndk.builds.Module):
             os.makedirs(self.build_dir)
 
         max_api = Platforms().get_apis()[-1]
+        # Make sure the max_api is not a codenamed release. It should never
+        # happen since letters will sort before numbers.
+        assert isinstance(max_api, int)
         with ndk.ext.os.cd(self.build_dir):
             self.build_libthread_db(max_api)
             self.configure(max_api)
