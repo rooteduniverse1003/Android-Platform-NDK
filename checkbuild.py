@@ -33,7 +33,8 @@ THIS_DIR = os.path.realpath(os.path.dirname(__file__))
 
 def parse_args():
     """Parses and returns command line arguments."""
-    parser = argparse.ArgumentParser()
+    # Don't add help because it inhibits the real checkbuild.py's --help.
+    parser = argparse.ArgumentParser(add_help=False)
     parser.add_argument(
         '-v',
         '--verbose',
