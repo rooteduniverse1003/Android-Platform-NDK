@@ -442,6 +442,15 @@ Clang will usually turn into a bug.
 For more information on Clang's supported arguments, see the [Clang User
 Manual].
 
+### Hardening
+
+It is recommented to build all code with `-fstack-protector-strong`. This causes
+the compiler to emit stack guards to protect against security vulnerabilities
+caused by buffer overruns.
+
+Note: ndk-build and the NDK's CMake toolchain file enable this option by
+default.
+
 ## Common Issues
 
 ### Unwinding
