@@ -89,15 +89,16 @@ devices and nearly all 32-bit ARM devices running at least Android Marshmallow
 is possible that extant devices that were upgraded to Marshmallow do not include
 NEON support.
 
-Enabling NEON can significantly improve application performance.
+NEON can significantly improve application performance.
 
-To enable NEON, pass `-mfpu=neon` when compiling.
-
-Note: Clang automatically enables NEON for API levels 23 (Marshmallow) and
-higher.
+Clang automatically enables NEON for all API levels. ARM devices without NEON
+are uncommon. To support non-NEON devices, pass `-mfpu=vfpv3-d16` when
+compiling. Alternatively, use the Play Console to [blacklist CPUs] without NEON
+to disallow your app from being installed on those devices.
 
 [Android CDD]: https://source.android.com/compatibility/cdd
 [NEON]: https://developer.arm.com/technologies/neon
+[blacklist CPUs]: https://support.google.com/googleplay/android-developer/answer/7353455?hl=en
 
 ### OS Versions
 [OS Versions]: #os-versions
