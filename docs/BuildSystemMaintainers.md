@@ -363,10 +363,6 @@ assembler. If using `-fno-integrated-as`, you must explicitly pass
 use the integrated assembler, and this flag is not needed in that case. See
 [Issue 906].
 
-Clang outputs debug info with bad line number info when compiling for ARM64 and
-`-O0` (no optimizations). To work around this issue, pass
-`-fno-experimental-isel` to Clang. See [Issue 1004].
-
 Android Studio's LLDB debugger uses a binary's build ID to locate debug
 information. To ensure that LLDB works with a binary, pass an option like
 `-Wl,--build-id=sha1` to Clang when linking. Other `--build-id=` modes are OK,
@@ -378,7 +374,6 @@ version of LLDB doesn't recognize LLD's default 8-byte build ID. See [Issue
 [Issue 884]: https://github.com/android-ndk/ndk/issues/884
 [Issue 885]: https://github.com/android-ndk/ndk/issues/885
 [Issue 906]: https://github.com/android-ndk/ndk/issues/906
-[Issue 1004]: https://github.com/android-ndk/ndk/issues/1004
 [Position-independent executables]: https://en.wikipedia.org/wiki/Position-independent_code#Position-independent_executables
 
 ## Useful Arguments
