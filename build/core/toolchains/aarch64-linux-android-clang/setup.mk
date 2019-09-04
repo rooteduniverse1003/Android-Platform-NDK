@@ -30,11 +30,6 @@ TARGET_arm64_debug_CFLAGS := \
     -UNDEBUG \
     -fno-limit-debug-info \
 
-# The GlobalISel instruction selector generates debug info with bad line
-# number info. Disable it using -fno-experimental-isel.
-# TODO: Remove when https://github.com/android-ndk/ndk/issues/1004 is fixed.
-TARGET_arm64_debug_CFLAGS += -fno-experimental-isel
-
 # This function will be called to determine the target CFLAGS used to build
 # a C or Assembler source file, based on its tags.
 #

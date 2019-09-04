@@ -466,13 +466,6 @@ if(ANDROID_TOOLCHAIN STREQUAL clang)
   list(APPEND ANDROID_COMPILER_FLAGS_DEBUG -fno-limit-debug-info)
 endif()
 
-# The GlobalISel instruction selector generates debug info with bad line
-# number info. Disable it using -fno-experimental-isel.
-# TODO: Remove when https://github.com/android-ndk/ndk/issues/1004 is fixed.
-if(ANDROID_ABI STREQUAL arm64-v8a)
-  list(APPEND ANDROID_COMPILER_FLAGS_DEBUG -fno-experimental-isel)
-endif()
-
 # Toolchain and ABI specific flags.
 if(ANDROID_ABI STREQUAL x86 AND ANDROID_PLATFORM_LEVEL LESS 24)
   # http://b.android.com/222239

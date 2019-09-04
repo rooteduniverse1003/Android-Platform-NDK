@@ -42,6 +42,8 @@ For Android Studio issues, follow the docs on the [Android Studio site].
            passing `-DANDROID_ARM_NEON=false` to CMake.
          * Alternatively, use the Play Console to [blacklist CPUs] without
            Neon to disallow your app from being installed on those devices.
+     * [Issue 1004]: Fixed bug with bad line number information when building
+       Arm64 with `-O0`.
  * Updated libc++ to r369764.
  * Updated make to 4.2.1.
  * Updated glibc to 2.17.
@@ -51,14 +53,13 @@ For Android Studio issues, follow the docs on the [Android Studio site].
    need to apply the workaround manually. For more details, see the [Build
    System Maintainers Guide][maintainer_linkers].
 
-[Issue 885]: https://github.com/android-ndk/ndk/issues/885
-[maintainer_linkers]: https://android.googlesource.com/platform/ndk/+/master/docs/BuildSystemMaintainers.md#Linkers
-
+[Issue 1004]: https://github.com/android-ndk/ndk/issues/1004
 [Issue 855]: https://github.com/android-ndk/ndk/issues/855
-[Issue 884]: https://github.com/android-ndk/ndk/issues/884
-
 [Issue 859]: https://github.com/android-ndk/ndk/issues/859
+[Issue 884]: https://github.com/android-ndk/ndk/issues/884
+[Issue 885]: https://github.com/android-ndk/ndk/issues/885
 [blacklist CPUs]: https://support.google.com/googleplay/android-developer/answer/7353455?hl=en
+[maintainer_linkers]: https://android.googlesource.com/platform/ndk/+/master/docs/BuildSystemMaintainers.md#Linkers
 
 ## Known Issues
 
@@ -107,9 +108,6 @@ For Android Studio issues, follow the docs on the [Android Studio site].
    Note that because this is a platform bug rather than an NDK bug this
    workaround will be necessary for this use case to work on all devices until
    at least Android R.
- * [Issue 1004]: Clang outputs debug info with bad line number info when
-   compiling for ARM64 and `-O0` (no optimizations). Third-party build systems
-   can pass `-fno-experimental-isel` to Clang to work around this issue.
  * This version of the NDK is incompatible with the Android Gradle plugin
    version 3.0 or older. If you see an error like
    `No toolchains found in the NDK toolchains folder for ABI with prefix: mips64el-linux-android`,
@@ -120,5 +118,4 @@ For Android Studio issues, follow the docs on the [Android Studio site].
 [Issue 70838247]: https://issuetracker.google.com/70838247
 [Issue 906]: https://github.com/android-ndk/ndk/issues/906
 [Issue 988]: https://github.com/android-ndk/ndk/issues/988
-[Issue 1004]: https://github.com/android-ndk/ndk/issues/1004
 [use plugin version 3.1 or newer]: https://developer.android.com/studio/releases/gradle-plugin#updating-plugin
