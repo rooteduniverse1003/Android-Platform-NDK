@@ -189,22 +189,6 @@ ifneq ($(LOCAL_ALLOW_UNDEFINED_SYMBOLS),true)
   LOCAL_LDFLAGS += $(TARGET_NO_UNDEFINED_LDFLAGS)
 endif
 
-# These flags are used to enforce the NX (no execute) security feature in the
-# generated machine code. This adds a special section to the generated shared
-# libraries that instruct the Linux kernel to disable code execution from the
-# stack and the heap.
-#
-# TODO: Should be a Clang default: https://github.com/android-ndk/ndk/issues/812
-LOCAL_CFLAGS += -Wa,--noexecstack
-LOCAL_LDFLAGS += -Wl,-z,noexecstack
-
-# We enable shared text relocation warnings by default. These are not allowed in
-# current versions of Android (android-21 for LP64 ABIs, android-23 for LP32
-# ABIs).
-#
-# TODO: Should be a Clang default: https://github.com/android-ndk/ndk/issues/812
-LOCAL_LDFLAGS += -Wl,--warn-shared-textrel
-
 # We enable fatal linker warnings by default.
 # If LOCAL_DISABLE_FATAL_LINKER_WARNINGS is true, we don't enable this check.
 ifneq ($(LOCAL_DISABLE_FATAL_LINKER_WARNINGS),true)

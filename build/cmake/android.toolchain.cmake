@@ -450,7 +450,6 @@ list(APPEND ANDROID_COMPILER_FLAGS
   -no-canonical-prefixes)
 list(APPEND ANDROID_LINKER_FLAGS
   -Wl,--build-id=sha1
-  -Wl,--warn-shared-textrel
   -Wl,--fatal-warnings)
 list(APPEND ANDROID_LINKER_FLAGS_EXE -Wl,--gc-sections)
 
@@ -544,9 +543,6 @@ endif()
 # doing this would require meddling with the CMAKE_<LANG>_COMPILE_OBJECT rules,
 # which would get quite messy.
 list(APPEND ANDROID_LINKER_FLAGS -Qunused-arguments)
-
-list(APPEND ANDROID_COMPILER_FLAGS -Wa,--noexecstack)
-list(APPEND ANDROID_LINKER_FLAGS -Wl,-z,noexecstack)
 
 if(ANDROID_DISABLE_FORMAT_STRING_CHECKS)
   list(APPEND ANDROID_COMPILER_FLAGS
