@@ -18,8 +18,6 @@ from __future__ import absolute_import
 
 import errno
 import os
-import shutil
-from typing import Optional
 
 
 def create_directory(path: str) -> None:
