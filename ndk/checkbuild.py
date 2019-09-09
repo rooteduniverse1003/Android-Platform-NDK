@@ -1070,6 +1070,7 @@ class Gdb(ndk.builds.Module):
     path = 'prebuilt/{host}'
 
     deps = {
+        'make',
         'host-tools',
     }
 
@@ -1794,6 +1795,7 @@ class BaseToolchain(ndk.builds.Module):
         'binutils',
         'clang',
         'libandroid_support',
+        'make',
         'platforms',
         'sysroot',
         'system-stl',
