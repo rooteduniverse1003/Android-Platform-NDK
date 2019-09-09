@@ -46,6 +46,8 @@ For Android Studio issues, follow the docs on the [Android Studio site].
        Arm64 with `-O0`.
  * Updated libc++ to r369764.
  * Updated make to 4.2.1.
+     * Modified ndk-build to supply `-O` for more readable errors with parallel
+       builds.
  * Updated glibc to 2.17.
  * Updated gdb to 8.3.
  * [Issue 885]: For LLD+LLDB compatibility, the NDK build systems now pass
