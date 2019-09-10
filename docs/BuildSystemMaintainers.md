@@ -215,7 +215,37 @@ installed to the triple directory and is not triple-prefixed, but rather is only
 installed as `<NDK>/toolchains/llvm/prebuilt/<host-tag>/bin/ld.lld` because the
 one binary supports all ABIs.
 
+Warning: Using LLD with GNU `strip` or `objcopy` breaks RelRO. LLVM `strip` and
+`objcopy` must be used with LLD. See [Issue 843] and the [Binutils] section of
+this document for more information.
+
 [Issue 70838247]: https://issuetracker.google.com/70838247
+[Issue 843]: https://github.com/android-ndk/ndk/issues/843
+
+## Binutils
+
+GNU Binutils tools are installed to
+`<NDK>/toolchains/llvm/prebuilt/<host-tag>/bin/<triple>-<tool>` and
+`<NDK>/toolchains/llvm/prebuilt/<host-tag>/<triple>/bin/<tool>`. These include
+but are not limited to:
+
+ * ar
+ * as
+ * objcopy
+ * objdump
+ * readelf
+ * strip
+
+For some of these tools, LLVM equivalents are available. They typically have the
+same name but are prefixed with `llvm-`. For example, `llvm-strip` is used
+instead of `<triple>-strip` or the `strip` binary from the triple-specific
+direcory.
+
+Note: In general Android is moving away from GNU Binutils in favor of LLVM
+tools. This is a work in progress, but it is likely that a future release of the
+NDK will deprecate and eventually remove GNU Binutils. For now, ensure that your
+build system works with `llvm-strip` and `llvm-objcopy` as they are required
+when using LLD ([Issue 843]).
 
 ## Sysroot
 
