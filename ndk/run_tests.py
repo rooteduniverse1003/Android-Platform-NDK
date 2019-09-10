@@ -358,10 +358,11 @@ def enumerate_libcxx_tests(out_dir_base: str, test_src_dir: str,
 class ConfigFilter:
     def __init__(self, test_config: Dict[Any, Any]) -> None:
         test_spec = ndk.test.builder.test_spec_from_config(test_config)
-        self.config_abis = test_spec.abis
+        self.spec = test_spec
 
     def filter(self, build_config: BuildConfiguration) -> bool:
-        return build_config.abi in self.config_abis
+        return (build_config.abi in self.spec.abis
+                and build_config.linker in self.spec.linkers)
 
 
 def enumerate_tests(test_dir: str, test_src_dir: str, test_filter: TestFilter,
