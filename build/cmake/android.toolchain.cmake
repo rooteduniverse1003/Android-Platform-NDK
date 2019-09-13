@@ -507,7 +507,7 @@ endif()
 if(ANDROID_CPP_FEATURES)
   separate_arguments(ANDROID_CPP_FEATURES)
   foreach(feature ${ANDROID_CPP_FEATURES})
-    if(NOT ${feature} MATCHES "^(rtti|exceptions)$")
+    if(NOT ${feature} MATCHES "^(rtti|exceptions|no-rtti|no-exceptions)$")
       message(FATAL_ERROR "Invalid Android C++ feature: ${feature}.")
     endif()
     list(APPEND ANDROID_COMPILER_FLAGS_CXX
