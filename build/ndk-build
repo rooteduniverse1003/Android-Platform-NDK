@@ -278,6 +278,5 @@ if [ "$NDK_ANALYZE" = 1 ]; then
             $GNUMAKE -f $PROGDIR/core/build-local.mk "$@" APP_ABI=$ABI
     done
 else
-    $GNUMAKE -f $PROGDIR/core/build-local.mk "$@"
+    $GNUMAKE -O -f $PROGDIR/core/build-local.mk "$@"
 fi
-
