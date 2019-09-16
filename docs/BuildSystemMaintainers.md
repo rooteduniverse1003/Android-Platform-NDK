@@ -239,7 +239,7 @@ but are not limited to:
 For some of these tools, LLVM equivalents are available. They typically have the
 same name but are prefixed with `llvm-`. For example, `llvm-strip` is used
 instead of `<triple>-strip` or the `strip` binary from the triple-specific
-direcory. ndk-build and the NDK' CMake toolchain file now default to using the
+directory. ndk-build and the NDK' CMake toolchain file now default to using the
 LLVM tools and GNU binutils will be removed in a future release.
 
 Note: In general Android is moving away from GNU Binutils in favor of LLVM
