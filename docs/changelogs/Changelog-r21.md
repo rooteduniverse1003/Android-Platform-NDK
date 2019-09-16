@@ -24,9 +24,8 @@ For Android Studio issues, follow the docs on the [Android Studio site].
    will affect builds using LLD with binutils strip and objcopy as opposed to
    llvm-strip and llvm-objcopy.
 
- * [Issue 843]: Build system maintainers should begin testing with llvm-ar,
-   llvm-strip, and llvm-objcopy. AOSP has switched to these and the NDK will
-   follow.
+ * [Issue 843]: Build system maintainers should begin testing with llvm-strip
+   and llvm-objcopy. AOSP has switched to these and the NDK will follow.
 
  * The Play Store will require 64-bit support when uploading an APK beginning in
    August 2019. Start porting now to avoid surprises when the time comes. For
@@ -64,7 +63,6 @@ For Android Studio issues, follow the docs on the [Android Studio site].
    RelRO with LLD. Note that the Android Gradle Plugin performs its own
    stripping, so most users will need to upgrade to Android Gradle Plugin
    version 3.6 or newer to get the fix.
- * `llvm-ar` is now used instead of `ar`.
 
 [Issue 1004]: https://github.com/android-ndk/ndk/issues/1004
 [Issue 855]: https://github.com/android-ndk/ndk/issues/855
