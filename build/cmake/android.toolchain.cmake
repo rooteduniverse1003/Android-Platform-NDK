@@ -388,6 +388,8 @@ set(ANDROID_TOOLCHAIN_ROOT
 set(ANDROID_TOOLCHAIN_PREFIX
   "${ANDROID_TOOLCHAIN_ROOT}/bin/${ANDROID_TOOLCHAIN_NAME}-")
 
+list(APPEND CMAKE_PREFIX_PATH "${ANDROID_TOOLCHAIN_ROOT}")
+
 # find_library searches a handful of paths as described by
 # https://cmake.org/cmake/help/v3.6/command/find_library.html. CMake doesn't
 # understand the Android sysroot layout, so we need to give the direct path to
