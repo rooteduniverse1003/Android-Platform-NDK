@@ -50,7 +50,8 @@ class AutoconfBuilder:
                  add_toolchain_to_path: bool = False,
                  use_clang: bool = False,
                  no_build_or_host: bool = False,
-                 no_strip: bool = False) -> None:
+                 no_strip: bool = False,
+                 additional_flags: List[str] = None) -> None:
         """Initializes an autoconf builder.
 
         Args:
@@ -73,6 +74,7 @@ class AutoconfBuilder:
         self.use_clang = use_clang
         self.no_build_or_host = no_build_or_host
         self.no_strip = no_strip
+        self.additional_flags = additional_flags
 
         self.working_directory = self.build_directory / 'build'
         self.install_directory = self.build_directory / 'install'
@@ -101,6 +103,8 @@ class AutoconfBuilder:
         ]
         if not self.no_strip:
             flags.append('-s')
+        if self.additional_flags:
+            flags.extend(self.additional_flags)
         return flags
 
     def cd(self) -> ContextManager:

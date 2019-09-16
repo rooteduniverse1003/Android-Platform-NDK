@@ -1121,22 +1121,33 @@ class Gdb(ndk.builds.Module):
     def gdb_builder(self) -> ndk.autoconf.AutoconfBuilder:
         """Returns the lazily initialized gdb builder for this module."""
         if self._gdb_builder is None:
-            # Awful Darwin hack. For some reason GDB doesn't produce a gdb
-            # executable when using --build/--host.
-            no_build_or_host = self.host == ndk.hosts.Host.Darwin
-            # -s caused mysterious linking error on old macOS like:
-            # "ld: internal error: atom not found in symbolIndex(...)"
-            # Seems old ld64 wrongly stripped some symbols.
-            # Remove this when build server upgrades to xcode 7.3
-            # (ld64-264.3.101) or above.
-            no_strip = self.host == ndk.hosts.Host.Darwin
+            no_build_or_host = False
+            no_strip = False
+            additional_flags = []
+            if self.host == ndk.hosts.Host.Darwin:
+                # Awful Darwin hack. For some reason GDB doesn't produce a gdb
+                # executable when using --build/--host.
+                no_build_or_host = True
+                # -s caused mysterious linking error on old macOS like:
+                # "ld: internal error: atom not found in symbolIndex(...)"
+                # Seems old ld64 wrongly stripped some symbols.
+                # Remove this when build server upgrades to xcode 7.3
+                # (ld64-264.3.101) or above.
+                no_strip = True
+                additional_flags.append('-Wl,-rpath,@loader_path/../lib')
+            if self.host == ndk.hosts.Host.Linux:
+                additional_flags.append('-Wl,-rpath,$$$$\\ORIGIN/../lib')
+            # Add path for libc++.
+            clang_path = ndk.toolchains.ClangToolchain.path_for_host(self.host)
+            additional_flags.append('-L' + str(clang_path / 'lib64'))
             self._gdb_builder = ndk.autoconf.AutoconfBuilder(
                 self.gdb_src / 'configure',
                 self.intermediate_out_dir / 'gdb',
                 self.host,
                 use_clang=True,
                 no_build_or_host=no_build_or_host,
-                no_strip=no_strip)
+                no_strip=no_strip,
+                additional_flags=additional_flags)
         return self._gdb_builder
 
     @property
@@ -1277,6 +1288,16 @@ class Gdb(ndk.builds.Module):
 
         gdb_stub = install_dir / 'bin/gdb-stub'
         gdb_stub.rename(install_dir / ('bin/gdb' + exe_suffix))
+
+        # Install libc++.
+        clang_path = ndk.toolchains.ClangToolchain.path_for_host(self.host)
+        libcxx_files = {
+            ndk.hosts.Host.Darwin: ['libc++abi.1.dylib', 'libc++.1.dylib'],
+            ndk.hosts.Host.Linux: ['libc++abi.so.1', 'libc++.so.1'],
+            ndk.hosts.Host.Windows64: [],
+        }
+        for f in libcxx_files[self.host]:
+            shutil.copy(clang_path / 'lib64' / f, install_dir / 'lib')
 
 
 class GdbServer(ndk.builds.Module):
