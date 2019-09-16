@@ -49,6 +49,10 @@ For Android Studio issues, follow the docs on the [Android Studio site].
            Neon to disallow your app from being installed on those devices.
      * [Issue 1004]: Fixed bug with bad line number information when building
        Arm64 with `-O0`.
+     * [Issue 1028]: OpenMP is now available in both static and shared variants.
+       Note that shared is the default behavior, but in prior NDK releases the
+       static library would be used because there was no shared library. To keep
+       the old behavior, link with `-static-openmp`.
  * Updated libc++ to r369764.
  * Updated make to 4.2.1.
      * Modified ndk-build to supply `-O` for more readable errors with parallel
@@ -65,6 +69,7 @@ For Android Studio issues, follow the docs on the [Android Studio site].
    version 3.6 or newer to get the fix.
 
 [Issue 1004]: https://github.com/android-ndk/ndk/issues/1004
+[Issue 1028]: https://github.com/android/ndk/issues/1028
 [Issue 855]: https://github.com/android-ndk/ndk/issues/855
 [Issue 859]: https://github.com/android-ndk/ndk/issues/859
 [Issue 884]: https://github.com/android-ndk/ndk/issues/884
