@@ -69,9 +69,15 @@ For Android Studio issues, follow the docs on the [Android Studio site].
    version 3.6 or newer to get the fix.
  * Fixed ndk-build to use Clang's default C++ standard version (currently C++14)
    when using libc++.
+ * Removed the `cxx-stl/system` module from ndk-build. The system STL is still
+   available (for now, see [Issue 744]); only an implementation detail has been
+   removed. If you were explicitly linking libstdc++ or importing
+   `cxx-stl/system`, remove that and ensure that `APP_STL` is set to `system`
+   instead.
 
 [Issue 1004]: https://github.com/android-ndk/ndk/issues/1004
 [Issue 1028]: https://github.com/android/ndk/issues/1028
+[Issue 744]: https://github.com/android/ndk/issues/744
 [Issue 855]: https://github.com/android-ndk/ndk/issues/855
 [Issue 859]: https://github.com/android-ndk/ndk/issues/859
 [Issue 884]: https://github.com/android-ndk/ndk/issues/884

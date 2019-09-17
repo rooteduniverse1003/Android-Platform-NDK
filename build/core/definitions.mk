@@ -2106,7 +2106,9 @@ ndk-stl-check = \
 #
 ndk-stl-select = \
     $(if $(filter none,$1),,\
-        $(call import-module,$(NDK_STL.$1.IMPORT_MODULE)) \
+        $(if $(NDK_STL.$1.IMPORT_MODULE),\
+            $(call import-module,$(NDK_STL.$1.IMPORT_MODULE)) \
+        )\
     )
 
 # Called after all Android.mk files are parsed to add
@@ -2120,7 +2122,7 @@ ndk-stl-add-dependencies = \
         $(NDK_STL.$1.LDLIBS))
 
 $(call ndk-stl-register,none)
-$(call ndk-stl-register,system,cxx-stl/system,libstdc++)
+$(call ndk-stl-register,system)
 
 $(call ndk-stl-register,\
     c++_static,\
