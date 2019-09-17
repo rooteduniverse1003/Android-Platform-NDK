@@ -638,7 +638,13 @@ ifdef undefined_libs
     # Application.mk or on the command line to revert to the old, broken
     # behavior.
     ifneq ($(APP_ALLOW_MISSING_DEPS),true)
-        $(call __ndk_error,Aborting (set APP_ALLOW_MISSING_DEPS=true to allow missing dependencies))
+        $(call __ndk_error,Note that old versions of ndk-build silently ignored \
+            this error case. If your project worked on those versions$(comma) \
+            the missing libraries were not needed and you can remove those \
+            dependencies from the module to fix your build. \
+            Alternatively$(comma) set APP_ALLOW_MISSING_DEPS=true to allow \
+            missing dependencies.)
+        $(call __ndk_error,Aborting.)
     endif
 endif
 
