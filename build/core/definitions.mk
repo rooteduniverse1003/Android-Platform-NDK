@@ -1690,7 +1690,6 @@ _FLAGS := \
     $$(TARGET_CXXFLAGS) \
     $$(call get-src-file-target-cflags,$(1)) \
     $$(call host-c-includes, $$(LOCAL_C_INCLUDES) $$(LOCAL_PATH)) \
-    $(STL_DEFAULT_STD_VERSION) \
     $$(NDK_APP_CFLAGS) \
     $$(NDK_APP_CPPFLAGS) \
     $$(NDK_APP_CXXFLAGS) \
@@ -1823,7 +1822,6 @@ _FLAGS := \
     $$(TARGET_CXXFLAGS) \
     $$(call get-src-file-target-cflags,$(1)) \
     $$(call host-c-includes, $$(LOCAL_C_INCLUDES) $$(LOCAL_PATH)) \
-    $(STL_DEFAULT_STD_VERSION) \
     $$(NDK_APP_CFLAGS) \
     $$(NDK_APP_CPPFLAGS) \
     $$(NDK_APP_CXXFLAGS) \
@@ -2085,7 +2083,6 @@ NDK_STL_LIST :=
 # $2: STL module path (e.g. cxx-stl/system)
 # $3: list of static libraries all modules will depend on
 # $4: list of shared libraries all modules will depend on
-# $5: Default standard version for this STL (with `-std` prefix).
 #
 ndk-stl-register = \
     $(eval __ndk_stl := $(strip $1)) \
@@ -2093,7 +2090,6 @@ ndk-stl-register = \
     $(eval NDK_STL.$(__ndk_stl).IMPORT_MODULE := $(strip $2)) \
     $(eval NDK_STL.$(__ndk_stl).STATIC_LIBS := $(strip $(call strip-lib-prefix,$3))) \
     $(eval NDK_STL.$(__ndk_stl).SHARED_LIBS := $(strip $(call strip-lib-prefix,$4))) \
-    $(eval NDK_STL.$(__ndk_stl).DEFAULT_STD_VERSION := $(strip $5))
 
 # Called to check that the value of APP_STL is a valid one.
 # $1: STL name as it apperas in APP_STL (e.g. 'system')
@@ -2111,7 +2107,7 @@ ndk-stl-check = \
 ndk-stl-select = \
     $(if $(filter none,$1),,\
         $(call import-module,$(NDK_STL.$1.IMPORT_MODULE)) \
-        $(eval STL_DEFAULT_STD_VERSION := $(strip $(NDK_STL.$1.DEFAULT_STD_VERSION))))
+    )
 
 # Called after all Android.mk files are parsed to add
 # proper STL dependencies to every C++ module.
@@ -2129,17 +2125,14 @@ $(call ndk-stl-register,system,cxx-stl/system,libstdc++)
 $(call ndk-stl-register,\
     c++_static,\
     cxx-stl/llvm-libc++,\
-    c++_static,\
-    ,\
-    -std=c++11\
+    c++_static\
     )
 
 $(call ndk-stl-register,\
     c++_shared,\
     cxx-stl/llvm-libc++,\
     ,\
-    c++_shared,\
-    -std=c++11\
+    c++_shared\
     )
 
 ifneq (,$(NDK_UNIT_TESTS))

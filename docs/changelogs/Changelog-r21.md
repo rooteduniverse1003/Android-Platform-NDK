@@ -67,6 +67,8 @@ For Android Studio issues, follow the docs on the [Android Studio site].
    RelRO with LLD. Note that the Android Gradle Plugin performs its own
    stripping, so most users will need to upgrade to Android Gradle Plugin
    version 3.6 or newer to get the fix.
+ * Fixed ndk-build to use Clang's default C++ standard version (currently C++14)
+   when using libc++.
 
 [Issue 1004]: https://github.com/android-ndk/ndk/issues/1004
 [Issue 1028]: https://github.com/android/ndk/issues/1028
