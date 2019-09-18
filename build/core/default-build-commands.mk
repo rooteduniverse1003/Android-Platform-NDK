@@ -128,6 +128,8 @@ GLOBAL_CFLAGS += \
 # TODO: Remove when https://github.com/android-ndk/ndk/issues/884 is fixed.
 GLOBAL_CFLAGS += -fno-addrsig
 
+GLOBAL_CFLAGS += -D_FORTIFY_SOURCE=2
+
 GLOBAL_LDFLAGS = \
     -target $(LLVM_TRIPLE)$(TARGET_PLATFORM_LEVEL) \
     -no-canonical-prefixes \

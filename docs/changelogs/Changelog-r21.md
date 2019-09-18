@@ -76,7 +76,10 @@ For Android Studio issues, follow the docs on the [Android Studio site].
    `cxx-stl/system`, remove that and ensure that `APP_STL` is set to `system`
    instead.
  * `llvm-ar` is now used instead of `ar`.
+ * [Issue 976]: ndk-build and the CMake toolchain file now enable
+   `_FORTIFY_SOURCE` by default. See [FORTIFY in Android] for more details.
 
+[FORTIFY in Android]: https://android-developers.googleblog.com/2017/04/fortify-in-android.html
 [Issue 1004]: https://github.com/android-ndk/ndk/issues/1004
 [Issue 1028]: https://github.com/android/ndk/issues/1028
 [Issue 744]: https://github.com/android/ndk/issues/744
@@ -84,6 +87,7 @@ For Android Studio issues, follow the docs on the [Android Studio site].
 [Issue 859]: https://github.com/android-ndk/ndk/issues/859
 [Issue 884]: https://github.com/android-ndk/ndk/issues/884
 [Issue 885]: https://github.com/android-ndk/ndk/issues/885
+[Issue 976]: https://github.com/android/ndk/issues/976
 [blacklist CPUs]: https://support.google.com/googleplay/android-developer/answer/7353455?hl=en
 [maintainer_linkers]: https://android.googlesource.com/platform/ndk/+/master/docs/BuildSystemMaintainers.md#Linkers
 

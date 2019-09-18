@@ -465,12 +465,30 @@ Manual].
 
 ### Hardening
 
+#### Stack protectors
+
 It is recommented to build all code with `-fstack-protector-strong`. This causes
 the compiler to emit stack guards to protect against security vulnerabilities
 caused by buffer overruns.
 
 Note: ndk-build and the NDK's CMake toolchain file enable this option by
 default.
+
+#### Fortify
+
+FORTIFY is a set of extensions to the C standard library that tries to catch the
+incorrect use of standard functions, such as `memset`, `sprintf`, and `open`.
+Where possible, runtime bugs will be diagnosed as errors at compile-time. If not
+provable at compile-time, a run-time check is used. Note that the specific set
+of APIs checked depends on the `minSdkVersion` used, since run-time support is
+required. See [FORTIFY in Android] for more details.
+
+To enable this feature in your build define `_FORTIFY_SOURCE=2` when compiling.
+
+Note: ndk-build and the NDK's CMake toolchain file enable this option by
+default.
+
+[FORTIFY in Android]: https://android-developers.googleblog.com/2017/04/fortify-in-android.html
 
 ## Common Issues
 
