@@ -687,6 +687,17 @@ if (CMAKE_VERSION VERSION_GREATER 3.7.0)
     set(CMAKE_ANDROID_ARM_MODE ${ANDROID_ARM_MODE})
   endif()
 
+  # https://github.com/android/ndk/issues/861
+  if(ANDROID_ABI STREQUAL armeabi-v7a)
+    set(CMAKE_ANDROID_ARCH arm)
+  elseif(ANDROID_ABI STREQUAL arm64-v8a)
+    set(CMAKE_ANDROID_ARCH arm64)
+  elseif(ANDROID_ABI STREQUAL x86)
+    set(CMAKE_ANDROID_ARCH x86)
+  elseif(ANDROID_ABI STREQUAL x86_64)
+    set(CMAKE_ANDROID_ARCH x86_64)
+  endif()
+
   # https://github.com/android/ndk/issues/1012
   set(CMAKE_ASM_ANDROID_TOOLCHAIN_MACHINE "${ANDROID_TOOLCHAIN_NAME}")
   set(CMAKE_C_ANDROID_TOOLCHAIN_MACHINE "${ANDROID_TOOLCHAIN_NAME}")
