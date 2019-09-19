@@ -45,10 +45,14 @@ should offer (a) a tool to build open source projects, (b) a repository
 of prebuilts, (c) a command-line tool to add prebuilts to an ndk-build/cmake
 project, and (d) Studio integration to add prebuilts via a GUI.
 
-We currently have [cdep](https://github.com/google/cdep), but it doesn't have a
-very large corpus and could use some build system integration polish. If not
-cdep, adding support for exposing native libraries from AARs would be an
-alternative.
+The tools are nearly complete, and the repository is Maven for easy integration
+into existing Android projects. Access from CMake and ndk-build will be via the
+existing `find_package` and `import-module` facilities, respectively. A GUI in
+Studio will come later.
+
+For more information, see [Issue 916].
+
+[Issue 916]: https://github.com/android/ndk/issues/916
 
 ### C++ File System API
 
@@ -88,19 +92,11 @@ all the issues that turn up are resolved.
 Once we've switched the default to lld and no major issues remain,
 we should remove gold and bfd.
 
-### C++ Modules
+### lldb debugger
 
-By Q2 2019 Clang may have a complete enough implementation of the modules TS and
-Android may have a Clang with those changes available.
-
-At least for the current spec (which is in the process of merging with the Clang
-implementation, so could change), the NDK will need to:
-
- 1. Support compiling module interfaces.
- 2. Support either automated discovery (currently very messy) or specification
-    of module dependencies.
- 3. Begin creating module interfaces for system libraries. Frameworks, libc,
-    libc++, etc.
+We should make lldb available in the NDK. It's currently shipped as part
+of Studio. Medium-term we should have Studio ship our lldb. Long-term Studio
+should probably use the NDK lldb directly.
 
 ---
 
@@ -146,12 +142,6 @@ but there are things we can do to improve the state of testing/code quality:
 
 [GTestJNI]: https://github.com/danalbert/GTestJNI
 
-### lldb debugger
-
-We should make lldb available in the NDK. It's currently shipped as part
-of Studio. Medium-term we should have Studio ship our lldb. Long-term Studio
-should probably use the NDK lldb directly.
-
 ### NDK API header-only C++ wrappers
 
 NDK APIs are C-only for ABI stability reasons. We should offer header-only
@@ -183,6 +173,20 @@ may be present in their equivalent of `targetSdkVersion` but not in their
 `minSdkVersion`. We could potentially do something similar. See
 [issue 1003](https://github.com/android-ndk/ndk/issues/1003).
 
+### C++ Modules
+
+By Q2 2019 Clang may have a complete enough implementation of the modules TS and
+Android may have a Clang with those changes available.
+
+At least for the current spec (which is in the process of merging with the Clang
+implementation, so could change), the NDK will need to:
+
+ 1. Support compiling module interfaces.
+ 2. Support either automated discovery (currently very messy) or specification
+    of module dependencies.
+ 3. Begin creating module interfaces for system libraries. Frameworks, libc,
+    libc++, etc.
+
 ---
 
 ## Historical releases
@@ -191,6 +195,10 @@ Full [history] is available, but this section summarizes major changes
 in recent releases.
 
 [history]: https://developer.android.com/ndk/downloads/revision_history.html
+
+### NDK r20
+
+Updated Clang and libc++, added Q APIs. Improved out-of-the-box Clang behavior.
 
 ### NDK r19
 
