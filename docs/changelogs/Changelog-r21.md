@@ -24,9 +24,8 @@ For Android Studio issues, follow the docs on the [Android Studio site].
    will affect builds using LLD with binutils strip and objcopy as opposed to
    llvm-strip and llvm-objcopy.
 
- * [Issue 843]: Build system maintainers should begin testing with llvm-ar,
-   llvm-strip, and llvm-objcopy. AOSP has switched to these and the NDK will
-   follow.
+ * [Issue 843]: Build system maintainers should begin testing with llvm-strip
+   and llvm-objcopy. AOSP has switched to these and the NDK will follow.
 
  * The Play Store will require 64-bit support when uploading an APK beginning in
    August 2019. Start porting now to avoid surprises when the time comes. For
@@ -75,7 +74,6 @@ For Android Studio issues, follow the docs on the [Android Studio site].
    removed. If you were explicitly linking libstdc++ or importing
    `cxx-stl/system`, remove that and ensure that `APP_STL` is set to `system`
    instead.
- * `llvm-ar` is now used instead of `ar`.
  * [Issue 976]: ndk-build and the CMake toolchain file now enable
    `_FORTIFY_SOURCE` by default. See [FORTIFY in Android] for more details.
 
