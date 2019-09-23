@@ -241,11 +241,17 @@ same name but are prefixed with `llvm-`. For example, `llvm-strip` is used
 instead of `<triple>-strip` or the `strip` binary from the triple-specific
 directory.
 
-Note: In general Android is moving away from GNU Binutils in favor of LLVM
-tools. This is a work in progress, but it is likely that a future release of the
-NDK will deprecate and eventually remove GNU Binutils. For now, ensure that your
-build system works with `llvm-strip` and `llvm-objcopy` as they are required
-when using LLD ([Issue 843]).
+Note: llvm-strip's `--strip-unneeded` is not currently pruning all that it
+should. As a workaround, `--strip-all` (which differs in behavior from GNU's
+`--strip-all`) can be used instead. See [Issue 1083] for more information.
+
+[Issue 1083]: https://github.com/android/ndk/issues/1083
+
+Android is moving away from GNU Binutils in favor of LLVM tools. This is a work
+in progress, but it is likely that a future release of the NDK will deprecate
+and eventually remove GNU Binutils. For now, ensure that your build system works
+with `llvm-strip` and `llvm-objcopy` as they are required when using LLD ([Issue
+843]).
 
 ## Sysroot
 
