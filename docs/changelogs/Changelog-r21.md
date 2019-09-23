@@ -24,9 +24,6 @@ For Android Studio issues, follow the docs on the [Android Studio site].
    will affect builds using LLD with binutils strip and objcopy as opposed to
    llvm-strip and llvm-objcopy.
 
- * [Issue 843]: Build system maintainers should begin testing with llvm-strip
-   and llvm-objcopy. AOSP has switched to these and the NDK will follow.
-
  * The Play Store will require 64-bit support when uploading an APK beginning in
    August 2019. Start porting now to avoid surprises when the time comes. For
    more information, see [this blog post](https://android-developers.googleblog.com/2017/12/improving-app-security-and-performance.html).
@@ -63,10 +60,6 @@ For Android Studio issues, follow the docs on the [Android Studio site].
    `-Wl,--build-id=sha1` instead of `-Wl,--build-id`. Third-party build systems
    need to apply the workaround manually. For more details, see the [Build
    System Maintainers Guide][maintainer_linkers].
- * [Issue 843]: `llvm-strip` is now used instead of `strip` to avoid breaking
-   RelRO with LLD. Note that the Android Gradle Plugin performs its own
-   stripping, so most users will need to upgrade to Android Gradle Plugin
-   version 3.6 or newer to get the fix.
  * Fixed ndk-build to use Clang's default C++ standard version (currently C++14)
    when using libc++.
  * Removed the `cxx-stl/system` module from ndk-build. The system STL is still
@@ -141,10 +134,7 @@ For Android Studio issues, follow the docs on the [Android Studio site].
    `No toolchains found in the NDK toolchains folder for ABI with prefix: mips64el-linux-android`,
    update your project file to [use plugin version 3.1 or newer]. You will also
    need to upgrade to Android Studio 3.1 or newer.
- * [Issue 843]: Using LLD with binutils `strip` or `objcopy` breaks RelRO. Use
-   `llvm-strip` and `llvm-objcopy` instead. This issue has been resolved in
-   Android Gradle Plugin version 3.6 (for non-Gradle users, the fix is also in
-   ndk-build and our CMake toolchain file), but may affect other build systems.
+ * [Issue 843]: Using LLD with binutils `strip` or `objcopy` breaks RelRO.
 
 [Issue 360]: https://github.com/android-ndk/ndk/issues/360
 [Issue 70838247]: https://issuetracker.google.com/70838247
