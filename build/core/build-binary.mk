@@ -678,7 +678,8 @@ ifeq ($(LOCAL_SHORT_COMMANDS),true)
     linker_options   := $(linker_objects_and_libraries)
     linker_list_file := $(LOCAL_OBJS_DIR)/linker.list
     linker_objects_and_libraries := @$(call host-path,$(linker_list_file))
-    $(call generate-list-file,$(linker_options),$(linker_list_file))
+    $(call generate-list-file,\
+        $(call escape-backslashes,$(linker_options)),$(linker_list_file))
     $(LOCAL_BUILT_MODULE): $(linker_list_file)
 endif
 
