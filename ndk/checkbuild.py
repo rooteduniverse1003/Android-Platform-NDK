@@ -1787,9 +1787,6 @@ def write_clang_wrapper(install_dir: str, api: int, triple: str,
     if triple.startswith('i686') and api < 24:
         flags.append('-mstackrealign')
 
-    # TODO: Remove when https://github.com/android-ndk/ndk/issues/884 is fixed.
-    flags.append('-fno-addrsig')
-
     # Write shell scripts even for Windows to support WSL and Cygwin.
     write_clang_shell_script(wrapper_path, 'clang' + exe_suffix, flags)
     write_clang_shell_script(wrapperxx_path, 'clang++' + exe_suffix, flags)
