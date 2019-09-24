@@ -33,11 +33,13 @@ NDK_SANITIZERS := $(strip \
     $(NDK_APP_LDFLAGS) $(NDK_MODULES_LDFLAGS)))
 
 NDK_SANITIZER_NAME := UBSAN
-NDK_SANITIZER_FSANITIZE_ARGS := undefined
+NDK_SANITIZER_FSANITIZE_ARGS := fuzzer undefined
+NDK_SANITIZER_EXCLUDE_FSANITIZE_ARGS := address
 include $(BUILD_SYSTEM)/install_sanitizer.mk
 
 NDK_SANITIZER_NAME := ASAN
 NDK_SANITIZER_FSANITIZE_ARGS := address
+NDK_SANITIZER_EXCLUDE_FSANITIZE_ARGS :=
 include $(BUILD_SYSTEM)/install_sanitizer.mk
 
 # If the user has not specified their own wrap.sh and is using ASAN, install a
