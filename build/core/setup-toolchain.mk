@@ -110,6 +110,9 @@ SYSROOT_LINK_ARG := -L $(SYSROOT_API_LIB_DIR) -L $(SYSROOT_LIB_DIR)
 SYSROOT_ARCH_INC_ARG := \
     -isystem $(SYSROOT_INC)/usr/include/$(TOOLCHAIN_NAME)
 
+NDK_TOOLCHAIN_RESOURCE_DIR := $(shell $(TARGET_CXX) -print-resource-dir)
+NDK_TOOLCHAIN_LIB_DIR := $(strip $(NDK_TOOLCHAIN_RESOURCE_DIR))/lib/linux
+
 clean-installed-binaries::
 
 include $(BUILD_SYSTEM)/gdb.mk
@@ -131,6 +134,7 @@ ifeq (,$(DUMP_VAR))
     # Comes after NDK_APP_BUILD_SCRIPT because we need to know if *any* module
     # has -fsanitize in its ldflags.
     include $(BUILD_SYSTEM)/sanitizers.mk
+    include $(BUILD_SYSTEM)/openmp.mk
 
     ifneq ($(NDK_APP_WRAP_SH_$(TARGET_ARCH_ABI)),)
         include $(BUILD_SYSTEM)/install_wrap_sh.mk
