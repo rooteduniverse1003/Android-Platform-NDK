@@ -147,23 +147,6 @@ generate-file-dir = $(eval $(call ev-generate-file-dir,$1))
 #
 # -----------------------------------------------------------------------------
 
-list_file_words_per_echo := 10
-
-# 1: First word index
-# 2: Last word index
-# 3: Full text length
-# 4: Full text
-define list_file_echo
-
-	$(hide) $(HOST_ECHO_N) "$(wordlist $1,$2,$4) " >> $$@
-$(if $(call lt,$2,$3),\
-    $(call list_file_echo,\
-        $(call plus,$1,$(list_file_words_per_echo)),\
-        $(call plus,$2,$(list_file_words_per_echo)),\
-        $3,\
-        $4))
-endef
-
 define generate-list-file-ev
 
 __list_file := $2
@@ -173,8 +156,7 @@ __list_file := $2
 $$(call generate-file-dir,$$(__list_file).tmp)
 
 $$(__list_file).tmp:
-	$$(hide) $$(call generate-empty-file,$$@)
-	$(call list_file_echo,1,$(list_file_words_per_echo),$(words $1),$1)
+	$$(file >$$@,$1)
 
 $$(__list_file): $$(__list_file).tmp
 	$$(hide) $$(call host-copy-if-differ,$$@.tmp,$$@)
