@@ -30,7 +30,7 @@ can link whichever they choose in their application. They must link *something*,
 even for C-only consumers, so be sure to document that it is required and which
 version of the NDK was used to build in case of incompatibility in STL versions.
 
-```
+```txt
 LIBMYMATH {
 global:
     add;
@@ -54,3 +54,39 @@ linking. This is less robust because it will only hide the symbols in the
 libraries that are explicitly named, and no diagnostics are reported for
 libraries that are not used (a typo in the library name is not an error, and the
 burden is on the user to keep the library list up to date).
+
+## For Java Middleware with JNI Libraries
+
+Java libraries that include JNI libraries (i.e. use `jniLibs`) need to be
+careful that the JNI libraries they include will not collide with other
+libraries in the user's app. For example, if the AAR includes
+`libc++_shared.so`, but a different version of `libc++_shared.so` than the app
+uses, only one will be installed to the APK and that may lead to unreliable
+behavior.
+
+Warning: [Bug 141758241]: The Android Gradle Plugin does not currently diagnose
+this error condition. One of the identically named libraries will be arbitrarily
+chosen for packaging in the APK.
+
+[Bug 141758241]: https://issuetracker.google.com/141758241
+
+The most reliable solution is for Java libraries to include no more than **one**
+JNI library. All dependencies including the STL should be statically linked into
+the implementation library, and a version script should be used to enforce the
+ABI surface. For example, a Java library com.example.foo that includes the JNI
+library libfooimpl.so should use the following version script:
+
+```txt
+LIBFOOIMPL {
+global:
+    JNI_OnLoad;
+local:
+    *;
+};
+```
+
+Note that this example uses `registerNatives` via `JNI_OnLoad` as described in
+[JNI Tips] to ensure that the minimal ABI surface is exposed and library load
+time is minimized.
+
+[JNI Tips]: https://developer.android.com/training/articles/perf-jni#native-libraries
