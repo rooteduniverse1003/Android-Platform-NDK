@@ -2185,6 +2185,8 @@ class NdkBuild(ndk.builds.PackageModule):
     def install(self) -> None:
         super().install()
 
+        self.install_ndk_version_makefile()
+
         self.generate_language_specific_metadata('abis', abis_meta_transform)
 
         self.generate_language_specific_metadata('platforms',
@@ -2192,6 +2194,16 @@ class NdkBuild(ndk.builds.PackageModule):
 
         self.generate_language_specific_metadata('system_libs',
                                                  system_libs_meta_transform)
+
+    def install_ndk_version_makefile(self) -> None:
+        """Generates a version.mk for ndk-build."""
+        version_mk = Path(self.get_install_path()) / 'core/version.mk'
+        version_mk.write_text(textwrap.dedent(f"""\
+            NDK_MAJOR := {ndk.config.major}
+            NDK_MINOR := {ndk.config.hotfix}
+            NDK_BETA := {ndk.config.beta}
+            NDK_CANARY := {str(ndk.config.canary).lower()}
+            """))
 
     def generate_language_specific_metadata(
             self, name: str, func: Callable[[Dict], Dict[str, Any]]) -> None:
