@@ -93,10 +93,15 @@ For Android Studio issues, follow the docs on the [Android Studio site].
    of limited use today. Also note that the above code will behave correctly
    even on pre-r21 because calling an undefined function in make returns the
    empty string, so the else case will be taken.
+ * [Issue 1092]: Fixed hiding of unwinder symbols in outputs of ndk-build and
+   CMake. Maintainers of third-party build systems should apply similar fixes
+   when using NDK r19 and above to guard against possible future compatibility
+   issues.
 
 [FORTIFY in Android]: https://android-developers.googleblog.com/2017/04/fortify-in-android.html
 [Issue 1004]: https://github.com/android-ndk/ndk/issues/1004
 [Issue 1028]: https://github.com/android/ndk/issues/1028
+[Issue 1092]: https://github.com/android/ndk/issues/1092
 [Issue 744]: https://github.com/android/ndk/issues/744
 [Issue 855]: https://github.com/android-ndk/ndk/issues/855
 [Issue 859]: https://github.com/android-ndk/ndk/issues/859

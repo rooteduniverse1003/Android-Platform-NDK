@@ -84,7 +84,7 @@ endef
 
 cmd-strip = $(PRIVATE_STRIP) $(PRIVATE_STRIP_MODE) $(call host-path,$1)
 
-TARGET_LIBGCC = -lgcc -Wl,--exclude-libs,libgcc.a
+TARGET_LIBGCC = -lgcc -Wl,--exclude-libs,libgcc_real.a
 TARGET_LIBATOMIC = -latomic -Wl,--exclude-libs,libatomic.a
 TARGET_LDLIBS := -lc -lm
 
