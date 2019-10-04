@@ -17,7 +17,6 @@
 from __future__ import absolute_import
 
 import enum
-import os
 import sys
 
 
@@ -51,11 +50,7 @@ def get_host_tag(ndk_path: str) -> str:
     elif sys.platform == 'darwin':
         return 'darwin-x86_64'
     elif sys.platform == 'win32':
-        host_tag = 'windows-x86_64'
-        test_path = os.path.join(ndk_path, 'prebuilt', host_tag)
-        if not os.path.exists(test_path):
-            host_tag = 'windows'
-        return host_tag
+        return 'windows-x86_64'
     raise ValueError('Unknown host: {}'.format(sys.platform))
 
 
