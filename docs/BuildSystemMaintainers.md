@@ -416,9 +416,10 @@ preserved. By default, only symbols in used sections will be included in the
 linked binary.
 
 If this behavior is not desired for your build system, ensure that these flags
-are at least used for libgcc.a and libunwind.a (libunwind is only used for
-ARM32). This is necessary to avoid unwinding bugs on ARM32. See [Unwinding] for
-more information.
+are at least used for `libgcc_real.a` (`libgcc.a` is a linker script, and
+`--exclude-libs` does not have any effect on the contents of linker scripts) and
+`libunwind.a` (libunwind is only used for ARM32). This is necessary to avoid
+unwinding bugs on ARM32. See [Unwinding] for more information.
 
 [visibility]: https://gcc.gnu.org/wiki/Visibility
 
@@ -518,8 +519,8 @@ these symbols from a shared library. If this library was built with the wrong
 unwinder, it is possible for one unwinder to call into the other. As they are
 not compatible, this will likely result in either a crash or a failed unwind. To
 avoid this problem, libraries should always be built with
-`-Wl,--exclude-libs,libgcc.a` and `-Wl,--exclude-libs,libunwind.a` (the latter
-is only necessary for 32-bit ARM) to ensure that unwind symbols are not
+`-Wl,--exclude-libs,libgcc_real.a` and `-Wl,--exclude-libs,libunwind.a` (the
+latter is only necessary for 32-bit ARM) to ensure that unwind symbols are not
 re-exported from shared libraries.
 
 Even with the above precautions, it is still possible for an improperly built

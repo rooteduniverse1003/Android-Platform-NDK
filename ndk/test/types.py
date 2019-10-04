@@ -193,6 +193,7 @@ class PythonBuildTest(BuildTest):
         _prep_build_dir(self.test_dir, build_dir)
         with ndk.ext.os.cd(build_dir):
             module = imp.load_source('test', 'test.py')
+            assert self.platform is not None
             success, failure_message = module.run_test(  # type: ignore
                 self.ndk_path, self.abi, self.platform, self.config.linker, self.ndk_build_flags)
             if success:
