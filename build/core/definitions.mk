@@ -23,6 +23,10 @@ include $(BUILD_SYSTEM)/definitions-utils.mk
 include $(BUILD_SYSTEM)/definitions-host.mk
 include $(BUILD_SYSTEM)/definitions-graph.mk
 
+include $(BUILD_SYSTEM)/version.mk
+
+ndk-major-at-least = $(if $(filter $(true),$(call gte,$(NDK_MAJOR),$1)),true,false)
+
 # -----------------------------------------------------------------------------
 # Macro    : this-makefile
 # Returns  : the name of the current Makefile in the inclusion stack
