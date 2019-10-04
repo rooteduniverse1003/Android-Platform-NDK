@@ -72,6 +72,27 @@ For Android Studio issues, follow the docs on the [Android Studio site].
  * Added `NDK_GRADLE_INJECTED_IMPORT_PATH` support to ndk-build. This is to
    support import of dependencies from AAR dependencies. See [Issue 916] for
    more information.
+ * Added `NDK_MAJOR`, `NDK_MINOR`, `NDK_BETA`, `NDK_CANARY`, and
+   `ndk-major-at-least` APIs to ndk-build. These can be used to check what
+   version of the NDK you are using from within ndk-build (CMake already has
+   equivalent APIs). The first three are integers, `NDK_CANARY` is either `true`
+   or `false`, and `ndk-major-at-least` is a function that takes a single
+   integer. For example, to check if your build is being performed with NDK r21
+   or newer:
+
+   ```makefile
+   ifeq ($(call ndk-major-at-least,21),true)
+       # Using at least NDK r21.
+   else
+       # Using something earlier than r21.
+   endif
+   ```
+
+   Note that because this API was not available before r21, it cannot be used to
+   determine *which* NDK version earlier than 21 is being used, so this API is
+   of limited use today. Also note that the above code will behave correctly
+   even on pre-r21 because calling an undefined function in make returns the
+   empty string, so the else case will be taken.
 
 [FORTIFY in Android]: https://android-developers.googleblog.com/2017/04/fortify-in-android.html
 [Issue 1004]: https://github.com/android-ndk/ndk/issues/1004
