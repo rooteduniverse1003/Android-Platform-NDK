@@ -347,7 +347,7 @@ if(ANDROID_LD STREQUAL lld)
 endif()
 
 # Don't re-export libgcc symbols in every binary.
-list(APPEND ANDROID_LINKER_FLAGS -Wl,--exclude-libs,libgcc.a)
+list(APPEND ANDROID_LINKER_FLAGS -Wl,--exclude-libs,libgcc_real.a)
 list(APPEND ANDROID_LINKER_FLAGS -Wl,--exclude-libs,libatomic.a)
 
 # STL.
