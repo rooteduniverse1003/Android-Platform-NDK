@@ -350,6 +350,13 @@ class Clang(ndk.builds.Module):
         if self.host == ndk.hosts.Host.Linux:
             shutil.rmtree(os.path.join(install_path, 'runtimes_ndk_cxx'))
 
+        # Remove CMake package files that should not be exposed.
+        # For some reason the LLVM install includes CMake modules that expose
+        # its internal APIs. We want to purge these so apps don't accidentally
+        # depend on them. See http://b/142327416 for more info.
+        cmake_modules_dir = os.path.join(install_path, 'lib64', 'cmake')
+        shutil.rmtree(cmake_modules_dir)
+
 
 def get_gcc_prebuilt_path(host: ndk.hosts.Host, arch: ndk.abis.Arch) -> str:
     """Returns the path to the GCC prebuilt for the given host/arch."""
