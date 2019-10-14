@@ -1673,8 +1673,13 @@ class Sysroot(ndk.builds.Module):
                     build = '0'
 
                 ndk_version_h.write(textwrap.dedent("""\
-                    #ifndef ANDROID_NDK_VERSION_H
-                    #define ANDROID_NDK_VERSION_H
+                    #pragma once
+
+                    /**
+                     * Set to 1 if this is an NDK, unset otherwise. See
+                     * https://android.googlesource.com/platform/bionic/+/master/docs/defines.md.
+                     */
+                    #define __ANDROID_NDK__ 1
 
                     /**
                      * Major version of this NDK.
@@ -1707,8 +1712,6 @@ class Sysroot(ndk.builds.Module):
                      * Set to 1 if this is a canary build, 0 if not.
                      */
                     #define __NDK_CANARY__ {canary}
-
-                    #endif  /* ANDROID_NDK_VERSION_H */
                     """.format(
                         major=major,
                         minor=minor,
