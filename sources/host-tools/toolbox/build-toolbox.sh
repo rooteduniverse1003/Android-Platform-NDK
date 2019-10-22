@@ -93,6 +93,7 @@ if [ "$BUILD_WINDOWS_SOURCES" ]; then
     builder_begin_host "$BUILD_DIR" "$MAKEFILE"
     builder_set_srcdir "$TOOLBOX_SRCDIR"
     builder_set_dstdir "$DSTDIR"
+    builder_cflags -std=c99
     builder_sources echo_win.c
     builder_host_executable echo
     builder_end
