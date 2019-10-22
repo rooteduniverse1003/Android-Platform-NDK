@@ -354,12 +354,14 @@ def main(argv):
             symbolize_cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE)
         banner = '*** *** *** *** *** *** *** *** *** *** *** *** *** *** *** ***'
         in_crash = False
+        saw_frame = False
         for line in args.input:
             line = line.rstrip()
 
             if not in_crash:
                 if banner in line:
                     in_crash = True
+                    saw_frame = False
                     print('********** Crash dump: **********')
                 continue
 
@@ -370,9 +372,11 @@ def main(argv):
 
             frame_info = FrameInfo.from_line(line)
             if not frame_info:
-                in_crash = False
-                print('Crash dump is completed\n')
+                if saw_frame:
+                    in_crash = False
+                    print('Crash dump is completed\n')
                 continue
+            saw_frame = True
 
             try:
                 elf_file = frame_info.get_elf_file(args.symbol_dir,

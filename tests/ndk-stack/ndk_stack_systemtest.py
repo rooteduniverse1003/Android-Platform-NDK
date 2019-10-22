@@ -57,7 +57,7 @@ class SystemTests(unittest.TestCase):
 
     @patch.object(ndk_stack, 'find_llvm_symbolizer')
     @patch.object(ndk_stack, 'find_readelf')
-    def test_all_stacks(self, mock_readelf, mock_llvm_symbolizer):
+    def system_test(self, backtrace_file, expected_file, mock_readelf, mock_llvm_symbolizer):
         mock_readelf.return_value = self.readelf
         mock_llvm_symbolizer.return_value = self.llvm_symbolizer
 
@@ -66,16 +66,22 @@ class SystemTests(unittest.TestCase):
         with patch('sys.stdout', new_callable=StringIO) as mock_stdout:
             ndk_stack.main([
                 '-s', symbol_dir, '-i',
-                os.path.join(symbol_dir, 'backtrace.txt')
+                os.path.join(symbol_dir, backtrace_file)
             ])
 
         # Read the expected output.
-        file_name = os.path.join(symbol_dir, 'expected.txt')
+        file_name = os.path.join(symbol_dir, expected_file)
         with open(mode='r', file=file_name) as exp_file:
             expected = exp_file.read()
         expected = expected.replace('SYMBOL_DIR', symbol_dir)
         self.maxDiff = None
         self.assertEqual(expected, mock_stdout.getvalue())
+
+    def test_all_stacks(self):
+        self.system_test('backtrace.txt', 'expected.txt')
+
+    def test_multiple_crashes(self):
+        self.system_test('multiple.txt', 'expected_multiple.txt')
 
 
 if __name__ == '__main__':
