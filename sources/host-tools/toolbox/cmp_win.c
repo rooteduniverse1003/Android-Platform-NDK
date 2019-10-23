@@ -61,12 +61,12 @@ int main(void)
     const wchar_t* filename2 = argv[1];
     FILE *f1 = _wfopen(filename1, L"rb");
     if (!f1) {
-        wprintf(L"ERROR: can't open file %lS\n", filename1);
+        wprintf(L"ERROR: can't open file %ls\n", filename1);
         exit(1);
     }
     FILE *f2 = _wfopen(filename2, L"rb");
     if (!f2) {
-        wprintf(L"ERROR: can't open file %lS\n", filename2);
+        wprintf(L"ERROR: can't open file %ls\n", filename2);
         fclose(f1);
         exit(1);
     }
