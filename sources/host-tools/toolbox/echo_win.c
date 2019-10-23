@@ -58,7 +58,7 @@ int main(void)
     }
 
     for (int i = 0; i < argc; ++i) {
-        wprintf(L"%lS%lS", ((i > 0) ? L" " : L""), argv[i]);
+        wprintf(L"%ls%ls", ((i > 0) ? L" " : L""), argv[i]);
     }
     if (!flagNoNewline) {
         wprintf(L"\n");
