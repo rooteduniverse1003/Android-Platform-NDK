@@ -452,9 +452,22 @@ list(APPEND ANDROID_COMPILER_FLAGS
   -funwind-tables
   -fstack-protector-strong
   -no-canonical-prefixes)
-list(APPEND ANDROID_LINKER_FLAGS
-  -Wl,--build-id=sha1
-  -Wl,--fatal-warnings)
+
+# https://github.com/android/ndk/issues/885
+# If we're using LLD we need to use a slower build-id algorithm to work around
+# the old version of LLDB in Android Studio, which doesn't understand LLD's
+# default hash ("fast").
+#
+# Note that because we cannot see the user's flags, we can't detect this very
+# accurately. Users that explicitly use -fuse-ld=lld instead of ANDROID_LD will
+# not be able to debug.
+if(ANDROID_LD STREQUAL lld)
+  list(APPEND ANDROID_LINKER_FLAGS -Wl,--build-id=sha1)
+else()
+  list(APPEND ANDROID_LINKER_FLAGS -Wl,--build-id)
+endif()
+
+list(APPEND ANDROID_LINKER_FLAGS -Wl,--fatal-warnings)
 list(APPEND ANDROID_LINKER_FLAGS_EXE -Wl,--gc-sections)
 
 # Debug and release flags.
