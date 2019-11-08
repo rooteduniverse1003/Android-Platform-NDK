@@ -164,8 +164,6 @@ ifeq ($(LOCAL_CPP_EXTENSION),)
 endif
 LOCAL_RS_EXTENSION := $(default-rs-extensions)
 
-LOCAL_LDFLAGS += -Wl,--build-id=sha1
-
 ifneq ($(NDK_APP_STL),system)
     LOCAL_CFLAGS += -nostdinc++
     LOCAL_LDFLAGS += -nostdlib++
@@ -498,8 +496,33 @@ CLEAN_OBJS_DIRS     += $(LOCAL_OBJS_DIR)
 #
 
 linker_ldflags :=
+using_lld := false
 ifeq ($(APP_LD),lld)
     linker_ldflags := -fuse-ld=lld
+    using_lld := true
+endif
+
+combined_ldflags := $(TARGET_LDFLAGS) $(NDK_APP_LDFLAGS) $(LOCAL_LDFLAGS)
+ndk_fuse_ld_flags := $(filter -fuse-ld=%,$(combined_ldflags))
+ndk_used_linker := $(lastword $(ndk_fuse_ld_flags))
+ifeq ($(ndk_used_linker),-fuse-ld=lld)
+    using_lld := true
+else
+    # In case the user has set APP_LD=lld but also disabled it for a specific
+    # module.
+    ifneq ($(ndk_used_linker),)
+        using_lld := false
+    endif
+endif
+
+# https://github.com/android/ndk/issues/885
+# If we're using LLD we need to use a slower build-id algorithm to work around
+# the old version of LLDB in Android Studio, which doesn't understand LLD's
+# default hash ("fast").
+ifeq ($(using_lld),true)
+    linker_ldflags += -Wl,--build-id=tree
+else
+    linker_ldflags += -Wl,--build-id
 endif
 
 my_ldflags := $(TARGET_LDFLAGS) $(linker_ldflags) $(NDK_APP_LDFLAGS) $(LOCAL_LDFLAGS)
