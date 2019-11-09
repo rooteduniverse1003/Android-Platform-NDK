@@ -57,7 +57,7 @@ For Android Studio issues, follow the docs on the [Android Studio site].
  * Updated glibc to 2.17.
  * Updated gdb to 8.3.
  * [Issue 885]: For LLD+LLDB compatibility, the NDK build systems now pass
-   `-Wl,--build-id=tree` instead of `-Wl,--build-id` when using LLD. Note that
+   `-Wl,--build-id=sha1` instead of `-Wl,--build-id` when using LLD. Note that
    the CMake toolchain does not have access to flags set in CMakeLists.txt, so
    using an explicit `-fuse-ld=lld` instead of `ANDROID_LD=lld` will produce
    output that cannot be debugged with Android Studio. Third-party build systems
