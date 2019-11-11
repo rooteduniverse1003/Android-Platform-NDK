@@ -520,7 +520,7 @@ endif
 # the old version of LLDB in Android Studio, which doesn't understand LLD's
 # default hash ("fast").
 ifeq ($(using_lld),true)
-    linker_ldflags += -Wl,--build-id=tree
+    linker_ldflags += -Wl,--build-id=sha1
 else
     linker_ldflags += -Wl,--build-id
 endif
