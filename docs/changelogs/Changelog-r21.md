@@ -84,6 +84,9 @@ For Android Studio issues, follow the docs on the [Android Studio site].
    or newer:
 
    ```makefile
+   # This check works even on pre-r21 NDKs. The function is undefined pre-r21,
+   # and calling an undefined function in make returns the empty string, which
+   # is not equal to "true", so the else branch will be taken.
    ifeq ($(call ndk-major-at-least,21),true)
        # Using at least NDK r21.
    else
@@ -92,10 +95,7 @@ For Android Studio issues, follow the docs on the [Android Studio site].
    ```
 
    Note that because this API was not available before r21, it cannot be used to
-   determine *which* NDK version earlier than 21 is being used, so this API is
-   of limited use today. Also note that the above code will behave correctly
-   even on pre-r21 because calling an undefined function in make returns the
-   empty string, so the else case will be taken.
+   determine *which* NDK version earlier than 21 is being used.
  * [Issue 1092]: Fixed hiding of unwinder symbols in outputs of ndk-build and
    CMake. Maintainers of third-party build systems should apply similar fixes
    when using NDK r19 and above to guard against possible future compatibility
