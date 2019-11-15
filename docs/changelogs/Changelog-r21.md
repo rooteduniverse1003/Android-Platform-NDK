@@ -54,6 +54,10 @@ For Android Studio issues, follow the docs on the [Android Studio site].
  * Updated make to 4.2.1.
      * Modified ndk-build to supply `-O` for more readable errors with parallel
        builds.
+     * `abspath` now works properly with Windows drive letters, so if you're
+       using the [workaround] similar to what's found in the NDK samples, you'll
+       need to either drop the workaround or make sure it's only used prior to
+       r21.
  * Updated glibc to 2.17.
  * Updated gdb to 8.3.
  * [Issue 885]: For LLD+LLDB compatibility, the NDK build systems now pass
@@ -114,6 +118,7 @@ For Android Studio issues, follow the docs on the [Android Studio site].
 [Issue 976]: https://github.com/android/ndk/issues/976
 [blacklist CPUs]: https://support.google.com/googleplay/android-developer/answer/7353455?hl=en
 [maintainer_linkers]: https://android.googlesource.com/platform/ndk/+/master/docs/BuildSystemMaintainers.md#Linkers
+[workaround]: https://github.com/android/ndk-samples/blob/2c97a9eb5b9b5de233b7ece4dd0d0d28fa4cb4c2/other-builds/ndkbuild/common.mk#L26
 
 ## Known Issues
 
