@@ -27,6 +27,9 @@ For Android Studio issues, follow the docs on the [Android Studio site].
    stripping, so most users will need to upgrade to Android Gradle Plugin
    version 4.0 or newer to get the fix.
 
+* [Issue 1139]: `native_app_glue` now hooks up the `APP_CMD_WINDOW_RESIZED`,
+  `APP_CMD_WINDOW_REDRAW_NEEDED`, and `APP_CMD_CONTENT_RECT_CHANGED` messages.
+
 ## Known Issues
 
 * This is not intended to be a comprehensive list of all outstanding bugs.
@@ -89,4 +92,5 @@ For Android Studio issues, follow the docs on the [Android Studio site].
 [Issue 843]: https://github.com/android-ndk/ndk/issues/843
 [Issue 906]: https://github.com/android-ndk/ndk/issues/906
 [Issue 988]: https://github.com/android-ndk/ndk/issues/988
+[Issue 1139]: https://github.com/android-ndk/ndk/issues/1139
 [use plugin version 3.1 or newer]: https://developer.android.com/studio/releases/gradle-plugin#updating-plugin
