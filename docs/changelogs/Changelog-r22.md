@@ -15,7 +15,17 @@ For Android Studio issues, follow the docs on the [Android Studio site].
   will affect builds using LLD with binutils strip and objcopy as opposed to
   llvm-strip and llvm-objcopy.
 
+* [Issue 843]: Build system maintainers should begin testing with LLVM's
+  binutils. Android has switched to using these by default (with the exception
+  of llvm-ar, as we're still investigating some issues on macOS), and GNU
+  binutils will be removed in a future release.
+
 ## Changes
+
+* [Issue 843]: `llvm-strip` is now used instead of `strip` to avoid breaking
+   RelRO with LLD. Note that the Android Gradle Plugin performs its own
+   stripping, so most users will need to upgrade to Android Gradle Plugin
+   version 4.0 or newer to get the fix.
 
 ## Known Issues
 
@@ -69,7 +79,10 @@ For Android Studio issues, follow the docs on the [Android Studio site].
   `No toolchains found in the NDK toolchains folder for ABI with prefix: mips64el-linux-android`,
   update your project file to [use plugin version 3.1 or newer]. You will also
   need to upgrade to Android Studio 3.1 or newer.
-* [Issue 843]: Using LLD with binutils `strip` or `objcopy` breaks RelRO.
+* [Issue 843]: Using LLD with binutils `strip` or `objcopy` breaks RelRO. Use
+   `llvm-strip` and `llvm-objcopy` instead. This issue has been resolved in
+   Android Gradle Plugin version 4.0 (for non-Gradle users, the fix is also in
+   ndk-build and our CMake toolchain file), but may affect other build systems.
 
 [Issue 360]: https://github.com/android-ndk/ndk/issues/360
 [Issue 70838247]: https://issuetracker.google.com/70838247
