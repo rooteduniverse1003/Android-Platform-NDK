@@ -93,9 +93,9 @@ def main():
         package_name = os.path.splitext(package)[0]
         host = '-'.join(package_name.split('-')[-2:])
         pretty_host = {
-            'darwin-x86_64': 'Mac OS X',
+            'darwin-x86_64': 'macOS',
             'linux-x86_64': 'Linux',
-            'windows-x86_64': 'Windows 64-bit',
+            'windows-x86_64': 'Windows',
             'windows-x86': 'Windows 32-bit',
         }[host]
 
@@ -130,9 +130,9 @@ def main():
     var_prefix = 'ndk_beta' if args.beta else 'ndk'
     for host, package, size, sha in artifacts:
         dac_host = {
-            'Mac OS X': 'mac64',
+            'macOS': 'mac64',
             'Linux': 'linux64',
-            'Windows 64-bit': 'win64',
+            'Windows': 'win64',
             'Windows 32-bit': 'win32',
         }[host]
         print()
