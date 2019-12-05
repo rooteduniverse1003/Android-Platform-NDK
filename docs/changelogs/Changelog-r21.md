@@ -53,6 +53,15 @@ For Android Studio issues, follow the docs on the [Android Studio site].
 
 [Build System Maintainers Guide]: https://android.googlesource.com/platform/ndk/+/master/docs/BuildSystemMaintainers.md
 
+## r21b
+
+ * Fixed debugging processes containing Java with gdb. Cherrypicked
+   "gdb: Don't fault for 'maint print psymbols' when using an index", which
+   fixes a bug that caused gdb to fail when debugging a process with Java.
+   Pure C/C++ executables were fine, but this effectively broke all app
+   debugging. The error from gdb that confirms you were affected by this was
+   `gdb-8.3/gdb/psymtab.c:316: internal-error: sect_index_text not initialized`.
+
 ## Changes
 
  * Updated Clang and LLD to r365631.
