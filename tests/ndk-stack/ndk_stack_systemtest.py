@@ -83,6 +83,9 @@ class SystemTests(unittest.TestCase):
     def test_multiple_crashes(self):
         self.system_test('multiple.txt', 'expected_multiple.txt')
 
+    def test_hwasan(self):
+        self.system_test('hwasan.txt', 'expected_hwasan.txt')
+
 
 if __name__ == '__main__':
     unittest.main()

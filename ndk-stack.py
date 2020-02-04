@@ -190,6 +190,7 @@ class FrameInfo(object):
     # looking at crashes on ancient OS releases.
     # TODO: support asan stacks too?
     _line_re = re.compile(r'.* +(#[0-9]+) +pc ([0-9a-f]+) +(([^ ]+).*)')
+    _sanitizer_line_re = re.compile(r'.* +(#[0-9]+) +0x[0-9a-f]* +\(([^ ]+)\+0x([0-9a-f]+)\)')
     _lib_re = re.compile(r'([^\!]+)\!(.+)')
     _offset_re = re.compile(r'\(offset\s+(0x[0-9a-f]+)\)')
     _build_id_re = re.compile(r'\(BuildId:\s+([0-9a-f]+)\)')
@@ -197,15 +198,19 @@ class FrameInfo(object):
     @classmethod
     def from_line(cls, line):
         m = FrameInfo._line_re.match(line)
-        if not m:
-            return None
-        return cls(*m.group(1, 2, 3, 4))
+        if m:
+          return cls(*m.group(1, 2, 3, 4))
+        m = FrameInfo._sanitizer_line_re.match(line)
+        if m:
+          return cls(*m.group(1, 3, 2, 2), sanitizer=True)
+        return None
 
-    def __init__(self, num, pc, tail, elf_file):
+    def __init__(self, num, pc, tail, elf_file, sanitizer=False):
         self.num = num
         self.pc = pc
         self.tail = tail
         self.elf_file = elf_file
+        self.sanitizer = sanitizer
         m = FrameInfo._lib_re.match(self.elf_file)
         if m:
             self.container_file = m.group(1)
@@ -376,7 +381,12 @@ def main(argv):
                     in_crash = False
                     print('Crash dump is completed\n')
                 continue
-            saw_frame = True
+
+            # There can be a gap between sanitizer frames in the abort message
+            # and the actual backtrace. Do not end the crash dump until we've
+            # seen the actual backtrace.
+            if not frame_info.sanitizer:
+              saw_frame = True
 
             try:
                 elf_file = frame_info.get_elf_file(args.symbol_dir,
