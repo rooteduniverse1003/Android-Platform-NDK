@@ -41,7 +41,7 @@ class LinkerOption(enum.Enum):
 
 class DarwinSdk:
     """The Darwin SDK."""
-    MACOSX_TARGET = '10.8'
+    MACOSX_TARGET = '10.9'
 
     def __init__(self) -> None:
         proc_result = subprocess.run(['xcrun', '--show-sdk-path'],

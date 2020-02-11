@@ -18,6 +18,10 @@ For Android Studio issues, follow the docs on the [Android Studio site].
 
 [blog post]: https://android-developers.googleblog.com/2019/06/moving-android-studio-and-android.html
 
+ * macOS 10.8 is no longer supported as of r21b (r21 supports 10.8). macOS 10.15
+   requires that binaries be notarized, and notarization is only supported for
+   binaries built for 10.9 or newer.
+
  * [LLD](https://lld.llvm.org/) is now available for testing. AOSP has switched
    to using LLD by default and the NDK will follow (timeline unknown). Test LLD
    in your app by passing `-fuse-ld=lld` when linking. Note that [Issue 843]
