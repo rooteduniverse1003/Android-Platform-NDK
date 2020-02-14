@@ -6,7 +6,7 @@ https://android.googlesource.com/platform/ndk/+/master/docs/Building.md.
 Both Linux and Windows NDKs are built on Linux machines. Windows host binaries
 are cross-compiled with MinGW.
 
-Building the NDK for Mac OS X requires at least 10.9.
+Building the NDK for Mac OS X requires at least 10.10.
 
 ## Prerequisites
 
