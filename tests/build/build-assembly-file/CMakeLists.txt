@@ -10,6 +10,8 @@ elseif(CMAKE_SYSTEM_PROCESSOR STREQUAL mips)
   set(TEST_SOURCES jni/assembly-mips.S)
 endif()
 
-add_library(test_build_assembly SHARED ${TEST_SOURCES})
-# Without C or C++ files, CMake doesn't know which linker to use.
-set_target_properties(test_build_assembly PROPERTIES LINKER_LANGUAGE C)
+if(DEFINED TEST_SOURCES)
+  add_library(test_build_assembly SHARED ${TEST_SOURCES})
+  # Without C or C++ files, CMake doesn't know which linker to use.
+  set_target_properties(test_build_assembly PROPERTIES LINKER_LANGUAGE C)
+endif()
