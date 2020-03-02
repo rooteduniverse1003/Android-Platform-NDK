@@ -398,32 +398,10 @@ def _run_cmake_build_test(test: CMakeBuildTest, obj_dir: str, dist_dir: str,
 
     # Add prebuilts to PATH.
     prebuilts_host_tag = ndk.hosts.get_default_host().value + '-x86'
-    prebuilts_bin = ndk.paths.android_path(
-        'prebuilts', 'cmake', prebuilts_host_tag, 'bin')
-    env_path = prebuilts_bin + os.pathsep + os.environ['PATH']
-
-    # Fail if we don't have a working cmake executable, either from the
-    # prebuilts, or from the SDK, or if a new enough version is installed.
-    cmake_bin = shutil.which('cmake', path=env_path)
-    if cmake_bin is None:
-        return Failure(test, 'cmake executable not found')
-
-    out = subprocess.check_output([cmake_bin, '--version']).decode('utf-8')
-    version_pattern = r'cmake version (\d+)\.(\d+)\.'
-    m = re.match(version_pattern, out)
-    if m is None:
-        raise RuntimeError('Unable to determine CMake version.')
-    version = [int(v) for v in m.groups()]
-    if version < [3, 6]:
-        return Failure(test, 'cmake 3.6 or above required')
-
-    # Also require a working ninja executable.
-    ninja_bin = shutil.which('ninja', path=env_path)
-    if ninja_bin is None:
-        return Failure(test, 'ninja executable not found')
-    rc, _ = ndk.ext.subprocess.call_output([ninja_bin, '--version'])
-    if rc != 0:
-        return Failure(test, 'ninja --version failed')
+    cmake_bin = ndk.paths.android_path(
+        'prebuilts', 'cmake', prebuilts_host_tag, 'bin', 'cmake')
+    ninja_bin = ndk.paths.android_path(
+        'prebuilts', 'ninja', prebuilts_host_tag, 'ninja')
 
     toolchain_file = os.path.join(ndk_path, 'build', 'cmake',
                                   'android.toolchain.cmake')

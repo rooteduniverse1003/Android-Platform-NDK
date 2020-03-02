@@ -2,10 +2,6 @@ cmake_minimum_required(VERSION 3.6)
 
 include(ExternalProject)
 
-find_program(NINJA_PATH
-             NAMES ninja
-             DOC "Path to ninja binary")
-
 function(add_test name)
   cmake_parse_arguments(ARG
                         "CHECK_NEON;CHECK_ARM;CHECK_THUMB2;CHECK_X86"
@@ -21,7 +17,7 @@ function(add_test name)
           -DCHECK_ARM=${ARG_CHECK_ARM}
           -DCHECK_THUMB2=${ARG_CHECK_THUMB2}
           -DCHECK_X86=${ARG_CHECK_X86}
-          -DCMAKE_MAKE_PROGRAM=${NINJA_PATH}
+          -DCMAKE_MAKE_PROGRAM=${CMAKE_MAKE_PROGRAM}
     )
   if(DEFINED ARG_NEON)
     list(APPEND args -DANDROID_ARM_NEON=${ARG_NEON})
