@@ -61,6 +61,9 @@ For Android Studio issues, follow the docs on the [Android Studio site].
    Pure C/C++ executables were fine, but this effectively broke all app
    debugging. The error from gdb that confirms you were affected by this was
    `gdb-8.3/gdb/psymtab.c:316: internal-error: sect_index_text not initialized`.
+ * [Issue 1166]: Rehid unwinder symbols all architectures.
+
+[Issue 1166]: https://github.com/android/ndk/issues/1166
 
 ## Changes
 

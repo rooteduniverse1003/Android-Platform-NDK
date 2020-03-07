@@ -347,6 +347,13 @@ if(ANDROID_LD STREQUAL lld)
 endif()
 
 # Don't re-export libgcc symbols in every binary.
+list(APPEND ANDROID_LINKER_FLAGS -Wl,--exclude-libs,libgcc.a)
+# arm32 currently uses a linker script in place of libgcc to ensure that
+# libunwind is linked in the correct order. --exclude-libs does not propagate to
+# the contents of the linker script and can't be specified within the linker
+# script. Hide both regardless of architecture to future-proof us in case we
+# move other architectures to a linker script (which we may want to do so we
+# automatically link libclangrt on other architectures).
 list(APPEND ANDROID_LINKER_FLAGS -Wl,--exclude-libs,libgcc_real.a)
 list(APPEND ANDROID_LINKER_FLAGS -Wl,--exclude-libs,libatomic.a)
 
