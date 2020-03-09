@@ -60,9 +60,11 @@ For Android Studio issues, follow the docs on the [Android Studio site].
  * [Issue 1166]: Rehid unwinder symbols all architectures.
  * [Issue 1201]: Fixed issue in ndk-build that was causing `APP_PLATFORM` to be
    corrupted for API 30+ with LP64 ABIs.
+ * [Issue 1203]: libc++ prebuilts and CRT objects are no longer built as Neon.
 
 [Issue 1166]: https://github.com/android/ndk/issues/1166
 [Issue 1201]: https://github.com/android/ndk/issues/1201
+[Issue 1203]: https://github.com/android/ndk/issues/1203
 
 ## Changes
 
