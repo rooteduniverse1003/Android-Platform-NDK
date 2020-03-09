@@ -925,6 +925,9 @@ class Platforms(ndk.builds.Module):
             dst,
         ] + srcs
 
+        if arch == ndk.abis.Arch('arm'):
+            args.append('-mfpu=vfpv3-d16')
+
         return args
 
     def check_elf_note(self, obj_file: str) -> None:
