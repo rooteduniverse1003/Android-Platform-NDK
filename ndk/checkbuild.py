@@ -148,8 +148,8 @@ def make_dmg(dmg: Path, name: str, src: Path) -> None:
         # Overwrite existing
         '-ov',
         '-format',
-        # LZMA compressed
-        'ULMO',
+        # Compressed
+        'UDZO',
         str(dmg)
     ])
 
