@@ -19,7 +19,6 @@ import logging
 import multiprocessing
 import os
 from pathlib import Path
-import re
 import shutil
 import subprocess
 from typing import (
@@ -449,7 +448,7 @@ def get_xunit_reports(xunit_file: Path, test_base_dir: str,
         # ... that has had '.' in its path replaced with '_' because xunit.
         test_matches = find_original_libcxx_test(mangled_path)
         if not test_matches:
-            raise RuntimeError('Found no matches for test ' + mangled_path)
+            raise RuntimeError(f'Found no matches for test {mangled_path}')
         if len(test_matches) > 1:
             raise RuntimeError('Found multiple matches for test {}: {}'.format(
                 mangled_path, test_matches))
@@ -481,7 +480,8 @@ def get_xunit_reports(xunit_file: Path, test_base_dir: str,
 def get_lit_cmd() -> Optional[List[str]]:
     # The build server doesn't install lit to a virtualenv, so use it from the
     # source location if possible.
-    lit_path = ndk.paths.android_path('external/llvm/utils/lit/lit.py')
+    lit_path = ndk.paths.android_path(
+        'toolchain/llvm-project/llvm/utils/lit/lit.py')
     if os.path.exists(lit_path):
         return ['python', lit_path]
     elif shutil.which('lit'):
@@ -554,7 +554,7 @@ class LibcxxTest(Test):
 
         arch = ndk.abis.abi_to_arch(self.abi)
         host_tag = ndk.hosts.get_host_tag(self.ndk_path)
-        triple = ndk.abis.arch_to_triple(arch)
+        target = ndk.abis.clang_target(arch, self.api)
         toolchain = ndk.abis.arch_to_toolchain(arch)
 
         replacements = [
@@ -567,8 +567,10 @@ class LibcxxTest(Test):
             ('linker', self.config.linker.value),
             ('ndk_path', ndk_path),
             ('toolchain', toolchain),
-            ('triple', f'{triple}{self.api}'),
+            ('triple', target),
             ('build_dir', build_dir),
+            # TODO(danalbert): Migrate to the new test format.
+            ('use_old_format', 'true'),
         ]
         lit_cfg_args = []
         for key, value in replacements:
@@ -619,7 +621,7 @@ class LibcxxTest(Test):
         if lit is None:
             return Failure(self, 'Could not find lit'), []
 
-        libcxx_src = ndk.paths.ANDROID_DIR / 'external/libcxx'
+        libcxx_src = ndk.paths.ANDROID_DIR / 'toolchain/llvm-project/libcxx'
         if not libcxx_src.exists():
             return Failure(self,
                            f'Expected libc++ directory at {libcxx_src}'), []

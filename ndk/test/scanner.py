@@ -109,7 +109,7 @@ class BuildTestScanner(TestScanner):
 
 class LibcxxTestScanner(TestScanner):
     ALL_TESTS: List[str] = []
-    LIBCXX_SRC = ndk.paths.ANDROID_DIR / 'external/libcxx'
+    LIBCXX_SRC = ndk.paths.ANDROID_DIR / 'toolchain/llvm-project/libcxx'
 
     def __init__(self, ndk_path: str) -> None:
         self.ndk_path = ndk_path
@@ -136,9 +136,9 @@ class LibcxxTestScanner(TestScanner):
 
         test_base_dir = os.path.join(cls.LIBCXX_SRC, 'test')
 
-        for root, _dirs, files in os.walk(test_base_dir):
+        for root, _dirs, files in os.walk(test_base_dir, followlinks=True):
             for test_file in files:
-                if test_file.endswith('.cpp'):
+                if test_file.endswith('.cpp') or test_file.endswith('.mm'):
                     test_path = ndk.paths.to_posix_path(os.path.relpath(
                         os.path.join(root, test_file), test_base_dir))
                     cls.ALL_TESTS.append(test_path)
