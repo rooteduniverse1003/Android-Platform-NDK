@@ -2355,7 +2355,7 @@ class LibAndroidSupport(ndk.builds.PackageModule):
 class Libcxxabi(ndk.builds.PackageModule):
     name = 'libc++abi'
     path = 'sources/cxx-stl/llvm-libc++abi'
-    src = ndk.paths.android_path('external/libcxxabi')
+    src = ndk.paths.android_path('toolchain/llvm-project/libcxxabi')
 
 
 class SimplePerf(ndk.builds.Module):
