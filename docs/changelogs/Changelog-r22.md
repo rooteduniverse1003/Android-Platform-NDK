@@ -30,6 +30,16 @@ For Android Studio issues, follow the docs on the [Android Studio site].
 * [Issue 1139]: `native_app_glue` now hooks up the `APP_CMD_WINDOW_RESIZED`,
   `APP_CMD_WINDOW_REDRAW_NEEDED`, and `APP_CMD_CONTENT_RECT_CHANGED` messages.
 
+* The deprecated `<NDK>/platforms` and `<NDK>/sysroot` directories have been
+  removed. These directories were merged and relocated into the toolchain during
+  r19. The location of these contents should not be relevant to anyone,
+  including build systems, since the toolchain handles them implicitly. If you
+  are using a build system that hasn't adapted to the changes introduced in NDK
+  r19, file a bug with your build system maintainer. See the [Build System
+  Maintainers Guide] for information on using the NDK in your own build system.
+
+[Build System Maintainers Guide]: https://android.googlesource.com/platform/ndk/+/master/docs/BuildSystemMaintainers.md
+
 ## Known Issues
 
 * This is not intended to be a comprehensive list of all outstanding bugs.
