@@ -101,6 +101,12 @@ class Module:
     split_build_by_arch = False
     build_arch: Optional[ndk.abis.Arch] = None
 
+    # Set to True if this module is merely a build convenience and not intented
+    # to be shipped. For example, Platforms has its own build steps but is
+    # shipped within the Toolchain module. If this value is set, the module's
+    # install directory will not be within the NDK.
+    intermediate_module = False
+
     def __init__(self) -> None:
         self.context: Optional[BuildContext] = None
         if self.notice is None:
@@ -237,6 +243,8 @@ class Module:
             self.name, self.path, self.host, self.arches)
 
         install_base = ndk.paths.get_install_path(self.out_dir, self.host)
+        if self.intermediate_module:
+            install_base = str(self.intermediate_out_dir / 'install')
         for package_name, package_install in package_installs:
             assert self.context is not None
             install_path = os.path.join(install_base, package_install)
@@ -251,6 +259,8 @@ class Module:
         """Returns the install paths for the given archiectures."""
         install_subdirs = ndk.packaging.expand_paths(self.path, host, arches)
         install_base = ndk.paths.get_install_path(self.out_dir, host)
+        if self.intermediate_module:
+            install_base = str(self.intermediate_out_dir / 'install')
         return [os.path.join(install_base, d) for d in install_subdirs]
 
     def get_install_path(self, host: Optional[ndk.hosts.Host] = None,

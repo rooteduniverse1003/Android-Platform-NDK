@@ -9,7 +9,8 @@ echo DEFAULT_ARCHS=$DEFAULT_ARCHS
 
 LIBRARIES=
 for ARCH in $DEFAULT_ARCHS; do
-  LIB=$(cd $NDK && find platforms -name "libc.so" | sed -e 's!^!'$NDK'/!' | grep arch-$ARCH)
+  TRIPLE=$(get_default_toolchain_prefix_for_arch $ARCH)
+  LIB=$(cd $NDK && find toolchains -name "libc.so" | grep $TRIPLE)
   LIBRARIES=$LIBRARIES" $LIB"
 done
 
@@ -20,12 +21,12 @@ for LIB in $LIBRARIES; do
   echo "Checking: $LIB"
   readelf -s $LIB | grep -q -F " atexit"
   if [ $? = 0 ]; then
-    echo "ERROR: $NDK/$LIB exposes 'atexit'!" >&2
+    echo "ERROR: $LIB exposes 'atexit'!" >&2
     FAILURE=true
   fi
   readelf -s $LIB | grep -q -F " __dso_handle"
   if [ $? = 0 ]; then
-    echo "ERROR: $NDK/$LIB exposes '__dso_handle'!" >&2
+    echo "ERROR: $LIB exposes '__dso_handle'!" >&2
     FAILURE=true
   fi
 done

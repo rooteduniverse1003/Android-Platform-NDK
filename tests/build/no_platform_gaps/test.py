@@ -25,8 +25,12 @@ This test is a Python driven test specifically to avoid the test runner's
 meddling.
 """
 import os
+from pathlib import Path
 import subprocess
 import sys
+
+import ndk.abis
+import ndk.hosts
 
 
 def build(ndk_dir, abi, platform, linker, build_flags):
@@ -51,14 +55,16 @@ def run_test(ndk_path, abi, _platform, linker, build_flags):
     min_api = None
     max_api = None
     apis = []
-    for name in os.listdir(os.path.join(ndk_path, 'platforms')):
-        if not name.startswith('android-'):
+    host = ndk.hosts.host_to_tag(ndk.hosts.get_default_host())
+    triple = ndk.abis.arch_to_triple(ndk.abis.abi_to_arch(abi))
+    toolchain_dir = Path(ndk_path) / f'toolchains/llvm/prebuilt/{host}'
+    lib_dir = toolchain_dir / f'sysroot/usr/lib/{triple}'
+    for path in lib_dir.iterdir():
+        if not path.is_dir():
             continue
 
-        _, api_str = name.split('-')
-
         try:
-            api = int(api_str)
+            api = int(path.name)
         except ValueError:
             # Must have been a lettered release. Not relevant.
             continue

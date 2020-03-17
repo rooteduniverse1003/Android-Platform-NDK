@@ -946,6 +946,8 @@ class Platforms(ndk.builds.Module):
     # will be the end state when we merge the two anyway.
     notice = ndk.paths.android_path('prebuilts/ndk/platform/sysroot/NOTICE')
 
+    intermediate_module = True
+
     def prebuilt_path(self, *args: str) -> str:  # pylint: disable=no-self-use
         return ndk.paths.android_path('prebuilts/ndk/platform', *args)
 
@@ -1732,6 +1734,7 @@ class Sysroot(ndk.builds.Module):
     name = 'sysroot'
     path = 'sysroot'
     notice = ndk.paths.android_path('prebuilts/ndk/platform/sysroot/NOTICE')
+    intermediate_module = True
 
     def build(self) -> None:
         temp_dir = tempfile.mkdtemp()
