@@ -1391,11 +1391,6 @@ class Gdb(ndk.builds.Module):
         exe_suffix = '.exe' if self.host.is_windows else ''
         gdb_exe = install_dir / ('bin/gdb' + exe_suffix)
 
-        # Strip is skipped when build. Strip the binary now.
-        if self.host == ndk.hosts.Host.Darwin:
-            cmd = [str(self.gdb_builder.toolchain.strip), str(gdb_exe)]
-            subprocess.check_call(cmd)
-
         # gdb is currently gdb(.exe)? and the gdb stub is currently gdb-stub.
         # Make them gdb-orig(.exe)? and gdb(.exe)? respectively.
         gdb_exe.rename(install_dir / ('bin/gdb-orig' + exe_suffix))
