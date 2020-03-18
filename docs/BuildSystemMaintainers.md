@@ -21,11 +21,10 @@ executables and scripts will differ.
 
 ## Introduction
 
-The NDK predominantly uses the [LLVM] family of tools for building C/C++ code.
-These include [Clang] for compilation, [LLD] for linking, and other [LLVM tools]
-as well as some parts of [Binutils] for other tasks. Binutils will soon be
-entirely replaced by its LLVM equivalents within the NDK, but it remains
-available during the transition.
+The NDK uses the [LLVM] family of tools for building C/C++ code. These include
+[Clang] for compilation, [LLD] for linking, and other [LLVM tools] for other
+tasks. Historically [Binutils] was used and remains available during the
+transition but will soon be removed from the NDK.
 
 [Binutils]: https://www.gnu.org/software/binutils
 [Clang]: https://clang.llvm.org/
@@ -248,21 +247,11 @@ but are not limited to:
 For each of these tools, LLVM equivalents are available. They typically have the
 same name but are prefixed with `llvm-`. For example, `llvm-strip` is used
 instead of `<triple>-strip` or the `strip` binary from the triple-specific
-directory.
+directory. ndk-build and the NDK's CMake toolchain file now use the LLVM tools
+and GNU binutils will be removed in a future release.
 
 Note that binutils `as` is used by Clang if the `-fno-integrated-as` argument is
 used.
-
-Android is moving away from GNU Binutils in favor of LLVM tools. This is a work
-in progress, but it is likely that binutils will be deprecated in the next
-release of the NDK and removed in the late 2020 LTS release.
-
-At present, the only binutils tool still used by the NDK's build systems is
-`ar`. There may be some issues using `llvm-ar` as a drop in replacement for `ar`
-on Darwin that are still being investigated. See [Issue 1209] for more
-information.
-
-[Issue 1209]: https://github.com/android/ndk/issues/1209
 
 ## Sysroot
 
