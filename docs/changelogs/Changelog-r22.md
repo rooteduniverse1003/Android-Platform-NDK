@@ -9,16 +9,14 @@ For Android Studio issues, follow the docs on the [Android Studio site].
 
 ## Announcements
 
-* [LLD](https://lld.llvm.org/) is now available for testing. AOSP has switched
-  to using LLD by default and the NDK will follow (timeline unknown). Test LLD
-  in your app by passing `-fuse-ld=lld` when linking. Note that [Issue 843]
-  will affect builds using LLD with binutils strip and objcopy as opposed to
-  llvm-strip and llvm-objcopy.
+* [LLD](https://lld.llvm.org/) is now the default linker. Gold and BFD will
+  likely be removed in the next LTS release (Q3-Q4 2020). See the Changes
+  section below for more information.
 
 * [Issue 843]: Build system maintainers should begin testing with LLVM's
   binutils. Android has switched to using these by default (with the exception
   of llvm-ar, as we're still investigating some issues on macOS), and GNU
-  binutils will be removed in a future release.
+  binutils will likely be removed in the next LTS release (Q3-Q4 2020).
 
 ## Changes
 
@@ -37,6 +35,16 @@ For Android Studio issues, follow the docs on the [Android Studio site].
   are using a build system that hasn't adapted to the changes introduced in NDK
   r19, file a bug with your build system maintainer. See the [Build System
   Maintainers Guide] for information on using the NDK in your own build system.
+
+* LLD is now used by default. If your build is not yet compatible with LLD, you
+  can continue using the deprecated linkers, set `APP_LD=deprecated` for
+  ndk-build, `ANDROID_LD=deprecated` for CMake, or use an explicit
+  `-fuse-ld=gold` or `-fuse-ld=bfd` in your custom build system. If you
+  encounter issues be sure to file a bug, because this will not be an option in
+  a subsequent release.
+
+  Note that [Issue 843] will affect builds using LLD with binutils strip and
+  objcopy as opposed to llvm-strip and llvm-objcopy.
 
 [Build System Maintainers Guide]: https://android.googlesource.com/platform/ndk/+/master/docs/BuildSystemMaintainers.md
 
