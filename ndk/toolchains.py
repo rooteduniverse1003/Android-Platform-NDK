@@ -35,7 +35,7 @@ HOST_TRIPLE_MAP = {
 
 @enum.unique
 class LinkerOption(enum.Enum):
-    Deprecated = 'deprecated'
+    Default = 'default'
     Lld = 'lld'
 
 
