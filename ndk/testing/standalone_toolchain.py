@@ -68,14 +68,17 @@ def make_standalone_toolchain(ndk_path: str, arch: str, api: int,
 
 
 def test_standalone_toolchain(install_dir: str, test_source: str,
-                              flags: List[str],
-                              linker: LinkerOption) -> Tuple[bool, str]:
+                              flags: List[str], linker: LinkerOption,
+                              abi: ndk.abis.Abi) -> Tuple[bool, str]:
     compiler_name = 'clang++'
 
     compiler = os.path.join(install_dir, 'bin', compiler_name)
     cmd = [compiler, test_source, '-Wl,--no-undefined', '-Wl,--fatal-warnings']
-    if linker == LinkerOption.Lld:
-        cmd.append('-fuse-ld=lld')
+    if linker == LinkerOption.Deprecated:
+        if abi == ndk.abis.Abi('arm64-v8a'):
+            cmd.append('-fuse-ld=bfd')
+        else:
+            cmd.append('-fuse-ld=gold')
     cmd += flags
     if os.name == 'nt':
         # The Windows equivalent of exec doesn't know file associations so it
@@ -97,6 +100,6 @@ def run_test(ndk_path: str, abi: ndk.abis.Abi, api: int, linker: LinkerOption,
         if not success:
             return success, out
         return test_standalone_toolchain(install_dir, test_source, flags,
-                                         linker)
+                                         linker, abi)
     finally:
         shutil.rmtree(install_dir)
