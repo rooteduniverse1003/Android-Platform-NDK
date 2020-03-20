@@ -43,7 +43,7 @@ class MockDevice(ndk.test.devices.Device):
 class TestBuildConfiguration(ndk.test.spec.BuildConfiguration):
     def __init__(self, abi: Abi, api: Optional[int]):
         # Linker option is irrelevant for determining device compatibility.
-        super().__init__(abi, api, LinkerOption.Default)
+        super().__init__(abi, api, LinkerOption.Lld)
 
 
 class DeviceTest(unittest.TestCase):
