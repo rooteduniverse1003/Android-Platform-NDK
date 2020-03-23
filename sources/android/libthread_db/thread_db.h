@@ -14,8 +14,7 @@
  * limitations under the License.
  */
 
-#ifndef _LIBTHREAD_DB__THREAD_DB_H
-#define _LIBTHREAD_DB__THREAD_DB_H
+#pragma once
 
 #include <pthread.h>
 #include <signal.h>
@@ -172,6 +171,4 @@ extern td_err_e td_thr_tls_get_addr(const td_thrhandle_t*, psaddr_t, size_t, psa
 
 #ifdef __cplusplus
 }
-#endif
-
 #endif
