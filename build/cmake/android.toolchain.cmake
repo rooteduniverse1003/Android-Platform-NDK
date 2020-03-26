@@ -342,12 +342,8 @@ set(ANDROID_COMPILER_FLAGS_RELEASE)
 set(ANDROID_LINKER_FLAGS)
 set(ANDROID_LINKER_FLAGS_EXE)
 
-if(ANDROID_LD STREQUAL deprecated)
-  if(ANDROID_ABI STREQUAL arm64-v8a)
-    list(APPEND ANDROID_LINKER_FLAGS -fuse-ld=bfd)
-  else()
-    list(APPEND ANDROID_LINKER_FLAGS -fuse-ld=gold)
-  endif()
+if(ANDROID_LD STREQUAL lld)
+  list(APPEND ANDROID_LINKER_FLAGS -fuse-ld=lld)
 endif()
 
 # Don't re-export libgcc symbols in every binary.
@@ -472,12 +468,12 @@ list(APPEND ANDROID_COMPILER_FLAGS
 # default hash ("fast").
 #
 # Note that because we cannot see the user's flags, we can't detect this very
-# accurately. Users that explicitly use -fuse-ld=bfd instead of ANDROID_LD will
-# have broken builds.
-if(ANDROID_LD STREQUAL deprecated)
-  list(APPEND ANDROID_LINKER_FLAGS -Wl,--build-id)
-else()
+# accurately. Users that explicitly use -fuse-ld=lld instead of ANDROID_LD will
+# not be able to debug.
+if(ANDROID_LD STREQUAL lld)
   list(APPEND ANDROID_LINKER_FLAGS -Wl,--build-id=sha1)
+else()
+  list(APPEND ANDROID_LINKER_FLAGS -Wl,--build-id)
 endif()
 
 list(APPEND ANDROID_LINKER_FLAGS -Wl,--fatal-warnings)
