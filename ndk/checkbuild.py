@@ -416,17 +416,13 @@ class Clang(ndk.builds.Module):
 
         # Remove LLD duplicates. We only need ld.lld.
         # http://b/74250510
+        #
+        # Note that lld is experimental in the NDK. It is not the default for
+        # any architecture and has received only minimal testing in the NDK.
         bin_ext = '.exe' if self.host.is_windows else ''
         os.remove(os.path.join(install_path, 'bin/ld64.lld' + bin_ext))
         os.remove(os.path.join(install_path, 'bin/lld' + bin_ext))
         os.remove(os.path.join(install_path, 'bin/lld-link' + bin_ext))
-
-        # But do create a plain ld binary, which will cause Clang to use it by
-        # default.
-        lld = Path(install_path) / f'bin/ld.lld{bin_ext}'
-        ld = Path(install_path) / f'bin/ld{bin_ext}'
-        shutil.copyfile(lld, ld)
-        shutil.copystat(lld, ld)
 
         # Remove LLDB before it is ready for use.
         os.remove(os.path.join(install_path, 'bin/lldb' + bin_ext))
