@@ -62,15 +62,28 @@ For Android Studio issues, follow the docs on the [Android Studio site].
    debugging. The error from gdb that confirms you were affected by this was
    `gdb-8.3/gdb/psymtab.c:316: internal-error: sect_index_text not initialized`.
  * [Issue 1166]: Rehid unwinder symbols all architectures.
+ * [Issue 1173]: Fix gdb python symbol missing issue on Darwin.
+ * [Issue 1178]: Revert changes to stdatomic.h to maintain compatibility with
+   C's `_Atomic` type qualifier. Note that the C++ standard will likely mandate
+   this breakage in the future. See [P0943R4] for more details.
+ * [Issue 1184]: Fix Clang crash for x86_64.
+ * [Issue 1198]: Fix incorrect constant folding of long doubles on Windows.
  * [Issue 1201]: Fixed issue in ndk-build that was causing `APP_PLATFORM` to be
    corrupted for API 30+ with LP64 ABIs.
  * [Issue 1203]: libc++ prebuilts and CRT objects are no longer built as Neon.
- * [Issue 1173]: Fix gdb python symbol missing issue on Darwin.
+ * [Issue 1205]: Potential fixes for relocation out of range issues with LLD.
+ * [Issue 1206]: LLD support for --fix-cortex-a8.
 
 [Issue 1166]: https://github.com/android/ndk/issues/1166
+[Issue 1173]: https://github.com/android/ndk/issues/1173
+[Issue 1178]: https://github.com/android/ndk/issues/1178
+[Issue 1184]: https://github.com/android/ndk/issues/1184
+[Issue 1198]: https://github.com/android/ndk/issues/1198
 [Issue 1201]: https://github.com/android/ndk/issues/1201
 [Issue 1203]: https://github.com/android/ndk/issues/1203
-[Issue 1173]: https://github.com/android/ndk/issues/1173
+[Issue 1205]: https://github.com/android/ndk/issues/1205
+[Issue 1206]: https://github.com/android/ndk/issues/1206
+[P0943R4]: http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2019/p0943r4.html
 
 ## Changes
 
