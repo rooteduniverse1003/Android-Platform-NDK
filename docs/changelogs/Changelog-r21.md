@@ -59,6 +59,7 @@ For Android Studio issues, follow the docs on the [Android Studio site].
    `gdb-8.3/gdb/psymtab.c:316: internal-error: sect_index_text not initialized`.
  * [Issue 1166]: Rehid unwinder symbols all architectures.
  * [Issue 1173]: Fix gdb python symbol missing issue on Darwin.
+ * [Issue 1176]: Fix strip failing with "File truncated" errors on Windows.
  * [Issue 1178]: Revert changes to stdatomic.h to maintain compatibility with
    C's `_Atomic` type qualifier. Note that the C++ standard will likely mandate
    this breakage in the future. See [P0943R4] for more details.
@@ -72,6 +73,7 @@ For Android Studio issues, follow the docs on the [Android Studio site].
 
 [Issue 1166]: https://github.com/android/ndk/issues/1166
 [Issue 1173]: https://github.com/android/ndk/issues/1173
+[Issue 1176]: https://github.com/android/ndk/issues/1176
 [Issue 1178]: https://github.com/android/ndk/issues/1178
 [Issue 1184]: https://github.com/android/ndk/issues/1184
 [Issue 1198]: https://github.com/android/ndk/issues/1198
