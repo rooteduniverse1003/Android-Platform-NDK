@@ -24,9 +24,63 @@ For Android Studio issues, follow the docs on the [Android Studio site].
    will affect builds using LLD with binutils strip and objcopy as opposed to
    llvm-strip and llvm-objcopy.
 
+ * The legacy toolchain install paths will be removed over the coming releases.
+   These paths have been obsolete since NDK r19 and take up a considerable
+   amount of space in the NDK. The paths being removed are:
+
+   * platforms
+   * sources/cxx-stl
+   * sysroot
+   * toolchains (with the exception of toolchains/llvm)
+
+   In general this change should only affect build system maintainers, or those
+   using build systems that are not up to date. ndk-build and the CMake
+   toolchain users are unaffected, and neither are
+   `make_standalone_toolchain.py` users (though that script has been unnecessary
+   since r19).
+
+   For information on migrating away from the legacy toolchain layout, see the
+   [Build System Maintainers Guide] for the NDK version you're using.
+
  * The Play Store will require 64-bit support when uploading an APK beginning in
    August 2019. Start porting now to avoid surprises when the time comes. For
    more information, see [this blog post](https://android-developers.googleblog.com/2017/12/improving-app-security-and-performance.html).
+
+[Build System Maintainers Guide]: https://android.googlesource.com/platform/ndk/+/master/docs/BuildSystemMaintainers.md
+
+## r21b
+
+ * Fixed debugging processes containing Java with gdb. Cherrypicked
+   "gdb: Don't fault for 'maint print psymbols' when using an index", which
+   fixes a bug that caused gdb to fail when debugging a process with Java.
+   Pure C/C++ executables were fine, but this effectively broke all app
+   debugging. The error from gdb that confirms you were affected by this was
+   `gdb-8.3/gdb/psymtab.c:316: internal-error: sect_index_text not initialized`.
+ * [Issue 1166]: Rehid unwinder symbols all architectures.
+ * [Issue 1173]: Fix gdb python symbol missing issue on Darwin.
+ * [Issue 1176]: Fix strip failing with "File truncated" errors on Windows.
+ * [Issue 1178]: Revert changes to stdatomic.h to maintain compatibility with
+   C's `_Atomic` type qualifier. Note that the C++ standard will likely mandate
+   this breakage in the future. See [P0943R4] for more details.
+ * [Issue 1184]: Fix Clang crash for x86_64.
+ * [Issue 1198]: Fix incorrect constant folding of long doubles on Windows.
+ * [Issue 1201]: Fixed issue in ndk-build that was causing `APP_PLATFORM` to be
+   corrupted for API 30+ with LP64 ABIs.
+ * [Issue 1203]: libc++ prebuilts and CRT objects are no longer built as Neon.
+ * [Issue 1205]: Potential fixes for relocation out of range issues with LLD.
+ * [Issue 1206]: LLD support for --fix-cortex-a8.
+
+[Issue 1166]: https://github.com/android/ndk/issues/1166
+[Issue 1173]: https://github.com/android/ndk/issues/1173
+[Issue 1176]: https://github.com/android/ndk/issues/1176
+[Issue 1178]: https://github.com/android/ndk/issues/1178
+[Issue 1184]: https://github.com/android/ndk/issues/1184
+[Issue 1198]: https://github.com/android/ndk/issues/1198
+[Issue 1201]: https://github.com/android/ndk/issues/1201
+[Issue 1203]: https://github.com/android/ndk/issues/1203
+[Issue 1205]: https://github.com/android/ndk/issues/1205
+[Issue 1206]: https://github.com/android/ndk/issues/1206
+[P0943R4]: http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2019/p0943r4.html
 
 ## Changes
 
