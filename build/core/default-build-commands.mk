@@ -84,7 +84,13 @@ endef
 
 cmd-strip = $(PRIVATE_STRIP) $(PRIVATE_STRIP_MODE) $(call host-path,$1)
 
-TARGET_LIBGCC = -lgcc -Wl,--exclude-libs,libgcc_real.a
+# arm32 currently uses a linker script in place of libgcc to ensure that
+# libunwind is linked in the correct order. --exclude-libs does not propagate to
+# the contents of the linker script and can't be specified within the linker
+# script. Hide both regardless of architecture to future-proof us in case we
+# move other architectures to a linker script (which we may want to do so we
+# automatically link libclangrt on other architectures).
+TARGET_LIBGCC = -lgcc -Wl,--exclude-libs,libgcc.a -Wl,--exclude-libs,libgcc_real.a
 TARGET_LIBATOMIC = -latomic -Wl,--exclude-libs,libatomic.a
 TARGET_LDLIBS := -lc -lm
 
