@@ -28,10 +28,9 @@ For Android Studio issues, follow the docs on the [Android Studio site].
    will affect builds using LLD with binutils strip and objcopy as opposed to
    llvm-strip and llvm-objcopy.
 
- * The legacy toolchain install paths will be removed before the next LTS
-   release (likely in r22). These paths have been obsolete since NDK r19 and
-   take up a considerable amount of space in the NDK. The paths being removed
-   are:
+ * The legacy toolchain install paths will be removed over the coming releases.
+   These paths have been obsolete since NDK r19 and take up a considerable
+   amount of space in the NDK. The paths being removed are:
 
    * platforms
    * sources/cxx-stl
