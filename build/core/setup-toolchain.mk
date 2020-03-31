@@ -17,7 +17,7 @@
 # to setup the target toolchain for a given platform/abi combination.
 #
 
-$(call assert-defined,TARGET_PLATFORM TARGET_ARCH TARGET_ARCH_ABI)
+$(call assert-defined,TARGET_PLATFORM_LEVEL TARGET_ARCH TARGET_ARCH_ABI)
 $(call assert-defined,NDK_APPS NDK_APP_STL)
 
 # Check that we have a toolchain that supports the current ABI.
@@ -60,8 +60,6 @@ else # NDK_TOOLCHAIN is not empty
     endif
     TARGET_TOOLCHAIN := $(NDK_TOOLCHAIN)
 endif # NDK_TOOLCHAIN is not empty
-
-TARGET_ABI := $(TARGET_PLATFORM)-$(TARGET_ARCH_ABI)
 
 TARGET_PREBUILT_SHARED_LIBRARIES :=
 
