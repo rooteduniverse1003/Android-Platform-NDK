@@ -241,12 +241,6 @@ same name but are prefixed with `llvm-`. For example, `llvm-strip` is used
 instead of `<triple>-strip` or the `strip` binary from the triple-specific
 directory.
 
-Note: llvm-strip's `--strip-unneeded` is not currently pruning all that it
-should. As a workaround, `--strip-all` (which differs in behavior from GNU's
-`--strip-all`) can be used instead. See [Issue 1083] for more information.
-
-[Issue 1083]: https://github.com/android/ndk/issues/1083
-
 Android is moving away from GNU Binutils in favor of LLVM tools. This is a work
 in progress, but it is likely that a future release of the NDK will deprecate
 and eventually remove GNU Binutils. For now, ensure that your build system works
@@ -416,10 +410,11 @@ preserved. By default, only symbols in used sections will be included in the
 linked binary.
 
 If this behavior is not desired for your build system, ensure that these flags
-are at least used for `libgcc_real.a` (`libgcc.a` is a linker script, and
-`--exclude-libs` does not have any effect on the contents of linker scripts) and
-`libunwind.a` (libunwind is only used for ARM32). This is necessary to avoid
-unwinding bugs on ARM32. See [Unwinding] for more information.
+are at least used for `libgcc.a` (`libgcc_real.a` on Arm32, where `libgcc.a` is
+a linker script, as `--exclude-libs` does not have any effect on the contents of
+linker scripts) and `libunwind.a` (libunwind is only used for ARM32). This is
+necessary to avoid unwinding bugs on Arm32. See [Unwinding] for more
+information.
 
 [visibility]: https://gcc.gnu.org/wiki/Visibility
 
@@ -519,9 +514,12 @@ these symbols from a shared library. If this library was built with the wrong
 unwinder, it is possible for one unwinder to call into the other. As they are
 not compatible, this will likely result in either a crash or a failed unwind. To
 avoid this problem, libraries should always be built with
-`-Wl,--exclude-libs,libgcc_real.a` and `-Wl,--exclude-libs,libunwind.a` (the
-latter is only necessary for 32-bit ARM) to ensure that unwind symbols are not
-re-exported from shared libraries.
+`-Wl,--exclude-libs,libgcc.a`, `-Wl,--exclude-libs,libgcc_real.a` and
+`-Wl,--exclude-libs,libunwind.a` (the latter is only necessary for 32-bit Arm)
+to ensure that unwind symbols are not re-exported from shared libraries. Note
+that `libgcc_real.a` is needed because on some architectures (currently only
+32-bit Arm) `libgcc.a` is a linker script and `--exclude-libs` does not extend
+to the contents of linker scripts.
 
 Even with the above precautions, it is still possible for an improperly built
 external dependency to provide an incorrect unwind implementation as described
