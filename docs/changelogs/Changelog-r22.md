@@ -22,6 +22,8 @@ For Android Studio issues, follow the docs on the [Android Studio site].
 
 ## Changes
 
+* Updated make to 4.3.
+
 * [Issue 843]: `llvm-strip` is now used instead of `strip` to avoid breaking
    RelRO with LLD. Note that the Android Gradle Plugin performs its own
    stripping, so most users will need to upgrade to Android Gradle Plugin
