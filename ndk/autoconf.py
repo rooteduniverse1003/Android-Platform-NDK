@@ -51,7 +51,8 @@ class AutoconfBuilder:
                  use_clang: bool = False,
                  no_build_or_host: bool = False,
                  no_strip: bool = False,
-                 additional_flags: List[str] = None) -> None:
+                 additional_flags: List[str] = None,
+                 additional_env: Optional[Dict[str, str]] = None) -> None:
         """Initializes an autoconf builder.
 
         Args:
@@ -66,6 +67,9 @@ class AutoconfBuilder:
             use_clang: Set to True to use Clang to build this project.
             no_build_or_host: Don't pass --build or --host to configure.
             no_strip: Don't pass -s to compiler.
+            additional_flags: Additional flags to pass to the compiler.
+            additional_env: Additional environment to set, used during
+                configure, build, and install.
         """
         self.configure_script = configure_script
         self.build_directory = build_dir
@@ -75,6 +79,7 @@ class AutoconfBuilder:
         self.no_build_or_host = no_build_or_host
         self.no_strip = no_strip
         self.additional_flags = additional_flags
+        self.additional_env = additional_env
 
         self.working_directory = self.build_directory / 'build'
         self.install_directory = self.build_directory / 'install'
@@ -124,6 +129,10 @@ class AutoconfBuilder:
         subproc_env = dict(os.environ)
         if env:
             subproc_env.update(env)
+        if self.additional_env:
+            subproc_env.update(env)
+
+        if subproc_env != os.environ:
             pp_env = pprint.pformat(env, indent=4)
             print('Running: {} with env:\n{}'.format(pp_cmd, pp_env))
         else:
