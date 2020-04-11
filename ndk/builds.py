@@ -29,7 +29,7 @@ from pathlib import Path
 import shutil
 import stat
 import subprocess
-from typing import Iterable, List, Optional, Set
+from typing import Dict, Iterable, List, Optional, Set
 
 import ndk.abis
 from ndk.autoconf import AutoconfBuilder
@@ -354,6 +354,7 @@ class Module:
 class AutoconfModule(Module):
     # Path to the source code
     src: Path
+    env: Optional[Dict[str, str]] = None
 
     _builder: Optional[AutoconfBuilder] = None
 
@@ -365,7 +366,8 @@ class AutoconfModule(Module):
                 self.src / 'configure',
                 self.intermediate_out_dir,
                 self.host,
-                use_clang=True)
+                use_clang=True,
+                additional_env=self.env)
         return self._builder
 
     @property
