@@ -693,6 +693,10 @@ class Make(ndk.builds.AutoconfModule):
     path = 'prebuilt/{host}'
     notice_group = ndk.builds.NoticeGroup.TOOLCHAIN
     src: Path = ndk.paths.ANDROID_DIR / 'toolchain/make'
+    # The macOS sed chokes on invalid UTF-8 in config.h-vms.template, at least
+    # for the old version on some build servers. (It works fine locally on
+    # 10.15.) This is stackoverflow's suggested workaround.
+    env = {'LC_ALL': 'C', 'LANG': 'C'}
 
     @property
     def notices(self) -> List[str]:
