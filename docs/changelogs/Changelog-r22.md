@@ -40,7 +40,11 @@ For Android Studio issues, follow the docs on the [Android Studio site].
   r19, file a bug with your build system maintainer. See the [Build System
   Maintainers Guide] for information on using the NDK in your own build system.
 
+* [Issue 1200]: Fixed an issue with using `dlclose` with libraries using
+  `thread_local` with non-trivial destructors and the static libc++.
+
 [Build System Maintainers Guide]: https://android.googlesource.com/platform/ndk/+/master/docs/BuildSystemMaintainers.md
+[Issue 1200]: https://github.com/android/ndk/issues/1200
 
 ## Known Issues
 
