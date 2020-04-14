@@ -23,6 +23,12 @@ from ndk.hosts import Host, get_default_host
 import ndk.paths
 
 
+# When updating this, also update:
+#
+# 1. prebuilts/ndk (with ./symlink_clang.py in that repository)
+# 2. get_llvm_toolchain_binprefix in build/tools/prebuilt-common.sh
+# 3. CMAKE_C_COMPILER_VERSION and CMAKE_CXX_COMPILER_VERSION in
+#    build/cmake/android.toolchain.cmake
 CLANG_VERSION = 'clang-r365631c1'
 
 
