@@ -575,6 +575,13 @@ class LibcxxTest(Test):
             lit_cfg_args.append(f'--param={key}={value}')
 
         xunit_output = os.path.join(build_dir, 'xunit.xml')
+        # Remove the xunit output so we don't wrongly report stale results when
+        # the test runner itself is broken. We ignore the exit status of the
+        # test runner since we handle test failure reporting ourselves, so if
+        # there's an error in the test runner itself it will be ignored and the
+        # previous report will be reused.
+        if os.path.exists(xunit_output):
+            os.remove(xunit_output)
 
         lit_args = lit + [
             '-sv',
