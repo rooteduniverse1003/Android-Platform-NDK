@@ -250,7 +250,7 @@ def make_framework_bundle(zip_path: Path, ndk_dir: Path, build_number: str,
                               target_is_directory=True)
 
     shutil.copy2(ndk_dir / 'source.properties',
-                 bundle_dir / 'source.properties')
+                 package_dir / 'source.properties')
     create_signer_metadata(package_dir)
     _make_zip_package(str(zip_path),
                       str(package_dir),
