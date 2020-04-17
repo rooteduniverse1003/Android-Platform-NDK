@@ -172,6 +172,31 @@ def create_plist(plist: Path, version: str) -> None:
         """))
 
 
+def create_signer_metadata(package_dir: Path) -> None:
+    """Populates the _codesign metadata directory for the ADRT signer.
+
+    Args:
+        package_dir: Path to the root of the directory that will be zipped for
+                     the signer.
+    """
+    metadata_dir = package_dir / '_codesign'
+    metadata_dir.mkdir()
+
+    # This directory can optionally contain a few pieces of metadata:
+    #
+    # filelist: For any jar files that need to be unpacked and signed. We have
+    # none.
+    #
+    # entitlements.xml: Defines any entitlements we need. No known, currently.
+    #
+    # volumename: The volume name for the DMG that the signer will create.
+    #
+    # See http://go/studio-signer for more information.
+
+    volumename_file = metadata_dir / 'volumename'
+    volumename_file.write_text(f'Android NDK {ndk.config.release}')
+
+
 def make_framework_bundle(zip_path: Path, ndk_dir: Path, build_number: str,
                           build_dir: Path) -> None:
     """Builds a macOS Framework Bundle of the NDK.
@@ -226,6 +251,7 @@ def make_framework_bundle(zip_path: Path, ndk_dir: Path, build_number: str,
 
     shutil.copy2(ndk_dir / 'source.properties',
                  bundle_dir / 'source.properties')
+    create_signer_metadata(package_dir)
     _make_zip_package(str(zip_path),
                       str(package_dir),
                       framework_directory_name,
