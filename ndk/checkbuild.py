@@ -827,9 +827,9 @@ def create_libcxx_linker_scripts(lib_dir: str, abi: ndk.abis.Abi,
 
 class Libcxx(ndk.builds.Module):
     name = 'libc++'
+    src = Path(ndk.paths.android_path('toolchain/llvm-project/libcxx'))
     path = 'sources/cxx-stl/llvm-libc++'
-    script = 'ndk/sources/cxx-stl/llvm-libc++/build.py'
-    notice = ndk.paths.android_path('external/libcxx/NOTICE')
+    notice = src / 'LICENSE.TXT'
     notice_group = ndk.builds.NoticeGroup.TOOLCHAIN
     arch_specific = True
     deps = {
@@ -838,8 +838,6 @@ class Libcxx(ndk.builds.Module):
         'ndk-build',
         'ndk-build-shortcut',
     }
-
-    libcxx_path = ndk.paths.android_path('external/libcxx')
 
     @property
     def obj_out(self) -> str:
@@ -861,8 +859,8 @@ class Libcxx(ndk.builds.Module):
             self.get_dep('ndk-build').get_build_host_install(), 'ndk-build')
         bionic_path = ndk.paths.android_path('bionic')
 
-        android_mk = os.path.join(self.libcxx_path, 'Android.mk')
-        application_mk = os.path.join(self.libcxx_path, 'Application.mk')
+        android_mk = self.src / 'Android.mk'
+        application_mk = self.src / 'Application.mk'
 
         build_cmd = [
             'bash', ndk_build, build_support.jobs_arg(), 'V=1',
@@ -878,8 +876,8 @@ class Libcxx(ndk.builds.Module):
             # should go. The defaults in ndk-build are only valid if we have a
             # typical ndk-build layout with a jni/{Android,Application}.mk.
             'NDK_PROJECT_PATH=null',
-            'APP_BUILD_SCRIPT=' + android_mk,
-            'NDK_APPLICATION_MK=' + application_mk,
+            f'APP_BUILD_SCRIPT={android_mk}',
+            f'NDK_APPLICATION_MK={application_mk}',
             'NDK_OUT=' + self.obj_out,
             'NDK_LIBS_OUT=' + self.lib_out,
 
@@ -898,11 +896,9 @@ class Libcxx(ndk.builds.Module):
         os.makedirs(install_root)
 
         shutil.copy2(
-            os.path.join(self.libcxx_path, 'Android.mk'), install_root)
-        shutil.copy2(
-            os.path.join(self.libcxx_path, 'NOTICE'), install_root)
+            str(self.src / 'Android.mk'), install_root)
         shutil.copytree(
-            os.path.join(self.libcxx_path, 'include'),
+            str(self.src / 'include'),
             os.path.join(install_root, 'include'))
         shutil.copytree(self.lib_out, os.path.join(install_root, 'libs'))
 
@@ -2627,8 +2623,8 @@ class AdbPy(ndk.builds.PythonPackage):
 
 class Lit(ndk.builds.PythonPackage):
     name = 'lit'
-    path = ndk.paths.android_path('external/llvm/utils/lit/setup.py')
-    notice = ndk.paths.android_path('external/llvm/NOTICE')
+    path = ndk.paths.android_path('toolchain/llvm-project/llvm/utils/lit/setup.py')
+    notice = ndk.paths.android_path('toolchain/llvm-project/llvm/LICENSE.TXT')
 
 
 class NdkPy(ndk.builds.PythonPackage):

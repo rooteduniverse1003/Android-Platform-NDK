@@ -24,6 +24,9 @@ For Android Studio issues, follow the docs on the [Android Studio site].
 
 * Updated make to 4.3.
 
+* Updated libc++, libc++abi, and libunwind to
+  https://github.com/llvm/llvm-project/commit/6a30894391ca671bab16c505eff30c7819bd8e8e.
+
 * [Issue 843]: `llvm-strip` is now used instead of `strip` to avoid breaking
    RelRO with LLD. Note that the Android Gradle Plugin performs its own
    stripping, so most users will need to upgrade to Android Gradle Plugin

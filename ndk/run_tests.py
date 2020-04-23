@@ -26,6 +26,7 @@ import logging
 import os
 import posixpath
 import random
+import shlex
 import site
 import subprocess
 import sys
@@ -90,7 +91,7 @@ def shell_nocheck_wrap_errors(device: Device,
     try:
         return device.shell_nocheck(cmd)
     except RuntimeError:
-        return 1, traceback.format_exc(), ''
+        return 1, shlex.join(cmd), traceback.format_exc()
 
 
 # TODO: Extract a common interface from this and ndk.test.types.Test for the
