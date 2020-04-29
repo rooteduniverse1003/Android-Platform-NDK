@@ -52,6 +52,21 @@ For Android Studio issues, follow the docs on the [Android Studio site].
 
 [Build System Maintainers Guide]: https://android.googlesource.com/platform/ndk/+/master/docs/BuildSystemMaintainers.md
 
+## r21c
+
+ * [Issue 1060]: A macOS app bundle that is signed and notarized is now
+   available for download from our wiki and our website. Note that because only
+   bundles may use RPATHs and pass notarization, the traditional NDK package for
+   macOS **cannot* be notarized.  The SDK will continue to use the traditional
+   package as the app bundle requires layout changes that would make it
+   incompatible with Android Studio.  The NDK is not quarantined when it is
+   downloaded via the SDK manager, so is curently allowed by Gatekeeper.
+
+   **The SDK manager is currently the most reliable way to get the NDK for
+   macOS.**
+
+[Issue 1060]: https://github.com/android/ndk/issues/1060
+
 ## r21b
 
  * Fixed debugging processes containing Java with gdb. Cherrypicked
