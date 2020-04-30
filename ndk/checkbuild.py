@@ -85,11 +85,6 @@ import ndk.ui
 import ndk.workqueue
 
 
-def get_version_string(build_number: str) -> str:
-    """Returns the version string for the current build."""
-    return f'{ndk.config.major}.{ndk.config.hotfix}.{build_number}'
-
-
 def _make_tar_package(package_path: str, base_dir: str, path: str) -> str:
     """Creates a tarball package for distribution.
 
@@ -111,29 +106,20 @@ def _make_tar_package(package_path: str, base_dir: str, path: str) -> str:
     return package_path
 
 
-def _make_zip_package(package_path: str,
-                      base_dir: str,
-                      paths: List[str],
-                      preserve_symlinks: bool = False) -> str:
+def _make_zip_package(package_path: str, base_dir: str, path: str) -> str:
     """Creates a zip package for distribution.
 
     Args:
-        package_path: Path (without extension) to the output archive.
-        base_dir: Path to the directory from which to perform the packaging
-                  (identical to tar's -C).
-        paths: Paths to files and directories to package, relative to base_dir.
-        preserve_symlinks: Set to true to preserve symlinks in the zip file.
+        package_path (string): Path (without extention) to the output archive.
+        base_dir (string): Path to the directory from which to perform the
+                           packaging (identical to tar's -C).
+        path (string): Path to the directory to package.
     """
     cwd = os.getcwd()
     package_path = os.path.realpath(package_path) + '.zip'
-
-    args = ['zip', '-9qr', package_path]
-    if preserve_symlinks:
-        args.append('--symlinks')
-    args.extend(paths)
     os.chdir(base_dir)
     try:
-        subprocess.check_call(args)
+        subprocess.check_call(['zip', '-9qr', package_path, path])
         return package_path
     finally:
         os.chdir(cwd)
@@ -151,131 +137,16 @@ def purge_unwanted_files(ndk_dir: Path) -> None:
                 file_path.unlink()
 
 
-def create_dummy_entry_point(path: Path) -> None:
-    """Creates a dummy "application" for the app bundle.
-
-    App bundles must have at least one entry point in the Contents/MacOS
-    directory. We don't have a single entry point, and none of our executables
-    are useful if moved, so just put a welcome script in place that explains
-    that.
-    """
-    path.parent.mkdir(exist_ok=True, parents=True)
-    path.write_text(
-        textwrap.dedent("""\
-        #!/bin/sh
-        echo "The Android NDK is installed to the Contents/NDK directory of this application bundle."
-        """))
-    path.chmod(0o755)
-
-
-def create_plist(plist: Path, version: str, entry_point_name: str) -> None:
-    """Populates the NDK plist at the given location."""
-
-    plist.write_text(
-        textwrap.dedent(f"""\
-        <?xml version="1.0" encoding="UTF-8"?>
-        <!DOCTYPE plist PUBLIC "-//Apple Computer//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-        <plist version="1.0">
-        <dict>
-            <key>CFBundleName</key>
-            <string>Android NDK</string>
-            <key>CFBundleDisplayName</key>
-            <string>Android NDK</string>
-            <key>CFBundleIdentifier</key>
-            <string>com.android.ndk</string>
-            <key>CFBundleVersion</key>
-            <string>{version}</string>
-            <key>CFBundlePackageType</key>
-            <string>APPL</string>
-            <key>CFBundleExecutable</key>
-            <string>{entry_point_name}</string>
-        </dict>
-        </plist>
-        """))
-
-
-def create_signer_metadata(package_dir: Path) -> None:
-    """Populates the _codesign metadata directory for the ADRT signer.
-
-    Args:
-        package_dir: Path to the root of the directory that will be zipped for
-                     the signer.
-    """
-    metadata_dir = package_dir / '_codesign'
-    metadata_dir.mkdir()
-
-    # This directory can optionally contain a few pieces of metadata:
-    #
-    # filelist: For any jar files that need to be unpacked and signed. We have
-    # none.
-    #
-    # entitlements.xml: Defines any entitlements we need. No known, currently.
-    #
-    # volumename: The volume name for the DMG that the signer will create.
-    #
-    # See http://go/studio-signer for more information.
-
-    volumename_file = metadata_dir / 'volumename'
-    volumename_file.write_text(f'Android NDK {ndk.config.release}')
-
-
-def make_app_bundle(zip_path: Path, ndk_dir: Path, build_number: str,
-                          build_dir: Path) -> None:
-    """Builds a macOS App Bundle of the NDK.
-
-    The NDK is distributed in two forms on macOS: as a app bundle and in the
-    traditional layout. The traditional layout is needed by the SDK because AGP
-    and Studio expect the NDK to be contained one directory down in the
-    archive, which is not compatible with macOS bundles. The app bundle is
-    needed on macOS because we rely on rpaths, and executables using rpaths are
-    blocked by Gate Keeper as of macOS Catalina (10.15), except for references
-    within the same bundle.
-
-    Information on the macOS bundle format can be found at
-    https://developer.apple.com/library/archive/documentation/CoreFoundation/Conceptual/CFBundles/BundleTypes/BundleTypes.html.
-
-    Args:
-        zip_path: The desired file path of the resultant zip file (without the
-                  extension).
-        ndk_dir: The path to the NDK being bundled.
-        build_dir: The path to the top level build directory.
-    """
-    package_dir = build_dir / 'bundle'
-    app_directory_name = f'AndroidNDK{build_number}.app'
-    bundle_dir = package_dir / app_directory_name
-    if package_dir.exists():
-        shutil.rmtree(package_dir)
-
-    contents_dir = bundle_dir / 'Contents'
-    entry_point_name = 'ndk'
-    create_dummy_entry_point(contents_dir / 'MacOS' / entry_point_name)
-
-    bundled_ndk = contents_dir / 'NDK'
-    shutil.copytree(ndk_dir, bundled_ndk)
-
-    plist = contents_dir / 'Info.plist'
-    create_plist(plist, get_version_string(build_number), entry_point_name)
-
-    shutil.copy2(ndk_dir / 'source.properties',
-                 package_dir / 'source.properties')
-    create_signer_metadata(package_dir)
-    _make_zip_package(str(zip_path),
-                      str(package_dir),
-                      os.listdir(package_dir),
-                      preserve_symlinks=True)
-
-
-def package_ndk(ndk_dir: str, out_dir: str, dist_dir: str, host_tag: str,
+def package_ndk(ndk_dir: str, dist_dir: str, host_tag: str,
                 build_number: str) -> str:
     """Packages the built NDK for distribution.
 
     Args:
         ndk_dir (string): Path to the built NDK.
-        out_dir (string): Path to use for constructing any intermediate
-                          outputs.
         dist_dir (string): Path to place the built package in.
         host_tag (string): Host tag to use in the package name,
-        build_number (string): Build number to use in the package name.
+        build_number (printable): Build number to use in the package name. Will
+                                  be 'dev' if the argument evaluates to False.
     """
     package_name = 'android-ndk-{}-{}'.format(build_number, host_tag)
     package_path = os.path.join(dist_dir, package_name)
@@ -284,12 +155,10 @@ def package_ndk(ndk_dir: str, out_dir: str, dist_dir: str, host_tag: str,
 
     base_dir = os.path.dirname(ndk_dir)
     package_files = os.path.basename(ndk_dir)
-    if host_tag == 'darwin-x86_64':
-        bundle_name = f'android-ndk-{build_number}-app-bundle'
-        bundle_path = Path(dist_dir) / bundle_name
-        make_app_bundle(bundle_path, Path(ndk_dir), build_number,
-                              Path(out_dir))
-    return _make_zip_package(package_path, base_dir, [package_files])
+    if host_tag.startswith('windows'):
+        return _make_zip_package(package_path, base_dir, package_files)
+    else:
+        return _make_tar_package(package_path, base_dir, package_files)
 
 
 def build_ndk_tests(out_dir: str, dist_dir: str,
@@ -739,7 +608,7 @@ class Yasm(ndk.builds.AutoconfModule):
 
 class NdkWhich(ndk.builds.FileModule):
     name = 'ndk-which'
-    path = 'prebuilt/{host}/bin/ndk-which'
+    path = 'prebuilt/{host}/bin'
     src = ndk.paths.ndk_path('ndk-which')
 
 
@@ -1792,8 +1661,11 @@ class Sysroot(ndk.builds.Module):
                 beta = ndk.config.beta
                 canary = '1' if ndk.config.canary else '0'
                 assert self.context is not None
+                build = self.context.build_number
+                if build == 'dev':
+                    build = '0'
 
-                ndk_version_h.write(textwrap.dedent(f"""\
+                ndk_version_h.write(textwrap.dedent("""\
                     #ifndef ANDROID_NDK_VERSION_H
                     #define ANDROID_NDK_VERSION_H
 
@@ -1822,7 +1694,7 @@ class Sysroot(ndk.builds.Module):
                      *
                      * For a local development build of the NDK, this is -1.
                      */
-                    #define __NDK_BUILD__ {self.context.build_number}
+                    #define __NDK_BUILD__ {build}
 
                     /**
                      * Set to 1 if this is a canary build, 0 if not.
@@ -1830,7 +1702,12 @@ class Sysroot(ndk.builds.Module):
                     #define __NDK_CANARY__ {canary}
 
                     #endif  /* ANDROID_NDK_VERSION_H */
-                    """))
+                    """.format(
+                        major=major,
+                        minor=minor,
+                        beta=beta,
+                        build=build,
+                        canary=canary)))
 
             build_support.make_package('sysroot', install_path, self.dist_dir)
         finally:
@@ -2606,7 +2483,11 @@ class SourceProperties(ndk.builds.Module):
         path = self.get_install_path()
         with open(path, 'w') as source_properties:
             assert self.context is not None
-            version = get_version_string(self.context.build_number)
+            build = self.context.build_number
+            if build == 'dev':
+                build = '0'
+            version = '{}.{}.{}'.format(
+                ndk.config.major, ndk.config.hotfix, build)
             if ndk.config.beta > 0:
                 version += '-beta{}'.format(ndk.config.beta)
             source_properties.writelines([
@@ -3108,7 +2989,7 @@ def main() -> None:
             # packaging, ensure that the directory is purged before and after
             # building the tests.
             package_path = package_ndk(
-                ndk_dir, out_dir, dist_dir, host_tag, args.build_number)
+                ndk_dir, dist_dir, host_tag, args.build_number)
             packaged_size_bytes = os.path.getsize(package_path)
             packaged_size = packaged_size_bytes // (2 ** 20)
 
