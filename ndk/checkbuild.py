@@ -111,47 +111,31 @@ def _make_tar_package(package_path: str, base_dir: str, path: str) -> str:
     return package_path
 
 
-def _make_zip_package(package_path: str, base_dir: str, path: str) -> str:
+def _make_zip_package(package_path: str,
+                      base_dir: str,
+                      path: str,
+                      preserve_symlinks: bool = False) -> str:
     """Creates a zip package for distribution.
 
     Args:
-        package_path (string): Path (without extention) to the output archive.
-        base_dir (string): Path to the directory from which to perform the
-                           packaging (identical to tar's -C).
-        path (string): Path to the directory to package.
+        package_path: Path (without extension) to the output archive.
+        base_dir: Path to the directory from which to perform the packaging
+                  (identical to tar's -C).
+        path: Path to the directory to package.
+        preserve_symlinks: Set to true to preserve symlinks in the zip file.
     """
     cwd = os.getcwd()
     package_path = os.path.realpath(package_path) + '.zip'
+
+    args = ['zip', '-9qr', package_path, path]
+    if preserve_symlinks:
+        args.append('--symlinks')
     os.chdir(base_dir)
     try:
-        subprocess.check_call(['zip', '-9qr', package_path, path])
+        subprocess.check_call(args)
         return package_path
     finally:
         os.chdir(cwd)
-
-
-def make_dmg(dmg: Path, name: str, src: Path) -> None:
-    """Creates a macOS disk image.
-
-    Args:
-        dmg: Output path of the created disk image.
-        name: Name of the volume.
-        src: Directory to package.
-    """
-    subprocess.check_call([
-        'hdiutil',
-        'create',
-        '-volname',
-        name,
-        '-srcfolder',
-        str(src),
-        # Overwrite existing
-        '-ov',
-        '-format',
-        # Compressed
-        'UDZO',
-        str(dmg)
-    ])
 
 
 def purge_unwanted_files(ndk_dir: Path) -> None:
@@ -188,29 +172,31 @@ def create_plist(plist: Path, version: str) -> None:
         """))
 
 
-def make_framework_bundle(dmg: Path, ndk_dir: Path, build_number: str,
+def make_framework_bundle(zip_path: Path, ndk_dir: Path, build_number: str,
                           build_dir: Path) -> None:
     """Builds a macOS Framework Bundle of the NDK.
 
-    The NDK is distributed in two forms on macOS: as a framework bundle and as
-    a plain zip file. The zip file is needed by the SDK because AGP and Studio
-    expect the NDK to be contained one directory down in the archive, which is
-    not compatible with macOS bundles. The framework bundle is needed on macOS
-    because we rely on rpaths, and executables using rpaths are blocked by Gate
-    Keeper as of macOS Catalina (10.15), except for references within the same
-    bundle.
+    The NDK is distributed in two forms on macOS: as a framework bundle and in
+    the traditional layout. The traditional layout is needed by the SDK because
+    AGP and Studio expect the NDK to be contained one directory down in the
+    archive, which is not compatible with macOS bundles. The framework bundle
+    is needed on macOS because we rely on rpaths, and executables using rpaths
+    are blocked by Gate Keeper as of macOS Catalina (10.15), except for
+    references within the same bundle.
 
     Information on the macOS bundle format can be found at
     https://developer.apple.com/library/archive/documentation/CoreFoundation/Conceptual/CFBundles/BundleTypes/BundleTypes.html.
 
     Args:
-        dmg: The desired file path of the resultant disk image.
+        zip_path: The desired file path of the resultant zip file (without the
+                  extension).
         ndk_dir: The path to the NDK being bundled.
         build_dir: The path to the top level build directory.
     """
     framework_name = 'NDK'
     package_dir = build_dir / 'bundle'
-    bundle_dir = package_dir / f'AndroidNDK{build_number}.framework'
+    framework_directory_name = f'AndroidNDK{build_number}.framework'
+    bundle_dir = package_dir / framework_directory_name
     if bundle_dir.exists():
         shutil.rmtree(bundle_dir)
     version_name = get_version_string(build_number)
@@ -238,7 +224,12 @@ def make_framework_bundle(dmg: Path, ndk_dir: Path, build_number: str,
     resources_link.symlink_to('Versions/Current/Resources',
                               target_is_directory=True)
 
-    make_dmg(dmg, f'Android NDK {ndk.config.release}', package_dir)
+    shutil.copy2(ndk_dir / 'source.properties',
+                 bundle_dir / 'source.properties')
+    _make_zip_package(str(zip_path),
+                      str(package_dir),
+                      framework_directory_name,
+                      preserve_symlinks=True)
 
 
 def package_ndk(ndk_dir: str, out_dir: str, dist_dir: str, host_tag: str,
@@ -261,7 +252,8 @@ def package_ndk(ndk_dir: str, out_dir: str, dist_dir: str, host_tag: str,
     base_dir = os.path.dirname(ndk_dir)
     package_files = os.path.basename(ndk_dir)
     if host_tag == 'darwin-x86_64':
-        bundle_path = Path(dist_dir) / f'AndroidNdk{build_number}.dmg'
+        bundle_name = f'android-ndk-{build_number}-framework-bundle'
+        bundle_path = Path(dist_dir) / bundle_name
         make_framework_bundle(bundle_path, Path(ndk_dir), build_number,
                               Path(out_dir))
     if host_tag.startswith('windows'):
