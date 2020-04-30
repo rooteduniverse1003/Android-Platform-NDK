@@ -264,10 +264,7 @@ def package_ndk(ndk_dir: str, out_dir: str, dist_dir: str, host_tag: str,
         bundle_path = Path(dist_dir) / f'AndroidNdk{build_number}.dmg'
         make_framework_bundle(bundle_path, Path(ndk_dir), build_number,
                               Path(out_dir))
-    if host_tag.startswith('windows'):
-        return _make_zip_package(package_path, base_dir, package_files)
-    else:
-        return _make_tar_package(package_path, base_dir, package_files)
+    return _make_zip_package(package_path, base_dir, package_files)
 
 
 def build_ndk_tests(out_dir: str, dist_dir: str,
@@ -308,7 +305,7 @@ def build_ndk_tests(out_dir: str, dist_dir: str,
     report = builder.build()
     printer.print_summary(report)
 
-    if report.successful:
+    if report.successful and args.package:
         print('Packaging tests...')
         package_path = os.path.join(dist_dir, 'ndk-tests')
         _make_tar_package(package_path, out_dir, 'tests/dist')
@@ -2833,14 +2830,11 @@ def parse_args() -> Tuple[argparse.Namespace, List[str]]:
 
     package_group = parser.add_mutually_exclusive_group()
     package_group.add_argument(
-        '--package', action='store_true', dest='package', default=True,
-        help='Package the NDK when done building (default).')
+        '--package', action='store_true', dest='package',
+        help='Package the NDK when done building.')
     package_group.add_argument(
         '--no-package', action='store_false', dest='package',
-        help='Do not package the NDK when done building.')
-    package_group.add_argument(
-        '--force-package', action='store_true', dest='force_package',
-        help='Force a package even if only building a subset of modules.')
+        help='Do not package the NDK when done building (default).')
 
     test_group = parser.add_mutually_exclusive_group()
     test_group.add_argument(
@@ -3026,14 +3020,11 @@ def main() -> None:
 
     required_package_modules = set(get_all_module_names())
     have_required_modules = required_package_modules <= set(module_names)
-    do_package = have_required_modules if args.package else False
-    if args.force_package:
-        do_package = True
 
     # TODO(danalbert): wine?
     # We're building the Windows packages from Linux, so we can't actually run
     # any of the tests from here.
-    if args.system.is_windows or not do_package:
+    if args.system.is_windows or not have_required_modules:
         args.build_tests = False
 
     os.chdir(os.path.dirname(os.path.dirname(os.path.realpath(__file__))))
@@ -3081,7 +3072,7 @@ def main() -> None:
 
     package_timer = ndk.timer.Timer()
     with package_timer:
-        if do_package:
+        if args.package:
             print('Packaging NDK...')
             host_tag = ndk.hosts.host_to_tag(args.system)
             # NB: Purging of unwanted files (.pyc, Android.bp, etc) happens as
@@ -3104,7 +3095,7 @@ def main() -> None:
 
     print('')
     print('Installed size: {} MiB'.format(installed_size))
-    if do_package:
+    if args.package:
         print('Package size: {} MiB'.format(packaged_size))
     print('Finished {}'.format('successfully' if good else 'unsuccessfully'))
     print('Build: {}'.format(build_timer.duration))
