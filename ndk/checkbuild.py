@@ -608,7 +608,7 @@ class Yasm(ndk.builds.AutoconfModule):
 
 class NdkWhich(ndk.builds.FileModule):
     name = 'ndk-which'
-    path = 'prebuilt/{host}/bin/ndk-which'
+    path = 'prebuilt/{host}/bin'
     src = ndk.paths.ndk_path('ndk-which')
 
 
