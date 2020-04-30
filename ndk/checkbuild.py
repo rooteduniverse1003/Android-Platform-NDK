@@ -151,7 +151,24 @@ def purge_unwanted_files(ndk_dir: Path) -> None:
                 file_path.unlink()
 
 
-def create_plist(plist: Path, version: str) -> None:
+def create_dummy_entry_point(path: Path) -> None:
+    """Creates a dummy "application" for the app bundle.
+
+    App bundles must have at least one entry point in the Contents/MacOS
+    directory. We don't have a single entry point, and none of our executables
+    are useful if moved, so just put a welcome script in place that explains
+    that.
+    """
+    path.parent.mkdir(exist_ok=True, parents=True)
+    path.write_text(
+        textwrap.dedent("""\
+        #!/bin/sh
+        echo "The Android NDK is installed to the Contents/NDK directory of this application bundle."
+        """))
+    path.chmod(0o755)
+
+
+def create_plist(plist: Path, version: str, entry_point_name: str) -> None:
     """Populates the NDK plist at the given location."""
 
     plist.write_text(
@@ -168,6 +185,10 @@ def create_plist(plist: Path, version: str) -> None:
             <string>com.android.ndk</string>
             <key>CFBundleVersion</key>
             <string>{version}</string>
+            <key>CFBundlePackageType</key>
+            <string>APPL</string>
+            <key>CFBundleExecutable</key>
+            <string>{entry_point_name}</string>
         </dict>
         </plist>
         """))
@@ -198,17 +219,17 @@ def create_signer_metadata(package_dir: Path) -> None:
     volumename_file.write_text(f'Android NDK {ndk.config.release}')
 
 
-def make_framework_bundle(zip_path: Path, ndk_dir: Path, build_number: str,
+def make_app_bundle(zip_path: Path, ndk_dir: Path, build_number: str,
                           build_dir: Path) -> None:
-    """Builds a macOS Framework Bundle of the NDK.
+    """Builds a macOS App Bundle of the NDK.
 
-    The NDK is distributed in two forms on macOS: as a framework bundle and in
-    the traditional layout. The traditional layout is needed by the SDK because
-    AGP and Studio expect the NDK to be contained one directory down in the
-    archive, which is not compatible with macOS bundles. The framework bundle
-    is needed on macOS because we rely on rpaths, and executables using rpaths
-    are blocked by Gate Keeper as of macOS Catalina (10.15), except for
-    references within the same bundle.
+    The NDK is distributed in two forms on macOS: as a app bundle and in the
+    traditional layout. The traditional layout is needed by the SDK because AGP
+    and Studio expect the NDK to be contained one directory down in the
+    archive, which is not compatible with macOS bundles. The app bundle is
+    needed on macOS because we rely on rpaths, and executables using rpaths are
+    blocked by Gate Keeper as of macOS Catalina (10.15), except for references
+    within the same bundle.
 
     Information on the macOS bundle format can be found at
     https://developer.apple.com/library/archive/documentation/CoreFoundation/Conceptual/CFBundles/BundleTypes/BundleTypes.html.
@@ -219,36 +240,21 @@ def make_framework_bundle(zip_path: Path, ndk_dir: Path, build_number: str,
         ndk_dir: The path to the NDK being bundled.
         build_dir: The path to the top level build directory.
     """
-    framework_name = 'NDK'
     package_dir = build_dir / 'bundle'
-    framework_directory_name = f'AndroidNDK{build_number}.framework'
-    bundle_dir = package_dir / framework_directory_name
-    if bundle_dir.exists():
-        shutil.rmtree(bundle_dir)
-    version_name = get_version_string(build_number)
-    versions_dir = bundle_dir / 'Versions'
+    app_directory_name = f'AndroidNDK{build_number}.app'
+    bundle_dir = package_dir / app_directory_name
+    if package_dir.exists():
+        shutil.rmtree(package_dir)
 
-    version_dir = versions_dir / version_name
-    version_dir.mkdir(parents=True)
-    bundled_ndk = version_dir / framework_name
+    contents_dir = bundle_dir / 'Contents'
+    entry_point_name = 'ndk'
+    create_dummy_entry_point(contents_dir / 'MacOS' / entry_point_name)
+
+    bundled_ndk = contents_dir / 'NDK'
     shutil.copytree(ndk_dir, bundled_ndk)
 
-    resources_dir = version_dir / 'Resources'
-    resources_dir.mkdir()
-    plist = resources_dir / 'Info.plist'
-    create_plist(plist, version_name)
-
-    current_version = versions_dir / 'Current'
-    current_version.symlink_to(version_dir.relative_to(versions_dir),
-                               target_is_directory=True)
-
-    framework_link = bundle_dir / framework_name
-    framework_link.symlink_to(Path('Versions/Current') / framework_name,
-                              target_is_directory=True)
-
-    resources_link = bundle_dir / 'Resources'
-    resources_link.symlink_to('Versions/Current/Resources',
-                              target_is_directory=True)
+    plist = contents_dir / 'Info.plist'
+    create_plist(plist, get_version_string(build_number), entry_point_name)
 
     shutil.copy2(ndk_dir / 'source.properties',
                  package_dir / 'source.properties')
@@ -279,9 +285,9 @@ def package_ndk(ndk_dir: str, out_dir: str, dist_dir: str, host_tag: str,
     base_dir = os.path.dirname(ndk_dir)
     package_files = os.path.basename(ndk_dir)
     if host_tag == 'darwin-x86_64':
-        bundle_name = f'android-ndk-{build_number}-framework-bundle'
+        bundle_name = f'android-ndk-{build_number}-app-bundle'
         bundle_path = Path(dist_dir) / bundle_name
-        make_framework_bundle(bundle_path, Path(ndk_dir), build_number,
+        make_app_bundle(bundle_path, Path(ndk_dir), build_number,
                               Path(out_dir))
     return _make_zip_package(package_path, base_dir, [package_files])
 
