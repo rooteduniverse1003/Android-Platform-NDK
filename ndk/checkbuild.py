@@ -330,7 +330,7 @@ def build_ndk_tests(out_dir: str, dist_dir: str,
     report = builder.build()
     printer.print_summary(report)
 
-    if report.successful and args.package:
+    if report.successful:
         print('Packaging tests...')
         package_path = os.path.join(dist_dir, 'ndk-tests')
         _make_tar_package(package_path, out_dir, 'tests/dist')
@@ -1794,13 +1794,8 @@ class Sysroot(ndk.builds.Module):
                 assert self.context is not None
 
                 ndk_version_h.write(textwrap.dedent(f"""\
-                    #pragma once
-
-                    /**
-                     * Set to 1 if this is an NDK, unset otherwise. See
-                     * https://android.googlesource.com/platform/bionic/+/master/docs/defines.md.
-                     */
-                    #define __ANDROID_NDK__ 1
+                    #ifndef ANDROID_NDK_VERSION_H
+                    #define ANDROID_NDK_VERSION_H
 
                     /**
                      * Major version of this NDK.
@@ -1833,6 +1828,8 @@ class Sysroot(ndk.builds.Module):
                      * Set to 1 if this is a canary build, 0 if not.
                      */
                     #define __NDK_CANARY__ {canary}
+
+                    #endif  /* ANDROID_NDK_VERSION_H */
                     """))
 
             build_support.make_package('sysroot', install_path, self.dist_dir)
@@ -2855,11 +2852,14 @@ def parse_args() -> Tuple[argparse.Namespace, List[str]]:
 
     package_group = parser.add_mutually_exclusive_group()
     package_group.add_argument(
-        '--package', action='store_true', dest='package',
-        help='Package the NDK when done building.')
+        '--package', action='store_true', dest='package', default=True,
+        help='Package the NDK when done building (default).')
     package_group.add_argument(
         '--no-package', action='store_false', dest='package',
-        help='Do not package the NDK when done building (default).')
+        help='Do not package the NDK when done building.')
+    package_group.add_argument(
+        '--force-package', action='store_true', dest='force_package',
+        help='Force a package even if only building a subset of modules.')
 
     test_group = parser.add_mutually_exclusive_group()
     test_group.add_argument(
@@ -3045,11 +3045,14 @@ def main() -> None:
 
     required_package_modules = set(get_all_module_names())
     have_required_modules = required_package_modules <= set(module_names)
+    do_package = have_required_modules if args.package else False
+    if args.force_package:
+        do_package = True
 
     # TODO(danalbert): wine?
     # We're building the Windows packages from Linux, so we can't actually run
     # any of the tests from here.
-    if args.system.is_windows or not have_required_modules:
+    if args.system.is_windows or not do_package:
         args.build_tests = False
 
     os.chdir(os.path.dirname(os.path.dirname(os.path.realpath(__file__))))
@@ -3097,7 +3100,7 @@ def main() -> None:
 
     package_timer = ndk.timer.Timer()
     with package_timer:
-        if args.package:
+        if do_package:
             print('Packaging NDK...')
             host_tag = ndk.hosts.host_to_tag(args.system)
             # NB: Purging of unwanted files (.pyc, Android.bp, etc) happens as
@@ -3120,7 +3123,7 @@ def main() -> None:
 
     print('')
     print('Installed size: {} MiB'.format(installed_size))
-    if args.package:
+    if do_package:
         print('Package size: {} MiB'.format(packaged_size))
     print('Finished {}'.format('successfully' if good else 'unsuccessfully'))
     print('Build: {}'.format(build_timer.duration))
