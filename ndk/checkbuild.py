@@ -1794,13 +1794,8 @@ class Sysroot(ndk.builds.Module):
                 assert self.context is not None
 
                 ndk_version_h.write(textwrap.dedent(f"""\
-                    #pragma once
-
-                    /**
-                     * Set to 1 if this is an NDK, unset otherwise. See
-                     * https://android.googlesource.com/platform/bionic/+/master/docs/defines.md.
-                     */
-                    #define __ANDROID_NDK__ 1
+                    #ifndef ANDROID_NDK_VERSION_H
+                    #define ANDROID_NDK_VERSION_H
 
                     /**
                      * Major version of this NDK.
@@ -1833,6 +1828,8 @@ class Sysroot(ndk.builds.Module):
                      * Set to 1 if this is a canary build, 0 if not.
                      */
                     #define __NDK_CANARY__ {canary}
+
+                    #endif  /* ANDROID_NDK_VERSION_H */
                     """))
 
             build_support.make_package('sysroot', install_path, self.dist_dir)
