@@ -499,6 +499,19 @@ class ShardingWorkQueue:
         self.num_tasks -= 1
         return result
 
+    def get_results(self) -> List[Any]:
+        """Gets all pending results.
+
+        If no results are available, this will block until at least one is
+        available. It will then continue dequeing until the queue is empty, and
+        then return.
+        """
+        results: List[Any] = []
+        results.append(self.get_result())
+        while not self.result_queue.empty():
+            results.append(self.get_result())
+        return results
+
     def terminate(self) -> None:
         for group_queues in self.work_queues.values():
             for work_queue in group_queues.values():
