@@ -1,5 +1,7 @@
 def run_broken(test, device):
     failing_tests = [
+        'delete_align_val_t_replace.pass',
+        'new_align_val_t_nothrow_replace.pass',
         'new_array_nothrow_replace.pass',
         'new_array_replace.pass',
     ]
