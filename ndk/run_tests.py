@@ -575,15 +575,15 @@ def wait_for_results(report: Report, workqueue: ShardingWorkQueue,
     with ndk.ansi.disable_terminal_echo(sys.stdin):
         with console.cursor_hide_context():
             while not workqueue.finished():
-                result = workqueue.get_result()
-                suite = result.test.build_system
-                report.add_result(suite, result)
-                if logger().isEnabledFor(logging.INFO):
+                results = workqueue.get_results()
+                verbose = logger().isEnabledFor(logging.INFO)
+                if verbose or any([r.failed() for r in results]):
                     ui.clear()
-                    printer.print_result(result)
-                elif result.failed():
-                    ui.clear()
-                    printer.print_result(result)
+                for result in results:
+                    suite = result.test.build_system
+                    report.add_result(suite, result)
+                    if verbose or result.failed():
+                        printer.print_result(result)
                 ui.draw()
             ui.clear()
 
