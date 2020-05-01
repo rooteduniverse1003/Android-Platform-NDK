@@ -835,7 +835,7 @@ class Libcxx(ndk.builds.Module):
     name = 'libc++'
     src = Path(ndk.paths.android_path('toolchain/llvm-project/libcxx'))
     path = 'sources/cxx-stl/llvm-libc++'
-    notice = src / 'LICENSE.TXT'
+    notice = str(src / 'LICENSE.TXT')
     notice_group = ndk.builds.NoticeGroup.TOOLCHAIN
     arch_specific = True
     deps = {
@@ -1424,7 +1424,7 @@ class Gdb(ndk.builds.Module):
 
         # Install libc++.
         clang_path = ndk.toolchains.ClangToolchain.path_for_host(self.host)
-        libcxx_files = {
+        libcxx_files: Dict[ndk.hosts.Host, List[str]] = {
             ndk.hosts.Host.Darwin: ['libc++abi.1.dylib', 'libc++.1.dylib'],
             ndk.hosts.Host.Linux: ['libc++abi.so.1', 'libc++.so.1'],
             ndk.hosts.Host.Windows64: [],
