@@ -553,7 +553,7 @@ class LibcxxTest(Test):
         device_dir = '/data/local/tmp/libcxx'
 
         arch = ndk.abis.abi_to_arch(self.abi)
-        host_tag = ndk.hosts.get_host_tag(self.ndk_path)
+        host_tag = ndk.hosts.get_host_tag()
         target = ndk.abis.clang_target(arch, self.api)
         toolchain = ndk.abis.arch_to_toolchain(arch)
 

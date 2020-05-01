@@ -29,7 +29,7 @@ from pathlib import Path
 import shutil
 import stat
 import subprocess
-from typing import Dict, Iterable, List, Optional, Set
+from typing import Any, Dict, Iterable, List, Optional, Set
 
 import ndk.abis
 from ndk.autoconf import AutoconfBuilder
@@ -70,9 +70,20 @@ class BuildContext:
 class Module:
     """Base module type for the build system."""
 
-    name: str
-    path: str
+    # pylint wrongly emits no-member if these don't have default values
+    # https://github.com/PyCQA/pylint/issues/3167
+    #
+    # We override __getattribute__ to catch any uses of this value
+    # uninitialized and raise an error.
+    name: str = ''
+    path: str = ''
     deps: Set[str] = set()
+
+    def __getattribute__(self, name: str) -> Any:
+        attr = super().__getattribute__(name)
+        if name in ('name', 'path') and attr == '':
+            raise RuntimeError(f'Uninitialized use of {name}')
+        return attr
 
     # Used to exclude a module from the build. If explicitly named it will
     # still be built, but it is not included by default.

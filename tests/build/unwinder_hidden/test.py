@@ -44,7 +44,7 @@ def readelf(ndk_path: Path, host: ndk.hosts.Host, library: Path,
             *args: str) -> str:
     """Runs readelf, returning the output."""
     readelf_path = (ndk_path / 'toolchains/llvm/prebuilt' /
-                    ndk.hosts.get_host_tag(str(ndk_path)) / 'bin/llvm-readelf')
+                    ndk.hosts.get_host_tag() / 'bin/llvm-readelf')
     if host.is_windows:
         readelf_path = readelf_path.with_suffix('.exe')
 
