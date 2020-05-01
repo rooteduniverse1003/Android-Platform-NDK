@@ -69,7 +69,7 @@ class TaskError(Exception):
 
 def create_windows_process_group() -> ProcessGroup:
     """Creates a Windows process group for this process."""
-    import ndk.win32
+    import ndk.win32  # pylint: disable=import-outside-toplevel
     job = ndk.win32.CreateJobObject()
 
     limit_info = ndk.win32.JOBOBJECT_EXTENDED_LIMIT_INFORMATION(
@@ -94,7 +94,7 @@ def assign_self_to_new_process_group() -> ProcessGroup:
 def kill_process_group(group: ProcessGroup) -> None:
     """Kills the process group."""
     if sys.platform == 'win32':
-        import ndk.win32
+        import ndk.win32  # pylint: disable=import-outside-toplevel
         ndk.win32.CloseHandle(group)
     else:
         os.kill(0, signal.SIGTERM)

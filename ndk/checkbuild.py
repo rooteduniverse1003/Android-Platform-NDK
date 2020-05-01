@@ -220,7 +220,7 @@ def create_signer_metadata(package_dir: Path) -> None:
 
 
 def make_app_bundle(zip_path: Path, ndk_dir: Path, build_number: str,
-                          build_dir: Path) -> None:
+                    build_dir: Path) -> None:
     """Builds a macOS App Bundle of the NDK.
 
     The NDK is distributed in two forms on macOS: as a app bundle and in the
@@ -288,7 +288,7 @@ def package_ndk(ndk_dir: str, out_dir: str, dist_dir: str, host_tag: str,
         bundle_name = f'android-ndk-{build_number}-app-bundle'
         bundle_path = Path(dist_dir) / bundle_name
         make_app_bundle(bundle_path, Path(ndk_dir), build_number,
-                              Path(out_dir))
+                        Path(out_dir))
     return _make_zip_package(package_path, base_dir, [package_files])
 
 
@@ -835,7 +835,7 @@ class Libcxx(ndk.builds.Module):
     name = 'libc++'
     src = Path(ndk.paths.android_path('toolchain/llvm-project/libcxx'))
     path = 'sources/cxx-stl/llvm-libc++'
-    notice = src / 'LICENSE.TXT'
+    notice = str(src / 'LICENSE.TXT')
     notice_group = ndk.builds.NoticeGroup.TOOLCHAIN
     arch_specific = True
     deps = {
@@ -1424,7 +1424,7 @@ class Gdb(ndk.builds.Module):
 
         # Install libc++.
         clang_path = ndk.toolchains.ClangToolchain.path_for_host(self.host)
-        libcxx_files = {
+        libcxx_files: Dict[ndk.hosts.Host, List[str]] = {
             ndk.hosts.Host.Darwin: ['libc++abi.1.dylib', 'libc++.1.dylib'],
             ndk.hosts.Host.Linux: ['libc++abi.so.1', 'libc++.so.1'],
             ndk.hosts.Host.Windows64: [],

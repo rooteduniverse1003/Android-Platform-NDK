@@ -655,16 +655,16 @@ def parse_args() -> argparse.Namespace:
 
     # The type ignore is needed because realpath is an overloaded function, and
     # mypy is bad at those (it doesn't satisfy Callable[[str], AnyStr]).
-    config_options.add_argument(  # type: ignore
+    config_options.add_argument(
         '--config',
-        type=os.path.realpath,
+        type=os.path.realpath,  # type: ignore
         default='qa_config.json',
         help='Path to the config file describing the test run.')
 
     build_options = parser.add_argument_group('Build Options')
-    build_options.add_argument(  # type: ignore
+    build_options.add_argument(
         '--build-report',
-        type=os.path.realpath,
+        type=os.path.realpath,  # type: ignore
         help='Write the build report to the given path.')
 
     build_exclusive_group = build_options.add_mutually_exclusive_group()
@@ -697,20 +697,20 @@ def parse_args() -> argparse.Namespace:
         '-v', '--verbose', action='count', default=0,
         help='Increase log level. Defaults to logging.WARNING.')
 
-    parser.add_argument(  # type: ignore
+    parser.add_argument(
         '--ndk',
-        type=os.path.realpath,
+        type=os.path.realpath,  # type: ignore
         default=ndk.paths.get_install_path(),
         help='NDK to validate. Defaults to ../out/android-ndk-$RELEASE.')
-    parser.add_argument(  # type: ignore
+    parser.add_argument(
         '--test-src',
-        type=os.path.realpath,
+        type=os.path.realpath,  # type: ignore
         help='Path to test source directory. Defaults to ./tests.')
 
-    parser.add_argument(  # type: ignore
+    parser.add_argument(
         'test_dir',
         metavar='TEST_DIR',
-        type=os.path.realpath,
+        type=os.path.realpath,  # type: ignore
         nargs='?',
         default=ndk.paths.path_in_out('tests'),
         help='Directory containing built tests.')

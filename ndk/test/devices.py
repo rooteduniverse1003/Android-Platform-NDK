@@ -327,15 +327,16 @@ def get_all_attached_devices(workqueue: WorkQueue) -> List[Device]:
     # We could get the device name from `adb devices -l`, but we need to
     # getprop to find other details anyway, and older devices don't report
     # their names properly (nakasi on android-16, for example).
-    p = subprocess.Popen(['adb', 'devices'], stdout=subprocess.PIPE)
-    out, _ = p.communicate()
-    out = out.decode('utf-8')
+    p = subprocess.run(['adb', 'devices'],
+                       check=True,
+                       stdout=subprocess.PIPE,
+                       encoding='utf-8')
     if p.returncode != 0:
         raise RuntimeError('Failed to get list of devices from adb.')
 
     # The first line of `adb devices` just says "List of attached devices", so
     # skip that.
-    for line in out.split('\n')[1:]:
+    for line in p.stdout.split('\n')[1:]:
         if not line.strip():
             continue
 

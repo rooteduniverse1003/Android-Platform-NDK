@@ -16,22 +16,30 @@
 import unittest
 
 import ndk.test.spec
+from ndk.toolchains import LinkerOption
 
 
 class BuildConfigurationTest(unittest.TestCase):
     def test_from_string(self) -> None:
-        config = ndk.test.spec.BuildConfiguration.from_string('armeabi-v7a-16')
+        config = ndk.test.spec.BuildConfiguration.from_string(
+            'armeabi-v7a-16-lld')
         self.assertEqual('armeabi-v7a', config.abi)
         self.assertEqual(16, config.api)
+        self.assertEqual(LinkerOption.Lld, config.linker)
 
-        config = ndk.test.spec.BuildConfiguration.from_string('arm64-v8a-21')
+        config = ndk.test.spec.BuildConfiguration.from_string(
+            'arm64-v8a-21-default')
         self.assertEqual('arm64-v8a', config.abi)
         self.assertEqual(21, config.api)
+        self.assertEqual(LinkerOption.Default, config.linker)
 
-        config = ndk.test.spec.BuildConfiguration.from_string('x86-16')
+        config = ndk.test.spec.BuildConfiguration.from_string('x86-16-lld')
         self.assertEqual('x86', config.abi)
         self.assertEqual(16, config.api)
+        self.assertEqual(LinkerOption.Lld, config.linker)
 
-        config = ndk.test.spec.BuildConfiguration.from_string('x86_64-21')
+        config = ndk.test.spec.BuildConfiguration.from_string(
+            'x86_64-21-default')
         self.assertEqual('x86_64', config.abi)
         self.assertEqual(21, config.api)
+        self.assertEqual(LinkerOption.Default, config.linker)

@@ -440,10 +440,14 @@ def get_xunit_reports(xunit_file: Path, test_base_dir: str,
     reports: List[Test] = []
     for test_case in cases:
         mangled_test_dir = test_case.get('classname')
+        assert mangled_test_dir is not None
+
+        case_name = test_case.get('name')
+        assert case_name is not None
 
         # The classname is the path from the root of the libc++ test directory
         # to the directory containing the test (prefixed with 'libc++.')...
-        mangled_path = '/'.join([mangled_test_dir, test_case.get('name')])
+        mangled_path = '/'.join([mangled_test_dir, case_name])
 
         # ... that has had '.' in its path replaced with '_' because xunit.
         test_matches = find_original_libcxx_test(mangled_path)
@@ -553,7 +557,7 @@ class LibcxxTest(Test):
         device_dir = '/data/local/tmp/libcxx'
 
         arch = ndk.abis.abi_to_arch(self.abi)
-        host_tag = ndk.hosts.get_host_tag(self.ndk_path)
+        host_tag = ndk.hosts.get_host_tag()
         target = ndk.abis.clang_target(arch, self.api)
         toolchain = ndk.abis.arch_to_toolchain(arch)
 
