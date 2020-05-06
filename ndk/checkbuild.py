@@ -209,7 +209,8 @@ def make_framework_bundle(dmg: Path, ndk_dir: Path, build_number: str,
         build_dir: The path to the top level build directory.
     """
     framework_name = 'NDK'
-    bundle_dir = build_dir / f'bundle/AndroidNDK{build_number}.framework'
+    package_dir = build_dir / 'bundle'
+    bundle_dir = package_dir / f'AndroidNDK{build_number}.framework'
     if bundle_dir.exists():
         shutil.rmtree(bundle_dir)
     version_name = get_version_string(build_number)
@@ -226,7 +227,7 @@ def make_framework_bundle(dmg: Path, ndk_dir: Path, build_number: str,
     create_plist(plist, version_name)
 
     current_version = versions_dir / 'Current'
-    current_version.symlink_to(bundled_ndk.relative_to(version_dir),
+    current_version.symlink_to(version_dir.relative_to(versions_dir),
                                target_is_directory=True)
 
     framework_link = bundle_dir / framework_name
@@ -237,7 +238,7 @@ def make_framework_bundle(dmg: Path, ndk_dir: Path, build_number: str,
     resources_link.symlink_to('Versions/Current/Resources',
                               target_is_directory=True)
 
-    make_dmg(dmg, f'Android NDK {ndk.config.release}', bundle_dir)
+    make_dmg(dmg, f'Android NDK {ndk.config.release}', package_dir)
 
 
 def package_ndk(ndk_dir: str, out_dir: str, dist_dir: str, host_tag: str,
