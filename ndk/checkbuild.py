@@ -113,7 +113,7 @@ def _make_tar_package(package_path: str, base_dir: str, path: str) -> str:
 
 def _make_zip_package(package_path: str,
                       base_dir: str,
-                      path: str,
+                      paths: List[str],
                       preserve_symlinks: bool = False) -> str:
     """Creates a zip package for distribution.
 
@@ -121,15 +121,16 @@ def _make_zip_package(package_path: str,
         package_path: Path (without extension) to the output archive.
         base_dir: Path to the directory from which to perform the packaging
                   (identical to tar's -C).
-        path: Path to the directory to package.
+        paths: Paths to files and directories to package, relative to base_dir.
         preserve_symlinks: Set to true to preserve symlinks in the zip file.
     """
     cwd = os.getcwd()
     package_path = os.path.realpath(package_path) + '.zip'
 
-    args = ['zip', '-9qr', package_path, path]
+    args = ['zip', '-9qr', package_path]
     if preserve_symlinks:
         args.append('--symlinks')
+    args.extend(paths)
     os.chdir(base_dir)
     try:
         subprocess.check_call(args)
@@ -254,7 +255,7 @@ def make_framework_bundle(zip_path: Path, ndk_dir: Path, build_number: str,
     create_signer_metadata(package_dir)
     _make_zip_package(str(zip_path),
                       str(package_dir),
-                      framework_directory_name,
+                      os.listdir(package_dir),
                       preserve_symlinks=True)
 
 
@@ -282,10 +283,7 @@ def package_ndk(ndk_dir: str, out_dir: str, dist_dir: str, host_tag: str,
         bundle_path = Path(dist_dir) / bundle_name
         make_framework_bundle(bundle_path, Path(ndk_dir), build_number,
                               Path(out_dir))
-    if host_tag.startswith('windows'):
-        return _make_zip_package(package_path, base_dir, package_files)
-    else:
-        return _make_tar_package(package_path, base_dir, package_files)
+    return _make_zip_package(package_path, base_dir, [package_files])
 
 
 def build_ndk_tests(out_dir: str, dist_dir: str,
