@@ -23,7 +23,12 @@ from ndk.hosts import Host, get_default_host
 import ndk.paths
 
 
-CLANG_VERSION = 'clang-r365631c1'
+# When updating this, also update:
+#
+# 1. get_llvm_toolchain_binprefix in build/tools/prebuilt-common.sh
+# 2. CMAKE_C_COMPILER_VERSION and CMAKE_CXX_COMPILER_VERSION in
+#    build/cmake/android.toolchain.cmake
+CLANG_VERSION = 'clang-r365631c2'
 
 
 HOST_TRIPLE_MAP = {
@@ -41,7 +46,7 @@ class LinkerOption(enum.Enum):
 
 class DarwinSdk:
     """The Darwin SDK."""
-    MACOSX_TARGET = '10.8'
+    MACOSX_TARGET = '10.9'
 
     def __init__(self) -> None:
         proc_result = subprocess.run(['xcrun', '--show-sdk-path'],
