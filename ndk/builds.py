@@ -471,9 +471,9 @@ class FileModule(Module):
         pass
 
     def install(self) -> None:
-        install_dir = self.get_install_path()
-        ndk.ext.shutil.create_directory(install_dir)
-        shutil.copy2(self.src, install_dir)
+        install_path = Path(self.get_install_path())
+        install_path.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(self.src, install_path)
 
 
 class MultiFileModule(Module):

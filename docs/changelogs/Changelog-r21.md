@@ -18,6 +18,10 @@ For Android Studio issues, follow the docs on the [Android Studio site].
 
 [blog post]: https://android-developers.googleblog.com/2019/06/moving-android-studio-and-android.html
 
+ * macOS 10.8 is no longer supported as of r21b (r21 supports 10.8). macOS 10.15
+   requires that binaries be notarized, and notarization is only supported for
+   binaries built for 10.9 or newer.
+
  * [LLD](https://lld.llvm.org/) is now available for testing. AOSP has switched
    to using LLD by default and the NDK will follow (timeline unknown). Test LLD
    in your app by passing `-fuse-ld=lld` when linking. Note that [Issue 843]
@@ -47,6 +51,30 @@ For Android Studio issues, follow the docs on the [Android Studio site].
    more information, see [this blog post](https://android-developers.googleblog.com/2017/12/improving-app-security-and-performance.html).
 
 [Build System Maintainers Guide]: https://android.googlesource.com/platform/ndk/+/master/docs/BuildSystemMaintainers.md
+
+## r21c
+
+ * [Issue 1060]: A macOS app bundle that is signed and notarized is now
+   available for download from our wiki and our website. Note that because only
+   bundles may use RPATHs and pass notarization, the traditional NDK package for
+   macOS **cannot* be notarized.  The SDK will continue to use the traditional
+   package as the app bundle requires layout changes that would make it
+   incompatible with Android Studio.  The NDK is not quarantined when it is
+   downloaded via the SDK manager, so is curently allowed by Gatekeeper.
+
+   **The SDK manager is currently the most reliable way to get the NDK for
+   macOS.**
+
+ * [Issue 1207]: Fix fatal error in clang when building with -O2 on arm64.
+
+ * [Issue 1239]: Fix network drive issues for clang.
+
+ * [Issue 1229]: README.md turned back to ordinary file.
+
+[Issue 1060]: https://github.com/android/ndk/issues/1060
+[Issue 1207]: https://github.com/android/ndk/issues/1207
+[Issue 1239]: https://github.com/android/ndk/issues/1239
+[Issue 1229]: https://github.com/android/ndk/issues/1229
 
 ## r21b
 
