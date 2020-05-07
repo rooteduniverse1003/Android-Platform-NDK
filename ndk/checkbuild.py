@@ -289,7 +289,10 @@ def package_ndk(ndk_dir: str, out_dir: str, dist_dir: str, host_tag: str,
         bundle_path = Path(dist_dir) / bundle_name
         make_app_bundle(bundle_path, Path(ndk_dir), build_number,
                               Path(out_dir))
-    return _make_zip_package(package_path, base_dir, [package_files])
+    if host_tag.startswith('windows'):
+        return _make_zip_package(package_path, base_dir, [package_files])
+    else:
+        return _make_tar_package(package_path, base_dir, package_files)
 
 
 def build_ndk_tests(out_dir: str, dist_dir: str,
