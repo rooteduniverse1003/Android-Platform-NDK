@@ -5,10 +5,3 @@ def run_unsupported(test, device):
         bug = 'https://github.com/android-ndk/ndk/issues/795'
         return f'android-{device.version} ({bug})'
     return None
-
-
-def run_broken(test, device):
-    if test.executable == 'googletest-printers-test' and device.version <= 16:
-        return (f'android-{device.version}',
-                'https://github.com/android-ndk/ndk/issues/771')
-    return None, None
