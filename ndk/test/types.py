@@ -554,8 +554,6 @@ class LibcxxTest(Test):
     def run_lit(self, lit: List[str], ndk_path: Path, libcxx_src: Path,
                 libcxx_install: Path, build_dir: str,
                 filters: List[str]) -> None:
-        device_dir = '/data/local/tmp/libcxx'
-
         arch = ndk.abis.abi_to_arch(self.abi)
         host_tag = ndk.hosts.get_host_tag()
         target = ndk.abis.clang_target(arch, self.api)
@@ -591,7 +589,6 @@ class LibcxxTest(Test):
 
         lit_args = lit + [
             '-sv',
-            '--param=device_dir=' + device_dir,
             '--param=build_only=True',
             '--no-progress-bar',
             '--show-all',
