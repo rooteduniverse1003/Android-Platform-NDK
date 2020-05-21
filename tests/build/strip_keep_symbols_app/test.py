@@ -14,36 +14,14 @@
 # limitations under the License.
 #
 """Check for strip --strip-debug use."""
-import os
-import subprocess
-import sys
+from pathlib import Path
+
+from ndk.testing.flag_verifier import FlagVerifier
 
 
-def run_test(ndk_path, abi, api, linker, build_flags):
+def run_test(ndk_path, abi, api, linker):
     """Checks ndk-build V=1 output for --strip-debug flag."""
-    if build_flags is None:
-        build_flags = []
-
-    ndk_build = os.path.join(ndk_path, 'ndk-build')
-    if sys.platform == 'win32':
-        ndk_build += '.cmd'
-    project_path = 'project'
-
-    ndk_args = build_flags + [
-        f'APP_ABI={abi}',
-        f'APP_LD={linker.value}',
-        f'APP_PLATFORM=android-{api}',
-        'V=1',
-    ]
-    proc = subprocess.Popen([ndk_build, '-C', project_path] + ndk_args,
-                            stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
-                            encoding='utf-8')
-    out, _ = proc.communicate()
-    if proc.returncode != 0:
-        return proc.returncode == 0, out
-
-    out_words = out.split(' ')
-    result = False
-    if '--strip-debug' in out_words and '--strip-unneeded' not in out_words:
-        result = True
-    return result, out
+    verifier = FlagVerifier(Path('project'), Path(ndk_path), abi, api, linker)
+    verifier.expect_flag('--strip-debug')
+    verifier.expect_not_flag('--strip-unneeded')
+    return verifier.verify_ndk_build().make_test_result_tuple()

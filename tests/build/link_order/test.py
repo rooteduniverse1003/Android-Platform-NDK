@@ -105,13 +105,13 @@ def check_link_order(link_line, abi, api):
     return False, difflib.unified_diff(expected, link_args, lineterm='')
 
 
-def run_test(ndk_path, abi, platform, linker, build_flags):
+def run_test(ndk_path, abi, platform, linker):
     """Checks clang's -v output for proper link ordering."""
     ndk_build = os.path.join(ndk_path, 'ndk-build')
     if sys.platform == 'win32':
         ndk_build += '.cmd'
     project_path = 'project'
-    ndk_args = build_flags + [
+    ndk_args = [
         f'APP_ABI={abi}',
         f'APP_LD={linker.value}',
         f'APP_PLATFORM=android-{platform}',

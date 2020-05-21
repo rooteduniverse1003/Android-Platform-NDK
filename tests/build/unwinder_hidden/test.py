@@ -18,7 +18,7 @@
 from pathlib import Path
 import re
 import subprocess
-from typing import Iterator, List, Optional, Tuple
+from typing import Iterator, Optional, Tuple
 
 from ndk.abis import Abi
 import ndk.hosts
@@ -57,14 +57,14 @@ def readelf(ndk_path: Path, host: ndk.hosts.Host, library: Path,
 
 
 def run_test(ndk_path: str, abi: Abi, platform: Optional[int],
-             linker: LinkerOption, build_flags: List[str]) -> Tuple[bool, str]:
+             linker: LinkerOption) -> Tuple[bool, str]:
     """Check that unwinder symbols are hidden in outputs."""
     ndk_build = Path(ndk_path) / 'ndk-build'
     host = ndk.hosts.get_default_host()
     if host.is_windows:
         ndk_build = ndk_build.with_suffix('.cmd')
     project_path = Path('project')
-    ndk_args = build_flags + [
+    ndk_args = [
         f'APP_ABI={abi}',
         f'APP_LD={linker.value}',
         f'APP_PLATFORM=android-{platform}',

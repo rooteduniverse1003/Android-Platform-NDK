@@ -21,13 +21,13 @@ import sys
 import textwrap
 
 
-def run_test(ndk_path, abi, platform, linker, build_flags):
+def run_test(ndk_path, abi, platform, linker):
     """Checks that the proper wrap.sh scripts were installed."""
     ndk_build = os.path.join(ndk_path, 'ndk-build')
     if sys.platform == 'win32':
         ndk_build += '.cmd'
     project_path = 'project'
-    ndk_args = build_flags + [
+    ndk_args = [
         f'APP_ABI={abi}',
         f'APP_LD={linker.value}',
         f'APP_PLATFORM=android-{platform}',
@@ -46,9 +46,9 @@ def run_test(ndk_path, abi, platform, linker, build_flags):
     with open(wrap_sh) as wrap_sh_file:
         contents = wrap_sh_file.read().strip()
     if contents != 'generic':
-        return False, textwrap.dedent("""\
-            wrap.sh file had wrong contents:
+        return False, textwrap.dedent(f"""\
+            {abi} wrap.sh file had wrong contents:
             Expected: generic
-            Actual: {}""".format(abi, contents))
+            Actual: {contents}""")
 
     return True, ''
