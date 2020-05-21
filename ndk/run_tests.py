@@ -433,6 +433,20 @@ def adb_has_feature(feature: str) -> bool:
 def push_tests_to_device(worker: Worker, src_dir: str, dest_dir: str,
                          config: BuildConfiguration, device: Device,
                          use_sync: bool) -> None:
+    """Pushes a directory to the given device.
+
+    Creates the parent directory on the device if needed.
+
+    Args:
+        worker: The worker performing the task.
+        src_dir: The directory to push.
+        dest_dir: The destination directory on the device. Note that when
+                  pushing a directory, dest_dir will be the parent directory,
+                  not the destination path.
+        config: The build configuration for the tests being pushed.
+        device: The device to push to.
+        use_sync: True if `adb push --sync` is supported.
+    """
     worker.status = f'Pushing {config} tests to {device}.'
     logger().info('%s: mkdir %s', device.name, dest_dir)
     device.shell_nocheck(['mkdir', dest_dir])
