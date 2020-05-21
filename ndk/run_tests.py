@@ -489,28 +489,6 @@ def push_tests_to_devices(
     print('Finished pushing tests')
 
 
-def disable_verity_and_wait_for_reboot(device: Device) -> None:
-    if device.get_prop('ro.boot.veritymode') != 'enforcing':
-        return
-
-    logger().info('%s: root', device.name)
-    device.root()
-
-    logger().info('%s: disable-verity', device.name)
-    cmd = ['adb', '-s', device.serial, 'disable-verity']
-    # disable-verity doesn't set exit status
-    _, out = ndk.ext.subprocess.call_output(cmd, encoding='utf-8')
-    logger().info('%s: disable-verity:\n%s', device, out)
-    if 'disabled on /' not in out:
-        raise RuntimeError(f'{device}: adb disable-verity failed:\n{out}')
-
-    if 'reboot your device' in out:
-        logger().info('%s: reboot', device.name)
-        device.reboot()
-        logger().info('%s: wait-for-device', device.name)
-        device.wait()
-
-
 def run_test(worker: Worker, test: TestRun) -> TestResult:
     device = worker.data[0]
     worker.status = f'Running {test.name}'
