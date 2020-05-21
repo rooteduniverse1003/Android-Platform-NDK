@@ -27,6 +27,13 @@ For Android Studio issues, follow the docs on the [Android Studio site].
 * Updated libc++, libc++abi, and libunwind to
   https://github.com/llvm/llvm-project/commit/52ec983895436089c5be0b0c4d967423db16045b.
 
+* [Issue 609]: `std::filesystem` support is now included. There are two known
+  issues:
+      * [Issue 1258]: `std::filesystem::perm_options::nofollow` may not be
+        honored on old devices.
+      * [Issue 1260]: `std::filesystem:canonical` will incorrectly succeed when
+        passed a non-existent path on old devices.
+
 * [Issue 843]: `llvm-strip` is now used instead of `strip` to avoid breaking
    RelRO with LLD. Note that the Android Gradle Plugin performs its own
    stripping, so most users will need to upgrade to Android Gradle Plugin
@@ -47,7 +54,10 @@ For Android Studio issues, follow the docs on the [Android Studio site].
   `thread_local` with non-trivial destructors and the static libc++.
 
 [Build System Maintainers Guide]: https://android.googlesource.com/platform/ndk/+/master/docs/BuildSystemMaintainers.md
+[Issue 609]: https://github.com/android/ndk/issues/609
 [Issue 1200]: https://github.com/android/ndk/issues/1200
+[Issue 1258]: https://github.com/android/ndk/issues/1258
+[Issue 1260]: https://github.com/android/ndk/issues/1260
 
 ## Known Issues
 
