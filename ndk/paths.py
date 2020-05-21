@@ -19,7 +19,7 @@ from __future__ import absolute_import
 import os
 from pathlib import Path
 import sys
-from typing import Optional
+from typing import Callable, Iterator, Optional
 
 import ndk.abis
 import ndk.config
@@ -139,3 +139,38 @@ def to_posix_path(path: str) -> str:
         return path.replace('\\', '/')
     else:
         return path
+
+
+def walk(path: Path,
+         top_down: bool = True,
+         on_error: Optional[Callable[[OSError], None]] = None,
+         follow_links: bool = False,
+         directories: bool = True) -> Iterator[Path]:
+    """Recursively iterates through files in a directory.
+
+    This is a pathlib equivalent of os.walk, which Python inexplicably still
+    does not have in the standard library.
+
+    Args:
+        path: Directory tree to walk.
+        top_down: If True, walk the tree top-down. If False, walk the tree
+                  bottom-up.
+        on_error: An error handling callback for any OSError raised by the
+                  walk.
+        follow_links: If True, walk into symbolic links that resolve to
+                      directories.
+        directories: If True, the walk will also yield directories.
+    Yields:
+        A Path for each file (and optionally each directory) in the same manner
+        as os.walk.
+    """
+    for root, dirs, files in os.walk(str(path),
+                                     topdown=top_down,
+                                     onerror=on_error,
+                                     followlinks=follow_links):
+        root_path = Path(root)
+        if directories:
+            for dir_name in dirs:
+                yield root_path / dir_name
+        for file_name in files:
+            yield root_path / file_name
