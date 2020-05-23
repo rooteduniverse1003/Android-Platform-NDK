@@ -142,13 +142,11 @@ def _make_zip_package(package_path: str,
 def purge_unwanted_files(ndk_dir: Path) -> None:
     """Removes unwanted files from the NDK install path."""
 
-    for path, _dirs, files in os.walk(ndk_dir):
-        for file_name in files:
-            file_path = Path(path) / file_name
-            if file_name.endswith('.pyc'):
-                file_path.unlink()
-            elif file_name == 'Android.bp':
-                file_path.unlink()
+    for path in ndk.paths.walk(ndk_dir, directories=False):
+        if path.suffix == '.pyc':
+            path.unlink()
+        elif path.name == 'Android.bp':
+            path.unlink()
 
 
 def create_dummy_entry_point(path: Path) -> None:
