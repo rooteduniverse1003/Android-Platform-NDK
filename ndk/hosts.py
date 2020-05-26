@@ -35,6 +35,18 @@ class Host(enum.Enum):
         """Returns True if the given host is Windows."""
         return self == Host.Windows64
 
+    @classmethod
+    def current(cls) -> 'Host':
+        """Returns the Host matching the current machine."""
+        if sys.platform in ('linux', 'linux2'):
+            return Host.Linux
+        elif sys.platform == 'darwin':
+            return Host.Darwin
+        elif sys.platform == 'win32':
+            return Host.Windows64
+        else:
+            raise RuntimeError(f'Unsupported host: {sys.platform}')
+
 
 ALL_HOSTS = list(Host)
 
@@ -71,11 +83,4 @@ def host_to_tag(host: Host) -> str:
 
 def get_default_host() -> Host:
     """Returns the Host matching the current machine."""
-    if sys.platform in ('linux', 'linux2'):
-        return Host.Linux
-    elif sys.platform == 'darwin':
-        return Host.Darwin
-    elif sys.platform == 'win32':
-        return Host.Windows64
-    else:
-        raise RuntimeError(f'Unsupported host: {sys.platform}')
+    return Host.current()

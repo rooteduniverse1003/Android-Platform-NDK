@@ -18,34 +18,20 @@
 http://b.android.com/222239 reports that old x86 targets have stack alignment
 issues. For these devices, verify that mstackrealign is used.
 """
-import os
-import subprocess
-import sys
+from pathlib import Path
+from typing import Optional, Tuple
+
+from ndk.abis import Abi
+from ndk.toolchains import LinkerOption
+from ndk.testing.flag_verifier import FlagVerifier
 
 
-def run_test(ndk_path, abi, platform, linker, build_flags):
+def run_test(ndk_path: str, abi: Abi, api: int,
+             linker: LinkerOption) -> Tuple[bool, Optional[str]]:
     """Checks ndk-build V=1 output for mstackrealign flag."""
-    ndk_build = os.path.join(ndk_path, 'ndk-build')
-    if sys.platform == 'win32':
-        ndk_build += '.cmd'
-    project_path = 'project'
-    ndk_args = build_flags + [
-        f'APP_ABI={abi}',
-        f'APP_LD={linker.value}',
-        f'APP_PLATFORM=android-{platform}',
-        'V=1',
-    ]
-    proc = subprocess.Popen([ndk_build, '-C', project_path] + ndk_args,
-                            stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
-    out, _ = proc.communicate()
-    out = out.decode('utf-8')
-    if proc.returncode != 0:
-        return proc.returncode == 0, out
-
-    out_words = out.split(' ')
-    if abi == 'x86' and platform < 24:
-        result = '-mstackrealign' in out_words
+    verifier = FlagVerifier(Path('project'), Path(ndk_path), abi, api, linker)
+    if abi == Abi('x86') and api < 24:
+        verifier.expect_flag('-mstackrealign')
     else:
-        result = '-mstackrealign' not in out_words
-
-    return result, out
+        verifier.expect_not_flag('-mstackrealign')
+    return verifier.verify_ndk_build().make_test_result_tuple()

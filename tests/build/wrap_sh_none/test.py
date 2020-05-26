@@ -13,20 +13,19 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-"""Check for correct link order from ndk-build.
-"""
+"""Check for no wrap.sh from ndk-build."""
 import os
 import subprocess
 import sys
 
 
-def run_test(ndk_path, abi, platform, linker, build_flags):
+def run_test(ndk_path, abi, platform, linker):
     """Checks that the proper wrap.sh scripts were installed."""
     ndk_build = os.path.join(ndk_path, 'ndk-build')
     if sys.platform == 'win32':
         ndk_build += '.cmd'
     project_path = 'project'
-    ndk_args = build_flags + [
+    ndk_args = [
         f'APP_ABI={abi}',
         f'APP_LD={linker.value}',
         f'APP_PLATFORM=android-{platform}',

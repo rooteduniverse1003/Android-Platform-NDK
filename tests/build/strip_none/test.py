@@ -13,34 +13,17 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-"""Check for strip --strip-unneeded use."""
-import os
-import subprocess
-import sys
+"""Check that strip is not used."""
+from pathlib import Path
+
+from ndk.testing.flag_verifier import FlagVerifier
 
 
-def run_test(ndk_path, abi, api, linker, build_flags):
-    """Checks ndk-build V=1 output for --strip-unneeded flag."""
-    if build_flags is None:
-        build_flags = []
-
-    ndk_build = os.path.join(ndk_path, 'ndk-build')
-    if sys.platform == 'win32':
-        ndk_build += '.cmd'
-    project_path = 'project'
-
-    ndk_args = build_flags + [
-        f'APP_ABI={abi}',
-        f'APP_LD={linker.value}',
-        f'APP_PLATFORM=android-{api}',
-        'V=1',
-    ]
-    proc = subprocess.Popen([ndk_build, '-C', project_path] + ndk_args,
-                            stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
-                            encoding='utf-8')
-    out, _ = proc.communicate()
-    if proc.returncode != 0:
-        return proc.returncode == 0, out
-
-    out_words = out.split(' ')
-    return 'strip' not in out_words, out
+def run_test(ndk_path, abi, api, linker):
+    """Checks ndk-build V=1 output for lack of strip."""
+    verifier = FlagVerifier(Path('project'), Path(ndk_path), abi, api, linker)
+    # TODO: Fix this test.
+    # This test has always been wrong, since it was only doing whole word
+    # search for 'strip' and we call strip with its full path.
+    verifier.expect_not_flag('strip')
+    return verifier.verify_ndk_build().make_test_result_tuple()

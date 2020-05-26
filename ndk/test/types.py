@@ -150,14 +150,18 @@ class PythonBuildTest(BuildTest):
     """A test that is implemented by test.py.
 
     A test.py test has a test.py file in its root directory. This module
-    contains a run_test function which returns a tuple of `(boolean_success,
-    string_failure_message)` and takes the following kwargs (all of which
-    default to None):
+    contains a run_test function which returns a Tuple[bool, Optional[str]] of
+    the success status and, if applicable, an error message and takes the
+    following kwargs:
 
-    abi: ABI to test as a string.
-    platform: Platform to build against as a string.
-    ndk_build_flags: Additional build flags that should be passed to ndk-build
-                     if invoked as a list of strings.
+    ndk_path: The path to the NDK under test.
+    abi: The ABI being tested.
+    api: The minSdkVersion being tested.
+    linker: The LinkerOption option being.
+
+    The test source directory will be copied into the test build directory for
+    the given build configuration. The working directory will automatically be
+    set to the root of the copied source test directory.
     """
 
     def __init__(self, name: str, test_dir: str, config: BuildConfiguration,
@@ -178,10 +182,6 @@ class PythonBuildTest(BuildTest):
         except ValueError:
             raise ValueError(f'{self.api} is not a valid API number')
 
-        # Not a ValueError for this one because it should be impossible. This
-        # is actually a computed result from the config we're passed.
-        assert self.ndk_build_flags is not None
-
     def get_build_dir(self, out_dir: str) -> str:
         return os.path.join(out_dir, str(self.config), 'test.py', self.name)
 
@@ -194,7 +194,7 @@ class PythonBuildTest(BuildTest):
             module = imp.load_source('test', 'test.py')
             assert self.platform is not None
             success, failure_message = module.run_test(  # type: ignore
-                self.ndk_path, self.abi, self.platform, self.config.linker, self.ndk_build_flags)
+                self.ndk_path, self.abi, self.platform, self.config.linker)
             if success:
                 return Success(self), []
             else:

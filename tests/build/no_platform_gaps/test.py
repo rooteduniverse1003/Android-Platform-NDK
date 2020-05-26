@@ -33,12 +33,12 @@ import ndk.abis
 import ndk.hosts
 
 
-def build(ndk_dir, abi, platform, linker, build_flags):
+def build(ndk_dir, abi, platform, linker):
     ndk_build = os.path.join(ndk_dir, 'ndk-build')
     if sys.platform == 'win32':
         ndk_build += '.cmd'
     project_path = 'project'
-    ndk_args = build_flags + [
+    ndk_args = [
         f'APP_ABI={abi}',
         f'APP_LD={linker.value}',
         f'APP_PLATFORM=android-{platform}',
@@ -50,7 +50,7 @@ def build(ndk_dir, abi, platform, linker, build_flags):
     return proc.returncode == 0, out.decode('utf-8')
 
 
-def run_test(ndk_path, abi, _platform, linker, build_flags):
+def run_test(ndk_path, abi, _platform, linker):
     """Checks ndk-build V=1 output for correct compiler."""
     min_api = None
     max_api = None
@@ -77,7 +77,7 @@ def run_test(ndk_path, abi, _platform, linker, build_flags):
 
     missing_platforms = sorted(list(set(range(min_api, max_api)) - set(apis)))
     for api in missing_platforms:
-        result, out = build(ndk_path, abi, api, linker, build_flags)
+        result, out = build(ndk_path, abi, api, linker)
         if not result:
             return result, out
 

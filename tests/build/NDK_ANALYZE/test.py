@@ -17,12 +17,12 @@ import os
 import subprocess
 
 
-def run_test(ndk_path, abi, platform, linker, build_flags):
+def run_test(ndk_path, abi, platform, linker):
     """Runs the static analyzer on a sample project."""
     ndk_build = os.path.join(ndk_path, 'ndk-build')
     project_path = 'project'
     analyzer_out = os.path.join(project_path, 'report')
-    ndk_args = build_flags + [
+    ndk_args = [
         f'APP_ABI={abi}',
         f'APP_LD={linker.value}',
         f'APP_PLATFORM=android-{platform}',
