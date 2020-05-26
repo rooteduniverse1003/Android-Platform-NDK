@@ -52,6 +52,13 @@ For Android Studio issues, follow the docs on the [Android Studio site].
 
 [Build System Maintainers Guide]: https://android.googlesource.com/platform/ndk/+/master/docs/BuildSystemMaintainers.md
 
+## r21e
+
+ * [Issue 147772940]: Passing `APP_BUILD_SCRIPT` to ndk-build with a file named
+   something other than Android.mk works again.
+
+[Issue 147772940]: https://issuetracker.google.com/147772940
+
 ## r21c
 
  * [Issue 1060]: A macOS app bundle that is signed and notarized is now
