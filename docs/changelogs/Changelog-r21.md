@@ -52,6 +52,32 @@ For Android Studio issues, follow the docs on the [Android Studio site].
 
 [Build System Maintainers Guide]: https://android.googlesource.com/platform/ndk/+/master/docs/BuildSystemMaintainers.md
 
+## r21d
+
+ * Added APIs for Android 11:
+   * New [ImageDecoder] API.
+   * New [Thermal] API.
+   * Updated [AAudio] APIs.
+   * Updated [Bitmap] APIs.
+   * Updated [Camera] APIs.
+   * Updated [Choreographer] APIs.
+   * Updated [Native Window] APIs.
+   * Updated [NdkBinder] APIs.
+   * Updated [NeuralNetworks] APIs.
+   * OpenSLES is deprecated in favor of [AAudio]. Developers should use [Oboe]
+     to automatically select the best available API.
+
+[AAudio]: https://developer.android.com/ndk/reference/group/audio
+[Bitmap]: https://developer.android.com/ndk/reference/group/bitmap
+[Camera]: https://developer.android.com/ndk/reference/group/camera
+[Choreographer]: https://developer.android.com/ndk/reference/group/choreographer
+[ImageDecoder]: https://developer.android.com/ndk/reference/group/image-decoder
+[Native Window]: https://developer.android.com/ndk/reference/group/a-native-window
+[NdkBinder]: https://developer.android.com/ndk/reference/group/ndk-binder
+[NeuralNetworks]: https://developer.android.com/ndk/reference/group/neural-networks
+[Oboe]: https://github.com/google/oboe
+[Thermal]: https://developer.android.com/ndk/reference/group/thermal
+
 ## r21c
 
  * [Issue 1060]: A macOS app bundle that is signed and notarized is now
