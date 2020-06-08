@@ -807,28 +807,6 @@ def make_linker_script(path: str, libs: List[str]) -> None:
     ndk.file.write_file(path, 'INPUT({})\n'.format(' '.join(libs)))
 
 
-def create_libcxx_linker_scripts(lib_dir: str, abi: ndk.abis.Abi,
-                                 api: int) -> None:
-    static_libs = ['-lc++_static', '-lc++abi']
-    is_arm = abi == 'armeabi-v7a'
-    needs_android_support = api < 21
-    if needs_android_support:
-        static_libs.append('-landroid_support')
-    if is_arm:
-        static_libs.extend(['-lunwind', '-latomic'])
-    make_linker_script(
-        os.path.join(lib_dir, 'libc++.a.{}'.format(api)), static_libs)
-
-    shared_libs = []
-    if needs_android_support:
-        shared_libs.append('-landroid_support')
-    if is_arm:
-        shared_libs.extend(['-lunwind', '-latomic'])
-    shared_libs.append('-lc++_shared')
-    make_linker_script(
-        os.path.join(lib_dir, 'libc++.so.{}'.format(api)), shared_libs)
-
-
 class Libcxx(ndk.builds.Module):
     name = 'libc++'
     src = Path(ndk.paths.android_path('toolchain/llvm-project/libcxx'))
@@ -921,8 +899,6 @@ class Libcxx(ndk.builds.Module):
             for api in range(platforms_meta['min'], platforms_meta['max'] + 1):
                 if api < ndk.abis.min_api_for_abi(abi):
                     continue
-
-                create_libcxx_linker_scripts(lib_dir, abi, api)
 
     def install_static_libs(self, lib_dir: str, abi: ndk.abis.Abi) -> None:
         static_lib_dir = os.path.join(self.obj_out, 'local', abi)
@@ -2210,7 +2186,16 @@ class Toolchain(ndk.builds.Module):
                 shared_script = ['-lc++_shared']
                 assert isinstance(api, int)
                 if api < 21:
-                    static_script.append('-landroid_support')
+                    # The ordering here is funky because of interdependencies
+                    # between libandroid_support and libc++abi.
+                    # libandroid_support needs new/delete from libc++abi but
+                    # libc++abi needs posix_memalign from libandroid_support.
+                    static_script.extend([
+                        '-landroid_support',
+                        '-lc++abi',
+                        # TODO: Remove once API 16 is no longer supported.
+                        '-landroid_support',
+                    ])
                     shared_script.insert(0, '-landroid_support')
 
                 libcxx_so_path = os.path.join(dst_dir, 'libc++.so')

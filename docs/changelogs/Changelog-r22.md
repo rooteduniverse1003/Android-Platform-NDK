@@ -42,6 +42,11 @@ For Android Studio issues, follow the docs on the [Android Studio site].
 * [Issue 929]: `find_library` now prefers shared libraries from the sysroot over
   static libraries.
 
+* [Issue 1130]: Fixed undefined references to new that could occur when building
+  for APIs prior to 21 and the static libc++. Note that LLD appears to have been
+  unaffected, but the problem is still present for ndk-build when using the
+  deprecated linkers.
+
 * [Issue 1139]: `native_app_glue` now hooks up the `APP_CMD_WINDOW_RESIZED`,
   `APP_CMD_WINDOW_REDRAW_NEEDED`, and `APP_CMD_CONTENT_RECT_CHANGED` messages.
 
@@ -55,6 +60,10 @@ For Android Studio issues, follow the docs on the [Android Studio site].
 
 * [Issue 1200]: Fixed an issue with using `dlclose` with libraries using
   `thread_local` with non-trivial destructors and the static libc++.
+
+* The legacy libc++ linker scripts in `<NDK>/sources/cxx-stl/llvm-libc++` have
+  been removed. The linkers scripts in the toolchain should be used instead as
+  described by the [Build System Maintainers Guide].
 
 [Build System Maintainers Guide]: https://android.googlesource.com/platform/ndk/+/master/docs/BuildSystemMaintainers.md
 [Issue 609]: https://github.com/android/ndk/issues/609
@@ -110,6 +119,9 @@ For Android Studio issues, follow the docs on the [Android Studio site].
   Note that because this is a platform bug rather than an NDK bug this
   workaround will be necessary for this use case to work on all devices until
   at least Android R.
+* [Issue 1130]: When using `c++_static` and the deprecated linker with ndk-build
+  with an `APP_PLATFORM` below 21, undefined references to operator new may
+  occur. The fix is to use LLD.
 * This version of the NDK is incompatible with the Android Gradle plugin
   version 3.0 or older. If you see an error like
   `No toolchains found in the NDK toolchains folder for ABI with prefix: mips64el-linux-android`,
@@ -127,5 +139,6 @@ For Android Studio issues, follow the docs on the [Android Studio site].
 [Issue 843]: https://github.com/android-ndk/ndk/issues/843
 [Issue 906]: https://github.com/android-ndk/ndk/issues/906
 [Issue 988]: https://github.com/android-ndk/ndk/issues/988
+[Issue 1130]: https://github.com/android/ndk/issues/1130
 [Issue 1139]: https://github.com/android-ndk/ndk/issues/1139
 [use plugin version 3.1 or newer]: https://developer.android.com/studio/releases/gradle-plugin#updating-plugin
