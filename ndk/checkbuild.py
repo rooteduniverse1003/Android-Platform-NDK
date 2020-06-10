@@ -427,12 +427,13 @@ class Clang(ndk.builds.Module):
             os.rename(os.path.join(install_path, 'bin/clang++.real'),
                       os.path.join(install_path, 'bin/clang++'))
 
-            # The prebuilts have symlinks pointing at a clang-MAJ.MIN binary,
-            # but we replace symlinks with standalone copies, so remove this
-            # copy to save space.
-            bin_dir = os.path.join(install_path, 'bin')
-            (clang_maj_min,) = glob.glob(os.path.join(bin_dir, 'clang-?'))
-            os.remove(clang_maj_min)
+            # The prebuilts have symlinks pointing at a clang-MAJ binary, but
+            # we replace symlinks with standalone copies, so remove this copy
+            # to save space.
+            bin_dir = Path(install_path) / 'bin'
+            for path in bin_dir.glob('clang-*'):
+                if re.search(r'^clang-\d+$', path.name) is not None:
+                    path.unlink()
 
         # Remove LLD duplicates. We only need ld.lld.
         # http://b/74250510
