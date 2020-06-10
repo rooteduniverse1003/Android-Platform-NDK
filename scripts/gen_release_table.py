@@ -89,17 +89,17 @@ def main():
 
         # android-ndk-$VERSION-$HOST-$HOST_ARCH.$EXT
         # $VERSION might contain a hyphen for beta/RC releases.
-        # Split on all hyphens and join the last two items to get the platform.
-        package_name = os.path.splitext(package)[0]
-        host = '-'.join(package_name.split('-')[-2:])
+        # Split on all hyphens and join $HOST and $EXT to get the platform.
+        package_name, package_ext = os.path.splitext(package)
+        host = package_name.split('-')[-2] + '-' + package_ext[1:]
         pretty_host = {
-            'darwin-x86_64': 'macOS',
-            'linux-x86_64': 'Linux',
-            'windows-x86_64': 'Windows',
-            'windows-x86': 'Windows 32-bit',
+            'darwin-zip': 'macOS',
+            'darwin-dmg': 'macOS App Bundle',
+            'linux-zip': 'Linux',
+            'windows-zip': 'Windows',
         }[host]
 
-        artifacts.append((pretty_host, package, size, sha))
+        artifacts.append((host, pretty_host, package, size, sha))
 
     # Sort the artifacts by the platform name.
     artifacts = sorted(artifacts, key=operator.itemgetter(0))
@@ -112,13 +112,13 @@ def main():
     print('    <th>Size (bytes)</th>')
     print('    <th>SHA1 Checksum</th>')
     print('  </tr>')
-    for host, package, size, sha in artifacts:
+    for host, pretty_host, package, size, sha in artifacts:
         url_base = 'https://dl.google.com/android/repository/'
         package_url = url_base + package
         link = '<a href="{}">{}</a>'.format(package_url, package)
 
         print('  <tr>')
-        print('    <td>{}</td>'.format(host))
+        print('    <td>{}</td>'.format(pretty_host))
         print('    <td>{}</td>'.format(link))
         print('    <td>{}</td>'.format(size))
         print('    <td>{}</td>'.format(sha))
@@ -128,15 +128,15 @@ def main():
     print('For DAC:')
 
     var_prefix = 'ndk_beta' if args.beta else 'ndk'
-    for host, package, size, sha in artifacts:
+    for host, pretty_host, package, size, sha in artifacts:
         dac_host = {
-            'macOS': 'mac64',
-            'Linux': 'linux64',
-            'Windows': 'win64',
-            'Windows 32-bit': 'win32',
+            'darwin-zip': 'mac64',
+            'darwin-dmg': 'mac64_dmg',
+            'linux-zip': 'linux64',
+            'windows-zip': 'win64',
         }[host]
         print()
-        print('{{# {} #}}'.format(host))
+        print('{{# {} #}}'.format(pretty_host))
         print('{{% setvar {}_{}_download %}}{}{{% endsetvar %}}'.format(
             var_prefix, dac_host, package))
         print('{{% setvar {}_{}_bytes %}}{}{{% endsetvar %}}'.format(
