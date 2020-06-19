@@ -496,23 +496,22 @@ CLEAN_OBJS_DIRS     += $(LOCAL_OBJS_DIR)
 #
 
 linker_ldflags :=
-using_lld := false
-ifeq ($(APP_LD),lld)
-    linker_ldflags := -fuse-ld=lld
-    using_lld := true
+ifeq ($(APP_LD),deprecated)
+    ifeq ($(TARGET_ARCH_ABI),arm64-v8a)
+        linker_ldflags := -fuse-ld=bfd
+    else
+        linker_ldflags := -fuse-ld=gold
+    endif
 endif
 
-combined_ldflags := $(TARGET_LDFLAGS) $(NDK_APP_LDFLAGS) $(LOCAL_LDFLAGS)
+combined_ldflags := \
+    $(linker_ldflags) $(TARGET_LDFLAGS) $(NDK_APP_LDFLAGS) $(LOCAL_LDFLAGS)
 ndk_fuse_ld_flags := $(filter -fuse-ld=%,$(combined_ldflags))
 ndk_used_linker := $(lastword $(ndk_fuse_ld_flags))
-ifeq ($(ndk_used_linker),-fuse-ld=lld)
-    using_lld := true
+ifneq ($(filter -fuse-ld=bfd -fuse-ld=gold,$(ndk_used_linker)),)
+    using_lld := false
 else
-    # In case the user has set APP_LD=lld but also disabled it for a specific
-    # module.
-    ifneq ($(ndk_used_linker),)
-        using_lld := false
-    endif
+    using_lld := true
 endif
 
 # https://github.com/android/ndk/issues/885

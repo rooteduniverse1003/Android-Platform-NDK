@@ -32,7 +32,6 @@ import copy
 # https://github.com/PyCQA/pylint/issues/73
 from distutils.dir_util import copy_tree
 # pylint: enable=import-error,no-name-in-module
-import glob
 import inspect
 import json
 import logging
@@ -1952,6 +1951,49 @@ class BaseToolchain(ndk.builds.Module):
         for arch in self.arches:
             binutils_dir = self.get_dep('binutils').get_install_path(arch=arch)
             copy_tree(binutils_dir, install_dir)
+
+            # Replace the default ld executable with lld.
+            triple = ndk.abis.arch_to_triple(arch)
+            bin_dir = Path(install_dir) / 'bin'
+            arch_bin_dir = Path(install_dir) / triple / 'bin'
+
+            bin_ld = bin_dir / f'{triple}-ld{exe}'
+            arch_ld = arch_bin_dir / f'ld{exe}'
+            lld = bin_dir / f'ld.lld{exe}'
+
+            bin_ld.unlink()
+            shutil.copyfile(lld, bin_ld)
+            shutil.copystat(lld, bin_ld)
+
+            arch_ld.unlink()
+            shutil.copyfile(lld, arch_ld)
+            shutil.copystat(lld, arch_ld)
+
+            # LLD isn't really meant to be moved, so it doesn't have an RPATH
+            # for the arch-specific directory. Ideally we wouldn't copy to this
+            # directory at all, but Clang only searches the arch-specific
+            # directory, so if we don't have this it'll wrongly fall back to
+            # /usr/bin/ld.
+            #
+            # We'll fix Clang before we remove the directory entirely when we
+            # remove binutils, but for now just copy the dependent libraries
+            # with it.
+            if not self.host.is_windows:
+                src_lib64 = bin_dir.parent / 'lib64'
+                dst_lib64 = arch_bin_dir.parent / 'lib64'
+                # The directory already exists for LP64 ABIs, but not for LP32
+                # ABIs.
+                dst_lib64.mkdir(exist_ok=True)
+
+                libcxx = versioned_so(self.host, 'libc++', '1')
+                shutil.copy2(src_lib64 / libcxx, dst_lib64 / libcxx)
+
+                libcxxabi = versioned_so(self.host, 'libc++abi', '1')
+                shutil.copy2(src_lib64 / libcxxabi, dst_lib64 / libcxxabi)
+            else:
+                src = bin_dir / 'libwinpthread-1.dll'
+                dest = arch_bin_dir / 'libwinpthread-1.dll'
+                shutil.copy2(src, dest)
 
         platforms = self.get_dep('platforms')
         assert isinstance(platforms, Platforms)
