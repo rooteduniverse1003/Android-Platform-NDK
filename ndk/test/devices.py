@@ -17,6 +17,8 @@
 from __future__ import print_function
 
 import logging
+import os
+from pathlib import Path
 import re
 import shutil
 import subprocess
@@ -362,6 +364,15 @@ def get_all_attached_devices(workqueue: WorkQueue) -> List[Device]:
     return devices
 
 
+def exclude_device(device: Device) -> bool:
+    """Returns True if a device should be excluded from the fleet."""
+    exclusion_list_env = os.getenv('NDK_DEVICE_EXCLUSION_LIST')
+    if exclusion_list_env is None:
+        return False
+    exclusion_list = Path(exclusion_list_env).read_text().splitlines()
+    return device.serial in exclusion_list
+
+
 def find_devices(sought_devices: Dict[int, List[Abi]],
                  workqueue: WorkQueue) -> DeviceFleet:
     """Detects connected devices and returns a set for testing.
@@ -372,6 +383,7 @@ def find_devices(sought_devices: Dict[int, List[Abi]],
     """
     fleet = DeviceFleet(sought_devices)
     for device in get_all_attached_devices(workqueue):
-        fleet.add_device(device)
+        if not exclude_device(device):
+            fleet.add_device(device)
 
     return fleet
