@@ -49,10 +49,8 @@ class DarwinSdk:
     MACOSX_TARGET = '10.9'
 
     def __init__(self) -> None:
-        proc_result = subprocess.run(['xcrun', '--show-sdk-path'],
-                                     stdout=subprocess.PIPE,
-                                     check=True, encoding='utf-8')
-        self.mac_sdk_path = Path(proc_result.stdout.strip())
+        self.mac_sdk_path = self._get_sdk_path()
+        self.linker_version = self._get_ld_version()
 
         self.ar = self.sdk_tool('ar')
         self.asm = self.sdk_tool('as')
@@ -70,6 +68,12 @@ class DarwinSdk:
             f'-DMACOSX_DEPLOYMENT_TARGET={self.MACOSX_TARGET}',
             f'-isysroot{self.mac_sdk_path}',
             f'-Wl,-syslibroot,{self.mac_sdk_path}',
+            # https://stackoverflow.com/a/60958449/632035
+            # Our Clang is not built to handle old linkers by default, so if we
+            # do not configure this explicitly it may attempt to use flags that
+            # are not supported by the version of the Darwin linker installed on
+            # the build machine.
+            f'-mlinker-version={self.linker_version}',
         ]
 
     def sdk_tool(self, name: str) -> Path:
@@ -78,6 +82,23 @@ class DarwinSdk:
                                      stdout=subprocess.PIPE,
                                      check=True, encoding='utf-8')
         return Path(proc_result.stdout.strip())
+
+    def _get_sdk_path(self) -> Path:
+        """Gets the path to the Mac SDK."""
+        proc_result = subprocess.run(['xcrun', '--show-sdk-path'],
+                                     stdout=subprocess.PIPE,
+                                     check=True, encoding='utf-8')
+        return Path(proc_result.stdout.strip())
+
+    def _get_ld_version(self) -> str:
+        """Gets the version of the system linker."""
+        proc_result = subprocess.run(['ld', '-v'],
+                                     stdout=subprocess.PIPE,
+                                     stderr=subprocess.PIPE,
+                                     check=True, encoding='utf-8')
+        output = proc_result.stderr.strip().splitlines()[0]
+        # Example first line: @(#)PROGRAM:ld  PROJECT:ld64-409.12
+        return output.rsplit('-', 1)[-1]
 
 
 class Toolchain:
