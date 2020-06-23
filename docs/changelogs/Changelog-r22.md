@@ -9,14 +9,10 @@ For Android Studio issues, follow the docs on the [Android Studio site].
 
 ## Announcements
 
-* [LLD](https://lld.llvm.org/) is now the default linker. Gold and BFD will
-  likely be removed in the next LTS release (Q3-Q4 2020). See the Changes
-  section below for more information.
-
-* [Issue 843]: Build system maintainers should begin testing with LLVM's
-  binutils. Android has switched to using these by default (with the exception
-  of llvm-ar, as we're still investigating some issues on macOS), and GNU
-  binutils will likely be removed in the next LTS release (Q3-Q4 2020).
+* [LLD](https://lld.llvm.org/) is now the default linker. ndk-build and our
+  CMake toolchain file have also migrated to using llvm-ar and llvm-strip. GNU
+  binutils will be removed in a future release. See the Changes section below
+  for more information.
 
 ## Changes
 
@@ -63,6 +59,8 @@ For Android Studio issues, follow the docs on the [Android Studio site].
   are using a build system that hasn't adapted to the changes introduced in NDK
   r19, file a bug with your build system maintainer. See the [Build System
   Maintainers Guide] for information on using the NDK in your own build system.
+
+* `llvm-ar` is now used instead of `ar`.
 
 * [Issue 1200]: Fixed an issue with using `dlclose` with libraries using
   `thread_local` with non-trivial destructors and the static libc++.
