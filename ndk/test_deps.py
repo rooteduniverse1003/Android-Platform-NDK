@@ -95,9 +95,7 @@ class DependencyManagerTest(unittest.TestCase):
     def test_cyclic_dependency_message(self) -> None:
         """Test that a cycle raises the proper exception."""
         pattern = '^Detected cyclic dependency: cycleA -> cycleB -> cycleA$'
-        # pylint: disable=deprecated-method
-        # https://github.com/PyCQA/pylint/issues/1946
-        with self.assertRaisesRegexp(CyclicDependencyError, pattern):
+        with self.assertRaisesRegex(CyclicDependencyError, pattern):
             DependencyManager([CycleA(), CycleB()])
 
     def test_empty_raises(self) -> None:

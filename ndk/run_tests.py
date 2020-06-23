@@ -91,8 +91,7 @@ def shell_nocheck_wrap_errors(device: Device,
     try:
         return device.shell_nocheck(cmd)
     except RuntimeError:
-        # mypy doesn't know about shlex.join.
-        return 1, shlex.join(cmd), traceback.format_exc() # type: ignore
+        return 1, shlex.join(cmd), traceback.format_exc()
 
 
 # TODO: Extract a common interface from this and ndk.test.types.Test for the

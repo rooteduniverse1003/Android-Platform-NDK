@@ -28,10 +28,10 @@ class BuildConfigurationTest(unittest.TestCase):
         self.assertEqual(LinkerOption.Lld, config.linker)
 
         config = ndk.test.spec.BuildConfiguration.from_string(
-            'arm64-v8a-21-default')
+            'arm64-v8a-21-deprecated')
         self.assertEqual('arm64-v8a', config.abi)
         self.assertEqual(21, config.api)
-        self.assertEqual(LinkerOption.Default, config.linker)
+        self.assertEqual(LinkerOption.Deprecated, config.linker)
 
         config = ndk.test.spec.BuildConfiguration.from_string('x86-16-lld')
         self.assertEqual('x86', config.abi)
@@ -39,7 +39,7 @@ class BuildConfigurationTest(unittest.TestCase):
         self.assertEqual(LinkerOption.Lld, config.linker)
 
         config = ndk.test.spec.BuildConfiguration.from_string(
-            'x86_64-21-default')
+            'x86_64-21-deprecated')
         self.assertEqual('x86_64', config.abi)
         self.assertEqual(21, config.api)
-        self.assertEqual(LinkerOption.Default, config.linker)
+        self.assertEqual(LinkerOption.Deprecated, config.linker)
