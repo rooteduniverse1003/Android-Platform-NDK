@@ -24,7 +24,7 @@ executables and scripts will differ.
 The NDK uses the [LLVM] family of tools for building C/C++ code. These include
 [Clang] for compilation, [LLD] for linking, and other [LLVM tools] for other
 tasks. Historically [Binutils] was used and remains available during the
-transition but will soon be removed from the NDK.
+transition but is deprecated and will soon be removed from the NDK.
 
 [Binutils]: https://www.gnu.org/software/binutils
 [Clang]: https://clang.llvm.org/
@@ -232,23 +232,21 @@ this document for more information.
 
 ## Binutils
 
-GNU Binutils tools are installed to
+LLVM's binutils tools are installed to the NDK at
+`<NDK>/toolchains/llvm/prebuilt/<host-tag>/bin/llvm-<tool>`. These include but
+are not limited to:
+
+* llvm-ar
+* llvm-as
+* llvm-objcopy
+* llvm-objdump
+* llvm-readelf
+* llvm-strip
+
+GNU Binutils remains available for now but is deprecated and will be removed in
+an upcoming release of the NDK. Those tools are installed to
 `<NDK>/toolchains/llvm/prebuilt/<host-tag>/bin/<triple>-<tool>` and
-`<NDK>/toolchains/llvm/prebuilt/<host-tag>/<triple>/bin/<tool>`. These include
-but are not limited to:
-
- * ar
- * as
- * objcopy
- * objdump
- * readelf
- * strip
-
-For each of these tools, LLVM equivalents are available. They typically have the
-same name but are prefixed with `llvm-`. For example, `llvm-strip` is used
-instead of `<triple>-strip` or the `strip` binary from the triple-specific
-directory. ndk-build and the NDK's CMake toolchain file now use the LLVM tools
-and GNU binutils will be removed in a future release.
+`<NDK>/toolchains/llvm/prebuilt/<host-tag>/<triple>/bin/<tool>`.
 
 Note that binutils `as` is used by Clang if the `-fno-integrated-as` argument is
 used.
