@@ -237,11 +237,14 @@ LLVM's binutils tools are installed to the NDK at
 are not limited to:
 
 * llvm-ar
-* llvm-as
 * llvm-objcopy
 * llvm-objdump
 * llvm-readelf
 * llvm-strip
+
+Note that `llvm-as` is **not** an equivalent of GNU `as`, but rather a tool for
+assembling LLVM IR. If you are currently using `as` directly, you will need to
+migrate to using `clang` as a driver for building assembly.
 
 GNU Binutils remains available for now but is deprecated and will be removed in
 an upcoming release of the NDK. Those tools are installed to
