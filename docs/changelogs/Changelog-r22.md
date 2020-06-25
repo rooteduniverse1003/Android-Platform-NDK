@@ -57,6 +57,12 @@ For Android Studio issues, follow the docs on the [Android Studio site].
 * [Issue 1139]: `native_app_glue` now hooks up the `APP_CMD_WINDOW_RESIZED`,
   `APP_CMD_WINDOW_REDRAW_NEEDED`, and `APP_CMD_CONTENT_RECT_CHANGED` messages.
 
+* [Issue 1196]: Backtraces for crashes on devices older than API 29 are now
+  correct when using LLD if using ndk-build or the CMake toolchain file. If
+  using a different system and targeting devices older than API 29, use
+  `-Wl,--no-rosegment` when linking. See the [Build System Maintainers Guide]
+  for more information.
+
 * The deprecated `<NDK>/platforms` and `<NDK>/sysroot` directories have been
   removed. These directories were merged and relocated into the toolchain during
   r19. The location of these contents should not be relevant to anyone,
@@ -90,6 +96,7 @@ For Android Studio issues, follow the docs on the [Android Studio site].
 [Issue 929]: https://github.com/android/ndk/issues/929
 [Issue 1096]: https://github.com/android/ndk/issues/1096
 [Issue 1149]: https://github.com/android/ndk/issues/1149
+[Issue 1196]: https://github.com/android/ndk/issues/1196
 [Issue 1200]: https://github.com/android/ndk/issues/1200
 [Issue 1212]: https://github.com/android/ndk/issues/1212
 [Issue 1258]: https://github.com/android/ndk/issues/1258

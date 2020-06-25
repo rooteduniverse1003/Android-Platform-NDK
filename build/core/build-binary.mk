@@ -520,6 +520,10 @@ endif
 # default hash ("fast").
 ifeq ($(using_lld),true)
     linker_ldflags += -Wl,--build-id=sha1
+    ifneq (,$(call lt,$(APP_PLATFORM_LEVEL),29))
+        # https://github.com/android/ndk/issues/1196
+        linker_ldflags += -Wl,--no-rosegment
+    endif
 else
     linker_ldflags += -Wl,--build-id
 endif

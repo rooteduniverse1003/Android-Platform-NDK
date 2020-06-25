@@ -398,9 +398,16 @@ but avoid a plain `--build-id` argument when using LLD, because Android Studio's
 version of LLDB doesn't recognize LLD's default 8-byte build ID. See [Issue
 885].
 
+The unwinder used for crash handling on Android devices prior to API 29 cannot
+correctly unwind binaries built with `-Wl,--rosegment`. This flag is enabled by
+default when using LLD, so if using LLD and targeting devices older than API 29
+you must pass `-Wl,--no-rosegment` when linking for correct stack traces in
+logcat. See [Issue 1196].
+
 [Issue 635]: https://github.com/android-ndk/ndk/issues/635
 [Issue 885]: https://github.com/android-ndk/ndk/issues/885
 [Issue 906]: https://github.com/android-ndk/ndk/issues/906
+[Issue 1196]: https://github.com/android/ndk/issues/1196
 [Position-independent executables]: https://en.wikipedia.org/wiki/Position-independent_code#Position-independent_executables
 
 ## Useful Arguments
