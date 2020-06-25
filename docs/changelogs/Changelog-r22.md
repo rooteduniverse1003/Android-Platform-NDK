@@ -24,7 +24,6 @@ For Android Studio issues, follow the docs on the [Android Studio site].
 * Updated LLVM to r383902b, based on LLVM 11 development.
   * [Issue 829]: Fixed issue with `__attribute__((visibility("hidden")))`
     symbols sometimes not being hidden.
-  * [Issue 1096]: Included support for [Polly].
   * [Issue 1149]: Fixed Clang crash with `#pragma detect_mismatch`.
   * [Issue 1212]: Fixed llvm-strip to match GNU behavior for removing file
     symbols.
@@ -94,7 +93,6 @@ For Android Studio issues, follow the docs on the [Android Studio site].
 [Issue 1212]: https://github.com/android/ndk/issues/1212
 [Issue 1258]: https://github.com/android/ndk/issues/1258
 [Issue 1260]: https://github.com/android/ndk/issues/1260
-[Polly]: https://polly.llvm.org/
 
 ## Known Issues
 
