@@ -484,6 +484,10 @@ if(ANDROID_LD STREQUAL deprecated)
   list(APPEND ANDROID_LINKER_FLAGS -Wl,--build-id)
 else()
   list(APPEND ANDROID_LINKER_FLAGS -Wl,--build-id=sha1)
+  if(ANDROID_PLATFORM_LEVEL LESS 29)
+    # https://github.com/android/ndk/issues/1196
+    list(APPEND ANDROID_LINKER_FLAGS -Wl,--no-rosegment)
+  endif()
 endif()
 
 list(APPEND ANDROID_LINKER_FLAGS -Wl,--fatal-warnings)
