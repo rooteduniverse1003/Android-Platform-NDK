@@ -162,22 +162,14 @@ class FlagVerifier:
         """
         host = Host.current()
         if host == Host.Windows64:
-            # We've always just depended on CMake being available in the path
-            # for Windows.
-            # TODO: Check in Windows cmake prebuilts.
-            maybe_cmake = shutil.which('cmake')
-            if maybe_cmake is None:
-                return FlagVerifierFailure('cmake not available in PATH')
-            cmake = Path(maybe_cmake)
-
-            maybe_ninja = shutil.which('ninja')
-            if maybe_ninja is None:
-                return FlagVerifierFailure('ninja not available in PATH')
-            ninja = Path(maybe_ninja)
+            tag = 'windows-x86'
         else:
             tag = f'{host.value}-x86'
-            cmake = ndk.paths.ANDROID_DIR / f'prebuilts/cmake/{tag}/bin/cmake'
-            ninja = ndk.paths.ANDROID_DIR / f'prebuilts/ninja/{tag}/ninja'
+        cmake = ndk.paths.ANDROID_DIR / f'prebuilts/cmake/{tag}/bin/cmake'
+        ninja = ndk.paths.ANDROID_DIR / f'prebuilts/ninja/{tag}/ninja'
+        if host == Host.Windows64:
+            cmake = cmake.with_suffix('.exe')
+            ninja = ninja.with_suffix('.exe')
         # PythonBuildTest ensures that we're cd'd into the test out directory.
         build_dir = Path('build')
         if build_dir.exists():
