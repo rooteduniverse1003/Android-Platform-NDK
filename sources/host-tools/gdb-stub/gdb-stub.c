@@ -156,19 +156,22 @@ int main(int argc, char** argv) {
 	si.hStdError = GetStdHandle(STD_ERROR_HANDLE);
 
 	memset(&pi, 0, sizeof(pi));
-
+	// If current process is being monitored by the Program Compatibility Assistant (PCA), it is placed into a
+	// compatibility job. Therefore, the child process must be created using CREATE_BREAKAWAY_FROM_JOB before it can be
+	// placed in another job.
+	DWORD creationFlags = CREATE_BREAKAWAY_FROM_JOB;
 	DIE_IF_FALSE(
 		CreateProcess(
-			0			// exe name
-			,cmdbuf		// command line
-			,0			// process security attributes
-			,0			// primary thread security attributes
-			,TRUE		// handles are inherited
-			,0			// creation flags
-			,0			// use parent's environment
-			,0			// use parent's current directory
-			,&si		// STARTUPINFO pointer
-			,&pi		// receives PROCESS_INFORMATION
+			0					// exe name
+			,cmdbuf				// command line
+			,0					// process security attributes
+			,0					// primary thread security attributes
+			,TRUE				// handles are inherited
+			,creationFlags		// creation flags
+			,0					// use parent's environment
+			,0					// use parent's current directory
+			,&si				// STARTUPINFO pointer
+			,&pi				// receives PROCESS_INFORMATION
 		)
 	);
 
