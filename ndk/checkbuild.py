@@ -444,9 +444,6 @@ class Clang(ndk.builds.Module):
         os.remove(os.path.join(install_path, 'bin/lld' + bin_ext))
         os.remove(os.path.join(install_path, 'bin/lld-link' + bin_ext))
 
-        # Remove LLDB before it is ready for use.
-        os.remove(os.path.join(install_path, 'bin/lldb' + bin_ext))
-
         install_clanglib = os.path.join(install_path, 'lib64', 'clang')
         linux_prebuilt_path = ndk.toolchains.ClangToolchain.path_for_host(
             ndk.hosts.Host.Linux)
