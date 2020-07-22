@@ -424,7 +424,15 @@ def get_llvm_host_name():
         return "darwin-x86_64"
     else:
         return "linux-x86_64"
-    
+
+
+def get_lldb_path(toolchain_path):
+    for lldb_name in ['lldb.sh', 'lldb.cmd', 'lldb', 'lldb.exe']:
+        debugger_path = os.path.join(toolchain_path, "bin", lldb_name)
+        if os.path.isfile(debugger_path):
+            return debugger_path
+    return None
+
 
 def get_llvm_package_version(llvm_toolchain_dir):
     version_file_path = os.path.join(llvm_toolchain_dir, "AndroidVersion.txt")
@@ -799,7 +807,7 @@ def main():
     # Start gdb.
     if use_lldb:
         script_commands = generate_lldb_script(args, out_dir, zygote_path, app_64bit, jdb_pid)
-        debugger_path = os.path.join(llvm_toolchain_dir, "bin", "lldb")
+        debugger_path = get_lldb_path(llvm_toolchain_dir)
         flags = []
     else:
         script_commands = generate_gdb_script(args, out_dir, zygote_path, app_64bit, jdb_pid)
