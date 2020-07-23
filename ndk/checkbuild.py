@@ -68,6 +68,7 @@ import ndk.abis
 import ndk.ansi
 import ndk.autoconf
 import ndk.builds
+import ndk.cmake
 import ndk.config
 import ndk.deps
 import ndk.ext.shutil
@@ -1223,12 +1224,10 @@ class Gdb(ndk.builds.Module):
     def lzma_builder(self) -> ndk.autoconf.AutoconfBuilder:
         """Returns the lazily initialized lzma builder for this module."""
         if self._lzma_builder is None:
-            self._lzma_builder = ndk.autoconf.AutoconfBuilder(
-                self.lzma_src / 'configure',
+            self._lzma_builder = ndk.cmake.CMakeBuilder(
+                self.lzma_src,
                 self.intermediate_out_dir / 'lzma',
-                self.host,
-                add_toolchain_to_path=True,
-                use_clang=True)
+                self.host)
         return self._lzma_builder
 
     @property
@@ -1273,15 +1272,9 @@ class Gdb(ndk.builds.Module):
 
     def build_lzma(self) -> None:
         """Builds the liblzma dependency."""
-        self.lzma_builder.build([
-            '--disable-shared',
-            '--enable-static',
-            '--disable-xz',
-            '--disable-xzdec',
-            '--disable-lzmadev',
-            '--disable-scripts',
-            '--disable-doc',
-        ])
+        self.lzma_builder.build({
+            'BUILD_SHARED_LIBS': 'OFF',
+        })
 
     def build_gdb(self) -> None:
         """Builds GDB itself."""

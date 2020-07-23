@@ -130,7 +130,7 @@ class AutoconfBuilder:
         if env:
             subproc_env.update(env)
         if self.additional_env:
-            subproc_env.update(env)
+            subproc_env.update(self.additional_env)
 
         if subproc_env != os.environ:
             pp_env = pprint.pformat(env, indent=4)
