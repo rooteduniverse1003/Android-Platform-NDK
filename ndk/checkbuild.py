@@ -700,11 +700,12 @@ class ShaderTools(ndk.builds.InvokeBuildModule):
     def notices(self) -> List[str]:
         base = ndk.paths.android_path('external/shaderc')
         shaderc_dir = os.path.join(base, 'shaderc')
+        glslang_dir = os.path.join(base, 'glslang')
         spirv_dir = os.path.join(base, 'spirv-headers')
         return [
             os.path.join(shaderc_dir, 'LICENSE'),
             os.path.join(shaderc_dir, 'third_party', 'LICENSE.spirv-tools'),
-            os.path.join(shaderc_dir, 'third_party', 'LICENSE.glslang'),
+            os.path.join(glslang_dir, 'LICENSE.txt'),
             os.path.join(spirv_dir, 'LICENSE')
         ]
 
@@ -1570,9 +1571,10 @@ class LibShaderc(ndk.builds.Module):
     @property
     def notices(self) -> List[str]:
         shaderc_dir = os.path.join(self.src, 'shaderc')
+        glslang_dir = os.path.join(self.src, 'glslang')
         return [
             os.path.join(shaderc_dir, 'LICENSE'),
-            os.path.join(shaderc_dir, 'third_party', 'LICENSE.glslang'),
+            os.path.join(glslang_dir, 'LICENSE.txt'),
             os.path.join(shaderc_dir, 'third_party', 'LICENSE.spirv-tools'),
         ]
 
@@ -1621,12 +1623,20 @@ class LibShaderc(ndk.builds.Module):
             {
                 'source_dir': os.path.join(self.src, 'glslang'),
                 'dest_dir': 'shaderc/third_party/glslang',
-                'files': ['Android.mk', 'glslang/OSDependent/osinclude.h'],
+                'files': [
+                    'Android.mk',
+                    'glslang/OSDependent/osinclude.h',
+                    # Build version info is generated from the CHANGES.md file.
+                    'CHANGES.md',
+                    'build_info.h.tmpl',
+                    'build_info.py',
+                ],
                 'dirs': [
                     'SPIRV',
                     'OGLCompilersDLL',
                     'glslang/GenericCodeGen',
                     'hlsl',
+                    'glslang/HLSL',
                     'glslang/Include',
                     'glslang/MachineIndependent',
                     'glslang/OSDependent/Unix',
