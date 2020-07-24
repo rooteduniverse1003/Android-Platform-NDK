@@ -330,7 +330,7 @@ void android_app_pre_exec_cmd(struct android_app* android_app, int8_t cmd);
 void android_app_post_exec_cmd(struct android_app* android_app, int8_t cmd);
 
 /**
- * Dummy function that used to be used to prevent the linker from stripping app
+ * No-op function that used to be used to prevent the linker from stripping app
  * glue code. No longer necessary, since __attribute__((visibility("default")))
  * does this for us.
  */

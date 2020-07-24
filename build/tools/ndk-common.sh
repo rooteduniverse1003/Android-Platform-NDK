@@ -51,9 +51,7 @@ find_ndk_root ()
     eval $1="$PROGDIR"
 }
 
-# Put location of Android NDK into ANDROID_NDK_ROOT and
-# perform a tiny amount of sanity check
-#
+# Setup default ANDROID_NDK_ROOT and verify.
 if [ -z "$ANDROID_NDK_ROOT" ] ; then
     find_ndk_root ANDROID_NDK_ROOT "$0"
     if [ $? != 0 ]; then

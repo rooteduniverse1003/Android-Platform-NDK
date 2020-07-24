@@ -162,7 +162,7 @@ def get_console(stream: TextIO = sys.stdout) -> Console:
     if stream.isatty() and os.name != 'nt':
         return AnsiConsole(stream)
     else:
-        return DumbConsole(stream)
+        return NonAnsiConsole(stream)
 
 
 class AnsiConsole(Console):
@@ -224,7 +224,7 @@ class AnsiConsole(Console):
         return self._size.width
 
 
-class DumbConsole(Console):
+class NonAnsiConsole(Console):
     """A console that does not support any ANSI features."""
 
     def __init__(self, stream: TextIO) -> None:

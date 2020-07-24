@@ -9,7 +9,7 @@
 
 #include <gtest/gtest.h>
 
-thread_local int dummy;
+thread_local int foo;
 thread_local char tls_var[1024 * 1024];
 
 int dtor_count = 0;
@@ -36,7 +36,7 @@ void test_dtor(void* parm) {
 
 TEST(emutls, pthread_test) {
   // Ensure that emutls (with its pthread key) is initialized.
-  dummy = 1;
+  foo = 1;
 
   // Create another pthread key to call test_dtor.
   pthread_key_t key;

@@ -42,7 +42,7 @@ def logger():
 
 
 def check_ndk_or_die():
-    """Verify that our NDK installation is sane or die."""
+    """Verify that our NDK installation is somewhat present or die."""
     checks = [
         'build/core',
         'prebuilt',
@@ -52,7 +52,7 @@ def check_ndk_or_die():
     for check in checks:
         check_path = os.path.join(NDK_DIR, check)
         if not os.path.exists(check_path):
-            sys.exit('Failed sanity check: missing {}'.format(check_path))
+            sys.exit('Missing {}'.format(check_path))
 
 
 def get_triple(arch):

@@ -16,7 +16,7 @@ disable=
 good-names=i,j,k,ex,Run,_
 
 [VARIABLES]
-dummy-variables-rgx=_|dummy
+dummy-variables-rgx=_
 
 [SIMILARITIES]
 ignore-imports=yes

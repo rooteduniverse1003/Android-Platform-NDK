@@ -131,8 +131,8 @@ ndk_library {
 
 You wouldn't be adding a library to the NDK unless you actually wanted apps to
 be able to use your library, but in Android N or later, apps are only allowed
-to access libraries on a specific whitelist of NDK libraries. This list is
-stored in:
+to access libraries that are part of the NDK API surface. The list of libraries
+available to apps is stored in:
 - `system/core/rootdir/etc/public.libraries.android.txt` for main Android
 - `system/core/rootdir/etc/public.libraries.wear.txt` for Android Wear
 devices

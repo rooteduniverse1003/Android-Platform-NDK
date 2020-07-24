@@ -21,7 +21,7 @@ import os
 from typing import List
 
 from ndk.ansi import AnsiConsole, Console, font_bold, font_faint, font_reset
-from ndk.ui import Ui, UiRenderer, AnsiUiRenderer, DumbUiRenderer, columnate
+from ndk.ui import Ui, UiRenderer, AnsiUiRenderer, NonAnsiUiRenderer, columnate
 from ndk.test.devices import DeviceShardingGroup
 from ndk.workqueue import LoadRestrictingWorkQueue, ShardingWorkQueue, Worker
 
@@ -78,11 +78,11 @@ def get_test_progress_ui(console: Console,
         show_worker_status = True
         show_device_groups = True
     elif os.name == 'nt':
-        ui_renderer = DumbUiRenderer(console)
+        ui_renderer = NonAnsiUiRenderer(console)
         show_worker_status = False
         show_device_groups = False
     else:
-        ui_renderer = DumbUiRenderer(console)
+        ui_renderer = NonAnsiUiRenderer(console)
         show_worker_status = False
         show_device_groups = True
     return TestProgressUi(
@@ -128,6 +128,6 @@ def get_test_build_progress_ui(
         ui_renderer = AnsiUiRenderer(console)
         show_worker_status = True
     else:
-        ui_renderer = DumbUiRenderer(console)
+        ui_renderer = NonAnsiUiRenderer(console)
         show_worker_status = False
     return TestBuildProgressUi(ui_renderer, show_worker_status, workqueue)

@@ -1,6 +1,6 @@
 #!/bin/sh
 
-# The purpose of this dummy build test is to ensure that all the
+# The purpose of this build test is to ensure that all the
 # armeabi-v7a prebuilt binaries distributed with the NDK were
 # properly built targetting VFPv3-D16, as per the ABI spec.
 #
