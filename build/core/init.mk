@@ -191,7 +191,7 @@ ifeq ($(HOST_OS),windows)
         ifneq (,$(filter CYGWIN%,$(UNAME)))
             $(call ndk_log,Cygwin detected: $(shell uname -a))
             HOST_OS := cygwin
-            DUMMY := $(shell rm -f NUL) # Cleaning up
+            _ := $(shell rm -f NUL) # Cleaning up
         else
             ifneq (,$(filter MINGW32%,$(UNAME)))
                 $(call ndk_log,MSys detected: $(shell uname -a))

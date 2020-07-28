@@ -6,10 +6,6 @@
 // License. See LICENSE.TXT for details.
 //
 //===----------------------------------------------------------------------===//
-//
-// This file is a part of AddressSanitizer, an address sanity checker.
-//
-//===----------------------------------------------------------------------===//
 #include <stdio.h>
 
 #include <gtest/gtest.h>

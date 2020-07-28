@@ -14,7 +14,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-"""Verifies that the build is sane.
+"""Builds the NDK.
 
 Cleans old build artifacts, configures the required environment, determines
 build goals, and invokes the build scripts.
@@ -149,8 +149,8 @@ def purge_unwanted_files(ndk_dir: Path) -> None:
             path.unlink()
 
 
-def create_dummy_entry_point(path: Path) -> None:
-    """Creates a dummy "application" for the app bundle.
+def create_stub_entry_point(path: Path) -> None:
+    """Creates a stub "application" for the app bundle.
 
     App bundles must have at least one entry point in the Contents/MacOS
     directory. We don't have a single entry point, and none of our executables
@@ -246,7 +246,7 @@ def make_app_bundle(zip_path: Path, ndk_dir: Path, build_number: str,
 
     contents_dir = bundle_dir / 'Contents'
     entry_point_name = 'ndk'
-    create_dummy_entry_point(contents_dir / 'MacOS' / entry_point_name)
+    create_stub_entry_point(contents_dir / 'MacOS' / entry_point_name)
 
     bundled_ndk = contents_dir / 'NDK'
     shutil.copytree(ndk_dir, bundled_ndk)

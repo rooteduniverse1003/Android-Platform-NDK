@@ -329,17 +329,18 @@ class ProcessPoolWorkQueue:
             self.workers.append(worker)
 
 
-class DummyWorker:
-    """A worker for a dummy workqueue."""
+class BasicWorker:
+    """A worker for a BasicWorkQueue."""
     def __init__(self, data: Any) -> None:
         self.data = data
 
 
-class DummyWorkQueue:
-    """A fake WorkQueue that does not parallelize.
+class BasicWorkQueue:
+    """A WorkQueue that does not delegate.
 
-    Useful for debugging when trying to determine if an issue is being caused
-    by multiprocess specific behavior.
+    This is the simplest possible implementation of a workqueue, performing all
+    the work on the same thread. Useful for debugging when trying to determine
+    if an issue is being caused by synchronization or IPC issues.
     """
     # pylint: disable=unused-argument
     def __init__(self,
@@ -369,7 +370,7 @@ class DummyWorkQueue:
         """Executes a task and returns the result."""
         task = self.task_queue.popleft()
         try:
-            return task.run(DummyWorker(self.worker_data))
+            return task.run(BasicWorker(self.worker_data))
         except:
             trace = ''.join(traceback.format_exception(*sys.exc_info()))
             raise TaskError(trace)
@@ -528,4 +529,4 @@ class ShardingWorkQueue:
 
 
 WorkQueue = ProcessPoolWorkQueue
-AnyWorkQueue = Union[DummyWorkQueue, LoadRestrictingWorkQueue, ProcessPoolWorkQueue]
+AnyWorkQueue = Union[BasicWorkQueue, LoadRestrictingWorkQueue, ProcessPoolWorkQueue]

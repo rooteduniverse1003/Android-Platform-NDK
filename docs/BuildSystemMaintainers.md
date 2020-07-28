@@ -95,12 +95,12 @@ NEON can significantly improve application performance.
 
 Clang automatically enables NEON for all API levels. ARM devices without NEON
 are uncommon. To support non-NEON devices, pass `-mfpu=vfpv3-d16` when
-compiling. Alternatively, use the Play Console to [blacklist CPUs] without NEON
+compiling. Alternatively, use the Play Console to [exclude CPUs] without NEON
 to disallow your app from being installed on those devices.
 
 [Android CDD]: https://source.android.com/compatibility/cdd
 [NEON]: https://developer.arm.com/technologies/neon
-[blacklist CPUs]: https://support.google.com/googleplay/android-developer/answer/7353455?hl=en
+[exclude CPUs]: https://support.google.com/googleplay/android-developer/answer/7353455?hl=en
 
 ### OS Versions
 [OS Versions]: #os-versions

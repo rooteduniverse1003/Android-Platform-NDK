@@ -82,7 +82,7 @@ EOF
 /* Auto-generated - DO NOT EDIT */
 #include <$HEADER>
 
-char dummy_$NAME = 0;
+char var_$NAME = 0;
 EOF
             echo "    $SRC \\" >> $ANDROID_MK
         done

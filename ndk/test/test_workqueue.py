@@ -24,7 +24,7 @@ from types import FrameType
 import time
 import unittest
 
-from ndk.workqueue import DummyWorkQueue, TaskError, Worker, WorkQueue
+from ndk.workqueue import BasicWorkQueue, TaskError, Worker, WorkQueue
 
 
 def put(_worker: Worker, i: int) -> int:
@@ -191,11 +191,11 @@ class WorkQueueTest(unittest.TestCase):
             workqueue.join()
 
 
-class DummyWorkQueueTest(unittest.TestCase):
-    """Tests for DummyWorkQueue."""
+class BasicWorkQueueTest(unittest.TestCase):
+    """Tests for BasicWorkQueue."""
     def test_put_func(self) -> None:
         """Test that we can pass a function to the queue and get results."""
-        workqueue = DummyWorkQueue()
+        workqueue = BasicWorkQueue()
 
         workqueue.add_task(put, 1)
         workqueue.add_task(put, 2)
@@ -211,7 +211,7 @@ class DummyWorkQueueTest(unittest.TestCase):
 
     def test_put_functor(self) -> None:
         """Test that we can pass a functor to the queue and get results."""
-        workqueue = DummyWorkQueue()
+        workqueue = BasicWorkQueue()
 
         workqueue.add_task(Functor(1))
         workqueue.add_task(Functor(2))
@@ -241,7 +241,7 @@ class DummyWorkQueueTest(unittest.TestCase):
 
     def test_subprocess_exception(self) -> None:
         """Tests that exceptions raised in the task are re-raised."""
-        workqueue = DummyWorkQueue()
+        workqueue = BasicWorkQueue()
 
         try:
             workqueue.add_task(raise_error)

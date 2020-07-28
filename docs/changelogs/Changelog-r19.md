@@ -116,7 +116,7 @@ Changes
      * If you need to continue supporting these devices, add
        `-Wl,--fix-cortex-a8` to your `APP_LDFLAGS` or `CMAKE_C_FLAGS`, but note
        that LLD will not be adding support for this workaround.
-     * Alternatively, use the Play Console to [blacklist] Cortex-A8 CPUs to
+     * Alternatively, use the Play Console to [exclude] Cortex-A8 CPUs to
        disallow your app from being installed on those devices.
  * [Issue 798]: The ndk-build and CMake options to disable RelRO and noexecstack
    are now ignored. All code is built with RelRO and non-executable stacks.
@@ -126,7 +126,7 @@ Changes
 [Issue 294]: https://github.com/android-ndk/ndk/issues/294
 [Issue 776]: https://github.com/android-ndk/ndk/issues/776
 [Issue 798]: https://github.com/android-ndk/ndk/issues/798
-[blacklist]: https://support.google.com/googleplay/android-developer/answer/7353455?hl=en
+[exclude]: https://support.google.com/googleplay/android-developer/answer/7353455?hl=en
 [compiler-rt]: https://compiler-rt.llvm.org/
 
 Known Issues

@@ -125,7 +125,7 @@ td_err_e td_thr_tls_get_addr(const td_thrhandle_t* unused1, psaddr_t unused2, si
 //
 
 // Thread events are no longer used by gdb >= 7.0.
-// Because we link gdbserver statically, though, we need dummy definitions.
+// Because we link gdbserver statically, though, we need definitions.
 td_err_e td_ta_set_event(td_thragent_t const* agent, td_thr_events_t* events) {
     abort();
 }

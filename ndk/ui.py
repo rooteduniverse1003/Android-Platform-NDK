@@ -109,8 +109,8 @@ class AnsiUiRenderer(UiRenderer):
         self.last_rendered_lines = lines
 
 
-class DumbUiRenderer(UiRenderer):
-    """Renders a UI to a dumb console."""
+class NonAnsiUiRenderer(UiRenderer):
+    """Renders a UI to a non-ANSI console."""
 
     def __init__(self, console: ndk.ansi.Console,
                  redraw_rate: int = 30) -> None:
@@ -185,12 +185,12 @@ def get_build_progress_ui(console: ndk.ansi.Console,
         ui_renderer = AnsiUiRenderer(console)
         return BuildProgressUi(ui_renderer, workqueue)
     else:
-        ui_renderer = DumbUiRenderer(console)
-        return DumbBuildProgressUi(ui_renderer)
+        ui_renderer = NonAnsiUiRenderer(console)
+        return NonAnsiBuildProgressUi(ui_renderer)
 
 
-class DumbBuildProgressUi(Ui):
-    """A UI for displaying build status to dumb consoles."""
+class NonAnsiBuildProgressUi(Ui):
+    """A UI for displaying build status to non-ANSI consoles."""
 
     def get_ui_lines(self) -> List[str]:
         return []
@@ -213,7 +213,7 @@ def get_work_queue_ui(console: ndk.ansi.Console,
         ui_renderer = AnsiUiRenderer(console)
         show_worker_status = True
     else:
-        ui_renderer = DumbUiRenderer(console)
+        ui_renderer = NonAnsiUiRenderer(console)
         show_worker_status = False
     return WorkQueueUi(ui_renderer, show_worker_status, workqueue)
 

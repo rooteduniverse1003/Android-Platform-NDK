@@ -22,7 +22,7 @@ from ndk.deps import DependencyManager
 from ndk.builds import Module
 
 
-class DummyModule(Module):
+class MockModule(Module):
     """A no-op module base."""
     def validate(self) -> None:
         pass
@@ -36,57 +36,57 @@ class DummyModule(Module):
 
 # A basic cycle. The cycle logic is tested more thoroughly in test_graph.py,
 # but we want to ensure that CyclicDependencyError is formatted nicely.
-class CycleA(DummyModule):
+class CycleA(MockModule):
     name = 'cycleA'
     deps = {'cycleB'}
 
 
-class CycleB(DummyModule):
+class CycleB(MockModule):
     name = 'cycleB'
     deps = {'cycleA'}
 
 
 # A module with no dependents or dependencies. Should be immediately buildable.
-class Isolated(DummyModule):
+class Isolated(MockModule):
     name = 'isolated'
     deps: Set[str] = set()
 
 
 # A module that is not present in the build graph.
-class Unknown(DummyModule):
+class Unknown(MockModule):
     name = 'unknown'
     deps: Set[str] = set()
 
 
 # A simple chain of two modules. The first should be immediately buildable, and
 # the second should become buildable after it completes.
-class SimpleA(DummyModule):
+class SimpleA(MockModule):
     name = 'simpleA'
     deps: Set[str] = set()
 
 
-class SimpleB(DummyModule):
+class SimpleB(MockModule):
     name = 'simpleB'
     deps = {'simpleA'}
 
 
 # Slightly more complex module graph.
-class ComplexA(DummyModule):
+class ComplexA(MockModule):
     name = 'complexA'
     deps: Set[str] = set()
 
 
-class ComplexB(DummyModule):
+class ComplexB(MockModule):
     name = 'complexB'
     deps = {'complexA'}
 
 
-class ComplexC(DummyModule):
+class ComplexC(MockModule):
     name = 'complexC'
     deps = {'complexA'}
 
 
-class ComplexD(DummyModule):
+class ComplexD(MockModule):
     name = 'complexD'
     deps = {'complexA', 'complexB'}
 

@@ -131,7 +131,7 @@ For Android Studio issues, follow the docs on the [Android Studio site].
          * If you need to continue supporting these devices you can disable
            Neon explicitly by setting `LOCAL_ARM_NEON := false` in ndk-build or
            passing `-DANDROID_ARM_NEON=false` to CMake.
-         * Alternatively, use the Play Console to [blacklist CPUs] without
+         * Alternatively, use the Play Console to [exclude CPUs] without
            Neon to disallow your app from being installed on those devices.
      * [Issue 1004]: Fixed bug with bad line number information when building
        Arm64 with `-O0`.
@@ -205,7 +205,7 @@ For Android Studio issues, follow the docs on the [Android Studio site].
 [Issue 885]: https://github.com/android-ndk/ndk/issues/885
 [Issue 916]: https://github.com/android-ndk/ndk/issues/916
 [Issue 976]: https://github.com/android/ndk/issues/976
-[blacklist CPUs]: https://support.google.com/googleplay/android-developer/answer/7353455?hl=en
+[exclude CPUs]: https://support.google.com/googleplay/android-developer/answer/7353455?hl=en
 [maintainer_linkers]: https://android.googlesource.com/platform/ndk/+/master/docs/BuildSystemMaintainers.md#Linkers
 [workaround]: https://github.com/android/ndk-samples/blob/2c97a9eb5b9b5de233b7ece4dd0d0d28fa4cb4c2/other-builds/ndkbuild/common.mk#L26
 
