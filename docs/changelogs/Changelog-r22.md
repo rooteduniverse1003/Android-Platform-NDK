@@ -21,7 +21,7 @@ For Android Studio issues, follow the docs on the [Android Studio site].
 
 ## Changes
 
-* Updated LLVM to r383902b, based on LLVM 11 development.
+* Updated LLVM to r399163, based on LLVM 11 development.
   * [Issue 829]: Fixed issue with `__attribute__((visibility("hidden")))`
     symbols sometimes not being hidden.
   * [Issue 1149]: Fixed Clang crash with `#pragma detect_mismatch`.
