@@ -1960,10 +1960,11 @@ class BaseToolchain(ndk.builds.Module):
             bin_ld = bin_dir / f'{triple}-ld{exe}'
             arch_ld = arch_bin_dir / f'ld{exe}'
             lld = bin_dir / f'ld.lld{exe}'
+            new_bin_ld = bin_dir / f'ld{exe}'
 
             bin_ld.unlink()
-            shutil.copyfile(lld, bin_ld)
-            shutil.copystat(lld, bin_ld)
+            shutil.copyfile(lld, new_bin_ld)
+            shutil.copystat(lld, new_bin_ld)
 
             arch_ld.unlink()
             shutil.copyfile(lld, arch_ld)
@@ -1971,13 +1972,8 @@ class BaseToolchain(ndk.builds.Module):
 
             # LLD isn't really meant to be moved, so it doesn't have an RPATH
             # for the arch-specific directory. Ideally we wouldn't copy to this
-            # directory at all, but Clang only searches the arch-specific
-            # directory, so if we don't have this it'll wrongly fall back to
-            # /usr/bin/ld.
-            #
-            # We'll fix Clang before we remove the directory entirely when we
-            # remove binutils, but for now just copy the dependent libraries
-            # with it.
+            # directory at all, but to maintain compatibility for users we'll
+            # keep this directory until GNU binutils is removed.
             if not self.host.is_windows:
                 src_lib64 = bin_dir.parent / 'lib64'
                 dst_lib64 = arch_bin_dir.parent / 'lib64'
