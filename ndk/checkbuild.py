@@ -1986,6 +1986,9 @@ class BaseToolchain(ndk.builds.Module):
 
                 libcxxabi = versioned_so(self.host, 'libc++abi', '1')
                 shutil.copy2(src_lib64 / libcxxabi, dst_lib64 / libcxxabi)
+
+                libxml2 = versioned_so(self.host, 'libxml2', '2.9.10')
+                shutil.copy2(src_lib64 / libxml2, dst_lib64 / libxml2)
             else:
                 src = bin_dir / 'libwinpthread-1.dll'
                 dest = arch_bin_dir / 'libwinpthread-1.dll'
