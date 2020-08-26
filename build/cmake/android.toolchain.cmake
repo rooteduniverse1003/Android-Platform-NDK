@@ -434,22 +434,7 @@ set(ANDROID_CXX_COMPILER
   "${ANDROID_TOOLCHAIN_ROOT}/bin/clang++${ANDROID_TOOLCHAIN_SUFFIX}")
 set(ANDROID_ASM_COMPILER
   "${ANDROID_TOOLCHAIN_ROOT}/bin/clang${ANDROID_TOOLCHAIN_SUFFIX}")
-# Clang can fail to compile if CMake doesn't correctly supply the target and
-# external toolchain, but to do so, CMake needs to already know that the
-# compiler is clang. Tell CMake that the compiler is really clang, but don't
-# use CMakeForceCompiler, since we still want compile checks. We only want
-# to skip the compiler ID detection step.
-set(CMAKE_C_COMPILER_ID_RUN TRUE)
-set(CMAKE_CXX_COMPILER_ID_RUN TRUE)
-set(CMAKE_C_COMPILER_ID Clang)
-set(CMAKE_CXX_COMPILER_ID Clang)
-set(CMAKE_C_COMPILER_VERSION 11.0)
-set(CMAKE_CXX_COMPILER_VERSION 11.0)
-set(CMAKE_C_STANDARD_COMPUTED_DEFAULT 11)
-set(CMAKE_CXX_STANDARD_COMPUTED_DEFAULT 14)
 set(CMAKE_C_COMPILER_TARGET   ${ANDROID_LLVM_TRIPLE})
-set(CMAKE_C_COMPILER_FRONTEND_VARIANT "GNU")
-set(CMAKE_CXX_COMPILER_FRONTEND_VARIANT "GNU")
 set(CMAKE_CXX_COMPILER_TARGET ${ANDROID_LLVM_TRIPLE})
 set(CMAKE_ASM_COMPILER_TARGET ${ANDROID_LLVM_TRIPLE})
 set(CMAKE_C_COMPILER_EXTERNAL_TOOLCHAIN   "${ANDROID_TOOLCHAIN_ROOT}")
@@ -461,6 +446,33 @@ set(ANDROID_RANLIB
   "${ANDROID_TOOLCHAIN_ROOT}/bin/llvm-ranlib${ANDROID_TOOLCHAIN_SUFFIX}")
 set(ANDROID_STRIP
   "${ANDROID_TOOLCHAIN_ROOT}/bin/llvm-strip${ANDROID_TOOLCHAIN_SUFFIX}")
+
+if(${CMAKE_VERSION} VERSION_LESS "3.10")
+    # With 3.6, CMake won't pass -target when running the compiler
+    # identification test, which causes the test to fail on flags like -mthumb.
+    # Later versions of CMake don't have this problem. I'm not sure when exactly
+    # it was fixed, but it's broken in 3.6 and works in 3.10, so for now just
+    # allow the built in detection of these values to happen on 3.10+. We can
+    # tune that down if we get more information, or remove this block if we stop
+    # supporting older versions some day.
+    message(WARNING "An old version of CMake is being used that cannot "
+      "automatically detect compiler attributes. Compiler identification is "
+      "being bypassed. Some values may be wrong or missing. Update to CMake "
+      "3.10 or newer to use CMake's built-in compiler identification.")
+    set(CMAKE_C_COMPILER_ID_RUN TRUE)
+    set(CMAKE_CXX_COMPILER_ID_RUN TRUE)
+    set(CMAKE_C_COMPILER_ID Clang)
+    set(CMAKE_CXX_COMPILER_ID Clang)
+    # No need to auto-detect the computed standard defaults because CMake 3.6
+    # doesn't know about anything past C11 or C++14 (neither does 3.10, so no
+    # need to worry about 3.7-3.9), and any higher standards that Clang might
+    # use are clamped to those values.
+    set(CMAKE_C_STANDARD_COMPUTED_DEFAULT 11)
+    set(CMAKE_CXX_STANDARD_COMPUTED_DEFAULT 14)
+    set(CMAKE_C_COMPILER_FRONTEND_VARIANT "GNU")
+    set(CMAKE_CXX_COMPILER_FRONTEND_VARIANT "GNU")
+    include(${ANDROID_NDK}/build/cmake/compiler_id.cmake)
+endif()
 
 # Generic flags.
 list(APPEND ANDROID_COMPILER_FLAGS
