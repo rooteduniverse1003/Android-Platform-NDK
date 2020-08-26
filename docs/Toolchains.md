@@ -37,12 +37,12 @@ To test a Clang you just built:
 $ export CLANG_PREBUILTS=`realpath ../prebuilts/clang/host/linux-x86`
 $ rm -r $CLANG_PREBUILTS/clang-dev
 $ tar xf path/to/clang-dev-linux-x86_64.tar.bz2 -C $CLANG_PREBUILTS
-# Edit ndk/toolchains.py and change the version to 'clang-dev'.
-# Update the VERSION variable in get_llvm_toolchain_binprefix in
-# built/tools/prebuilt-common.sh.
-$ python3 ../prebuilts/ndk/symlink-clang.py dev
+# Follow the instructions to update the Clang version in ndk/toolchains.py.
 $ ./checkbuild.py
-# Run tests.
+# Run tests. To run the NDK test suite, you will need to attach the
+# appropriately configured devices. The test tool will print warnings for
+# missing configurations.
+$ ./run_tests.py
 ```
 
 For details about running tests, see [Testing.md].
