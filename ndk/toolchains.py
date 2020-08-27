@@ -23,10 +23,6 @@ from ndk.hosts import Host, get_default_host
 import ndk.paths
 
 
-# When updating this, also update:
-#
-# 1. CMAKE_C_COMPILER_VERSION and CMAKE_CXX_COMPILER_VERSION in
-#    build/cmake/android.toolchain.cmake
 CLANG_VERSION = 'clang-r399163'
 
 

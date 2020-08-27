@@ -2334,12 +2334,14 @@ class NdkBuild(ndk.builds.PackageModule):
 
     deps = {
         'meta',
+        'clang',
     }
 
     def install(self) -> None:
         super().install()
 
         self.install_ndk_version_makefile()
+        self.generate_cmake_compiler_id()
 
         self.generate_language_specific_metadata('abis', abis_meta_transform)
 
@@ -2357,6 +2359,36 @@ class NdkBuild(ndk.builds.PackageModule):
             NDK_MINOR := {ndk.config.hotfix}
             NDK_BETA := {ndk.config.beta}
             NDK_CANARY := {str(ndk.config.canary).lower()}
+            """))
+
+
+    def get_clang_version(self, clang: Path) -> str:
+        """Invokes Clang to determine its version string."""
+        result = subprocess.run([str(clang), '--version'],
+                                capture_output=True,
+                                encoding='utf-8',
+                                check=True)
+        version_line = result.stdout.splitlines()[0]
+        # Format of the version line is:
+        # Android ($BUILD, based on $REV) clang version x.y.z ($GIT_URL $SHA)
+        match = re.search(r'clang version ([0-9.]+)\s', version_line)
+        if match is None:
+            raise RuntimeError(
+                f'Could not find Clang version in:\n{result.stdout}')
+        return match.group(1)
+
+    def generate_cmake_compiler_id(self) -> None:
+        """Generates compiler ID information for old versions of CMake."""
+        compiler_id_file = (Path(self.get_install_path()) /
+                            'cmake/compiler_id.cmake')
+        clang_prebuilts = Path(self.get_dep('clang').get_build_host_install())
+        clang = clang_prebuilts / 'bin/clang'
+        clang_version = self.get_clang_version(clang)
+
+        compiler_id_file.write_text(textwrap.dedent(f"""\
+            # The file is automatically generated when the NDK is built.
+            set(CMAKE_C_COMPILER_VERSION {clang_version})
+            set(CMAKE_CXX_COMPILER_VERSION {clang_version})
             """))
 
     def generate_language_specific_metadata(
