@@ -97,6 +97,7 @@ class AutoconfBuilder:
         flags = [
             '-Os',
             '-fomit-frame-pointer',
+            '-fuse-ld=lld',
 
             # AC_CHECK_HEADERS fails if the compiler emits any warnings. We're
             # guaranteed to hit -Wunused-command-line-argument since autoconf
