@@ -348,7 +348,7 @@ def main(argv):
     ndk_paths = get_ndk_paths()
     symbolize_cmd = [
         find_llvm_symbolizer(*ndk_paths), '--demangle', '--functions=linkage',
-        '--inlining=true', '--use-symbol-table=true'
+        '--inlines'
     ]
     readelf_path = find_readelf(*ndk_paths)
 
