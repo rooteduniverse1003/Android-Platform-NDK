@@ -83,6 +83,7 @@ class CMakeBuilder:
             '-Os',
             '-fomit-frame-pointer',
             '-s',
+            '-fuse-ld=lld',
         ]
         if self.additional_flags:
             flags.extend(self.additional_flags)
