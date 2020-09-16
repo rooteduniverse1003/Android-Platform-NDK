@@ -97,7 +97,6 @@ class AutoconfBuilder:
         flags = [
             '-Os',
             '-fomit-frame-pointer',
-            '-fuse-ld=lld',
 
             # AC_CHECK_HEADERS fails if the compiler emits any warnings. We're
             # guaranteed to hit -Wunused-command-line-argument since autoconf
@@ -107,6 +106,8 @@ class AutoconfBuilder:
             # until much later in the build.
             '-w',
         ]
+        if not self.host == Host.Darwin:
+            flags.append('-fuse-ld=lld')
         if not self.no_strip:
             flags.append('-s')
         if self.additional_flags:
