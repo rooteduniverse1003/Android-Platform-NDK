@@ -89,8 +89,9 @@ For Android Studio issues, follow the docs on the [Android Studio site].
   Note that [Issue 843] will affect builds using LLD with binutils strip and
   objcopy as opposed to llvm-strip and llvm-objcopy.
 
-* An experimental --lldb parameter is added to ndk-gdb. If set, lldb will be
-  used instead of gdb.
+* ndk-gdb now uses lldb as the debugger. gdb is deprecated and will be removed in
+  a future release. To fall back to gdb, use --no-lldb option. But please
+  [file a bug] explaining why you couldn't use lldb.
 
 [Build System Maintainers Guide]: https://android.googlesource.com/platform/ndk/+/master/docs/BuildSystemMaintainers.md
 [Issue 609]: https://github.com/android/ndk/issues/609
@@ -103,6 +104,7 @@ For Android Studio issues, follow the docs on the [Android Studio site].
 [Issue 1212]: https://github.com/android/ndk/issues/1212
 [Issue 1258]: https://github.com/android/ndk/issues/1258
 [Issue 1260]: https://github.com/android/ndk/issues/1260
+[file a bug]: https://github.com/android/ndk/issues/new/choose
 
 ## Known Issues
 

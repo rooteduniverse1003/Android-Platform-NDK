@@ -2519,6 +2519,13 @@ class NdkGdbShortcut(ndk.builds.ScriptShortcutModule):
     windows_ext = '.cmd'
 
 
+class NdkLldbShortcut(ndk.builds.ScriptShortcutModule):
+    name = 'ndk-lldb-shortcut'
+    path = 'ndk-lldb'
+    script = 'prebuilt/{host}/bin/ndk-gdb'
+    windows_ext = '.cmd'
+
+
 class NdkStack(ndk.builds.MultiFileModule):
     name = 'ndk-stack'
     path = 'prebuilt/{host}/bin'
@@ -2854,6 +2861,7 @@ ALL_MODULES = [
     NdkBuildShortcut(),
     NdkGdb(),
     NdkGdbShortcut(),
+    NdkLldbShortcut(),
     NdkHelper(),
     NdkPy(),
     NdkStack(),
