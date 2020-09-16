@@ -83,8 +83,9 @@ class CMakeBuilder:
             '-Os',
             '-fomit-frame-pointer',
             '-s',
-            '-fuse-ld=lld',
         ]
+        if not self.host == Host.Darwin:
+            flags.append('-fuse-ld=lld')
         if self.additional_flags:
             flags.extend(self.additional_flags)
         return flags
