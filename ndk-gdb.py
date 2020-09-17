@@ -426,6 +426,13 @@ def get_llvm_host_name():
         return "linux-x86_64"
 
 
+def get_python_executable(toolchain_path):
+    if sys.platform.startswith("win"):
+        return os.path.join(toolchain_path, 'python3', 'python.exe')
+    else:
+        return os.path.join(toolchain_path, 'python3', 'bin', 'python3')
+
+
 def get_lldb_path(toolchain_path):
     for lldb_name in ['lldb.sh', 'lldb.cmd', 'lldb', 'lldb.exe']:
         debugger_path = os.path.join(toolchain_path, "bin", lldb_name)
@@ -513,7 +520,7 @@ def pull_binaries(device, out_dir, app_64bit):
         except:
             device.pull("/system/bin/app_process", destination)
 
-def generate_lldb_script(args, sysroot, binary_path, app_64bit, jdb_pid):
+def generate_lldb_script(args, sysroot, binary_path, app_64bit, jdb_pid, llvm_toolchain_dir):
     lldb_commands = []
     solib_search_paths = [
         "{}/system/bin".format(sysroot),
@@ -539,7 +546,9 @@ start_jdb_to_unblock_app()
 exit()
     """.format(repr(
             [
-                sys.executable,
+                # We can't use sys.executable because it is the python2.
+                # lldb wrapper will set PYTHONHOME to point to python3.
+                get_python_executable(llvm_toolchain_dir),
                 os.path.realpath(__file__),
                 "--internal-wakeup-pid-with-jdb",
                 args.device.adb_path,
@@ -671,7 +680,7 @@ def start_jdb(adb_path, serial, jdb_cmd, pid, verbose):
     # start polling for a Java debugger (e.g. every 200ms). We need to wait
     # a while longer then so that the app notices jdb.
     jdb_magic = "__verify_jdb_has_started__"
-    jdb.stdin.write('print "{}"\n'.format(jdb_magic))
+    jdb.stdin.write('print "{}"\n'.format(jdb_magic).encode('utf-8'))
     saw_magic_str = False
     while True:
         line = jdb.stdout.readline()
@@ -806,7 +815,7 @@ def main():
 
     # Start gdb.
     if use_lldb:
-        script_commands = generate_lldb_script(args, out_dir, zygote_path, app_64bit, jdb_pid)
+        script_commands = generate_lldb_script(args, out_dir, zygote_path, app_64bit, jdb_pid, llvm_toolchain_dir)
         debugger_path = get_lldb_path(llvm_toolchain_dir)
         flags = []
     else:
