@@ -704,7 +704,7 @@ def main():
 
     args = handle_args()
     device = args.device
-    use_lldb = args.lldb
+    use_lldb = not args.no_lldb
 
     if device is None:
         error("Could not find a unique connected device/emulator.")
