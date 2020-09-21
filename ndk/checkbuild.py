@@ -999,8 +999,8 @@ class Platforms(ndk.builds.Module):
     def get_build_cmd(self, dst: str, srcs: List[str], api: int,
                       arch: ndk.abis.Arch,
                       build_number: Union[int, str]) -> List[str]:
-        bionic_includes = ndk.paths.android_path(
-            'bionic/libc/arch-common/bionic')
+        libc_includes = ndk.paths.ANDROID_DIR / 'bionic/libc'
+        arch_common_includes = libc_includes / 'arch-common/bionic'
 
         cc = os.path.join(
             self.get_dep('clang').get_build_host_install(), 'bin/clang')
@@ -1014,11 +1014,11 @@ class Platforms(ndk.builds.Module):
             self.prebuilt_path('sysroot'),
             '-gcc-toolchain',
             binutils,
-            '-I',
-            bionic_includes,
-            '-DPLATFORM_SDK_VERSION={}'.format(api),
-            '-DABI_NDK_VERSION="{}"'.format(ndk.config.release),
-            '-DABI_NDK_BUILD_NUMBER="{}"'.format(build_number),
+            f'-I{libc_includes}',
+            f'-I{arch_common_includes}',
+            f'-DPLATFORM_SDK_VERSION={api}',
+            f'-DABI_NDK_VERSION="{ndk.config.release}"',
+            f'-DABI_NDK_BUILD_NUMBER="{build_number}"',
             '-O2',
             '-fpic',
             '-Wl,-r',
