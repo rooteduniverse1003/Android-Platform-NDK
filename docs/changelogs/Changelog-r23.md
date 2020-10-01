@@ -23,6 +23,11 @@ For Android Studio issues, follow the docs on the [Android Studio site].
   The latest are now posted directly to [GitHub](https://github.com/KhronosGroup/Vulkan-ValidationLayers/releases).
 * Vulkan tools source is also removed, specifically vulkan_wrapper.
   It should be downloaded upstream from [GitHub](https://github.com/KhronosGroup/Vulkan-Tools).
+* The toolchain file (android.toolchain.cmake) is refactored to base on cmake's
+  integrated Android support. This new toolchain file will be enabled by default
+  for cmake 3.20 and newer. No user side change is expected. But if anything goes
+  wrong, please file a bug and set `ANDROID_USE_LEGACY_TOOLCHAIN_FILE=ON` to
+  restore the legacy behavior.
 
 ## Known Issues
 
