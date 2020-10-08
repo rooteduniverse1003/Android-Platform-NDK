@@ -4,7 +4,7 @@ Report issues to [GitHub].
 
 For Android Studio issues, follow the docs on the [Android Studio site].
 
-[GitHub]: https://github.com/android-ndk/ndk/issues
+[GitHub]: https://github.com/android/ndk/issues
 [Android Studio site]: http://tools.android.com/filing-bugs
 
 ## Announcements
@@ -99,7 +99,7 @@ For Android Studio issues, follow the docs on the [Android Studio site].
 [Issue 609]: https://github.com/android/ndk/issues/609
 [Issue 829]: https://github.com/android/ndk/issues/829
 [Issue 929]: https://github.com/android/ndk/issues/929
-[Issue 1096]: https://github.com/android/ndk/issues/1096
+[Issue 1139]: https://github.com/android/ndk/issues/1139
 [Issue 1149]: https://github.com/android/ndk/issues/1149
 [Issue 1196]: https://github.com/android/ndk/issues/1196
 [Issue 1200]: https://github.com/android/ndk/issues/1200
@@ -135,7 +135,7 @@ For Android Studio issues, follow the docs on the [Android Studio site].
   export ASAN_OPTIONS=log_to_syslog=false,allow_user_segv_handler=1
   ASAN_LIB=$(ls $HERE/libclang_rt.asan-*-android.so)
   if [ -f "$HERE/libc++_shared.so" ]; then
-      # Workaround for https://github.com/android-ndk/ndk/issues/988.
+      # Workaround for https://github.com/android/ndk/issues/988.
       export LD_PRELOAD="$ASAN_LIB $HERE/libc++_shared.so"
   else
       export LD_PRELOAD="$ASAN_LIB"
@@ -163,10 +163,9 @@ For Android Studio issues, follow the docs on the [Android Studio site].
    Android Gradle Plugin version 4.0 (for non-Gradle users, the fix is also in
    ndk-build and our CMake toolchain file), but may affect other build systems.
 
-[Issue 360]: https://github.com/android-ndk/ndk/issues/360
-[Issue 843]: https://github.com/android-ndk/ndk/issues/843
-[Issue 906]: https://github.com/android-ndk/ndk/issues/906
-[Issue 988]: https://github.com/android-ndk/ndk/issues/988
+[Issue 360]: https://github.com/android/ndk/issues/360
+[Issue 843]: https://github.com/android/ndk/issues/843
+[Issue 906]: https://github.com/android/ndk/issues/906
+[Issue 988]: https://github.com/android/ndk/issues/988
 [Issue 1130]: https://github.com/android/ndk/issues/1130
-[Issue 1139]: https://github.com/android-ndk/ndk/issues/1139
 [use plugin version 3.1 or newer]: https://developer.android.com/studio/releases/gradle-plugin#updating-plugin
