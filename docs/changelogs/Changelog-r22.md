@@ -117,15 +117,6 @@ For Android Studio issues, follow the docs on the [Android Studio site].
   segfaults if the containing library is `dlclose`ed on devices running M or
   newer, or devices before M when using a static STL. The simple workaround is
   to not call `dlclose`.
-* [Issue 70838247]: Gold emits broken debug information for AArch64. AArch64
-  still uses BFD by default.
-* [Issue 906]: Clang does not pass `-march=armv7-a` to the assembler when using
-  `-fno-integrated-as`. This results in the assembler generating ARMv5
-  instructions. Note that by default Clang uses the integrated assembler which
-  does not have this problem. To workaround this issue, explicitly use
-  `-march=armv7-a` when building for 32-bit ARM with the non-integrated
-  assembler, or use the integrated assembler. ndk-build and CMake already
-  contain these workarounds.
 * [Issue 906]: Clang does not pass `-march=armv7-a` to the assembler when using
   `-fno-integrated-as`. This results in the assembler generating ARMv5
   instructions. Note that by default Clang uses the integrated assembler which
@@ -173,7 +164,6 @@ For Android Studio issues, follow the docs on the [Android Studio site].
    ndk-build and our CMake toolchain file), but may affect other build systems.
 
 [Issue 360]: https://github.com/android-ndk/ndk/issues/360
-[Issue 70838247]: https://issuetracker.google.com/70838247
 [Issue 843]: https://github.com/android-ndk/ndk/issues/843
 [Issue 906]: https://github.com/android-ndk/ndk/issues/906
 [Issue 988]: https://github.com/android-ndk/ndk/issues/988
