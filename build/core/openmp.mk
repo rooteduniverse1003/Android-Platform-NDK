@@ -39,7 +39,7 @@ $(NDK_APP_OMP): PRIVATE_ABI := $(TARGET_ARCH_ABI)
 $(NDK_APP_OMP): PRIVATE_SRC := $(NDK_OMP_LIB_PATH)
 $(NDK_APP_OMP): PRIVATE_DST := $(NDK_APP_OMP)
 
-$(call generate-file-dir,$(NDK_APP_$(NDK_SANITIZER_NAME)))
+$(call generate-file-dir,$(NDK_APP_OMP))
 
 $(NDK_APP_OMP): clean-installed-binaries
 	$(call host-echo-build-step,$(PRIVATE_ABI),OpenMP "$(call pretty-dir,$(PRIVATE_DST))")
