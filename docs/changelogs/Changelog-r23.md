@@ -65,8 +65,6 @@ For Android Studio issues, follow the docs on the [Android Studio site].
   `No toolchains found in the NDK toolchains folder for ABI with prefix: mips64el-linux-android`,
   update your project file to [use plugin version 3.1 or newer]. You will also
   need to upgrade to Android Studio 3.1 or newer.
-* This version of the NDK is incompatible with Android Studio 3.2 and older.
-  Builds will still work, but IDE features will be unavailable.
 * [Issue 843]: Using LLD with binutils `strip` or `objcopy` breaks RelRO. Use
    `llvm-strip` and `llvm-objcopy` instead. This issue has been resolved in
    Android Gradle Plugin version 4.0 (for non-Gradle users, the fix is also in
