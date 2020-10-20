@@ -118,6 +118,11 @@ GLOBAL_CFLAGS = \
     -funwind-tables \
     -no-canonical-prefixes \
 
+# This is unnecessary given the new toolchain layout, but Studio will not
+# recognize this as an Android build if there is no --sysroot flag.
+# TODO: Teach Studio to recognize Android builds based on --target.
+GLOBAL_CFLAGS += --sysroot $(call host-path,$(NDK_UNIFIED_SYSROOT_PATH))
+
 # Always enable debug info. We strip binaries when needed.
 GLOBAL_CFLAGS += -g
 
