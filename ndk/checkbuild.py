@@ -929,12 +929,6 @@ class Platforms(ndk.builds.Module):
     # are not included in the NDK to save space.
     skip_apis = (20, 25)
 
-    # We still need a numeric API level for codenamed API levels because
-    # ABI_ANDROID_API in crtbrand is an integer. We start counting the
-    # codenamed releases from 9000 and increment for each additional release.
-    # This is filled by get_apis.
-    codename_api_map: Dict[str, int] = {}
-
     # Shared with the sysroot, though the sysroot NOTICE actually includes a
     # lot more licenses. Platforms and Sysroot are essentially a single
     # component that is split into two directories only temporarily, so this
@@ -962,9 +956,8 @@ class Platforms(ndk.builds.Module):
             return 'lib'
     # pylint: enable=no-self-use
 
-    def get_apis(self) -> List[Union[int, str]]:
-        codenamed_apis = []
-        apis: List[Union[int, str]] = []
+    def get_apis(self) -> List[int]:
+        apis: List[int] = []
         for name in os.listdir(self.prebuilt_path('platforms')):
             if not name.startswith('android-'):
                 continue
@@ -976,19 +969,18 @@ class Platforms(ndk.builds.Module):
                     apis.append(api)
             except ValueError:
                 # Codenamed release like android-O, android-O-MR1, etc.
-                # TODO: Remove this code path.
-                # I don't think we're actually using this. Since having
+                # Codenamed APIs are not supported, since having
                 # non-integer API directories breaks all kinds of tools, we
                 # rename them when we check them in.
-                apis.append(api_str)
-                codenamed_apis.append(api_str)
+                raise ValueError(
+                    'No codenamed API is allowed: {}\n'
+                    'Use the update_platform.py tool from the platform/prebuilts/ndk dev branch '
+                    'to remove or rename it.'.format(api_str))
 
-        for api_num, api_str in enumerate(sorted(codenamed_apis), start=9000):
-            self.codename_api_map[api_str] = api_num
         return sorted(apis)
 
     # pylint: disable=no-self-use
-    def get_arches(self, api: Union[int, str]) -> List[ndk.abis.Arch]:
+    def get_arches(self, api: int) -> List[ndk.abis.Arch]:
         arches = [ndk.abis.Arch('arm'), ndk.abis.Arch('x86')]
         # All codenamed APIs are at 64-bit capable.
         if isinstance(api, str) or api >= 21:
@@ -1043,25 +1035,16 @@ class Platforms(ndk.builds.Module):
             raise RuntimeError(
                 '{} does not contain NDK ELF note'.format(obj_file))
 
-    def build_crt_object(self, dst: str, srcs: List[str], api: Union[int, str],
+    def build_crt_object(self, dst: str, srcs: List[str], api: int,
                          arch: ndk.abis.Arch, build_number: Union[int, str],
                          defines: List[str]) -> None:
-        try:
-            # No-op for stable releases.
-            api_num = int(api)
-        except ValueError:
-            # ValueError means this was a codenamed release. We need the
-            # integer matching this release for ABI_ANDROID_API in crtbrand.
-            assert isinstance(api, str)
-            api_num = self.codename_api_map[api]
-
-        cc_args = self.get_build_cmd(dst, srcs, api_num, arch, build_number)
+        cc_args = self.get_build_cmd(dst, srcs, api, arch, build_number)
         cc_args.extend(defines)
 
         print('Running: ' + ' '.join([pipes.quote(arg) for arg in cc_args]))
         subprocess.check_call(cc_args)
 
-    def build_crt_objects(self, dst_dir: str, api: Union[int, str],
+    def build_crt_objects(self, dst_dir: str, api: int,
                           arch: ndk.abis.Arch,
                           build_number: Union[int, str]) -> None:
         src_dir = ndk.paths.android_path('bionic/libc/arch-common/bionic')
@@ -1538,9 +1521,6 @@ class GdbServer(ndk.builds.Module):
             os.makedirs(self.build_dir)
 
         max_api = Platforms().get_apis()[-1]
-        # Make sure the max_api is not a codenamed release. It should never
-        # happen since letters will sort before numbers.
-        assert isinstance(max_api, int)
         with ndk.ext.os.cd(self.build_dir):
             self.build_libthread_db(max_api)
             self.configure(max_api)
@@ -2009,7 +1989,6 @@ class BaseToolchain(ndk.builds.Module):
                 # TODO: Remove duplicate static libraries from this directory.
                 # We already have them in the version-generic directory.
 
-                assert isinstance(api, int)
                 write_clang_wrapper(
                     os.path.join(install_dir, 'bin'), api, triple,
                     self.host.is_windows)
@@ -2222,7 +2201,6 @@ class Toolchain(ndk.builds.Module):
                 # because libandroid_support is only used on pre-21 API levels.
                 static_script = ['-lc++_static', '-lc++abi']
                 shared_script = ['-lc++_shared']
-                assert isinstance(api, int)
                 if api < 21:
                     # The ordering here is funky because of interdependencies
                     # between libandroid_support and libc++abi.
