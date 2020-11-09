@@ -401,13 +401,6 @@ set(ANDROID_TOOLCHAIN_PREFIX
 
 list(APPEND CMAKE_PREFIX_PATH "${ANDROID_TOOLCHAIN_ROOT}")
 
-# find_library searches a handful of paths as described by
-# https://cmake.org/cmake/help/v3.6/command/find_library.html. CMake doesn't
-# understand the Android sysroot layout, so we need to give the direct path to
-# the libraries rather than just the sysroot. Set up CMAKE_SYSTEM_LIBRARY_PATH
-# (https://cmake.org/cmake/help/v3.6/variable/CMAKE_SYSTEM_LIBRARY_PATH.html)
-# instead.
-
 # NB: This variable causes CMake to automatically pass --sysroot to the
 # toolchain. Studio currently relies on this to recognize Android builds. If
 # this variable is removed, ensure that flag is still passed.
@@ -417,9 +410,13 @@ set(CMAKE_SYSROOT "${ANDROID_TOOLCHAIN_ROOT}/sysroot")
 # Allows CMake to find headers in the architecture-specific include directories.
 set(CMAKE_LIBRARY_ARCHITECTURE "${ANDROID_TOOLCHAIN_NAME}")
 
-# Instructs CMake to search the correct API level for libraries.
-list(APPEND CMAKE_SYSTEM_LIBRARY_PATH
-  "/usr/lib/${ANDROID_TOOLCHAIN_NAME}/${ANDROID_PLATFORM_LEVEL}")
+# In addition to <root>/<prefix>/lib/<arch>, cmake also searches <root>/<prefix>.
+# Adding the API specific path to the beginning of CMAKE_SYSTEM_PREFIX_PATH, to
+# make sure it is searched first.
+set(CMAKE_SYSTEM_PREFIX_PATH
+  "/usr/lib/${ANDROID_TOOLCHAIN_NAME}/${ANDROID_PLATFORM_LEVEL}"
+  "${CMAKE_SYSTEM_PREFIX_PATH}"
+  )
 
 set(ANDROID_HOST_PREBUILTS "${ANDROID_NDK}/prebuilt/${ANDROID_HOST_TAG}")
 
