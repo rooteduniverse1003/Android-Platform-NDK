@@ -195,3 +195,15 @@ $ cd path/to/ndk/prebuilts/ndk
 $ ./update_platform.py --no-download \
     path/to/platform/ndk-dist/ndk_platform.tar.bz2
 ```
+
+Note that most branches will include at least one codenamed release in the
+sysroot artifacts. Clang only handles integer API levels, so these will cause an
+error when updating the prebuilts if any codenames are found. To avoid such
+errors, use either `--remove-platform` or `--rename-codename` when updating.
+Whether the platform should be removed or renamed depends on the status of the
+release. For releases accompanying an Android developer preview the platform
+should be renamed, but for other releases the APIs should be removed.
+
+For example, prior to the Android R developer previews being available
+`--remove-platform R` was used. To include R API previews
+`--rename-codename R=30` was used.
