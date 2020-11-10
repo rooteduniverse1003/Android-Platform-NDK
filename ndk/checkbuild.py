@@ -2254,6 +2254,7 @@ def abis_meta_transform(metadata: Dict) -> Dict[str, Any]:
     deprecated_abis = []
     lp32_abis = []
     lp64_abis = []
+    abi_infos = {}
     for abi, abi_data in metadata.items():
         bitness = abi_data['bitness']
         if bitness == 32:
@@ -2270,12 +2271,25 @@ def abis_meta_transform(metadata: Dict) -> Dict[str, Any]:
         if abi_data['deprecated']:
             deprecated_abis.append(abi)
 
+        proc = abi_data['proc']
+        arch = abi_data['arch']
+        triple = abi_data['triple']
+        llvm_triple = abi_data['llvm_triple']
+        abi_infos[f'NDK_ABI_{abi}_PROC'] = proc
+        abi_infos[f'NDK_ABI_{abi}_ARCH'] = arch
+        abi_infos[f'NDK_ABI_{abi}_TRIPLE'] = triple
+        abi_infos[f'NDK_ABI_{abi}_LLVM_TRIPLE'] = llvm_triple
+        abi_infos[f'NDK_PROC_{proc}_ABI'] = abi
+        abi_infos[f'NDK_ARCH_{arch}_ABI'] = abi
+
     meta_vars = {
         'NDK_DEFAULT_ABIS': sorted(default_abis),
         'NDK_DEPRECATED_ABIS': sorted(deprecated_abis),
         'NDK_KNOWN_DEVICE_ABI32S': sorted(lp32_abis),
         'NDK_KNOWN_DEVICE_ABI64S': sorted(lp64_abis),
+        'NDK_KNOWN_DEVICE_ABIS': sorted(lp32_abis + lp64_abis),
     }
+    meta_vars.update(abi_infos)
 
     return meta_vars
 
