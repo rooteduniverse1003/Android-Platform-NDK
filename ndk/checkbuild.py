@@ -2025,33 +2025,20 @@ class Vulkan(ndk.builds.Module):
     def notices(self) -> List[str]:
         base = ndk.paths.android_path('external')
         headers_dir = os.path.join(base, 'vulkan-headers')
-        layers_dir = os.path.join(base, 'vulkan-validation-layers')
         tools_dir = os.path.join(base, 'vulkan-tools')
         return [
             os.path.join(headers_dir, 'NOTICE'),
-            os.path.join(layers_dir, 'NOTICE'),
             os.path.join(tools_dir, 'NOTICE')
         ]
 
     def build(self) -> None:
-        print('Constructing Vulkan validation layer source...')
-        vulkan_root_dir = ndk.paths.android_path(
-            'external/vulkan-validation-layers')
+        print('Constructing Vulkan source...')
         vulkan_headers_root_dir = ndk.paths.android_path(
             'external/vulkan-headers')
         vulkan_tools_root_dir = ndk.paths.android_path(
             'external/vulkan-tools')
 
         copies = [
-            {
-                'source_dir': vulkan_root_dir,
-                'dest_dir': 'vulkan/src',
-                'files': [
-                ],
-                'dirs': [
-                    'layers', 'tests', 'scripts'
-                ],
-            },
             {
                 'source_dir': vulkan_headers_root_dir,
                 'dest_dir': 'vulkan/src',
@@ -2093,22 +2080,6 @@ class Vulkan(ndk.builds.Module):
                                 ignore=default_ignore_patterns)
             for f in properties['files']:
                 install_file(f, source_dir, dest_dir)
-
-        # Copy Android build components
-        print('Copying Vulkan build components...')
-        src = os.path.join(vulkan_root_dir, 'build-android')
-        dst = os.path.join(vulkan_path, 'build-android')
-        shutil.rmtree(dst, True)
-        shutil.copytree(src, dst, ignore=default_ignore_patterns)
-        print('Copying finished')
-
-        # Copy binary validation layer libraries
-        print('Copying Vulkan binary validation layers...')
-        src = ndk.paths.android_path('prebuilts/ndk/vulkan-validation-layers')
-        dst = os.path.join(vulkan_path, 'build-android/jniLibs')
-        shutil.rmtree(dst, True)
-        shutil.copytree(src, dst, ignore=default_ignore_patterns)
-        print('Copying finished')
 
         # TODO: Verify source packaged properly
         print('Packaging Vulkan source...')
