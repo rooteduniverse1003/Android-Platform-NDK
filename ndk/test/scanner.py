@@ -21,7 +21,7 @@ from typing import List, Optional, Set
 
 from ndk.abis import Abi
 import ndk.paths
-from ndk.test.spec import BuildConfiguration
+from ndk.test.spec import BuildConfiguration, CMakeToolchainFile
 from ndk.test.types import (
     CMakeBuildTest,
     LibcxxTest,
@@ -57,9 +57,8 @@ class BuildTestScanner(TestScanner):
         self.dist = dist
         self.build_configurations: Set[BuildConfiguration] = set()
 
-    def add_build_configuration(self, abi: Abi, api: Optional[int],
-                                linker: LinkerOption) -> None:
-        self.build_configurations.add(BuildConfiguration(abi, api, linker))
+    def add_build_configuration(self, spec: BuildConfiguration) -> None:
+        self.build_configurations.add(spec.copy())
 
     def find_tests(self, path: str, name: str) -> List[Test]:
         # If we have a build.sh, that takes precedence over the Android.mk.
@@ -91,18 +90,21 @@ class BuildTestScanner(TestScanner):
         return [
             ShellBuildTest(name, path, config, self.ndk_path)
             for config in self.build_configurations
+            if config.toolchain_file == CMakeToolchainFile.Default
         ]
 
     def make_test_py_tests(self, path: str, name: str) -> List[Test]:
         return [
             PythonBuildTest(name, path, config, self.ndk_path)
             for config in self.build_configurations
+            if config.toolchain_file == CMakeToolchainFile.Default
         ]
 
     def make_ndk_build_tests(self, path: str, name: str) -> List[Test]:
         return [
             NdkBuildTest(name, path, config, self.ndk_path, self.dist)
             for config in self.build_configurations
+            if config.toolchain_file == CMakeToolchainFile.Default
         ]
 
     def make_cmake_tests(self, path: str, name: str) -> List[Test]:
@@ -121,14 +123,14 @@ class LibcxxTestScanner(TestScanner):
         self.build_configurations: Set[BuildConfiguration] = set()
         LibcxxTestScanner.find_all_libcxx_tests()
 
-    def add_build_configuration(self, abi: Abi, api: Optional[int],
-                                linker: LinkerOption) -> None:
-        self.build_configurations.add(BuildConfiguration(abi, api, linker))
+    def add_build_configuration(self, spec: BuildConfiguration) -> None:
+        self.build_configurations.add(spec.copy())
 
     def find_tests(self, path: str, name: str) -> List[Test]:
         return [
             LibcxxTest('libc++', path, config, self.ndk_path)
             for config in self.build_configurations
+            if config.toolchain_file == CMakeToolchainFile.Default
         ]
 
     @classmethod
