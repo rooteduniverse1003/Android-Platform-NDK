@@ -19,6 +19,9 @@ For Android Studio issues, follow the docs on the [Android Studio site].
 
 ## Changes
 
+* Vulkan validation layer source and binaries are no longer shipped in the NDK.
+  The latest are now posted directly to [GitHub](https://github.com/KhronosGroup/Vulkan-ValidationLayers/releases).
+
 ## Known Issues
 
 * This is not intended to be a comprehensive list of all outstanding bugs.
