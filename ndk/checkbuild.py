@@ -2025,18 +2025,14 @@ class Vulkan(ndk.builds.Module):
     def notices(self) -> List[str]:
         base = ndk.paths.android_path('external')
         headers_dir = os.path.join(base, 'vulkan-headers')
-        tools_dir = os.path.join(base, 'vulkan-tools')
         return [
             os.path.join(headers_dir, 'NOTICE'),
-            os.path.join(tools_dir, 'NOTICE')
         ]
 
     def build(self) -> None:
         print('Constructing Vulkan source...')
         vulkan_headers_root_dir = ndk.paths.android_path(
             'external/vulkan-headers')
-        vulkan_tools_root_dir = ndk.paths.android_path(
-            'external/vulkan-tools')
 
         copies = [
             {
@@ -2046,15 +2042,6 @@ class Vulkan(ndk.builds.Module):
                 ],
                 'dirs': [
                     'include', 'registry'
-                ],
-            },
-            {
-                'source_dir': vulkan_tools_root_dir,
-                'dest_dir': 'vulkan/src',
-                'files': [
-                ],
-                'dirs': [
-                    'common'
                 ],
             }
         ]
