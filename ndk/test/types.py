@@ -41,7 +41,7 @@ import ndk.ndkbuild
 import ndk.paths
 from ndk.test.config import LibcxxTestConfig, TestConfig
 from ndk.test.filters import TestFilter
-from ndk.test.spec import BuildConfiguration
+from ndk.test.spec import BuildConfiguration, CMakeToolchainFile
 from ndk.test.result import Failure, Skipped, Success, TestResult
 from ndk.toolchains import LinkerOption
 
@@ -170,8 +170,8 @@ class PythonBuildTest(BuildTest):
         api = config.api
         if api is None:
             api = ndk.abis.min_api_for_abi(config.abi)
-        config = ndk.test.spec.BuildConfiguration(config.abi, api,
-                                                  config.linker)
+        config = config.copy()
+        config.api = api
         super().__init__(name, test_dir, config, ndk_path)
 
         if self.abi not in ndk.abis.ALL_ABIS:
@@ -208,8 +208,8 @@ class ShellBuildTest(BuildTest):
         api = config.api
         if api is None:
             api = ndk.abis.min_api_for_abi(config.abi)
-        config = ndk.test.spec.BuildConfiguration(config.abi, api,
-                                                  config.linker)
+        config = config.copy()
+        config.api = api
         super().__init__(name, test_dir, config, ndk_path)
 
     def get_build_dir(self, out_dir: str) -> str:
@@ -315,8 +315,8 @@ class NdkBuildTest(BuildTest):
     def __init__(self, name: str, test_dir: str, config: BuildConfiguration,
                  ndk_path: str, dist: bool) -> None:
         api = _get_or_infer_app_platform(config.api, test_dir, config.abi)
-        config = ndk.test.spec.BuildConfiguration(config.abi, api,
-                                                  config.linker)
+        config = config.copy()
+        config.api = api
         super().__init__(name, test_dir, config, ndk_path)
         self.dist = dist
 
@@ -364,8 +364,8 @@ class CMakeBuildTest(BuildTest):
     def __init__(self, name: str, test_dir: str, config: BuildConfiguration,
                  ndk_path: str, dist: bool) -> None:
         api = _get_or_infer_app_platform(config.api, test_dir, config.abi)
-        config = ndk.test.spec.BuildConfiguration(config.abi, api,
-                                                  config.linker)
+        config = config.copy()
+        config.api = api
         super().__init__(name, test_dir, config, ndk_path)
         self.dist = dist
 
@@ -384,16 +384,17 @@ class CMakeBuildTest(BuildTest):
         dist_dir = self.get_dist_dir(obj_dir, dist_dir)
         logger().info('Building test: %s', self.name)
         assert self.api is not None
-        result = _run_cmake_build_test(self, obj_dir, dist_dir, self.test_dir,
-                                       self.ndk_path, self.cmake_flags,
-                                       self.abi, self.api, self.config.linker)
+        result = _run_cmake_build_test(
+            self, obj_dir, dist_dir, self.test_dir, self.ndk_path,
+            self.cmake_flags, self.abi, self.api, self.config.linker,
+            self.config.toolchain_file == CMakeToolchainFile.Legacy)
         return result, []
 
 
 def _run_cmake_build_test(test: CMakeBuildTest, obj_dir: str, dist_dir: str,
                           test_dir: str, ndk_path: str, cmake_flags: List[str],
-                          abi: str, platform: int,
-                          linker: LinkerOption) -> TestResult:
+                          abi: str, platform: int, linker: LinkerOption,
+                          use_legacy_toolchain_file: bool) -> TestResult:
     _prep_build_dir(test_dir, obj_dir)
 
     # Add prebuilts to PATH.
@@ -431,6 +432,10 @@ def _run_cmake_build_test(test: CMakeBuildTest, obj_dir: str, dist_dir: str,
     ]
     if platform is not None:
         args.append('-DANDROID_PLATFORM=android-{}'.format(platform))
+    if use_legacy_toolchain_file:
+        args.append('-DANDROID_USE_LEGACY_TOOLCHAIN_FILE=ON')
+    else:
+        args.append('-DANDROID_USE_LEGACY_TOOLCHAIN_FILE=OFF')
     rc, out = ndk.ext.subprocess.call_output(
         [cmake_bin] + cmake_flags + args, encoding='utf-8')
     if rc != 0:

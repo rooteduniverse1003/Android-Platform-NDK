@@ -157,15 +157,15 @@ class TestBuilder:
             self.test_options.ndk_path, dist=False)
         libcxx_scanner = ndk.test.scanner.LibcxxTestScanner(
             self.test_options.ndk_path)
+        build_api_level = None  # Always use the default.
         for abi in test_spec.abis:
             for linker in test_spec.linkers:
-                build_api_level = None  # Always use the default.
-
-                scanner.add_build_configuration(abi, build_api_level, linker)
-                nodist_scanner.add_build_configuration(abi, build_api_level,
-                                                       linker)
-                libcxx_scanner.add_build_configuration(abi, build_api_level,
-                                                       linker)
+                for toolchain_file in ndk.test.spec.CMakeToolchainFile:
+                    config = ndk.test.spec.BuildConfiguration(
+                        abi, build_api_level, linker, toolchain_file)
+                    scanner.add_build_configuration(config)
+                    nodist_scanner.add_build_configuration(config)
+                    libcxx_scanner.add_build_configuration(config)
 
         if 'build' in test_spec.suites:
             test_src = os.path.join(self.test_options.src_dir, 'build')

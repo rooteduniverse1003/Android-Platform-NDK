@@ -15,10 +15,17 @@
 #
 """Configuration objects for describing test runs."""
 
+import enum
 from typing import Iterable, List, Optional
 
 from ndk.abis import Abi
 from ndk.toolchains import LinkerOption
+
+
+@enum.unique
+class CMakeToolchainFile(enum.Enum):
+    Legacy = 'legacy'
+    Default = 'new'
 
 
 class TestOptions:
@@ -65,12 +72,12 @@ class BuildConfiguration:
     A TestSpec describes which BuildConfigurations should be included in a test
     run.
     """
-
-    def __init__(self, abi: Abi, api: Optional[int],
-                 linker: LinkerOption) -> None:
+    def __init__(self, abi: Abi, api: Optional[int], linker: LinkerOption,
+                 toolchain_file: CMakeToolchainFile) -> None:
         self.abi = abi
         self.api = api
         self.linker = linker
+        self.toolchain_file = toolchain_file
 
     def __eq__(self, other: object) -> bool:
         assert isinstance(other, BuildConfiguration)
@@ -80,13 +87,15 @@ class BuildConfiguration:
             return False
         if self.linker != other.linker:
             return False
+        if self.toolchain_file != other.toolchain_file:
+            return False
         return True
 
     def __repr__(self) -> str:
-        return f'BuildConfiguration({self.abi}, {self.api}, {self.linker})'
+        return f'BuildConfiguration({self.abi}, {self.api}, {self.linker}, {self.toolchain_file.value})'
 
     def __str__(self) -> str:
-        return f'{self.abi}-{self.api}-{self.linker.value}'
+        return f'{self.abi}-{self.api}-{self.linker.value}-{self.toolchain_file.value}'
 
     def __hash__(self) -> int:
         return hash(str(self))
@@ -112,11 +121,12 @@ class BuildConfiguration:
             abi += '-v8a'
             _, _, rest = rest.partition('-')
 
-        api_str, linker_str = rest.split('-')
+        api_str, linker_str, toolchain_file_str = rest.split('-')
         api = int(api_str)
         linker = LinkerOption(linker_str)
+        toolchain_file = CMakeToolchainFile(toolchain_file_str)
 
-        return BuildConfiguration(Abi(abi), api, linker)
+        return BuildConfiguration(Abi(abi), api, linker, toolchain_file)
 
     def get_extra_ndk_build_flags(self) -> List[str]:
         extra_flags = []
@@ -127,3 +137,6 @@ class BuildConfiguration:
         extra_flags = []
         extra_flags.append('-DCMAKE_VERBOSE_MAKEFILE=ON')
         return extra_flags
+
+    def copy(self) -> 'BuildConfiguration':
+        return BuildConfiguration(self.abi, self.api, self.linker, self.toolchain_file)
