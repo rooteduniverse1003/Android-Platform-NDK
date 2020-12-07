@@ -2052,8 +2052,6 @@ class Vulkan(ndk.builds.Module):
             "linux",
             "windows")
 
-        base_vulkan_path = os.path.join(self.out_dir, 'vulkan')
-        vulkan_path = os.path.join(base_vulkan_path, 'src')
         for properties in copies:
             source_dir = properties['source_dir']
             assert isinstance(source_dir, str)
