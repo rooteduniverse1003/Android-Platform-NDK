@@ -1181,7 +1181,7 @@ class Gdb(ndk.builds.Module):
     notice_group = ndk.builds.NoticeGroup.TOOLCHAIN
 
     _expat_builder: Optional[ndk.autoconf.AutoconfBuilder] = None
-    _lzma_builder: Optional[ndk.autoconf.AutoconfBuilder] = None
+    _lzma_builder: Optional[ndk.cmake.CMakeBuilder] = None
     _gdb_builder: Optional[ndk.autoconf.AutoconfBuilder] = None
 
     @property
@@ -1204,7 +1204,7 @@ class Gdb(ndk.builds.Module):
         return self._expat_builder
 
     @property
-    def lzma_builder(self) -> ndk.autoconf.AutoconfBuilder:
+    def lzma_builder(self) -> ndk.cmake.CMakeBuilder:
         """Returns the lazily initialized lzma builder for this module."""
         if self._lzma_builder is None:
             self._lzma_builder = ndk.cmake.CMakeBuilder(

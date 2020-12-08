@@ -167,11 +167,8 @@ class PythonBuildTest(BuildTest):
 
     def __init__(self, name: str, test_dir: str, config: BuildConfiguration,
                  ndk_path: str) -> None:
-        api = config.api
-        if api is None:
-            api = ndk.abis.min_api_for_abi(config.abi)
-        config = config.copy()
-        config.api = api
+        if config.api is None:
+            config = config.with_api(ndk.abis.min_api_for_abi(config.abi))
         super().__init__(name, test_dir, config, ndk_path)
 
         if self.abi not in ndk.abis.ALL_ABIS:
@@ -205,11 +202,8 @@ class PythonBuildTest(BuildTest):
 class ShellBuildTest(BuildTest):
     def __init__(self, name: str, test_dir: str, config: BuildConfiguration,
                  ndk_path: str) -> None:
-        api = config.api
-        if api is None:
-            api = ndk.abis.min_api_for_abi(config.abi)
-        config = config.copy()
-        config.api = api
+        if config.api is None:
+            config = config.with_api(ndk.abis.min_api_for_abi(config.abi))
         super().__init__(name, test_dir, config, ndk_path)
 
     def get_build_dir(self, out_dir: str) -> str:
@@ -314,9 +308,9 @@ def _get_or_infer_app_platform(platform_from_user: Optional[int],
 class NdkBuildTest(BuildTest):
     def __init__(self, name: str, test_dir: str, config: BuildConfiguration,
                  ndk_path: str, dist: bool) -> None:
-        api = _get_or_infer_app_platform(config.api, test_dir, config.abi)
-        config = config.copy()
-        config.api = api
+        if config.api is None:
+            config = config.with_api(
+                _get_or_infer_app_platform(config.api, test_dir, config.abi))
         super().__init__(name, test_dir, config, ndk_path)
         self.dist = dist
 
@@ -363,9 +357,9 @@ def _run_ndk_build_test(test: NdkBuildTest, obj_dir: str, dist_dir: str,
 class CMakeBuildTest(BuildTest):
     def __init__(self, name: str, test_dir: str, config: BuildConfiguration,
                  ndk_path: str, dist: bool) -> None:
-        api = _get_or_infer_app_platform(config.api, test_dir, config.abi)
-        config = config.copy()
-        config.api = api
+        if config.api is None:
+            config = config.with_api(
+                _get_or_infer_app_platform(config.api, test_dir, config.abi))
         super().__init__(name, test_dir, config, ndk_path)
         self.dist = dist
 
@@ -553,8 +547,7 @@ class LibcxxTest(Test):
     def __init__(self, name: str, test_dir: str, config: BuildConfiguration,
                  ndk_path: str) -> None:
         if config.api is None:
-            config.api = ndk.abis.min_api_for_abi(config.abi)
-
+            config = config.with_api(ndk.abis.min_api_for_abi(config.abi))
         super().__init__(name, test_dir, config, ndk_path)
 
     @property

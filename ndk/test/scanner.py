@@ -17,9 +17,8 @@ from __future__ import absolute_import
 
 import glob
 import os
-from typing import List, Optional, Set
+from typing import List, Set
 
-from ndk.abis import Abi
 import ndk.paths
 from ndk.test.spec import BuildConfiguration, CMakeToolchainFile
 from ndk.test.types import (
@@ -30,7 +29,6 @@ from ndk.test.types import (
     ShellBuildTest,
     Test,
 )
-from ndk.toolchains import LinkerOption
 
 
 class TestScanner:
@@ -58,7 +56,7 @@ class BuildTestScanner(TestScanner):
         self.build_configurations: Set[BuildConfiguration] = set()
 
     def add_build_configuration(self, spec: BuildConfiguration) -> None:
-        self.build_configurations.add(spec.copy())
+        self.build_configurations.add(spec)
 
     def find_tests(self, path: str, name: str) -> List[Test]:
         # If we have a build.sh, that takes precedence over the Android.mk.
@@ -124,7 +122,7 @@ class LibcxxTestScanner(TestScanner):
         LibcxxTestScanner.find_all_libcxx_tests()
 
     def add_build_configuration(self, spec: BuildConfiguration) -> None:
-        self.build_configurations.add(spec.copy())
+        self.build_configurations.add(spec)
 
     def find_tests(self, path: str, name: str) -> List[Test]:
         return [

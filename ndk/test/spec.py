@@ -14,7 +14,9 @@
 # limitations under the License.
 #
 """Configuration objects for describing test runs."""
+from __future__ import annotations
 
+from dataclasses import dataclass
 import enum
 from typing import Iterable, List, Optional
 
@@ -66,42 +68,43 @@ class TestSpec:
         self.suites = suites
 
 
+@dataclass(frozen=True)
 class BuildConfiguration:
     """A configuration for a single test build.
 
     A TestSpec describes which BuildConfigurations should be included in a test
     run.
     """
-    def __init__(self, abi: Abi, api: Optional[int], linker: LinkerOption,
-                 toolchain_file: CMakeToolchainFile) -> None:
-        self.abi = abi
-        self.api = api
-        self.linker = linker
-        self.toolchain_file = toolchain_file
 
-    def __eq__(self, other: object) -> bool:
-        assert isinstance(other, BuildConfiguration)
-        if self.abi != other.abi:
-            return False
-        if self.api != other.api:
-            return False
-        if self.linker != other.linker:
-            return False
-        if self.toolchain_file != other.toolchain_file:
-            return False
-        return True
+    abi: Abi
+    api: Optional[int]
+    linker: LinkerOption
+    toolchain_file: CMakeToolchainFile
 
-    def __repr__(self) -> str:
-        return f'BuildConfiguration({self.abi}, {self.api}, {self.linker}, {self.toolchain_file.value})'
+    def with_api(self, api: int) -> BuildConfiguration:
+        """Creates a copy of this BuildConfiguration with a new API level.
+
+        Args:
+            api: The API level used by the new BuildConfiguration.
+
+        Returns:
+            A copy of this BuildConfiguration with the new API level.
+        """
+        return BuildConfiguration(abi=self.abi,
+                                  api=api,
+                                  linker=self.linker,
+                                  toolchain_file=self.toolchain_file)
 
     def __str__(self) -> str:
-        return f'{self.abi}-{self.api}-{self.linker.value}-{self.toolchain_file.value}'
-
-    def __hash__(self) -> int:
-        return hash(str(self))
+        return '-'.join([
+            self.abi,
+            str(self.api),
+            self.linker.value,
+            self.toolchain_file.value,
+        ])
 
     @staticmethod
-    def from_string(config_string: str) -> 'BuildConfiguration':
+    def from_string(config_string: str) -> BuildConfiguration:
         """Converts a string into a BuildConfiguration.
 
         Args:
@@ -137,6 +140,3 @@ class BuildConfiguration:
         extra_flags = []
         extra_flags.append('-DCMAKE_VERBOSE_MAKEFILE=ON')
         return extra_flags
-
-    def copy(self) -> 'BuildConfiguration':
-        return BuildConfiguration(self.abi, self.api, self.linker, self.toolchain_file)
