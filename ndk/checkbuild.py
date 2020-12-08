@@ -111,10 +111,8 @@ def _make_tar_package(package_path: str, base_dir: str, path: str) -> str:
     return package_path
 
 
-def _make_zip_package(package_path: Path,
-                      base_dir: Path,
-                      paths: List[str],
-                      preserve_symlinks: bool = False) -> Path:
+def _make_zip_package(package_path: Path, base_dir: Path, paths: List[str],
+                      host: Host) -> Path:
     """Creates a zip package for distribution.
 
     Args:
@@ -122,13 +120,14 @@ def _make_zip_package(package_path: Path,
         base_dir: Path to the directory from which to perform the packaging
                   (identical to tar's -C).
         paths: Paths to files and directories to package, relative to base_dir.
-        preserve_symlinks: Set to true to preserve symlinks in the zip file.
+        host: The host the package is being built for. Windows packages will
+              flatten symlinks, but other platforms will not.
     """
     cwd = os.getcwd()
     package_path = package_path.with_suffix('.zip')
 
     args = ['zip', '-9qr', str(package_path)]
-    if preserve_symlinks:
+    if host != Host.Windows64:
         args.append('--symlinks')
     args.extend(paths)
     os.chdir(base_dir)
@@ -257,10 +256,8 @@ def make_app_bundle(zip_path: Path, ndk_dir: Path, build_number: str,
     shutil.copy2(ndk_dir / 'source.properties',
                  package_dir / 'source.properties')
     create_signer_metadata(package_dir)
-    _make_zip_package(zip_path,
-                      package_dir,
-                      [p.name for p in package_dir.iterdir()],
-                      preserve_symlinks=True)
+    _make_zip_package(zip_path, package_dir,
+                      [p.name for p in package_dir.iterdir()], Host.Darwin)
 
 
 def package_ndk(ndk_dir: Path, out_dir: Path, dist_dir: Path, host: Host,
@@ -283,7 +280,8 @@ def package_ndk(ndk_dir: Path, out_dir: Path, dist_dir: Path, host: Host,
         bundle_name = f'android-ndk-{build_number}-app-bundle'
         bundle_path = dist_dir / bundle_name
         make_app_bundle(bundle_path, ndk_dir, build_number, out_dir)
-    return _make_zip_package(package_path, ndk_dir.parent, [ndk_dir.name])
+    return _make_zip_package(package_path, ndk_dir.parent, [ndk_dir.name],
+                             host)
 
 
 def build_ndk_tests(out_dir: str, dist_dir: str,
