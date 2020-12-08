@@ -73,7 +73,7 @@ import ndk.config
 import ndk.deps
 import ndk.ext.shutil
 import ndk.file
-import ndk.hosts
+from ndk.hosts import Host
 import ndk.notify
 import ndk.paths
 import ndk.test.builder
@@ -111,10 +111,10 @@ def _make_tar_package(package_path: str, base_dir: str, path: str) -> str:
     return package_path
 
 
-def _make_zip_package(package_path: str,
-                      base_dir: str,
+def _make_zip_package(package_path: Path,
+                      base_dir: Path,
                       paths: List[str],
-                      preserve_symlinks: bool = False) -> str:
+                      preserve_symlinks: bool = False) -> Path:
     """Creates a zip package for distribution.
 
     Args:
@@ -125,9 +125,9 @@ def _make_zip_package(package_path: str,
         preserve_symlinks: Set to true to preserve symlinks in the zip file.
     """
     cwd = os.getcwd()
-    package_path = os.path.realpath(package_path) + '.zip'
+    package_path = package_path.with_suffix('.zip')
 
-    args = ['zip', '-9qr', package_path]
+    args = ['zip', '-9qr', str(package_path)]
     if preserve_symlinks:
         args.append('--symlinks')
     args.extend(paths)
@@ -257,37 +257,33 @@ def make_app_bundle(zip_path: Path, ndk_dir: Path, build_number: str,
     shutil.copy2(ndk_dir / 'source.properties',
                  package_dir / 'source.properties')
     create_signer_metadata(package_dir)
-    _make_zip_package(str(zip_path),
-                      str(package_dir),
-                      os.listdir(package_dir),
+    _make_zip_package(zip_path,
+                      package_dir,
+                      [p.name for p in package_dir.iterdir()],
                       preserve_symlinks=True)
 
 
-def package_ndk(ndk_dir: str, out_dir: str, dist_dir: str, host_tag: str,
-                build_number: str) -> str:
+def package_ndk(ndk_dir: Path, out_dir: Path, dist_dir: Path, host: Host,
+                build_number: str) -> Path:
     """Packages the built NDK for distribution.
 
     Args:
-        ndk_dir (string): Path to the built NDK.
-        out_dir (string): Path to use for constructing any intermediate
-                          outputs.
-        dist_dir (string): Path to place the built package in.
-        host_tag (string): Host tag to use in the package name,
-        build_number (string): Build number to use in the package name.
+        ndk_dir: Path to the built NDK.
+        out_dir: Path to use for constructing any intermediate outputs.
+        dist_dir: Path to place the built package in.
+        host: Host the given NDK was built for.
+        build_number: Build number to use in the package name.
     """
-    package_name = 'android-ndk-{}-{}'.format(build_number, host_tag)
-    package_path = os.path.join(dist_dir, package_name)
+    package_name = f'android-ndk-{build_number}-{host.tag}'
+    package_path = dist_dir / package_name
 
-    purge_unwanted_files(Path(ndk_dir))
+    purge_unwanted_files(ndk_dir)
 
-    base_dir = os.path.dirname(ndk_dir)
-    package_files = os.path.basename(ndk_dir)
-    if host_tag == 'darwin-x86_64':
+    if host == Host.Darwin:
         bundle_name = f'android-ndk-{build_number}-app-bundle'
-        bundle_path = Path(dist_dir) / bundle_name
-        make_app_bundle(bundle_path, Path(ndk_dir), build_number,
-                        Path(out_dir))
-    return _make_zip_package(package_path, base_dir, [package_files])
+        bundle_path = dist_dir / bundle_name
+        make_app_bundle(bundle_path, ndk_dir, build_number, out_dir)
+    return _make_zip_package(package_path, ndk_dir.parent, [ndk_dir.name])
 
 
 def build_ndk_tests(out_dir: str, dist_dir: str,
@@ -389,7 +385,7 @@ class Clang(ndk.builds.Module):
         # TODO: Why every host?
         return [
             str(ndk.toolchains.ClangToolchain.path_for_host(h) / 'NOTICE')
-            for h in ndk.hosts.Host
+            for h in Host
         ]
 
     def build(self) -> None:
@@ -447,9 +443,9 @@ class Clang(ndk.builds.Module):
 
         install_clanglib = os.path.join(install_path, 'lib64', 'clang')
         linux_prebuilt_path = ndk.toolchains.ClangToolchain.path_for_host(
-            ndk.hosts.Host.Linux)
+            Host.Linux)
 
-        if self.host != ndk.hosts.Host.Linux:
+        if self.host != Host.Linux:
             # We don't build target binaries as part of the Darwin or Windows
             # build. These toolchains need to get these from the Linux
             # prebuilts.
@@ -474,7 +470,7 @@ class Clang(ndk.builds.Module):
 
         # Also remove the other libraries that we installed, but they were only
         # installed on Linux.
-        if self.host == ndk.hosts.Host.Linux:
+        if self.host == Host.Linux:
             shutil.rmtree(os.path.join(install_path, 'runtimes_ndk_cxx'))
 
         # Remove CMake package files that should not be exposed.
@@ -485,12 +481,11 @@ class Clang(ndk.builds.Module):
         shutil.rmtree(cmake_modules_dir)
 
 
-def get_gcc_prebuilt_path(host: ndk.hosts.Host, arch: ndk.abis.Arch) -> str:
+def get_gcc_prebuilt_path(host: Host, arch: ndk.abis.Arch) -> str:
     """Returns the path to the GCC prebuilt for the given host/arch."""
-    host_tag = ndk.hosts.host_to_tag(host)
     toolchain = ndk.abis.arch_to_toolchain(arch) + '-4.9'
     rel_prebuilt_path = os.path.join(
-        'prebuilts/ndk/current/toolchains', host_tag, toolchain)
+        'prebuilts/ndk/current/toolchains', host.tag, toolchain)
     prebuilt_path = ndk.paths.android_path(rel_prebuilt_path)
     if not os.path.isdir(prebuilt_path):
         raise RuntimeError(
@@ -498,9 +493,8 @@ def get_gcc_prebuilt_path(host: ndk.hosts.Host, arch: ndk.abis.Arch) -> str:
     return prebuilt_path
 
 
-def get_binutils_prebuilt_path(host: ndk.hosts.Host,
-                               arch: ndk.abis.Arch) -> str:
-    if host == ndk.hosts.Host.Windows64:
+def get_binutils_prebuilt_path(host: Host, arch: ndk.abis.Arch) -> str:
+    if host == Host.Windows64:
         host_dir_name = 'win64'
     else:
         host_dir_name = host.value
@@ -514,24 +508,23 @@ def get_binutils_prebuilt_path(host: ndk.hosts.Host,
     return prebuilt_path
 
 
-def versioned_so(host: ndk.hosts.Host, lib: str, version: str) -> str:
+def versioned_so(host: Host, lib: str, version: str) -> str:
     """Returns the formatted versioned library for the given host.
 
-    >>> versioned_so(ndk.hosts.Host.Darwin, 'libfoo', '0')
+    >>> versioned_so(Host.Darwin, 'libfoo', '0')
     'libfoo.0.dylib'
-    >>> versioned_so(ndk.hosts.Host.Linux, 'libfoo', '0')
+    >>> versioned_so(Host.Linux, 'libfoo', '0')
     'libfoo.so.0'
     """
-    if host == ndk.hosts.Host.Darwin:
+    if host == Host.Darwin:
         return f'{lib}.{version}.dylib'
-    elif host == ndk.hosts.Host.Linux:
+    elif host == Host.Linux:
         return f'{lib}.so.{version}'
     raise ValueError(f'Unsupported host: {host}')
 
 
-def install_gcc_lib(install_path: str, host: ndk.hosts.Host,
-                    arch: ndk.abis.Arch, subarch: str, lib_subdir: str,
-                    libname: str) -> None:
+def install_gcc_lib(install_path: str, host: Host, arch: ndk.abis.Arch,
+                    subarch: str, lib_subdir: str, libname: str) -> None:
     gcc_prebuilt = get_gcc_prebuilt_path(host, arch)
     lib_install_dir = os.path.join(install_path, lib_subdir, subarch)
     if not os.path.exists(lib_install_dir):
@@ -541,15 +534,15 @@ def install_gcc_lib(install_path: str, host: ndk.hosts.Host,
         os.path.join(lib_install_dir, libname))
 
 
-def install_gcc_crtbegin(install_path: str, host: ndk.hosts.Host,
-                         arch: ndk.abis.Arch, subarch: str) -> None:
+def install_gcc_crtbegin(install_path: str, host: Host, arch: ndk.abis.Arch,
+                         subarch: str) -> None:
     triple = ndk.abis.arch_to_triple(arch)
     subdir = os.path.join('lib/gcc', triple, '4.9.x')
     install_gcc_lib(install_path, host, arch, subarch, subdir, 'crtbegin.o')
 
 
 def install_libgcc(install_path: str,
-                   host: ndk.hosts.Host,
+                   host: Host,
                    arch: ndk.abis.Arch,
                    subarch: str,
                    new_layout: bool = False) -> None:
@@ -596,8 +589,8 @@ def install_libgcc(install_path: str,
             script.write('INPUT({})'.format(libs))
 
 
-def install_libatomic(install_path: str, host: ndk.hosts.Host,
-                      arch: ndk.abis.Arch, subarch: str) -> None:
+def install_libatomic(install_path: str, host: Host, arch: ndk.abis.Arch,
+                      subarch: str) -> None:
     triple = ndk.abis.arch_to_triple(arch)
     subdir = os.path.join(triple, 'lib64' if arch.endswith('64') else 'lib')
     install_gcc_lib(install_path, host, arch, subarch, subdir, 'libatomic.a')
@@ -628,7 +621,7 @@ class Binutils(ndk.builds.Module):
     @property
     def notices(self) -> List[str]:
         notices = []
-        for host in ndk.hosts.ALL_HOSTS:
+        for host in Host:
             for arch in ndk.abis.ALL_ARCHITECTURES:
                 prebuilt_path = get_gcc_prebuilt_path(host, arch)
                 notices.append(os.path.join(prebuilt_path, 'NOTICE'))
@@ -657,9 +650,9 @@ class Binutils(ndk.builds.Module):
 
         # Copy the LLVMgold plugin into the binutils plugin directory so ar can
         # use it.
-        if self.host == ndk.hosts.Host.Linux:
+        if self.host == Host.Linux:
             so = '.so'
-        elif self.host == ndk.hosts.Host.Darwin:
+        elif self.host == Host.Darwin:
             so = '.dylib'
         else:
             so = '.dll'
@@ -780,9 +773,7 @@ class HostTools(ndk.builds.Module):
         if self.host.is_windows:
             packages.append('toolbox')
 
-        host_tag = ndk.hosts.host_to_tag(self.host)
-
-        package_names = [p + '-' + host_tag + '.tar.bz2' for p in packages]
+        package_names = [f'{p}-{self.host.tag}.tar.bz2' for p in packages]
         for package_name in package_names:
             package_path = os.path.join(self.out_dir, self.host.value,
                                         package_name)
@@ -791,8 +782,7 @@ class HostTools(ndk.builds.Module):
                  '--strip-components=1'])
 
 
-def install_exe(out_dir: str, install_dir: str, name: str,
-                host: ndk.hosts.Host) -> None:
+def install_exe(out_dir: str, install_dir: str, name: str, host: Host) -> None:
     ext = '.exe' if host.is_windows else ''
     exe_name = name + ext
     src = os.path.join(out_dir, exe_name)
@@ -1219,12 +1209,12 @@ class Gdb(ndk.builds.Module):
         if self._gdb_builder is None:
             no_build_or_host = False
             additional_flags = []
-            if self.host == ndk.hosts.Host.Darwin:
+            if self.host == Host.Darwin:
                 # Awful Darwin hack. For some reason GDB doesn't produce a gdb
                 # executable when using --build/--host.
                 no_build_or_host = True
                 additional_flags.append('-Wl,-rpath,@loader_path/../lib')
-            if self.host == ndk.hosts.Host.Linux:
+            if self.host == Host.Linux:
                 additional_flags.append('-Wl,-rpath,$$$$\\ORIGIN/../lib')
             # Add path for libc++.
             clang_path = ndk.toolchains.ClangToolchain.path_for_host(self.host)
@@ -1263,9 +1253,9 @@ class Gdb(ndk.builds.Module):
         """Builds GDB itself."""
         targets = ' '.join(ndk.abis.ALL_TRIPLES)
         # TODO: Cleanup Python module so we don't need this explicit path.
-        python_config = (Path(
-            self.out_dir) / self.host.value / 'python' / ndk.hosts.host_to_tag(
-                self.host) / 'install/host-tools/bin/python-config.sh')
+        python_config = (Path(self.out_dir) / self.host.value / 'python' /
+                         self.host.tag /
+                         'install/host-tools/bin/python-config.sh')
         configure_args = [
             '--with-expat',
             f'--with-libexpat-prefix={self.expat_builder.install_directory}',
@@ -1371,10 +1361,10 @@ class Gdb(ndk.builds.Module):
 
         # Install libc++.
         clang_path = ndk.toolchains.ClangToolchain.path_for_host(self.host)
-        libcxx_files: Dict[ndk.hosts.Host, List[str]] = {
-            ndk.hosts.Host.Darwin: ['libc++abi.1.dylib', 'libc++.1.dylib'],
-            ndk.hosts.Host.Linux: ['libc++abi.so.1', 'libc++.so.1'],
-            ndk.hosts.Host.Windows64: [],
+        libcxx_files: Dict[Host, List[str]] = {
+            Host.Darwin: ['libc++abi.1.dylib', 'libc++.1.dylib'],
+            Host.Linux: ['libc++abi.so.1', 'libc++.so.1'],
+            Host.Windows64: [],
         }
         for f in libcxx_files[self.host]:
             shutil.copy(clang_path / 'lib64' / f, install_dir / 'lib')
@@ -2646,7 +2636,7 @@ class NdkPy(ndk.builds.PythonPackage):
     path = ndk.paths.ndk_path('setup.py')
 
 
-def create_notice_file(path: str, for_group: ndk.builds.NoticeGroup) -> None:
+def create_notice_file(path: Path, for_group: ndk.builds.NoticeGroup) -> None:
     # Using sets here so we can perform some amount of duplicate reduction. In
     # a lot of cases there will be minor differences that cause lots of
     # "duplicates", but might as well catch what we can.
@@ -2661,7 +2651,7 @@ def create_notice_file(path: str, for_group: ndk.builds.NoticeGroup) -> None:
         with open(notice_path, encoding='utf-8') as notice_file:
             licenses.add(notice_file.read())
 
-    with open(path, 'w', encoding='utf-8') as output_file:
+    with path.open('w', encoding='utf-8') as output_file:
         # Sorting the contents here to try to make things deterministic.
         output_file.write(os.linesep.join(sorted(list(licenses))))
 
@@ -2892,9 +2882,9 @@ def parse_args() -> Tuple[argparse.Namespace, List[str]]:
 
     parser.add_argument(
         '--system',
-        choices=ndk.hosts.Host,
-        type=ndk.hosts.Host,
-        default=ndk.hosts.get_default_host(),
+        choices=Host,
+        type=Host,
+        default=Host.current(),
         help='Build for the given OS.')
 
     module_group = parser.add_mutually_exclusive_group()
@@ -2972,7 +2962,7 @@ def wait_for_build(deps: ndk.deps.DependencyManager,
 
 def build_ndk(modules: List[ndk.builds.Module],
               deps_only: Set[ndk.builds.Module], out_dir: str, dist_dir: str,
-              args: argparse.Namespace) -> str:
+              args: argparse.Namespace) -> Path:
     arches = list(ndk.abis.ALL_ARCHITECTURES)
     if args.arch is not None:
         arches = [args.arch]
@@ -2987,9 +2977,9 @@ def build_ndk(modules: List[ndk.builds.Module],
     if not os.path.exists(log_dir):
         os.makedirs(log_dir)
 
-    ndk_dir = ndk.paths.get_install_path(out_dir, args.system)
-    if not os.path.exists(ndk_dir):
-        os.makedirs(ndk_dir)
+    ndk_dir = Path(ndk.paths.get_install_path(out_dir, args.system))
+    if not ndk_dir.exists():
+        ndk_dir.mkdir(parents=True)
 
     deps = ndk.deps.DependencyManager(modules)
     workqueue = ndk.workqueue.WorkQueue(args.jobs)
@@ -3003,12 +2993,9 @@ def build_ndk(modules: List[ndk.builds.Module],
                 'Builder stopped early. Modules are still '
                 'buildable: {}'.format(', '.join(str(deps.get_buildable()))))
 
-        create_notice_file(
-            os.path.join(ndk_dir, 'NOTICE'),
-            ndk.builds.NoticeGroup.BASE)
-        create_notice_file(
-            os.path.join(ndk_dir, 'NOTICE.toolchain'),
-            ndk.builds.NoticeGroup.TOOLCHAIN)
+        create_notice_file(ndk_dir / 'NOTICE', ndk.builds.NoticeGroup.BASE)
+        create_notice_file(ndk_dir / 'NOTICE.toolchain',
+                           ndk.builds.NoticeGroup.TOOLCHAIN)
         return ndk_dir
     finally:
         workqueue.terminate()
@@ -3018,8 +3005,8 @@ def build_ndk(modules: List[ndk.builds.Module],
 def build_ndk_for_cross_compile(out_dir: str, arches: List[ndk.abis.Arch],
                                 args: argparse.Namespace) -> None:
     args = copy.deepcopy(args)
-    args.system = ndk.hosts.get_default_host()
-    if args.system != ndk.hosts.Host.Linux:
+    args.system = Host.current()
+    if args.system != Host.Linux:
         raise NotImplementedError
     module_names = NAMES_TO_MODULES.keys()
     modules, deps_only = get_modules_to_build(module_names, arches)
@@ -3035,8 +3022,8 @@ def create_ndk_symlink(out_dir: str) -> None:
         os.symlink(this_host_ndk, ndk_symlink)
 
 
-def get_directory_size(path: str) -> int:
-    du_str = subprocess.check_output(['du', '-sm', path])
+def get_directory_size(path: Path) -> int:
+    du_str = subprocess.check_output(['du', '-sm', str(path)])
     match = re.match(r'^(\d+)', du_str.decode('utf-8'))
     if match is None:
         raise RuntimeError(f'Could not determine the size of {path}')
@@ -3111,13 +3098,13 @@ def main() -> None:
     with package_timer:
         if args.package:
             print('Packaging NDK...')
-            host_tag = ndk.hosts.host_to_tag(args.system)
             # NB: Purging of unwanted files (.pyc, Android.bp, etc) happens as
             # part of packaging. If testing is ever moved to happen before
             # packaging, ensure that the directory is purged before and after
             # building the tests.
-            package_path = package_ndk(
-                ndk_dir, out_dir, dist_dir, host_tag, args.build_number)
+            package_path = package_ndk(ndk_dir, Path(out_dir),
+                                       Path(dist_dir), args.system,
+                                       args.build_number)
             packaged_size_bytes = os.path.getsize(package_path)
             packaged_size = packaged_size_bytes // (2 ** 20)
 

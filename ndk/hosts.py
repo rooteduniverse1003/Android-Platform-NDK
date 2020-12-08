@@ -14,7 +14,7 @@
 # limitations under the License.
 #
 """Constants and helper functions for NDK hosts."""
-from __future__ import absolute_import
+from __future__ import annotations
 
 import enum
 import sys
@@ -35,8 +35,12 @@ class Host(enum.Enum):
         """Returns True if the given host is Windows."""
         return self == Host.Windows64
 
+    @property
+    def tag(self) -> str:
+        return host_to_tag(self)
+
     @classmethod
-    def current(cls) -> 'Host':
+    def current(cls) -> Host:
         """Returns the Host matching the current machine."""
         if sys.platform in ('linux', 'linux2'):
             return Host.Linux
@@ -47,8 +51,15 @@ class Host(enum.Enum):
         else:
             raise RuntimeError(f'Unsupported host: {sys.platform}')
 
-
-ALL_HOSTS = list(Host)
+    @classmethod
+    def from_tag(cls, tag: str) -> Host:
+        if tag == 'darwin-x86_64':
+            return Host.Darwin
+        if tag == 'linux-x86_64':
+            return Host.Linux
+        if tag == 'windows-x86_64':
+            return Host.Windows64
+        raise ValueError(f'Unrecognized host tag: {tag}')
 
 
 def get_host_tag() -> str:
