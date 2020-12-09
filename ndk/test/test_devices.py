@@ -21,7 +21,7 @@ import unittest
 
 from ndk.abis import Abi
 import ndk.test.devices
-import ndk.test.spec
+from ndk.test.spec import BuildConfiguration, CMakeToolchainFile
 from ndk.toolchains import LinkerOption
 
 
@@ -40,10 +40,12 @@ class MockDevice(ndk.test.devices.Device):
         return self._version
 
 
-class TestBuildConfiguration(ndk.test.spec.BuildConfiguration):
+class TestBuildConfiguration(BuildConfiguration):
     def __init__(self, abi: Abi, api: Optional[int]):
-        # Linker option is irrelevant for determining device compatibility.
-        super().__init__(abi, api, LinkerOption.Lld)
+        # Linker option and CMake toolchain file options are irrelevant for
+        # determining device compatibility.
+        super().__init__(abi, api, LinkerOption.Lld,
+                         CMakeToolchainFile.Default)
 
 
 class DeviceTest(unittest.TestCase):
