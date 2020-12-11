@@ -95,31 +95,20 @@ def find_readelf(ndk_root, ndk_bin, ndk_host_tag):
     Returns: An absolute path to readelf(1).
     """
 
-    readelf = 'readelf' + EXE_SUFFIX
+    readelf = 'llvm-readelf' + EXE_SUFFIX
     m = re.match('^[^-]+-(.*)', ndk_host_tag)
     if m:
         # Try as if this is not a standalone install.
         arch = m.group(1)
-        if arch == 'arm':
-            platform_dir = arch + '-linux-androideabi'
-        else:
-            platform_dir = arch + '-linux-android'
         path = os.path.join(ndk_root, 'toolchains', 'llvm', 'prebuilt',
-                            ndk_host_tag, platform_dir, 'bin', readelf)
+                            ndk_host_tag, 'bin', readelf)
         if os.path.exists(path):
             return path
 
-    # Might be a standalone toolchain, find the first readelf available,
-    # any should work.
-    arches = [
-        'aarch64-linux-android', 'arm-linux-androideabi',
-        'x86_64-linux-android', 'i686-linux-android'
-    ]
-    for arch in arches:
-        path = os.path.normpath(
-            os.path.join(ndk_bin, '..', arch, 'bin', readelf))
-        if os.path.exists(path):
-            return path
+    # Might be a standalone toolchain.
+    path = os.path.normpath(os.path.join(ndk_bin, readelf))
+    if os.path.exists(path):
+        return path
     return None
 
 

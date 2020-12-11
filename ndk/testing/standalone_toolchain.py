@@ -21,7 +21,6 @@ import tempfile
 from typing import Any, List, Tuple
 
 import ndk.abis
-from ndk.toolchains import LinkerOption
 
 
 def logger() -> logging.Logger:
@@ -68,17 +67,11 @@ def make_standalone_toolchain(ndk_path: str, arch: str, api: int,
 
 
 def test_standalone_toolchain(install_dir: str, test_source: str,
-                              flags: List[str], linker: LinkerOption,
-                              abi: ndk.abis.Abi) -> Tuple[bool, str]:
+                              flags: List[str]) -> Tuple[bool, str]:
     compiler_name = 'clang++'
 
     compiler = os.path.join(install_dir, 'bin', compiler_name)
     cmd = [compiler, test_source, '-Wl,--no-undefined', '-Wl,--fatal-warnings']
-    if linker == LinkerOption.Deprecated:
-        if abi == ndk.abis.Abi('arm64-v8a'):
-            cmd.append('-fuse-ld=bfd')
-        else:
-            cmd.append('-fuse-ld=gold')
     cmd += flags
     if os.name == 'nt':
         # The Windows equivalent of exec doesn't know file associations so it
@@ -88,9 +81,8 @@ def test_standalone_toolchain(install_dir: str, test_source: str,
     return rc == 0, out.decode('utf-8')
 
 
-def run_test(ndk_path: str, abi: ndk.abis.Abi, api: int, linker: LinkerOption,
-             test_source: str, extra_args: List[str],
-             flags: List[str]) -> Tuple[bool, str]:
+def run_test(ndk_path: str, abi: ndk.abis.Abi, api: int, test_source: str,
+             extra_args: List[str], flags: List[str]) -> Tuple[bool, str]:
     arch = ndk.abis.abi_to_arch(abi)
 
     install_dir = tempfile.mkdtemp()
@@ -99,7 +91,6 @@ def run_test(ndk_path: str, abi: ndk.abis.Abi, api: int, linker: LinkerOption,
             ndk_path, arch, api, extra_args, install_dir)
         if not success:
             return success, out
-        return test_standalone_toolchain(install_dir, test_source, flags,
-                                         linker, abi)
+        return test_standalone_toolchain(install_dir, test_source, flags)
     finally:
         shutil.rmtree(install_dir)

@@ -45,7 +45,7 @@ class PathTests(unittest.TestCase):
         self.ndk_paths = ('/ndk_fake', '/ndk_fake/bin', 'linux-x86_64')
         exe_suffix = '.EXE' if os.name == 'nt' else ''
         self.llvm_symbolizer = 'llvm-symbolizer' + exe_suffix
-        self.readelf = 'readelf' + exe_suffix
+        self.readelf = 'llvm-readelf' + exe_suffix
 
     def test_find_llvm_symbolizer_in_prebuilt(self, mock_exists):
         expected_path = os.path.join('/ndk_fake', 'toolchains', 'llvm',
@@ -75,18 +75,18 @@ class PathTests(unittest.TestCase):
         self.assertEqual('Unable to find llvm-symbolizer', str(cm.exception))
 
     def test_find_readelf_in_prebuilt(self, mock_exists):
-        expected_path = os.path.join(
-            '/ndk_fake', 'toolchains', 'llvm', 'prebuilt', 'linux-x86_64',
-            'x86_64-linux-android', 'bin', self.readelf)
+        expected_path = os.path.join('/ndk_fake', 'toolchains', 'llvm',
+                                     'prebuilt', 'linux-x86_64', 'bin',
+                                     self.readelf)
         mock_exists.return_value = True
         self.assertEqual(expected_path,
                          ndk_stack.find_readelf(*self.ndk_paths))
         mock_exists.assert_called_once_with(expected_path)
 
     def test_find_readelf_in_prebuilt_arm(self, mock_exists):
-        expected_path = os.path.join(
-            '/ndk_fake', 'toolchains', 'llvm', 'prebuilt', 'linux-arm',
-            'arm-linux-androideabi', 'bin', self.readelf)
+        expected_path = os.path.join('/ndk_fake', 'toolchains', 'llvm',
+                                     'prebuilt', 'linux-arm', 'bin',
+                                     self.readelf)
         mock_exists.return_value = True
         self.assertEqual(
             expected_path,
@@ -94,17 +94,12 @@ class PathTests(unittest.TestCase):
         mock_exists.assert_called_once_with(expected_path)
 
     def test_find_readelf_in_standalone_toolchain(self, mock_exists):
-        for arch in [
-                'aarch64-linux-android', 'arm-linux-androideabi',
-                'i686-linux-android', 'x86_64-linux-android'
-        ]:
-            mock_exists.reset_mock()
-            expected_path = os.path.join('/ndk_fake', arch, 'bin',
-                                         self.readelf)
-            mock_exists.side_effect = [False, True]
-            os.path.exists = lambda path, exp=expected_path: path == exp
-            self.assertEqual(expected_path,
-                             ndk_stack.find_readelf(*self.ndk_paths))
+        mock_exists.reset_mock()
+        expected_path = os.path.join('/ndk_fake', 'bin', self.readelf)
+        mock_exists.side_effect = [False, True]
+        os.path.exists = lambda path, exp=expected_path: path == exp
+        self.assertEqual(expected_path,
+                         ndk_stack.find_readelf(*self.ndk_paths))
 
     def test_readelf_not_found(self, mock_exists):
         mock_exists.return_value = False
@@ -224,7 +219,7 @@ class VerifyElfFileTests(unittest.TestCase):
         self.assertFalse(
             frame_info.verify_elf_file(None, '/fake/libfake.so', 'libfake.so'))
         self.assertFalse(
-            frame_info.verify_elf_file('readelf', '/fake/libfake.so',
+            frame_info.verify_elf_file('llvm-readelf', '/fake/libfake.so',
                                        'libfake.so'))
 
     def test_elf_file_build_id_matches(self, mock_exists, mock_get_build_id):
@@ -238,9 +233,9 @@ class VerifyElfFileTests(unittest.TestCase):
 
         mock_get_build_id.return_value = 'MOCKED_BUILD_ID'
         self.assertTrue(
-            frame_info.verify_elf_file('readelf', '/mocked/libfake.so',
+            frame_info.verify_elf_file('llvm-readelf', '/mocked/libfake.so',
                                        'libfake.so'))
-        mock_get_build_id.assert_called_once_with('readelf',
+        mock_get_build_id.assert_called_once_with('llvm-readelf',
                                                   '/mocked/libfake.so')
 
     def test_elf_file_build_id_does_not_match(self, mock_exists,
@@ -254,8 +249,8 @@ class VerifyElfFileTests(unittest.TestCase):
                 frame_info.verify_elf_file(None, '/mocked/libfake.so',
                                            'none.so'))
             self.assertFalse(
-                frame_info.verify_elf_file('readelf', '/mocked/libfake.so',
-                                           'display.so'))
+                frame_info.verify_elf_file('llvm-readelf',
+                                           '/mocked/libfake.so', 'display.so'))
         output = textwrap.dedent("""\
             WARNING: Mismatched build id for display.so
             WARNING:   Expected DIFFERENT_BUILD_ID

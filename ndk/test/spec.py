@@ -21,7 +21,6 @@ import enum
 from typing import Iterable, List, Optional
 
 from ndk.abis import Abi
-from ndk.toolchains import LinkerOption
 
 
 @enum.unique
@@ -61,10 +60,8 @@ class TestOptions:
 class TestSpec:
     """Configuration for which tests should be run."""
 
-    def __init__(self, abis: Iterable[Abi], linkers: Iterable[LinkerOption],
-                 suites: Iterable[str]) -> None:
+    def __init__(self, abis: Iterable[Abi], suites: Iterable[str]) -> None:
         self.abis = abis
-        self.linkers = linkers
         self.suites = suites
 
 
@@ -78,7 +75,6 @@ class BuildConfiguration:
 
     abi: Abi
     api: Optional[int]
-    linker: LinkerOption
     toolchain_file: CMakeToolchainFile
 
     def with_api(self, api: int) -> BuildConfiguration:
@@ -92,14 +88,12 @@ class BuildConfiguration:
         """
         return BuildConfiguration(abi=self.abi,
                                   api=api,
-                                  linker=self.linker,
                                   toolchain_file=self.toolchain_file)
 
     def __str__(self) -> str:
         return '-'.join([
             self.abi,
             str(self.api),
-            self.linker.value,
             self.toolchain_file.value,
         ])
 
@@ -124,12 +118,11 @@ class BuildConfiguration:
             abi += '-v8a'
             _, _, rest = rest.partition('-')
 
-        api_str, linker_str, toolchain_file_str = rest.split('-')
+        api_str, toolchain_file_str = rest.split('-')
         api = int(api_str)
-        linker = LinkerOption(linker_str)
         toolchain_file = CMakeToolchainFile(toolchain_file_str)
 
-        return BuildConfiguration(Abi(abi), api, linker, toolchain_file)
+        return BuildConfiguration(Abi(abi), api, toolchain_file)
 
     def get_extra_ndk_build_flags(self) -> List[str]:
         extra_flags = []

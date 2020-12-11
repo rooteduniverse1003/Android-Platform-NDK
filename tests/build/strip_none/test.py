@@ -15,13 +15,15 @@
 #
 """Check that strip is not used."""
 from pathlib import Path
+from typing import Optional, Tuple
 
+from ndk.abis import Abi
 from ndk.testing.flag_verifier import FlagVerifier
 
 
-def run_test(ndk_path, abi, api, linker):
+def run_test(ndk_path: str, abi: Abi, api: int) -> Tuple[bool, Optional[str]]:
     """Checks ndk-build V=1 output for lack of strip."""
-    verifier = FlagVerifier(Path('project'), Path(ndk_path), abi, api, linker)
+    verifier = FlagVerifier(Path('project'), Path(ndk_path), abi, api)
     # TODO: Fix this test.
     # This test has always been wrong, since it was only doing whole word
     # search for 'strip' and we call strip with its full path.

@@ -15,24 +15,26 @@
 #
 import os
 import subprocess
+from typing import Tuple
+
+from ndk.abis import Abi
 
 
-def run_test(ndk_path, abi, platform, linker):
+def run_test(ndk_path: str, abi: Abi, api: int) -> Tuple[bool, str]:
     """Runs the static analyzer on a sample project."""
     ndk_build = os.path.join(ndk_path, 'ndk-build')
     project_path = 'project'
     analyzer_out = os.path.join(project_path, 'report')
     ndk_args = [
         f'APP_ABI={abi}',
-        f'APP_LD={linker.value}',
-        f'APP_PLATFORM=android-{platform}',
+        f'APP_PLATFORM=android-{api}',
         'NDK_ANALYZE=1',
         f'NDK_ANALYZER_OUT={analyzer_out}',
     ]
     proc = subprocess.Popen([ndk_build, '-C', project_path] + ndk_args,
-                            stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+                            stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+                            encoding='utf-8')
     out, _ = proc.communicate()
-    out = out.decode('utf-8')
     # We expect the analyzer to find an issue and exit with a failure.
     if proc.returncode == 0:
         return False, out

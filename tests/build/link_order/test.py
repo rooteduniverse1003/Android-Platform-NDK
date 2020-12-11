@@ -21,6 +21,9 @@ import re
 import shlex
 import subprocess
 import sys
+from typing import Iterator, Optional, Tuple
+
+from ndk.abis import Abi
 
 
 def is_linked_item(arg):
@@ -64,7 +67,8 @@ def find_link_args(link_line):
     return args
 
 
-def check_link_order(link_line, abi, api):
+def check_link_order(link_line: str, abi: Abi,
+                     api: int) -> Tuple[bool, Optional[Iterator[str]]]:
     """Determines if a given link command has the correct ordering.
 
     Args:
@@ -105,7 +109,7 @@ def check_link_order(link_line, abi, api):
     return False, difflib.unified_diff(expected, link_args, lineterm='')
 
 
-def run_test(ndk_path, abi, platform, linker):
+def run_test(ndk_path: str, abi: Abi, api: int) -> Tuple[bool, str]:
     """Checks clang's -v output for proper link ordering."""
     ndk_build = os.path.join(ndk_path, 'ndk-build')
     if sys.platform == 'win32':
@@ -113,13 +117,12 @@ def run_test(ndk_path, abi, platform, linker):
     project_path = 'project'
     ndk_args = [
         f'APP_ABI={abi}',
-        f'APP_LD={linker.value}',
-        f'APP_PLATFORM=android-{platform}',
+        f'APP_PLATFORM=android-{api}',
     ]
     proc = subprocess.Popen([ndk_build, '-C', project_path] + ndk_args,
-                            stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+                            stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+                            encoding='utf-8')
     out, _ = proc.communicate()
-    out = out.decode('utf-8')
     if proc.returncode != 0:
         return proc.returncode == 0, out
 
@@ -136,5 +139,5 @@ def run_test(ndk_path, abi, platform, linker):
     if link_line is None:
         return False, 'Did not find link line in out:\n{}'.format(out)
 
-    result, diff = check_link_order(link_line, abi, platform)
+    result, diff = check_link_order(link_line, abi, api)
     return result, '' if diff is None else os.linesep.join(diff)

@@ -43,7 +43,7 @@ class SystemTests(unittest.TestCase):
         ndk_paths = ndk_stack.get_ndk_paths()
         self.readelf = ndk_stack.find_readelf(*ndk_paths)
         if not self.readelf:
-            self.readelf = clang_toolchain.gcc_toolchain.gcc_tool('readelf')
+            self.readelf = clang_toolchain.clang_tool('llvm-readelf')
         self.assertTrue(self.readelf)
         self.assertTrue(os.path.exists(self.readelf))
 

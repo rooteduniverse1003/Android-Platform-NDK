@@ -14,7 +14,6 @@
 # limitations under the License.
 #
 """APIs for accessing toolchains."""
-import enum
 from pathlib import Path
 import subprocess
 from typing import List
@@ -31,12 +30,6 @@ HOST_TRIPLE_MAP = {
     Host.Linux: 'x86_64-linux-gnu',
     Host.Windows64: 'x86_64-w64-mingw32',
 }
-
-
-@enum.unique
-class LinkerOption(enum.Enum):
-    Deprecated = 'deprecated'
-    Lld = 'lld'
 
 
 class DarwinSdk:

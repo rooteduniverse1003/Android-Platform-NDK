@@ -29,7 +29,7 @@ from pathlib import Path
 import shutil
 import stat
 import subprocess
-from typing import Any, Dict, Iterable, List, Optional, Set
+from typing import Any, Dict, Iterable, Iterator, List, Optional, Set
 
 import ndk.abis
 from ndk.autoconf import AutoconfBuilder
@@ -125,13 +125,13 @@ class Module:
         self.validate()
 
     @property
-    def notices(self) -> List[str]:
-        """Returns the list of notice files for this module."""
+    def notices(self) -> Iterator[str]:
+        """Iterates over the notice files for this module."""
         if self.no_notice:
-            return []
+            return
         if self.notice is None:
-            return []
-        return [self.notice]
+            return
+        yield self.notice
 
     def default_notice_path(self) -> Optional[str]:
         """Returns the path to the default notice for this module, if any."""

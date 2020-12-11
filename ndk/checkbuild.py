@@ -76,11 +76,12 @@ import ndk.file
 from ndk.hosts import Host
 import ndk.notify
 import ndk.paths
+from ndk.paths import ANDROID_DIR
 import ndk.test.builder
 import ndk.test.printers
 import ndk.test.spec
 import ndk.timer
-import ndk.toolchains
+from ndk.toolchains import ClangToolchain
 import ndk.ui
 import ndk.workqueue
 
@@ -379,12 +380,10 @@ class Clang(ndk.builds.Module):
     notice_group = ndk.builds.NoticeGroup.TOOLCHAIN
 
     @property
-    def notices(self) -> List[str]:
-        # TODO: Why every host?
-        return [
-            str(ndk.toolchains.ClangToolchain.path_for_host(h) / 'NOTICE')
-            for h in Host
-        ]
+    def notices(self) -> Iterator[str]:
+        # TODO: Inject Host before this runs.
+        for host in Host:
+            yield str(ClangToolchain.path_for_host(host) / 'NOTICE')
 
     def build(self) -> None:
         pass
@@ -397,9 +396,7 @@ class Clang(ndk.builds.Module):
             shutil.rmtree(install_path)
         if not install_path.parent.exists():
             install_path.parent.mkdir(parents=True)
-        shutil.copytree(
-            ndk.toolchains.ClangToolchain.path_for_host(self.host),
-            install_path)
+        shutil.copytree(ClangToolchain.path_for_host(self.host), install_path)
 
         # clang-4053586 was patched in the prebuilts directory to add the
         # libc++ includes. These are almost certainly a different revision than
@@ -435,8 +432,7 @@ class Clang(ndk.builds.Module):
         (bin_dir / f'lld-link{bin_ext}').unlink()
 
         install_clanglib = install_path / 'lib64/clang'
-        linux_prebuilt_path = ndk.toolchains.ClangToolchain.path_for_host(
-            Host.Linux)
+        linux_prebuilt_path = ClangToolchain.path_for_host(Host.Linux)
 
         if self.host != Host.Linux:
             # We don't build target binaries as part of the Darwin or Windows
@@ -471,28 +467,26 @@ class Clang(ndk.builds.Module):
         shutil.rmtree(install_path / 'lib64/cmake')
 
 
-def get_gcc_prebuilt_path(host: Host, arch: ndk.abis.Arch) -> str:
+def get_gcc_prebuilt_path(host: Host, arch: ndk.abis.Arch) -> Path:
     """Returns the path to the GCC prebuilt for the given host/arch."""
     toolchain = ndk.abis.arch_to_toolchain(arch) + '-4.9'
-    rel_prebuilt_path = os.path.join(
-        'prebuilts/ndk/current/toolchains', host.tag, toolchain)
-    prebuilt_path = ndk.paths.android_path(rel_prebuilt_path)
-    if not os.path.isdir(prebuilt_path):
+    prebuilt_path = (ANDROID_DIR / 'prebuilts/ndk/current/toolchains' /
+                     host.tag / toolchain)
+    if not prebuilt_path.is_dir():
         raise RuntimeError(
             'Could not find prebuilt GCC at {}'.format(prebuilt_path))
     return prebuilt_path
 
 
-def get_binutils_prebuilt_path(host: Host, arch: ndk.abis.Arch) -> str:
+def get_binutils_prebuilt_path(host: Host, arch: ndk.abis.Arch) -> Path:
     if host == Host.Windows64:
         host_dir_name = 'win64'
     else:
         host_dir_name = host.value
 
-    binutils_name = f'binutils-{arch}-{host_dir_name}'
-    prebuilt_path = ndk.paths.android_path('prebuilts/ndk', 'binutils',
-                                           host_dir_name, binutils_name)
-    if not os.path.isdir(prebuilt_path):
+    prebuilt_path = (ANDROID_DIR / 'prebuilts/ndk/binutils' / host_dir_name /
+                     f'binutils-{arch}-{host_dir_name}')
+    if not prebuilt_path.is_dir():
         raise RuntimeError(
             f'Could not find prebuilt binutils at {prebuilt_path}')
     return prebuilt_path
@@ -513,31 +507,39 @@ def versioned_so(host: Host, lib: str, version: str) -> str:
     raise ValueError(f'Unsupported host: {host}')
 
 
-def install_gcc_lib(install_path: str, host: Host, arch: ndk.abis.Arch,
-                    subarch: str, lib_subdir: str, libname: str) -> None:
-    gcc_prebuilt = get_gcc_prebuilt_path(host, arch)
-    lib_install_dir = os.path.join(install_path, lib_subdir, subarch)
-    if not os.path.exists(lib_install_dir):
-        os.makedirs(lib_install_dir)
+def install_gcc_lib(install_path: Path,
+                    host: Host,
+                    arch: ndk.abis.Arch,
+                    subarch: str,
+                    lib_subdir: Path,
+                    libname: str,
+                    src_subdir: Optional[Path] = None) -> None:
+    if src_subdir is None:
+        src_subdir = lib_subdir
+
+    lib_install_dir = install_path / lib_subdir / subarch
+    if not lib_install_dir.exists():
+        lib_install_dir.mkdir(parents=True)
+
     shutil.copy2(
-        os.path.join(gcc_prebuilt, lib_subdir, subarch, libname),
-        os.path.join(lib_install_dir, libname))
+        get_gcc_prebuilt_path(host, arch) / src_subdir / subarch / libname,
+        lib_install_dir / libname)
 
 
-def install_gcc_crtbegin(install_path: str, host: Host, arch: ndk.abis.Arch,
+def install_gcc_crtbegin(install_path: Path, host: Host, arch: ndk.abis.Arch,
                          subarch: str) -> None:
     triple = ndk.abis.arch_to_triple(arch)
-    subdir = os.path.join('lib/gcc', triple, '4.9.x')
+    subdir = Path('lib/gcc') / triple / '4.9.x'
     install_gcc_lib(install_path, host, arch, subarch, subdir, 'crtbegin.o')
 
 
-def install_libgcc(install_path: str,
+def install_libgcc(install_path: Path,
                    host: Host,
                    arch: ndk.abis.Arch,
                    subarch: str,
                    new_layout: bool = False) -> None:
     triple = ndk.abis.arch_to_triple(arch)
-    subdir = os.path.join('lib/gcc', triple, '4.9.x')
+    subdir = Path('lib/gcc') / triple / '4.9.x'
     install_gcc_lib(install_path, host, arch, subarch, subdir, 'libgcc.a')
 
     if new_layout:
@@ -567,23 +569,24 @@ def install_libgcc(install_path: str,
         # using the legacy toolchain already needed to handle this, and
         # -lunwind may not be valid in those configurations (it could have been
         # linked by a full path instead).
-        libgcc_base_path = os.path.join(install_path, subdir, subarch)
-        libgcc_path = os.path.join(libgcc_base_path, 'libgcc.a')
-        libgcc_real_path = os.path.join(libgcc_base_path, 'libgcc_real.a')
-        shutil.move(libgcc_path, libgcc_real_path)
+        libgcc_base_path = install_path / subdir / subarch
+        libgcc_path = libgcc_base_path / 'libgcc.a'
+        libgcc_real_path = libgcc_base_path / 'libgcc_real.a'
+        libgcc_path.rename(libgcc_real_path)
         if arch == 'arm':
             libs = '-lunwind -lcompiler_rt-extras -lgcc_real -ldl'
         else:
             libs = '-lcompiler_rt-extras -lgcc_real'
-        with open(libgcc_path, 'w') as script:
-            script.write('INPUT({})'.format(libs))
+        libgcc_path.write_text('INPUT({})'.format(libs))
 
 
-def install_libatomic(install_path: str, host: Host, arch: ndk.abis.Arch,
+def install_libatomic(install_path: Path, host: Host, arch: ndk.abis.Arch,
                       subarch: str) -> None:
     triple = ndk.abis.arch_to_triple(arch)
-    subdir = os.path.join(triple, 'lib64' if arch.endswith('64') else 'lib')
-    install_gcc_lib(install_path, host, arch, subarch, subdir, 'libatomic.a')
+    libdir_name = 'lib64' if arch.endswith('64') else 'lib'
+    install_gcc_lib(install_path, host, arch, subarch,
+                    Path('lib/gcc') / triple / '4.9.x', 'libatomic.a',
+                    Path(triple) / libdir_name)
 
 
 def get_subarches(arch: ndk.abis.Arch) -> List[str]:
@@ -598,81 +601,6 @@ def get_subarches(arch: ndk.abis.Arch) -> List[str]:
     ]
 
 
-class Binutils(ndk.builds.Module):
-    name = 'binutils'
-    path = 'toolchains/{toolchain}-4.9/prebuilt/{host}'
-    notice_group = ndk.builds.NoticeGroup.TOOLCHAIN
-
-    # TODO: Move GCC wrapper generation to Clang?
-    deps = {
-        'clang',
-    }
-
-    @property
-    def notices(self) -> List[str]:
-        notices = []
-        for host in Host:
-            for arch in ndk.abis.ALL_ARCHITECTURES:
-                prebuilt_path = get_gcc_prebuilt_path(host, arch)
-                notices.append(os.path.join(prebuilt_path, 'NOTICE'))
-        return notices
-
-    def build(self) -> None:
-        pass
-
-    def install(self) -> None:
-        for arch in self.arches:
-            self.install_arch(arch)
-
-    def install_arch(self, arch: ndk.abis.Arch) -> None:
-        install_path = self.get_install_path(arch=arch)
-        toolchain_path = get_binutils_prebuilt_path(self.host, arch)
-        ndk.builds.install_directory(toolchain_path, install_path)
-
-        # We still need libgcc/libatomic. Copy them from the old GCC prebuilts.
-        for subarch in get_subarches(arch):
-            install_libgcc(install_path, self.host, arch, subarch)
-            install_libatomic(install_path, self.host, arch, subarch)
-
-            # We don't actually want this, but Clang won't recognize a
-            # -gcc-toolchain without it.
-            install_gcc_crtbegin(install_path, self.host, arch, subarch)
-
-        # Copy the LLVMgold plugin into the binutils plugin directory so ar can
-        # use it.
-        if self.host == Host.Linux:
-            so = '.so'
-        elif self.host == Host.Darwin:
-            so = '.dylib'
-        else:
-            so = '.dll'
-
-        clang_prebuilts = self.get_dep('clang').get_install_path()
-        clang_bin = os.path.join(clang_prebuilts, 'bin')
-        clang_libs = os.path.join(clang_prebuilts, 'lib64')
-        llvmgold = os.path.join(clang_libs, 'LLVMgold' + so)
-
-        bfd_plugins = os.path.join(install_path, 'lib/bfd-plugins')
-        os.makedirs(bfd_plugins)
-        shutil.copy2(llvmgold, bfd_plugins)
-
-        if not self.host.is_windows:
-            libcxx_1 = os.path.join(
-                clang_libs, versioned_so(self.host, 'libc++', '1'))
-            libcxx_abi_1 = os.path.join(
-                clang_libs, versioned_so(self.host, 'libc++abi', '1'))
-
-            # The rpath on LLVMgold.so is ../lib64, so we have to install to
-            # lib/lib64 to have it be in the right place :(
-            lib_dir = os.path.join(install_path, 'lib/lib64')
-            os.makedirs(lib_dir)
-            shutil.copy2(libcxx_1, lib_dir)
-            shutil.copy2(libcxx_abi_1, lib_dir)
-        else:
-            libwinpthread = os.path.join(clang_bin, 'libwinpthread-1.dll')
-            shutil.copy2(libwinpthread, bfd_plugins)
-
-
 class ShaderTools(ndk.builds.InvokeBuildModule):
     name = 'shader-tools'
     path = 'shader-tools/{host}'
@@ -680,17 +608,15 @@ class ShaderTools(ndk.builds.InvokeBuildModule):
     notice_group = ndk.builds.NoticeGroup.TOOLCHAIN
 
     @property
-    def notices(self) -> List[str]:
+    def notices(self) -> Iterator[str]:
         base = ndk.paths.android_path('external/shaderc')
         shaderc_dir = os.path.join(base, 'shaderc')
         glslang_dir = os.path.join(base, 'glslang')
         spirv_dir = os.path.join(base, 'spirv-headers')
-        return [
-            os.path.join(shaderc_dir, 'LICENSE'),
-            os.path.join(shaderc_dir, 'third_party', 'LICENSE.spirv-tools'),
-            os.path.join(glslang_dir, 'LICENSE.txt'),
-            os.path.join(spirv_dir, 'LICENSE')
-        ]
+        yield os.path.join(shaderc_dir, 'LICENSE')
+        yield os.path.join(shaderc_dir, 'third_party', 'LICENSE.spirv-tools')
+        yield os.path.join(glslang_dir, 'LICENSE.txt')
+        yield os.path.join(spirv_dir, 'LICENSE')
 
 
 class Make(ndk.builds.AutoconfModule):
@@ -704,8 +630,8 @@ class Make(ndk.builds.AutoconfModule):
     env = {'LC_ALL': 'C', 'LANG': 'C'}
 
     @property
-    def notices(self) -> List[str]:
-        return [str(self.src / 'COPYING')]
+    def notices(self) -> Iterator[str]:
+        yield str(self.src / 'COPYING')
 
 
 class Yasm(ndk.builds.AutoconfModule):
@@ -715,10 +641,16 @@ class Yasm(ndk.builds.AutoconfModule):
     src: Path = ndk.paths.ANDROID_DIR / 'toolchain/yasm'
 
     @property
-    def notices(self) -> List[str]:
-        files = ['Artistic.txt', 'BSD.txt', 'COPYING', 'GNU_GPL-2.0',
-                 'GNU_LGPL-2.0']
-        return [str(self.src / f) for f in files]
+    def notices(self) -> Iterator[str]:
+        files = [
+            'Artistic.txt',
+            'BSD.txt',
+            'COPYING',
+            'GNU_GPL-2.0',
+            'GNU_LGPL-2.0',
+        ]
+        for name in files:
+            yield str(self.src / name)
 
 
 class NdkWhich(ndk.builds.FileModule):
@@ -733,11 +665,9 @@ class HostTools(ndk.builds.Module):
     notice_group = ndk.builds.NoticeGroup.TOOLCHAIN
 
     @property
-    def notices(self) -> List[str]:
-        return [
-            ndk.paths.android_path('toolchain/python/Python-2.7.5/LICENSE'),
-            ndk.paths.ndk_path('sources/host-tools/toolbox/NOTICE'),
-        ]
+    def notices(self) -> Iterator[str]:
+        yield ndk.paths.android_path('toolchain/python/Python-2.7.5/LICENSE')
+        yield ndk.paths.ndk_path('sources/host-tools/toolbox/NOTICE')
 
     def build(self) -> None:
         build_args = ndk.builds.common_build_args(self.out_dir, self.dist_dir,
@@ -899,7 +829,6 @@ class Platforms(ndk.builds.Module):
 
     deps = {
         'clang',
-        'binutils',
     }
 
     min_supported_api = 16
@@ -923,10 +852,9 @@ class Platforms(ndk.builds.Module):
     def src_path(self, *args: str) -> str:  # pylint: disable=no-self-use
         return ndk.paths.android_path('development/ndk/platforms', *args)
 
-    def binutils_tool(self, tool: str, arch: ndk.abis.Arch) -> str:
-        triple = build_support.arch_to_triple(arch)
-        binutils = self.get_dep('binutils').get_build_host_install(arch)
-        return os.path.join(binutils, 'bin', triple + '-' + tool)
+    def llvm_tool(self, tool: str) -> Path:
+        path = Path(self.get_dep('clang').get_build_host_install())
+        return path / f'bin/{tool}'
 
     # pylint: disable=no-self-use
     def libdir_name(self, arch: ndk.abis.Arch) -> str:
@@ -974,18 +902,15 @@ class Platforms(ndk.builds.Module):
         libc_includes = ndk.paths.ANDROID_DIR / 'bionic/libc'
         arch_common_includes = libc_includes / 'arch-common/bionic'
 
-        cc = os.path.join(
-            self.get_dep('clang').get_build_host_install(), 'bin/clang')
-        binutils = self.get_dep('binutils').get_build_host_install(arch)
+        cc = self.llvm_tool('clang')
 
         args = [
-            cc,
+            str(cc),
             '-target',
             ndk.abis.clang_target(arch, api),
             '--sysroot',
             self.prebuilt_path('sysroot'),
-            '-gcc-toolchain',
-            binutils,
+            '-fuse-ld=lld',
             f'-I{libc_includes}',
             f'-I{arch_common_includes}',
             f'-DPLATFORM_SDK_VERSION={api}',
@@ -1009,8 +934,8 @@ class Platforms(ndk.builds.Module):
 
     def check_elf_note(self, obj_file: str) -> None:
         # readelf is a cross platform tool, so arch doesn't matter.
-        readelf = self.binutils_tool('readelf', ndk.abis.Arch('arm'))
-        out = subprocess.check_output([readelf, '--notes', obj_file])
+        readelf = self.llvm_tool('llvm-readelf')
+        out = subprocess.check_output([str(readelf), '--notes', obj_file])
         if 'Android' not in out.decode('utf-8'):
             raise RuntimeError(
                 '{} does not contain NDK ELF note'.format(obj_file))
@@ -1165,12 +1090,10 @@ class Gdb(ndk.builds.Module):
     _gdb_builder: Optional[ndk.autoconf.AutoconfBuilder] = None
 
     @property
-    def notices(self) -> List[str]:
-        return [
-            str(self.expat_src / 'COPYING'),
-            str(self.gdb_src / 'COPYING'),
-            str(self.lzma_src / 'COPYING'),
-        ]
+    def notices(self) -> Iterator[str]:
+        yield str(self.expat_src / 'COPYING')
+        yield str(self.gdb_src / 'COPYING')
+        yield str(self.lzma_src / 'COPYING')
 
     @property
     def expat_builder(self) -> ndk.autoconf.AutoconfBuilder:
@@ -1207,7 +1130,7 @@ class Gdb(ndk.builds.Module):
             if self.host == Host.Linux:
                 additional_flags.append('-Wl,-rpath,$$$$\\ORIGIN/../lib')
             # Add path for libc++.
-            clang_path = ndk.toolchains.ClangToolchain.path_for_host(self.host)
+            clang_path = ClangToolchain.path_for_host(self.host)
             additional_flags.append('-L' + str(clang_path / 'lib64'))
             self._gdb_builder = ndk.autoconf.AutoconfBuilder(
                 self.gdb_src / 'configure',
@@ -1350,7 +1273,7 @@ class Gdb(ndk.builds.Module):
         gdb_stub.rename(install_dir / ('bin/gdb' + exe_suffix))
 
         # Install libc++.
-        clang_path = ndk.toolchains.ClangToolchain.path_for_host(self.host)
+        clang_path = ClangToolchain.path_for_host(self.host)
         libcxx_files: Dict[Host, List[str]] = {
             Host.Darwin: ['libc++abi.1.dylib', 'libc++.1.dylib'],
             Host.Linux: ['libc++abi.so.1', 'libc++.so.1'],
@@ -1388,23 +1311,17 @@ class GdbServer(ndk.builds.Module):
         """Returns the path to the built libthread_db.a."""
         return os.path.join(self.build_dir, 'libthread_db.a')
 
-    def get_tool(self, name: str, arch: Optional[ndk.abis.Arch] = None) -> str:
+    def get_tool(self, name: str) -> Path:
         """Returns the path to the given tool in the toolchain.
 
         Args:
             name: Name of the tool. e.g. 'ar'.
-            arch: Optional architecture for architecture specific tools.
 
         Returns:
             Path to the specified tool.
         """
-        toolchain_bin = os.path.join(
-            self.get_dep('toolchain').get_build_host_install(), 'bin')
-
-        if arch is not None:
-            triple = ndk.abis.arch_to_triple(arch)
-            name = f'{triple}-{name}'
-        return os.path.join(toolchain_bin, name)
+        toolchain = Path(self.get_dep('toolchain').get_build_host_install())
+        return toolchain / 'bin' / name
 
     def build_libthread_db(self, api_level: int) -> None:
         """Builds libthread_db.a for the current architecture."""
@@ -1414,7 +1331,7 @@ class GdbServer(ndk.builds.Module):
                                       'libthread_db.c')
         libthread_db_o = os.path.join(self.build_dir, 'libthread_db.o')
         cc_args = [
-            self.get_tool('clang'),
+            str(self.get_tool('clang')),
             '-target',
             ndk.abis.clang_target(self.build_arch, api_level),
             '-I',
@@ -1430,7 +1347,7 @@ class GdbServer(ndk.builds.Module):
         subprocess.run(cc_args, check=True)
 
         ar_args = [
-            self.get_tool('ar', self.build_arch),
+            str(self.get_tool('llvm-ar')),
             'rD',
             self.libthread_db_a_path,
             libthread_db_o,
@@ -1456,20 +1373,17 @@ class GdbServer(ndk.builds.Module):
         if self.build_arch.endswith('64'):
             cflags.append('-DUAPI_HEADERS')
 
-        ldflags = '-static -fuse-ld=gold -Wl,-z,nocopyreloc -Wl,--no-undefined'
+        ldflags = '-static -Wl,-z,nocopyreloc -Wl,--no-undefined'
 
         # Use --target as part of CC so it is used when linking as well.
-        clang = '{} --target={}'.format(
-            self.get_tool('clang'),
-            ndk.abis.clang_target(self.build_arch, api_level))
-        clangplusplus = '{} --target={}'.format(
-            self.get_tool('clang++'),
-            ndk.abis.clang_target(self.build_arch, api_level))
+        target = ndk.abis.clang_target(self.build_arch, api_level)
+        clang = f'{self.get_tool("clang")} --target={target}'
+        clangplusplus = f'{self.get_tool("clang++")} --target={target}'
         configure_env = {
             'CC': clang,
             'CXX': clangplusplus,
-            'AR': self.get_tool('ar', self.build_arch),
-            'RANLIB': self.get_tool('ranlib', self.build_arch),
+            'AR': str(self.get_tool('llvm-ar')),
+            'RANLIB': str(self.get_tool('llvm-ranlib')),
             'CFLAGS': ' '.join(cflags),
             'CXXFLAGS': ' '.join(cflags),
             'LDFLAGS': ldflags,
@@ -1513,7 +1427,7 @@ class GdbServer(ndk.builds.Module):
         os.makedirs(self.get_install_path())
 
         objcopy_args = [
-            self.get_tool('objcopy', self.build_arch),
+            str(self.get_tool('llvm-objcopy')),
             '--strip-unneeded',
             os.path.join(self.build_dir, 'gdbserver'),
             os.path.join(self.get_install_path(), 'gdbserver'),
@@ -1528,14 +1442,12 @@ class LibShaderc(ndk.builds.Module):
     notice_group = ndk.builds.NoticeGroup.TOOLCHAIN
 
     @property
-    def notices(self) -> List[str]:
+    def notices(self) -> Iterator[str]:
         shaderc_dir = os.path.join(self.src, 'shaderc')
         glslang_dir = os.path.join(self.src, 'glslang')
-        return [
-            os.path.join(shaderc_dir, 'LICENSE'),
-            os.path.join(glslang_dir, 'LICENSE.txt'),
-            os.path.join(shaderc_dir, 'third_party', 'LICENSE.spirv-tools'),
-        ]
+        yield os.path.join(shaderc_dir, 'LICENSE')
+        yield os.path.join(glslang_dir, 'LICENSE.txt')
+        yield os.path.join(shaderc_dir, 'third_party', 'LICENSE.spirv-tools')
 
     def build(self) -> None:
         copies = [
@@ -1872,7 +1784,6 @@ class BaseToolchain(ndk.builds.Module):
     path = 'toolchains/llvm/prebuilt/{host}'
     notice_group = ndk.builds.NoticeGroup.TOOLCHAIN
     deps = {
-        'binutils',
         'clang',
         'libandroid_support',
         'make',
@@ -1883,10 +1794,18 @@ class BaseToolchain(ndk.builds.Module):
     }
 
     @property
-    def notices(self) -> List[str]:
-        return (Binutils().notices + Clang().notices + Yasm().notices
-                + LibAndroidSupport().notices + Platforms().notices +
-                Sysroot().notices + SystemStl().notices)
+    def notices(self) -> Iterator[str]:
+        yield from Clang().notices
+        yield from Yasm().notices
+        yield from LibAndroidSupport().notices
+        yield from Platforms().notices
+        yield from Sysroot().notices
+        yield from SystemStl().notices
+        yield ANDROID_DIR / 'toolchain/binutils/binutils-2.27/gas/COPYING'
+        for host in Host:
+            for arch in ndk.abis.ALL_ARCHITECTURES:
+                # For libgcc/libatomic.
+                yield str(get_gcc_prebuilt_path(host, arch) / 'NOTICE')
 
     def build(self) -> None:
         pass
@@ -1907,48 +1826,30 @@ class BaseToolchain(ndk.builds.Module):
             os.path.join(yasm_dir, 'bin', 'yasm' + exe),
             os.path.join(install_dir, 'bin'))
 
+        bin_dir = Path(install_dir) / 'bin'
+        lld = bin_dir / f'ld.lld{exe}'
+        new_bin_ld = bin_dir / f'ld{exe}'
+
+        shutil.copyfile(lld, new_bin_ld)
+        shutil.copystat(lld, new_bin_ld)
+
         for arch in self.arches:
-            binutils_dir = self.get_dep('binutils').get_install_path(arch=arch)
-            copy_tree(binutils_dir, install_dir)
-
-            # Replace the default ld executable with lld.
+            binutils_dir = get_binutils_prebuilt_path(self.host, arch)
             triple = ndk.abis.arch_to_triple(arch)
-            bin_dir = Path(install_dir) / 'bin'
-            arch_bin_dir = Path(install_dir) / triple / 'bin'
 
-            bin_ld = bin_dir / f'{triple}-ld{exe}'
-            arch_ld = arch_bin_dir / f'ld{exe}'
-            lld = bin_dir / f'ld.lld{exe}'
-            new_bin_ld = bin_dir / f'ld{exe}'
+            gas = binutils_dir / f'bin/{triple}-as{exe}'
+            shutil.copy2(gas, bin_dir)
 
-            bin_ld.unlink()
-            shutil.copyfile(lld, new_bin_ld)
-            shutil.copystat(lld, new_bin_ld)
+            # We still need libgcc/libatomic. Copy them from the old GCC
+            # prebuilts.
+            for subarch in get_subarches(arch):
+                install_libgcc(Path(install_dir), self.host, arch, subarch)
+                install_libatomic(Path(install_dir), self.host, arch, subarch)
 
-            arch_ld.unlink()
-            shutil.copyfile(lld, arch_ld)
-            shutil.copystat(lld, arch_ld)
-
-            # LLD isn't really meant to be moved, so it doesn't have an RPATH
-            # for the arch-specific directory. Ideally we wouldn't copy to this
-            # directory at all, but to maintain compatibility for users we'll
-            # keep this directory until GNU binutils is removed.
-            if not self.host.is_windows:
-                src_lib64 = bin_dir.parent / 'lib64'
-                dst_lib64 = arch_bin_dir.parent / 'lib64'
-                # The directory already exists for LP64 ABIs, but not for LP32
-                # ABIs.
-                dst_lib64.mkdir(exist_ok=True)
-
-                libcxx = versioned_so(self.host, 'libc++', '1')
-                shutil.copy2(src_lib64 / libcxx, dst_lib64 / libcxx)
-
-                libcxxabi = versioned_so(self.host, 'libc++abi', '1')
-                shutil.copy2(src_lib64 / libcxxabi, dst_lib64 / libcxxabi)
-            else:
-                src = bin_dir / 'libwinpthread-1.dll'
-                dest = arch_bin_dir / 'libwinpthread-1.dll'
-                shutil.copy2(src, dest)
+                # We don't actually want this, but Clang won't recognize a
+                # -gcc-toolchain without it.
+                install_gcc_crtbegin(Path(install_dir), self.host, arch,
+                                     subarch)
 
         platforms = self.get_dep('platforms')
         assert isinstance(platforms, Platforms)
@@ -2002,12 +1903,9 @@ class Vulkan(ndk.builds.Module):
     path = 'sources/third_party/vulkan'
 
     @property
-    def notices(self) -> List[str]:
+    def notices(self) -> Iterator[str]:
         base = ndk.paths.android_path('external')
-        headers_dir = os.path.join(base, 'vulkan-headers')
-        return [
-            os.path.join(headers_dir, 'NOTICE'),
-        ]
+        yield os.path.join(base, 'vulkan-headers', 'NOTICE')
 
     def build(self) -> None:
         print('Constructing Vulkan source...')
@@ -2072,8 +1970,9 @@ class Toolchain(ndk.builds.Module):
     }
 
     @property
-    def notices(self) -> List[str]:
-        return Libcxx().notices + Libcxxabi().notices
+    def notices(self) -> Iterator[str]:
+        yield from Libcxx().notices
+        yield from Libcxxabi().notices
 
     def build(self) -> None:
         pass
@@ -2094,14 +1993,16 @@ class Toolchain(ndk.builds.Module):
 
         for arch in self.arches:
             # We need to replace libgcc with linker scripts that also use
-            # libunwind on arm32. We already get libgcc from copying binutils,
-            # but re-install it so we get the linker scripts.
+            # libunwind on arm32.
             #
             # This needs to be done here rather than in BaseToolchain because
             # libunwind isn't available until libc++ has been built.
             for subarch in get_subarches(arch):
-                install_libgcc(
-                    install_dir, self.host, arch, subarch, new_layout=True)
+                install_libgcc(Path(install_dir),
+                               self.host,
+                               arch,
+                               subarch,
+                               new_layout=True)
 
             triple = ndk.abis.arch_to_triple(arch)
             abi, = ndk.abis.arch_to_abis(arch)
@@ -2404,13 +2305,11 @@ class RenderscriptToolchain(ndk.builds.InvokeBuildModule):
     script = 'build-renderscript.py'
 
     @property
-    def notices(self) -> List[str]:
+    def notices(self) -> Iterator[str]:
         base = ndk.paths.android_path('prebuilts/renderscript/host')
-        return [
-            os.path.join(base, 'darwin-x86/current/NOTICE'),
-            os.path.join(base, 'linux-x86/current/NOTICE'),
-            os.path.join(base, 'windows-x86/current/NOTICE'),
-        ]
+        yield os.path.join(base, 'darwin-x86/current/NOTICE')
+        yield os.path.join(base, 'linux-x86/current/NOTICE')
+        yield os.path.join(base, 'windows-x86/current/NOTICE')
 
 
 class Changelog(ndk.builds.FileModule):
@@ -2767,7 +2666,6 @@ def get_modules_to_build(
 ALL_MODULES = [
     AdbPy(),
     BaseToolchain(),
-    Binutils(),
     CanaryReadme(),
     Changelog(),
     Clang(),

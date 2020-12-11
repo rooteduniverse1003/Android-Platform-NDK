@@ -18,11 +18,10 @@
 from pathlib import Path
 import re
 import subprocess
-from typing import Iterator, Optional, Tuple
+from typing import Iterator, Tuple
 
 from ndk.abis import Abi
 import ndk.hosts
-from ndk.toolchains import LinkerOption
 
 
 def find_public_unwind_symbols(output: str) -> Iterator[str]:
@@ -56,8 +55,7 @@ def readelf(ndk_path: Path, host: ndk.hosts.Host, library: Path,
         stderr=subprocess.STDOUT).stdout
 
 
-def run_test(ndk_path: str, abi: Abi, platform: Optional[int],
-             linker: LinkerOption) -> Tuple[bool, str]:
+def run_test(ndk_path: str, abi: Abi, api: int) -> Tuple[bool, str]:
     """Check that unwinder symbols are hidden in outputs."""
     ndk_build = Path(ndk_path) / 'ndk-build'
     host = ndk.hosts.get_default_host()
@@ -66,8 +64,7 @@ def run_test(ndk_path: str, abi: Abi, platform: Optional[int],
     project_path = Path('project')
     ndk_args = [
         f'APP_ABI={abi}',
-        f'APP_LD={linker.value}',
-        f'APP_PLATFORM=android-{platform}',
+        f'APP_PLATFORM=android-{api}',
     ]
     subprocess.run(
         [str(ndk_build), '-C', str(project_path)] + ndk_args,
