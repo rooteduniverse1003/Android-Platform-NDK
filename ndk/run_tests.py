@@ -362,13 +362,13 @@ class ConfigFilter:
         self.spec = test_spec
 
     def filter(self, build_config: BuildConfiguration) -> bool:
-        return (build_config.abi in self.spec.abis
-                and build_config.linker in self.spec.linkers)
+        return build_config.abi in self.spec.abis
 
 
-def enumerate_tests(test_dir: str, test_src_dir: str, test_filter: TestFilter,
-                    config_filter: ConfigFilter
-                    ) -> Dict[BuildConfiguration, List[TestCase]]:
+def enumerate_tests(
+        test_dir: str, test_src_dir: str, test_filter: TestFilter,
+        config_filter: ConfigFilter
+) -> Dict[BuildConfiguration, List[TestCase]]:
     tests: Dict[BuildConfiguration, List[TestCase]] = {}
 
     # The tests directory has a directory for each type of test. For example:

@@ -9,13 +9,9 @@ For Android Studio issues, follow the docs on the [Android Studio site].
 
 ## Announcements
 
-* GNU binutils is deprecated and will be removed in an upcoming NDK release.
-  Note that the GNU assembler (`as`) **is** a part of this. If you are building
-  with `-fno-integrated-as`, file bugs if anything is preventing you from
-  removing that flag.
-
-* [LLD](https://lld.llvm.org/) is now the default linker. ndk-build and our
-  CMake toolchain file have also migrated to using llvm-ar and llvm-strip.
+* GNU binutils, excluding the GNU Assembler (GAS), has been removed. GAS will be
+  removed in the next release. If you are building with `-fno-integrated-as`,
+  file bugs if anything is preventing you from removing that flag.
 
 ## Changes
 

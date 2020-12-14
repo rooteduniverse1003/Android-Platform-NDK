@@ -22,7 +22,6 @@ from typing import List, Optional, Tuple
 from ndk.abis import Abi
 from ndk.hosts import Host
 import ndk.paths
-from ndk.toolchains import LinkerOption
 
 
 class FlagVerifierResult:
@@ -61,13 +60,12 @@ class FlagVerifierFailure(FlagVerifierResult):
 class FlagVerifier:
     """Verifies that a build receives the expected flags."""
 
-    def __init__(self, project: Path, ndk_path: Path, abi: Abi, api: int,
-                 linker: LinkerOption) -> None:
+    def __init__(self, project: Path, ndk_path: Path, abi: Abi,
+                 api: int) -> None:
         self.project = project
         self.ndk_path = ndk_path
         self.abi = abi
         self.api = api
-        self.linker = linker
         self.expected_flags: List[str] = []
         self.not_expected_flags: List[str] = []
 
@@ -150,7 +148,6 @@ class FlagVerifier:
             '-B',
             'V=1',
             f'APP_ABI={self.abi}',
-            f'APP_LD={self.linker.value}',
             f'APP_PLATFORM=android-{self.api}',
         ])
 
@@ -184,7 +181,6 @@ class FlagVerifier:
             str(build_dir),
             f'-DCMAKE_TOOLCHAIN_FILE={toolchain_file}',
             f'-DANDROID_ABI={self.abi}',
-            f'-DANDROID_LD={self.linker.value}',
             f'-DANDROID_PLATFORM=android-{self.api}',
             '-GNinja',
             f'-DCMAKE_MAKE_PROGRAM={ninja}',

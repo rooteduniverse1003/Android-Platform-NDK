@@ -22,14 +22,12 @@ from pathlib import Path
 from typing import Optional, Tuple
 
 from ndk.abis import Abi
-from ndk.toolchains import LinkerOption
 from ndk.testing.flag_verifier import FlagVerifier
 
 
-def run_test(ndk_path: str, abi: Abi, api: int,
-             linker: LinkerOption) -> Tuple[bool, Optional[str]]:
+def run_test(ndk_path: str, abi: Abi, api: int) -> Tuple[bool, Optional[str]]:
     """Checks ndk-build V=1 output for mstackrealign flag."""
-    verifier = FlagVerifier(Path('project'), Path(ndk_path), abi, api, linker)
+    verifier = FlagVerifier(Path('project'), Path(ndk_path), abi, api)
     if abi == Abi('x86') and api < 24:
         verifier.expect_flag('-mstackrealign')
     else:

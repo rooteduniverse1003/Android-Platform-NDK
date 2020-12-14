@@ -16,31 +16,26 @@
 import unittest
 
 from ndk.test.spec import BuildConfiguration, CMakeToolchainFile
-from ndk.toolchains import LinkerOption
 
 
 class BuildConfigurationTest(unittest.TestCase):
     def test_from_string(self) -> None:
-        config = BuildConfiguration.from_string('armeabi-v7a-16-lld-legacy')
+        config = BuildConfiguration.from_string('armeabi-v7a-16-legacy')
         self.assertEqual('armeabi-v7a', config.abi)
         self.assertEqual(16, config.api)
-        self.assertEqual(LinkerOption.Lld, config.linker)
         self.assertEqual(CMakeToolchainFile.Legacy, config.toolchain_file)
 
-        config = BuildConfiguration.from_string('arm64-v8a-21-deprecated-new')
+        config = BuildConfiguration.from_string('arm64-v8a-21-new')
         self.assertEqual('arm64-v8a', config.abi)
         self.assertEqual(21, config.api)
-        self.assertEqual(LinkerOption.Deprecated, config.linker)
         self.assertEqual(CMakeToolchainFile.Default, config.toolchain_file)
 
-        config = BuildConfiguration.from_string('x86-16-lld-new')
+        config = BuildConfiguration.from_string('x86-16-new')
         self.assertEqual('x86', config.abi)
         self.assertEqual(16, config.api)
-        self.assertEqual(LinkerOption.Lld, config.linker)
         self.assertEqual(CMakeToolchainFile.Default, config.toolchain_file)
 
-        config = BuildConfiguration.from_string('x86_64-21-deprecated-new')
+        config = BuildConfiguration.from_string('x86_64-21-new')
         self.assertEqual('x86_64', config.abi)
         self.assertEqual(21, config.api)
-        self.assertEqual(LinkerOption.Deprecated, config.linker)
         self.assertEqual(CMakeToolchainFile.Default, config.toolchain_file)

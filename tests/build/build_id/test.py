@@ -24,18 +24,12 @@ from pathlib import Path
 from typing import Optional, Tuple
 
 from ndk.abis import Abi
-from ndk.toolchains import LinkerOption
 from ndk.testing.flag_verifier import FlagVerifier
 
 
-def run_test(ndk_path: str, abi: Abi, api: int,
-             linker: LinkerOption) -> Tuple[bool, Optional[str]]:
+def run_test(ndk_path: str, abi: Abi, api: int) -> Tuple[bool, Optional[str]]:
     """Checks correct --build-id use."""
-    verifier = FlagVerifier(Path('project'), Path(ndk_path), abi, api, linker)
-    if linker == LinkerOption.Lld:
-        verifier.expect_flag('-Wl,--build-id=sha1')
-        verifier.expect_not_flag('-Wl,--build-id')
-    else:
-        verifier.expect_flag('-Wl,--build-id')
-        verifier.expect_not_flag('-Wl,--build-id=sha1')
+    verifier = FlagVerifier(Path('project'), Path(ndk_path), abi, api)
+    verifier.expect_flag('-Wl,--build-id=sha1')
+    verifier.expect_not_flag('-Wl,--build-id')
     return verifier.verify().make_test_result_tuple()

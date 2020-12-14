@@ -28,20 +28,23 @@ import os
 from pathlib import Path
 import subprocess
 import sys
+from typing import Tuple
+
+import ndk.testing.standalone_toolchain
 
 import ndk.abis
-import ndk.hosts
+from ndk.abis import Abi
+from ndk.hosts import Host
 
 
-def build(ndk_dir, abi, platform, linker):
+def build(ndk_dir: str, abi: Abi, api: int) -> Tuple[bool, str]:
     ndk_build = os.path.join(ndk_dir, 'ndk-build')
     if sys.platform == 'win32':
         ndk_build += '.cmd'
     project_path = 'project'
     ndk_args = [
         f'APP_ABI={abi}',
-        f'APP_LD={linker.value}',
-        f'APP_PLATFORM=android-{platform}',
+        f'APP_PLATFORM=android-{api}',
         'V=1',
     ]
     proc = subprocess.Popen([ndk_build, '-C', project_path] + ndk_args,
@@ -50,12 +53,12 @@ def build(ndk_dir, abi, platform, linker):
     return proc.returncode == 0, out.decode('utf-8')
 
 
-def run_test(ndk_path, abi, _platform, linker):
+def run_test(ndk_path: str, abi: Abi, _api: int) -> Tuple[bool, str]:
     """Checks ndk-build V=1 output for correct compiler."""
     min_api = None
     max_api = None
     apis = []
-    host = ndk.hosts.host_to_tag(ndk.hosts.get_default_host())
+    host = Host.current().tag
     triple = ndk.abis.arch_to_triple(ndk.abis.abi_to_arch(abi))
     toolchain_dir = Path(ndk_path) / f'toolchains/llvm/prebuilt/{host}'
     lib_dir = toolchain_dir / f'sysroot/usr/lib/{triple}'
@@ -75,9 +78,12 @@ def run_test(ndk_path, abi, _platform, linker):
         if max_api is None or api > max_api:
             max_api = api
 
+    if min_api is None or max_api is None:
+        return False, "Found no platforms"
+
     missing_platforms = sorted(list(set(range(min_api, max_api)) - set(apis)))
     for api in missing_platforms:
-        result, out = build(ndk_path, abi, api, linker)
+        result, out = build(ndk_path, abi, api)
         if not result:
             return result, out
 

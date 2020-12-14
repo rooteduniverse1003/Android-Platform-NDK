@@ -19,9 +19,12 @@ import os
 import subprocess
 import sys
 import textwrap
+from typing import Tuple
+
+from ndk.abis import Abi
 
 
-def run_test(ndk_path, abi, platform, linker):
+def run_test(ndk_path: str, abi: Abi, api: int) -> Tuple[bool, str]:
     """Checks that the proper wrap.sh scripts were installed."""
     ndk_build = os.path.join(ndk_path, 'ndk-build')
     if sys.platform == 'win32':
@@ -29,13 +32,12 @@ def run_test(ndk_path, abi, platform, linker):
     project_path = 'project'
     ndk_args = [
         f'APP_ABI={abi}',
-        f'APP_LD={linker.value}',
-        f'APP_PLATFORM=android-{platform}',
+        f'APP_PLATFORM=android-{api}',
     ]
     proc = subprocess.Popen([ndk_build, '-C', project_path] + ndk_args,
-                            stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+                            stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+                            encoding='utf-8')
     out, _ = proc.communicate()
-    out = out.decode('utf-8')
     if proc.returncode != 0:
         return proc.returncode == 0, out
 

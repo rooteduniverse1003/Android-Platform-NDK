@@ -13,7 +13,7 @@
 #
 extract_arch_tag ()
 {
-    echo $($ARM_READELF -A "$1" | awk '$1 == "'$2':" { print $2; }' | sort -u | tr '\n' ' ')
+    echo $($READELF -A "$1" | awk '$1 == "'$2':" { print $2; }' | sort -u | tr '\n' ' ')
 }
 
 # Returns success only if a file is a static object or library.
@@ -222,9 +222,6 @@ if [ -n "$APP_ABI" ]; then
     fi
 fi
 
-ARM_TOOLCHAIN_NAME=$(get_default_toolchain_name_for_arch arm)
-ARM_TOOLCHAIN_PREFIX=$(get_default_toolchain_prefix_for_arch arm)
-
 case $(uname -s) in
     Darwin)
       HOST_ARCH=`uname -m`
@@ -246,9 +243,9 @@ case $(uname -s) in
       ;;
 esac
 
-ARM_READELF=$NDK/toolchains/$ARM_TOOLCHAIN_NAME/prebuilt/$HOST_TAG/bin/${ARM_TOOLCHAIN_PREFIX}-readelf
-if [ ! -f "$ARM_READELF" ]; then
-    echo "ERROR: Missing binary: $ARM_READELF" >&2
+READELF=$NDK/toolchains/llvm/prebuilt/$HOST_TAG/bin/llvm-readelf
+if [ ! -f "$READELF" ]; then
+    echo "ERROR: Missing binary: $READELF" >&2
     exit 1
 fi
 

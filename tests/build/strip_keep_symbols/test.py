@@ -15,13 +15,15 @@
 #
 """Check for strip --strip-debug use."""
 from pathlib import Path
+from typing import Optional, Tuple
 
+from ndk.abis import Abi
 from ndk.testing.flag_verifier import FlagVerifier
 
 
-def run_test(ndk_path, abi, api, linker):
+def run_test(ndk_path: str, abi: Abi, api: int) -> Tuple[bool, Optional[str]]:
     """Checks ndk-build V=1 output for --strip-debug flag."""
-    verifier = FlagVerifier(Path('project'), Path(ndk_path), abi, api, linker)
+    verifier = FlagVerifier(Path('project'), Path(ndk_path), abi, api)
     verifier.expect_flag('--strip-debug')
     verifier.expect_not_flag('--strip-unneeded')
     return verifier.verify_ndk_build().make_test_result_tuple()
