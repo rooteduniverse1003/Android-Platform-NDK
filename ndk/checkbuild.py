@@ -390,13 +390,13 @@ class Clang(ndk.builds.Module):
         pass
 
     def install(self) -> None:
-        install_path = self.get_install_path()
+        install_path = Path(self.get_install_path())
+        bin_dir = install_path / 'bin'
 
-        install_parent = os.path.dirname(install_path)
-        if os.path.exists(install_path):
+        if install_path.exists():
             shutil.rmtree(install_path)
-        if not os.path.exists(install_parent):
-            os.makedirs(install_parent)
+        if not install_path.parent.exists():
+            install_path.parent.mkdir(parents=True)
         shutil.copytree(
             ndk.toolchains.ClangToolchain.path_for_host(self.host),
             install_path)
@@ -407,8 +407,7 @@ class Clang(ndk.builds.Module):
         # and vice versa. Best to just remove them for the time being since
         # that returns to the previous behavior.
         # https://github.com/android-ndk/ndk/issues/564#issuecomment-342307128
-        cxx_includes_path = os.path.join(install_path, 'include')
-        shutil.rmtree(cxx_includes_path)
+        shutil.rmtree(install_path / 'include')
 
         if not self.host.is_windows:
             # The Linux and Darwin toolchains have Python compiler wrappers
@@ -416,30 +415,26 @@ class Clang(ndk.builds.Module):
             # want to make sure Windows behavior is consistent with the other
             # platforms, so just unwrap the compilers until they do something
             # useful and are available on Windows.
-            os.rename(os.path.join(install_path, 'bin/clang.real'),
-                      os.path.join(install_path, 'bin/clang'))
-            os.rename(os.path.join(install_path, 'bin/clang++.real'),
-                      os.path.join(install_path, 'bin/clang++'))
+            (bin_dir / 'clang++.real').unlink()
+            (bin_dir / 'clang++').unlink()
+            clang = install_path / 'bin/clang'
+            (bin_dir / 'clang.real').rename(clang)
+            (bin_dir / 'clang++').symlink_to('clang')
 
-            # The prebuilts have symlinks pointing at a clang-MAJ binary, but
-            # we replace symlinks with standalone copies, so remove this copy
-            # to save space.
-            bin_dir = Path(install_path) / 'bin'
+            # The prebuilts have duplicates as clang-MAJ. Remove these to save
+            # space.
             for path in bin_dir.glob('clang-*'):
                 if re.search(r'^clang-\d+$', path.name) is not None:
                     path.unlink()
 
         # Remove LLD duplicates. We only need ld.lld.
         # http://b/74250510
-        #
-        # Note that lld is experimental in the NDK. It is not the default for
-        # any architecture and has received only minimal testing in the NDK.
         bin_ext = '.exe' if self.host.is_windows else ''
-        os.remove(os.path.join(install_path, 'bin/ld64.lld' + bin_ext))
-        os.remove(os.path.join(install_path, 'bin/lld' + bin_ext))
-        os.remove(os.path.join(install_path, 'bin/lld-link' + bin_ext))
+        (bin_dir / f'ld64.lld{bin_ext}').unlink()
+        (bin_dir / f'lld{bin_ext}').unlink()
+        (bin_dir / f'lld-link{bin_ext}').unlink()
 
-        install_clanglib = os.path.join(install_path, 'lib64', 'clang')
+        install_clanglib = install_path / 'lib64/clang'
         linux_prebuilt_path = ndk.toolchains.ClangToolchain.path_for_host(
             Host.Linux)
 
@@ -452,31 +447,28 @@ class Clang(ndk.builds.Module):
             # for both toolchains, and those two are intended to be identical
             # between each host, so we can just replace them with the one from
             # the Linux toolchain.
-            linux_clanglib = linux_prebuilt_path / 'lib64/clang'
             shutil.rmtree(install_clanglib)
-            shutil.copytree(linux_clanglib, install_clanglib)
+            shutil.copytree(linux_prebuilt_path / 'lib64/clang',
+                            install_clanglib)
 
         # The Clang prebuilts have the platform toolchain libraries in
         # lib64/clang. The libraries we want are in runtimes_ndk_cxx.
         ndk_runtimes = linux_prebuilt_path / 'runtimes_ndk_cxx'
-        versions = os.listdir(install_clanglib)
-        for version in versions:
-            version_dir = os.path.join(install_clanglib, version)
-            dst_lib_dir = os.path.join(version_dir, 'lib/linux')
+        for version_dir in install_clanglib.iterdir():
+            dst_lib_dir = version_dir / 'lib/linux'
             shutil.rmtree(dst_lib_dir)
             shutil.copytree(ndk_runtimes, dst_lib_dir)
 
         # Also remove the other libraries that we installed, but they were only
         # installed on Linux.
         if self.host == Host.Linux:
-            shutil.rmtree(os.path.join(install_path, 'runtimes_ndk_cxx'))
+            shutil.rmtree(install_path / 'runtimes_ndk_cxx')
 
         # Remove CMake package files that should not be exposed.
         # For some reason the LLVM install includes CMake modules that expose
         # its internal APIs. We want to purge these so apps don't accidentally
         # depend on them. See http://b/142327416 for more info.
-        cmake_modules_dir = os.path.join(install_path, 'lib64', 'cmake')
-        shutil.rmtree(cmake_modules_dir)
+        shutil.rmtree(install_path / 'lib64/cmake')
 
 
 def get_gcc_prebuilt_path(host: Host, arch: ndk.abis.Arch) -> str:
