@@ -37,10 +37,10 @@ For Android Studio issues, follow the docs on the [Android Studio site].
 
 * [Issue 609]: `std::filesystem` support is now included. There are two known
   issues:
-      * [Issue 1258]: `std::filesystem::perm_options::nofollow` may not be
-        honored on old devices.
-      * [Issue 1260]: `std::filesystem:canonical` will incorrectly succeed when
-        passed a non-existent path on old devices.
+   * [Issue 1258]: `std::filesystem::perm_options::nofollow` may not be
+     honored on old devices.
+   * [Issue 1260]: `std::filesystem::canonical` will incorrectly succeed when
+     passed a non-existent path on old devices.
 
 * [Issue 843]: `llvm-strip` is now used instead of `strip` to avoid breaking
    RelRO with LLD. Note that the Android Gradle Plugin performs its own
