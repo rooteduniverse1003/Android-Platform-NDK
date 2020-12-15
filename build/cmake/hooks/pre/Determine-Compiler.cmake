@@ -15,18 +15,3 @@
 # This is a hook file that will be included by cmake at the beginning of
 # Modules/Platform/Android/Determine-Compiler.cmake.
 
-# Don't do anything if using legacy toolchain file.
-if(CMAKE_SYSTEM_VERSION EQUAL 1)
-  return()
-endif()
-
-# Point cmake to llvm binutils because the GNU ones take precedence.
-set(CMAKE_AR
-    "${CMAKE_ANDROID_NDK_TOOLCHAIN_UNIFIED}/bin/llvm-ar${ANDROID_TOOLCHAIN_SUFFIX}"
-    CACHE FILEPATH "Archiver")
-set(CMAKE_RANLIB
-    "${CMAKE_ANDROID_NDK_TOOLCHAIN_UNIFIED}/bin/llvm-ranlib${ANDROID_TOOLCHAIN_SUFFIX}"
-    CACHE FILEPATH "Ranlib")
-set(CMAKE_STRIP
-    "${CMAKE_ANDROID_NDK_TOOLCHAIN_UNIFIED}/bin/llvm-strip${ANDROID_TOOLCHAIN_SUFFIX}"
-    CACHE FILEPATH "Strip")
