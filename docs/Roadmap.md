@@ -54,42 +54,12 @@ improvements coming for NDK users:
 
 * Improving NDK and Android Gradle Plugin documentation.
 * Improving the OS (in particular the linker).
-* Getting an up to date LLDB for Android Studio. We'll be adding LLDB support to
-  ndk-gdb after this is done.
 * Working with the Android frameworks teams to get new NDK APIs.
-* Improving the workflow and tooling for supporting Android preview releases so
-  we don't lose so much time to them in the future.
-
-### NDK r22
-
-#### C++ File System API
-
-[Issue 609](https://github.com/android-ndk/ndk/issues/609)
-
-libc++'s `std::filesystem` is now ported and included in the NDK.
-
-#### Default to LLD and LLVM binutils
-
-NDK r18 [made LLD available](https://github.com/android-ndk/ndk/issues/683),
-r20 made it more usable, and r22 has made it the default.
-
-r22 also migrates from GNU `ar` and `strip` to `llvm-ar` and `llvm-strip`. No
-GNU binutils tools are used by the NDK with the default configuration. GNU
-binutils will be removed in a future release of the NDK.
-
-#### lldb debugger
-
-LLDB is now included alongside the toolchain in the NDK, and `ndk-gdb` supports
-the `--lldb` option. GDB will be removed in a future release of the NDK.
-
-## Future work
-
-The following projects are listed in order of their current priority.
-
-Note that some of these projects do not actually affect the contents of the NDK
-package. The samples, documentation, etc are all NDK work but are separate from
-the NDK package. As such they will not appear in any specific release, but are
-noted here to show where the team's time is being spent.
+* Improving tooling for third-party packages via ndkports:
+  * Auto-update packages
+  * Automated testing
+  * More packages
+* Workflow improvements to decrease the costs of regular maintenance.
 
 ### Migrate remaining architectures to LLVM's unwinder
 
@@ -138,6 +108,21 @@ so that the toolchain file doesn't need to do anything aside from setting up
 toolchain paths.
 
 See [Issue 463](https://github.com/android-ndk/ndk/issues/463) for discussion.
+
+### Improve automation in ndkports so we can take on more packages
+
+Before we can take on maintenance for additional packages we need to improve the
+tooling for ndkports. Automation for package updates, testing, and the release
+process would make it possible to expand.
+
+## Future work
+
+The following projects are listed in order of their current priority.
+
+Note that some of these projects do not actually affect the contents of the NDK
+package. The samples, documentation, etc are all NDK work but are separate from
+the NDK package. As such they will not appear in any specific release, but are
+noted here to show where the team's time is being spent.
 
 ---
 
@@ -201,12 +186,6 @@ of JetPack), even if only to offer the benefits of RAII.  Examples include
 Complaints about basic JNI handling are common. We should make libnativehelper
 available as an AAR.
 
-### Improve automation in ndkports so we can take on more packages
-
-Before we can take on maintenance for additional packages we need to improve the
-tooling for ndkports. Automation for package updates, testing, and the release
-process would make it possible to expand.
-
 ### NDK icu4c wrapper
 
 For serious i18n, `icu4c` is too big too bundle, and non-trivial to use
@@ -247,6 +226,13 @@ Full [history] is available, but this section summarizes major changes
 in recent releases.
 
 [history]: https://developer.android.com/ndk/downloads/revision_history.html
+
+### NDK r22
+
+Updated toolchain and libc++. libc++ now supports `std::filesystem`. Make
+updated to 4.3. LLDB included and usable (via `--lldb`) with ndk-gdb. Replaced
+remaining GNU binutils tools with LLVM tools, deprecated GNU binutils. LLD is
+now the default.
 
 ### Package management
 
