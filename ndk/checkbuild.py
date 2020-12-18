@@ -1803,7 +1803,7 @@ class BaseToolchain(ndk.builds.Module):
         yield from Platforms().notices
         yield from Sysroot().notices
         yield from SystemStl().notices
-        yield ANDROID_DIR / 'toolchain/binutils/binutils-2.27/gas/COPYING'
+        yield str(ANDROID_DIR / 'toolchain/binutils/binutils-2.27/gas/COPYING')
         for host in Host:
             for arch in ndk.abis.ALL_ARCHITECTURES:
                 # For libgcc/libatomic.
