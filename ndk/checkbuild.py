@@ -434,6 +434,17 @@ class Clang(ndk.builds.Module):
         install_clanglib = install_path / 'lib64/clang'
         linux_prebuilt_path = ClangToolchain.path_for_host(Host.Linux)
 
+        # Remove unused python scripts. They are not installed for Windows.
+        if self.host != Host.Windows64:
+            python_bin_dir = install_path / 'python3' / 'bin'
+            python_files_to_remove = [
+                '2to3', '2to3-3.8', 'easy_install-3.8', 'idle3', 'idle3.8', 'pip3',
+                'pip3.8', 'pydoc3', 'pydoc3.8', 'python3-config',
+                'python3.8-config',
+            ]
+            for pyfile in python_files_to_remove:
+                (python_bin_dir / pyfile).unlink()
+
         if self.host != Host.Linux:
             # We don't build target binaries as part of the Darwin or Windows
             # build. These toolchains need to get these from the Linux
@@ -699,6 +710,14 @@ class HostTools(ndk.builds.Module):
             subprocess.check_call(
                 ['tar', 'xf', str(package_path), '-C', str(install_dir),
                  '--strip-components=1'])
+
+        # Remove unused python scripts.
+        exclude_files = [
+            'python2.7-config', 'python-config.sh', 'pydoc', 'idle', '2to3',
+            'smtpd.py', 'python2-config', 'python-config'
+        ]
+        for file_to_remove in exclude_files:
+            (install_dir / 'bin' / file_to_remove).unlink()
 
 
 def install_exe(out_dir: str, install_dir: str, name: str, host: Host) -> None:
