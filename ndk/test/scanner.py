@@ -15,6 +15,7 @@
 #
 from __future__ import absolute_import
 
+import glob
 import os
 from typing import List, Optional, Set
 
@@ -73,8 +74,12 @@ class BuildTestScanner(TestScanner):
 
         # But we can have both ndk-build and cmake tests in the same directory.
         tests: List[Test] = []
-        android_mk_path = os.path.join(path, 'jni/Android.mk')
-        if os.path.exists(android_mk_path):
+        # NB: This isn't looking for Android.mk specifically (even though on
+        # that would mostly be a better test) because we have a test that
+        # verifies that ndk-build still works when APP_BUILD_SCRIPT is set to
+        # something _other_ than a file named Android.mk.
+        mk_glob = glob.glob(os.path.join(path, 'jni/*.mk'))
+        if mk_glob:
             tests.extend(self.make_ndk_build_tests(path, name))
 
         cmake_lists_path = os.path.join(path, 'CMakeLists.txt')
