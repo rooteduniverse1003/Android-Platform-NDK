@@ -39,7 +39,9 @@ this-makefile = $(lastword $(MAKEFILE_LIST))
 # Returns  : the name of the last parsed Android.mk file
 # Usage    : $(local-makefile)
 # -----------------------------------------------------------------------------
-local-makefile = $(lastword $(filter %Android.mk,$(MAKEFILE_LIST)))
+_last_android_mk = $(lastword $(filter %Android.mk,$(MAKEFILE_LIST)))
+_last_non_ndk_makefile = $(lastword $(filter-out $(NDK_ROOT)%,$(MAKEFILE_LIST)))
+local-makefile = $(if $(_last_android_mk),$(_last_android_mk),$(_last_non_ndk_makefile))
 
 # -----------------------------------------------------------------------------
 # Function : assert-defined
