@@ -28,7 +28,7 @@ import ndk.paths
 # 1. get_llvm_toolchain_binprefix in build/tools/prebuilt-common.sh
 # 2. CMAKE_C_COMPILER_VERSION and CMAKE_CXX_COMPILER_VERSION in
 #    build/cmake/android.toolchain.cmake
-CLANG_VERSION = 'clang-r365631c2'
+CLANG_VERSION = 'clang-r365631c3'
 
 
 HOST_TRIPLE_MAP = {
