@@ -52,3 +52,17 @@ ndk_build_number:
 
 note_end:
   .size note_android_ident, .-note_android_ident
+
+#if defined(__aarch64__)
+  .pushsection .note.gnu.property, "a"
+    .balign 8
+    .long 4
+    .long 0x10
+    .long 0x5        // NT_GNU_PROPERTY_TYPE_0
+    .asciz "GNU"
+    .long 0xc0000000 // GNU_PROPERTY_AARCH64_FEATURE_1_AND
+    .long 4
+    .long 0x3        // PAuth and BTI compatible
+    .long 0
+  .popsection
+#endif
