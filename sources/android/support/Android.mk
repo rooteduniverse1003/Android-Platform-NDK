@@ -122,7 +122,7 @@ LOCAL_ARM_NEON := false
 
 LOCAL_CPPFLAGS := \
     -fvisibility-inlines-hidden \
-    -std=c++11 \
+    -std=gnu++11 \
 
 include $(BUILD_STATIC_LIBRARY)
 
