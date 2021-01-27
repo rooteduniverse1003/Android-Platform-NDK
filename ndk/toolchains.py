@@ -22,7 +22,7 @@ from ndk.hosts import Host, get_default_host
 import ndk.paths
 
 
-CLANG_VERSION = 'clang-r399163b'
+CLANG_VERSION = 'clang-r407598b'
 
 
 HOST_TRIPLE_MAP = {

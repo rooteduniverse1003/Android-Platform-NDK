@@ -15,6 +15,10 @@ For Android Studio issues, follow the docs on the [Android Studio site].
 
 ## Changes
 
+* Updated LLVM to clang-r407598b, based on LLVM 12 development.
+    * [Issue 1047]: Fixes crash when using ASan with the CFI unwinder.
+    * [Issue 1096]: Includes support for [Polly]. Enable by adding
+      `-mllvm -polly` to your cflags.
 * Vulkan validation layer source and binaries are no longer shipped in the NDK.
   The latest are now posted directly to [GitHub](https://github.com/KhronosGroup/Vulkan-ValidationLayers/releases).
 * Vulkan tools source is also removed, specifically vulkan_wrapper.
@@ -24,6 +28,10 @@ For Android Studio issues, follow the docs on the [Android Studio site].
   for cmake 3.20 and newer. No user side change is expected. But if anything goes
   wrong, please file a bug and set `ANDROID_USE_LEGACY_TOOLCHAIN_FILE=ON` to
   restore the legacy behavior.
+
+[Issue 1047]: https://github.com/android/ndk/issues/1047
+[Issue 1096]: https://github.com/android/ndk/issues/1096
+[Polly]: https://polly.llvm.org/
 
 ## Known Issues
 
