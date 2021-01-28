@@ -58,9 +58,6 @@ For Android Studio issues, follow the docs on the [Android Studio site].
    stripping, so most users will need to upgrade to Android Gradle Plugin
    version 4.0 or newer to get the fix.
 
-* [Issue 929]: `find_library` now prefers shared libraries from the sysroot over
-  static libraries.
-
 * [Issue 1130]: Fixed undefined references to new that could occur when building
   for APIs prior to 21 and the static libc++. Note that LLD appears to have been
   unaffected, but the problem is still present for ndk-build when using the
@@ -109,7 +106,6 @@ For Android Studio issues, follow the docs on the [Android Studio site].
 [Build System Maintainers Guide]: https://android.googlesource.com/platform/ndk/+/master/docs/BuildSystemMaintainers.md
 [Issue 609]: https://github.com/android/ndk/issues/609
 [Issue 829]: https://github.com/android/ndk/issues/829
-[Issue 929]: https://github.com/android/ndk/issues/929
 [Issue 1139]: https://github.com/android/ndk/issues/1139
 [Issue 1149]: https://github.com/android/ndk/issues/1149
 [Issue 1196]: https://github.com/android/ndk/issues/1196

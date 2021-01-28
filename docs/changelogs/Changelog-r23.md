@@ -24,6 +24,10 @@ For Android Studio issues, follow the docs on the [Android Studio site].
   for cmake 3.20 and newer. No user side change is expected. But if anything goes
   wrong, please file a bug and set `ANDROID_USE_LEGACY_TOOLCHAIN_FILE=ON` to
   restore the legacy behavior.
+* [Issue 929]: `find_library` now prefers shared libraries from the sysroot over
+  static libraries.
+
+[Issue 929]: https://github.com/android/ndk/issues/929
 
 ## Known Issues
 
