@@ -21,8 +21,13 @@ For Android Studio issues, follow the docs on the [Android Studio site].
 
 ## r22b
 
-  * [Issue 1427]: Fix Clang auto-detection for CMake 3.19 and older for Windows.
+  * [Issue 1388]: Fixed LLVM's incorrect conversion to list files for long command
+    lines on Windows.
+  * [Issue 1391]: Fixed missing symbols from libz.a.
+  * [Issue 1427]: Fixed Clang auto-detection for CMake 3.19 and older for Windows.
 
+[Issue 1388]: https://github.com/android/ndk/issues/1388
+[Issue 1391]: https://github.com/android/ndk/issues/1391
 [Issue 1427]: https://github.com/android/ndk/issues/1427
 
 ## Changes
