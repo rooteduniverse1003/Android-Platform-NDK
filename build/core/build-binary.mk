@@ -495,37 +495,15 @@ CLEAN_OBJS_DIRS     += $(LOCAL_OBJS_DIR)
 # Handle the static and shared libraries this module depends on
 #
 
-linker_ldflags :=
-ifeq ($(APP_LD),deprecated)
-    ifeq ($(TARGET_ARCH_ABI),arm64-v8a)
-        linker_ldflags := -fuse-ld=bfd
-    else
-        linker_ldflags := -fuse-ld=gold
-    endif
-endif
-
-combined_ldflags := \
-    $(linker_ldflags) $(TARGET_LDFLAGS) $(NDK_APP_LDFLAGS) $(LOCAL_LDFLAGS)
-ndk_fuse_ld_flags := $(filter -fuse-ld=%,$(combined_ldflags))
-ndk_used_linker := $(lastword $(ndk_fuse_ld_flags))
-ifneq ($(filter -fuse-ld=bfd -fuse-ld=gold,$(ndk_used_linker)),)
-    using_lld := false
-else
-    using_lld := true
-endif
-
 # https://github.com/android/ndk/issues/885
 # If we're using LLD we need to use a slower build-id algorithm to work around
 # the old version of LLDB in Android Studio, which doesn't understand LLD's
 # default hash ("fast").
-ifeq ($(using_lld),true)
-    linker_ldflags += -Wl,--build-id=sha1
-    ifneq (,$(call lt,$(APP_PLATFORM_LEVEL),29))
-        # https://github.com/android/ndk/issues/1196
-        linker_ldflags += -Wl,--no-rosegment
-    endif
-else
-    linker_ldflags += -Wl,--build-id
+linker_ldflags += -Wl,--build-id=sha1
+
+ifneq (,$(call lt,$(APP_PLATFORM_LEVEL),29))
+    # https://github.com/android/ndk/issues/1196
+    linker_ldflags += -Wl,--no-rosegment
 endif
 
 my_ldflags := $(TARGET_LDFLAGS) $(linker_ldflags) $(NDK_APP_LDFLAGS) $(LOCAL_LDFLAGS)
