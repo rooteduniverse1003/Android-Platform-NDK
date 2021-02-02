@@ -1941,6 +1941,14 @@ class Vulkan(ndk.builds.Module):
             shutil.copytree(src, dst,
                             ignore=default_ignore_patterns)
 
+        android_mk = dest_dir / 'build-android/jni/Android.mk'
+        android_mk.parent.mkdir(parents=True, exist_ok=True)
+        url = "https://github.com/KhronosGroup/Vulkan-ValidationLayers"
+        android_mk.write_text(textwrap.dedent(f"""\
+            $(warning The Vulkan Validation Layers are now distrubted on \\
+                GitHub. See {url} for more information.)
+            """))
+
 
 class Toolchain(ndk.builds.Module):
     """The complete toolchain.
