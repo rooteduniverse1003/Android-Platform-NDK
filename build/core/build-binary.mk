@@ -508,6 +508,18 @@ endif
 
 my_ldflags := $(TARGET_LDFLAGS) $(linker_ldflags) $(NDK_APP_LDFLAGS) $(LOCAL_LDFLAGS)
 
+# https://github.com/android/ndk/issues/1390
+# Only a warning rather than an error because the API level cannot be configured
+# on a per-module basis. If the user has an APP_PLATFORM that happens to be able
+# to build the static executables there's no need to fail the build.
+ifneq (,$(filter -static,$(my_ldflags)))
+    ifneq ($(APP_PLATFORM),$(NDK_MAX_PLATFORM))
+        $(call __ndk_info,WARNING: Building static executable but APP_PLATFORM \
+            $(APP_PLATFORM) is not the latest API level $(NDK_MAX_PLATFORM). \
+            Build may not succeed.)
+    endif
+endif
+
 # When LOCAL_SHORT_COMMANDS is defined to 'true' we are going to write the
 # list of all object files and/or static/shared libraries that appear on the
 # command line to a file, then use the @<listfile> syntax to invoke it.
