@@ -26,8 +26,11 @@ For Android Studio issues, follow the docs on the [Android Studio site].
   restore the legacy behavior.
 * [Issue 929]: `find_library` now prefers shared libraries from the sysroot over
   static libraries.
+* [Issue 1390]: ndk-build now warns when building a static executable with the
+  wrong API level.
 
 [Issue 929]: https://github.com/android/ndk/issues/929
+[Issue 1390]: https://github.com/android/ndk/issues/1390
 
 ## Known Issues
 
