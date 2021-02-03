@@ -43,35 +43,20 @@ string(APPEND _ANDROID_NDK_INIT_CFLAGS
 
 string(APPEND _ANDROID_NDK_INIT_CFLAGS_DEBUG " -fno-limit-debug-info")
 
-if(ANDROID_LD STREQUAL deprecated)
-  if(ANDROID_ABI STREQUAL arm64-v8a)
-    string(APPEND _ANDROID_NDK_INIT_LDFLAGS " -fuse-ld=bfd")
-  else()
-    string(APPEND _ANDROID_NDK_INIT_LDFLAGS " -fuse-ld=gold")
-  endif()
-endif()
-
 # If we're using LLD we need to use a slower build-id algorithm to work around
 # the old version of LLDB in Android Studio, which doesn't understand LLD's
 # default hash ("fast").
 #
-# Note that because we cannot see the user's flags, we can't detect this very
-# accurately. Users that explicitly use -fuse-ld=gold instead of ANDROID_LD will
-# have slower builds.
-#
 # https://github.com/android/ndk/issues/885
-if(ANDROID_LD STREQUAL deprecated)
-  string(APPEND _ANDROID_NDK_INIT_LDFLAGS " -Wl,--build-id")
-else()
-  string(APPEND _ANDROID_NDK_INIT_LDFLAGS " -Wl,--build-id=sha1")
-  if(CMAKE_SYSTEM_VERSION LESS 29)
-    # https://github.com/android/ndk/issues/1196
-    string(APPEND _ANDROID_NDK_INIT_LDFLAGS " -Wl,--no-rosegment")
-  endif()
+string(APPEND _ANDROID_NDK_INIT_LDFLAGS " -Wl,--build-id=sha1")
 
-  string(APPEND _ANDROID_NDK_INIT_LDFLAGS " -Wl,--fatal-warnings")
-  string(APPEND _ANDROID_NDK_INIT_LDFLAGS_EXE " -Wl,--gc-sections")
+if(CMAKE_SYSTEM_VERSION LESS 29)
+  # https://github.com/android/ndk/issues/1196
+  string(APPEND _ANDROID_NDK_INIT_LDFLAGS " -Wl,--no-rosegment")
 endif()
+
+string(APPEND _ANDROID_NDK_INIT_LDFLAGS " -Wl,--fatal-warnings")
+string(APPEND _ANDROID_NDK_INIT_LDFLAGS_EXE " -Wl,--gc-sections")
 
 # Toolchain and ABI specific flags.
 if(CMAKE_ANDROID_ARCH_ABI STREQUAL x86 AND CMAKE_SYSTEM_VERSION LESS 24)

@@ -257,7 +257,6 @@ set(CMAKE_TRY_COMPILE_PLATFORM_VARIABLES
   ANDROID_CCACHE
   ANDROID_CPP_FEATURES
   ANDROID_DISABLE_FORMAT_STRING_CHECKS
-  ANDROID_LD
   ANDROID_PIE
   ANDROID_PLATFORM
   ANDROID_STL
@@ -331,14 +330,6 @@ set(ANDROID_COMPILER_FLAGS_DEBUG)
 set(ANDROID_COMPILER_FLAGS_RELEASE)
 set(ANDROID_LINKER_FLAGS)
 set(ANDROID_LINKER_FLAGS_EXE)
-
-if(ANDROID_LD STREQUAL deprecated)
-  if(ANDROID_ABI STREQUAL arm64-v8a)
-    list(APPEND ANDROID_LINKER_FLAGS -fuse-ld=bfd)
-  else()
-    list(APPEND ANDROID_LINKER_FLAGS -fuse-ld=gold)
-  endif()
-endif()
 
 # Don't re-export libgcc symbols in every binary.
 list(APPEND ANDROID_LINKER_FLAGS -Wl,--exclude-libs,libgcc.a)
@@ -466,18 +457,10 @@ list(APPEND ANDROID_COMPILER_FLAGS
 # If we're using LLD we need to use a slower build-id algorithm to work around
 # the old version of LLDB in Android Studio, which doesn't understand LLD's
 # default hash ("fast").
-#
-# Note that because we cannot see the user's flags, we can't detect this very
-# accurately. Users that explicitly use -fuse-ld=gold instead of ANDROID_LD will
-# have slower builds.
-if(ANDROID_LD STREQUAL deprecated)
-  list(APPEND ANDROID_LINKER_FLAGS -Wl,--build-id)
-else()
-  list(APPEND ANDROID_LINKER_FLAGS -Wl,--build-id=sha1)
-  if(ANDROID_PLATFORM_LEVEL LESS 29)
-    # https://github.com/android/ndk/issues/1196
-    list(APPEND ANDROID_LINKER_FLAGS -Wl,--no-rosegment)
-  endif()
+list(APPEND ANDROID_LINKER_FLAGS -Wl,--build-id=sha1)
+if(ANDROID_PLATFORM_LEVEL LESS 29)
+  # https://github.com/android/ndk/issues/1196
+  list(APPEND ANDROID_LINKER_FLAGS -Wl,--no-rosegment)
 endif()
 
 list(APPEND ANDROID_LINKER_FLAGS -Wl,--fatal-warnings)
