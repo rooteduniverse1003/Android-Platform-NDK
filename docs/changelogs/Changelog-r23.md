@@ -15,6 +15,7 @@ For Android Studio issues, follow the docs on the [Android Studio site].
 
 ## Changes
 
+* Includes preview Android S DP 1 APIs.
 * Vulkan validation layer source and binaries are no longer shipped in the NDK.
   The latest are now posted directly to [GitHub](https://github.com/KhronosGroup/Vulkan-ValidationLayers/releases).
 * Vulkan tools source is also removed, specifically vulkan_wrapper.
