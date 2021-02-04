@@ -1923,47 +1923,31 @@ class Vulkan(ndk.builds.Module):
     notice = ANDROID_DIR / 'external/vulkan-headers/NOTICE'
 
     def build(self) -> None:
-        print('Constructing Vulkan source...')
-        vulkan_headers_root_dir = ndk.paths.android_path(
-            'external/vulkan-headers')
+        pass
 
-        copies = [
-            {
-                'source_dir': vulkan_headers_root_dir,
-                'dest_dir': 'vulkan/src',
-                'files': [
-                ],
-                'dirs': [
-                    'include', 'registry'
-                ],
-            }
-        ]
-
+    def install(self) -> None:
         default_ignore_patterns = shutil.ignore_patterns(
-            "*CMakeLists.txt",
-            "*test.cc",
-            "linux",
-            "windows")
+            '*CMakeLists.txt',
+            '*test.cc',
+            'linux',
+            'windows')
 
-        for properties in copies:
-            source_dir = properties['source_dir']
-            assert isinstance(source_dir, str)
-            assert isinstance(properties['dest_dir'], str)
-            dest_dir = os.path.join(self.out_dir, properties['dest_dir'])
-            for d in properties['dirs']:
-                src = os.path.join(source_dir, d)
-                dst = os.path.join(dest_dir, d)
-                shutil.rmtree(dst, True)
-                shutil.copytree(src, dst,
-                                ignore=default_ignore_patterns)
-            for f in properties['files']:
-                install_file(f, source_dir, dest_dir)
+        source_dir = ANDROID_DIR / 'external/vulkan-headers'
+        dest_dir = self.get_install_path() / 'src'
+        for d in ['include', 'registry']:
+            src = source_dir / d
+            dst = dest_dir / d
+            shutil.rmtree(dst, ignore_errors=True)
+            shutil.copytree(src, dst,
+                            ignore=default_ignore_patterns)
 
-        # TODO: Verify source packaged properly
-        print('Packaging Vulkan source...')
-        src = os.path.join(self.out_dir, 'vulkan')
-        build_support.make_package('vulkan', src, self.dist_dir)
-        print('Packaging Vulkan source finished')
+        android_mk = dest_dir / 'build-android/jni/Android.mk'
+        android_mk.parent.mkdir(parents=True, exist_ok=True)
+        url = "https://github.com/KhronosGroup/Vulkan-ValidationLayers"
+        android_mk.write_text(textwrap.dedent(f"""\
+            $(warning The Vulkan Validation Layers are now distrubted on \\
+                GitHub. See {url} for more information.)
+            """))
 
 
 class Toolchain(ndk.builds.Module):
