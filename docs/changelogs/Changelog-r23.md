@@ -15,6 +15,7 @@ For Android Studio issues, follow the docs on the [Android Studio site].
 
 ## Changes
 
+* Includes preview Android S DP 1 APIs.
 * Vulkan validation layer source and binaries are no longer shipped in the NDK.
   The latest are now posted directly to [GitHub](https://github.com/KhronosGroup/Vulkan-ValidationLayers/releases).
 * Vulkan tools source is also removed, specifically vulkan_wrapper.
@@ -26,8 +27,11 @@ For Android Studio issues, follow the docs on the [Android Studio site].
   restore the legacy behavior.
 * [Issue 929]: `find_library` now prefers shared libraries from the sysroot over
   static libraries.
+* [Issue 1390]: ndk-build now warns when building a static executable with the
+  wrong API level.
 
 [Issue 929]: https://github.com/android/ndk/issues/929
+[Issue 1390]: https://github.com/android/ndk/issues/1390
 
 ## Known Issues
 

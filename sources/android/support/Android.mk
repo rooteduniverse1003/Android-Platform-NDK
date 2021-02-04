@@ -15,6 +15,7 @@ include $(PREBUILT_STATIC_LIBRARY)
 else # Building
 
 android_support_cflags := \
+    -D_GNU_SOURCE \
     -Drestrict=__restrict__ \
     -ffunction-sections \
     -fdata-sections \
