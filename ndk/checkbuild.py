@@ -1347,22 +1347,8 @@ class Gtest(ndk.builds.PackageModule):
 
     def install(self) -> None:
         super().install()
-
-        # GTest renamed these files to be all lower case, but the SDK patcher
-        # doesn't handle that properly. Rename them back to the old names so
-        # the SDK patches apply properly.
-        # http://b/122741472
-        install_dir = self.get_install_path()
-        docs_dir = os.path.join(install_dir, 'docs')
-        rename_map = {
-            'faq.md': 'FAQ.md',
-            'primer.md': 'Primer.md',
-            'samples.md': 'Samples.md',
-        }
-        for rename_from, rename_to in rename_map.items():
-            os.rename(
-                os.path.join(docs_dir, rename_from),
-                os.path.join(docs_dir, rename_to))
+        # Docs are moved to top level directory.
+        shutil.rmtree(self.get_install_path() / 'docs')
 
 
 class Sysroot(ndk.builds.Module):
