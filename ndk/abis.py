@@ -23,14 +23,14 @@ Toolchain = NewType('Toolchain', str)
 
 
 LP32_ABIS = (
-    'armeabi-v7a',
-    'x86',
+    Abi('armeabi-v7a'),
+    Abi('x86'),
 )
 
 
 LP64_ABIS = (
-    'arm64-v8a',
-    'x86_64',
+    Abi('arm64-v8a'),
+    Abi('x86_64'),
 )
 
 

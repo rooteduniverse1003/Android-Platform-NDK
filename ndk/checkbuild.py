@@ -312,9 +312,6 @@ def build_ndk_tests(out_dir: str, dist_dir: str,
     with open(ndk.paths.ndk_path('qa_config.json')) as config_file:
         test_config = json.load(config_file)
 
-    if args.arch is not None:
-        test_config['abis'] = ndk.abis.arch_to_abis(args.arch)
-
     test_spec = ndk.test.builder.test_spec_from_config(test_config)
     builder = ndk.test.builder.TestBuilder(
         test_spec, test_options, printer)
@@ -740,7 +737,6 @@ class Libcxx(ndk.builds.Module):
     path = Path('sources/cxx-stl/llvm-libc++')
     notice = src / 'LICENSE.TXT'
     notice_group = ndk.builds.NoticeGroup.TOOLCHAIN
-    arch_specific = True
     deps = {
         'base-toolchain',
         'libandroid_support',
@@ -756,13 +752,6 @@ class Libcxx(ndk.builds.Module):
     def lib_out(self) -> str:
         return os.path.join(self.out_dir, 'libcxx/libs')
 
-    @property
-    def abis(self) -> List[ndk.abis.Abi]:
-        abis = []
-        for arch in self.arches:
-            abis.extend(ndk.abis.arch_to_abis(arch))
-        return abis
-
     def build(self) -> None:
         ndk_build = os.path.join(
             self.get_dep('ndk-build').get_build_host_install(), 'ndk-build')
@@ -773,7 +762,6 @@ class Libcxx(ndk.builds.Module):
 
         build_cmd = [
             'bash', ndk_build, build_support.jobs_arg(), 'V=1',
-            'APP_ABI=' + ' '.join(self.abis),
 
             # Since nothing in this build depends on libc++_static, we need to
             # name it to force it to build.
@@ -811,7 +799,7 @@ class Libcxx(ndk.builds.Module):
             os.path.join(install_root, 'include'))
         shutil.copytree(self.lib_out, os.path.join(install_root, 'libs'))
 
-        for abi in self.abis:
+        for abi in ndk.abis.ALL_ABIS:
             lib_dir = os.path.join(install_root, 'libs', abi)
 
             # The static libraries installed to the obj dir, not the lib dir.
@@ -1120,7 +1108,7 @@ class Gdb(ndk.builds.Module):
     def install(self) -> None:
         """Installs GDB."""
         self.install_gdb()
-        for arch in self.arches:
+        for arch in ndk.abis.ALL_ARCHITECTURES:
             self.install_gdbserver(arch)
 
 
@@ -1521,7 +1509,7 @@ class BaseToolchain(ndk.builds.Module):
         shutil.copyfile(lld, new_bin_ld)
         shutil.copystat(lld, new_bin_ld)
 
-        for arch in self.arches:
+        for arch in ndk.abis.ALL_ARCHITECTURES:
             binutils_dir = get_binutils_prebuilt_path(self.host, arch)
             triple = ndk.abis.arch_to_triple(arch)
 
@@ -1658,7 +1646,7 @@ class Toolchain(ndk.builds.Module):
         libcxxabi_inc_src = os.path.join(libcxxabi_dir, 'include')
         copy_tree(libcxxabi_inc_src, libcxx_inc_dst)
 
-        for arch in self.arches:
+        for arch in ndk.abis.ALL_ARCHITECTURES:
             # We need to replace libgcc with linker scripts that also use
             # libunwind on arm32.
             #
@@ -2228,17 +2216,6 @@ def do_install(worker: ndk.workqueue.Worker,
     module.install()
 
 
-def split_module_by_arch(module: ndk.builds.Module, arches: List[ndk.abis.Arch]
-                         ) -> Iterator[ndk.builds.Module]:
-    if module.split_build_by_arch:
-        for arch in arches:
-            build_module = copy.deepcopy(module)
-            build_module.build_arch = arch
-            yield build_module
-    else:
-        yield module
-
-
 def _get_transitive_module_deps(
         module: ndk.builds.Module, deps: Set[ndk.builds.Module],
         unknown_deps: Set[str], seen: Set[ndk.builds.Module]) -> None:
@@ -2270,7 +2247,7 @@ def get_transitive_module_deps(
 
 
 def get_modules_to_build(
-        module_names: Iterable[str], arches: List[ndk.abis.Arch]
+        module_names: Iterable[str]
 ) -> Tuple[List[ndk.builds.Module], Set[ndk.builds.Module]]:
     """Returns a list of modules to be built given a list of module names.
 
@@ -2311,8 +2288,7 @@ def get_modules_to_build(
 
     build_modules = []
     for module in modules:
-        for build_module in split_module_by_arch(module, arches):
-            build_modules.append(build_module)
+        build_modules.append(module)
 
     return sorted(list(build_modules), key=str), deps_only
 
@@ -2381,10 +2357,6 @@ def parse_args() -> Tuple[argparse.Namespace, List[str]]:
     parser = argparse.ArgumentParser(
         description=inspect.getdoc(sys.modules[__name__]))
 
-    parser.add_argument(
-        '--arch',
-        choices=('arm', 'arm64', 'x86', 'x86_64'),
-        help='Build for the given architecture. Build all by default.')
     parser.add_argument(
         '-j', '--jobs', type=int, default=multiprocessing.cpu_count(),
         help=('Number of parallel builds to run. Note that this will not '
@@ -2504,12 +2476,8 @@ def wait_for_build(deps: ndk.deps.DependencyManager,
 def build_ndk(modules: List[ndk.builds.Module],
               deps_only: Set[ndk.builds.Module], out_dir: Path, dist_dir: Path,
               args: argparse.Namespace) -> Path:
-    arches = list(ndk.abis.ALL_ARCHITECTURES)
-    if args.arch is not None:
-        arches = [args.arch]
-
     build_context = ndk.builds.BuildContext(
-        out_dir, dist_dir, ALL_MODULES, args.system, arches, args.build_number)
+        out_dir, dist_dir, ALL_MODULES, args.system, args.build_number)
 
     for module in modules:
         module.context = build_context
@@ -2542,14 +2510,14 @@ def build_ndk(modules: List[ndk.builds.Module],
         workqueue.join()
 
 
-def build_ndk_for_cross_compile(out_dir: Path, arches: List[ndk.abis.Arch],
+def build_ndk_for_cross_compile(out_dir: Path,
                                 args: argparse.Namespace) -> None:
     args = copy.deepcopy(args)
     args.system = Host.current()
     if args.system != Host.Linux:
         raise NotImplementedError
     module_names = NAMES_TO_MODULES.keys()
-    modules, deps_only = get_modules_to_build(module_names, arches)
+    modules, deps_only = get_modules_to_build(module_names)
     print('Building Linux modules: {}'.format(' '.join(
         [str(m) for m in modules])))
     build_ndk(modules, deps_only, out_dir, out_dir, args)
@@ -2606,10 +2574,6 @@ def main() -> None:
 
     os.environ['ANDROID_BUILD_TOP'] = ndk.paths.android_path()
 
-    arches = list(ndk.abis.ALL_ARCHITECTURES)
-    if args.arch is not None:
-        arches = [args.arch]
-
     out_dir = ndk.paths.get_out_dir()
     dist_dir = ndk.paths.get_dist_dir(out_dir)
 
@@ -2618,9 +2582,9 @@ def main() -> None:
     if args.system.is_windows and not args.skip_deps:
         # Since the Windows NDK is cross compiled, we need to build a Linux NDK
         # first so we can build components like libc++.
-        build_ndk_for_cross_compile(Path(out_dir), arches, args)
+        build_ndk_for_cross_compile(Path(out_dir), args)
 
-    modules, deps_only = get_modules_to_build(module_names, arches)
+    modules, deps_only = get_modules_to_build(module_names)
     print('Building modules: {}'.format(' '.join(
         [str(m) for m in modules
          if not args.skip_deps or m not in deps_only])))
