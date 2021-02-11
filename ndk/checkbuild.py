@@ -478,14 +478,17 @@ class Clang(ndk.builds.Module):
         shutil.rmtree(install_path / 'lib64/cmake')
 
 
-def get_gcc_prebuilt_path(host: Host, arch: ndk.abis.Arch) -> Path:
-    """Returns the path to the GCC prebuilt for the given host/arch."""
-    toolchain = ndk.abis.arch_to_toolchain(arch) + '-4.9'
-    prebuilt_path = (ANDROID_DIR / 'prebuilts/ndk/current/toolchains' /
-                     host.tag / toolchain)
+def get_gcc_prebuilt_path(arch: ndk.abis.Arch) -> Path:
+    """Returns the path to the GCC prebuilt for the given arch.
+
+    Since this is only used for getting *target* binaries like libgcc, we
+    always use the Linux prebuilts.
+    """
+    prebuilt_path = (ANDROID_DIR /
+                     'prebuilts/ndk/current/toolchains/linux-x86_64' /
+                     f'{ndk.abis.arch_to_toolchain(arch)}-4.9')
     if not prebuilt_path.is_dir():
-        raise RuntimeError(
-            'Could not find prebuilt GCC at {}'.format(prebuilt_path))
+        raise RuntimeError(f'Could not find prebuilt GCC at {prebuilt_path}')
     return prebuilt_path
 
 
@@ -519,7 +522,6 @@ def versioned_so(host: Host, lib: str, version: str) -> str:
 
 
 def install_gcc_lib(install_path: Path,
-                    host: Host,
                     arch: ndk.abis.Arch,
                     subarch: str,
                     lib_subdir: Path,
@@ -533,25 +535,24 @@ def install_gcc_lib(install_path: Path,
         lib_install_dir.mkdir(parents=True)
 
     shutil.copy2(
-        get_gcc_prebuilt_path(host, arch) / src_subdir / subarch / libname,
+        get_gcc_prebuilt_path(arch) / src_subdir / subarch / libname,
         lib_install_dir / libname)
 
 
-def install_gcc_crtbegin(install_path: Path, host: Host, arch: ndk.abis.Arch,
+def install_gcc_crtbegin(install_path: Path, arch: ndk.abis.Arch,
                          subarch: str) -> None:
     triple = ndk.abis.arch_to_triple(arch)
     subdir = Path('lib/gcc') / triple / '4.9.x'
-    install_gcc_lib(install_path, host, arch, subarch, subdir, 'crtbegin.o')
+    install_gcc_lib(install_path, arch, subarch, subdir, 'crtbegin.o')
 
 
 def install_libgcc(install_path: Path,
-                   host: Host,
                    arch: ndk.abis.Arch,
                    subarch: str,
                    new_layout: bool = False) -> None:
     triple = ndk.abis.arch_to_triple(arch)
     subdir = Path('lib/gcc') / triple / '4.9.x'
-    install_gcc_lib(install_path, host, arch, subarch, subdir, 'libgcc.a')
+    install_gcc_lib(install_path, arch, subarch, subdir, 'libgcc.a')
 
     if new_layout:
         # For all architectures, we want to ensure that libcompiler_rt-extras
@@ -591,11 +592,11 @@ def install_libgcc(install_path: Path,
         libgcc_path.write_text('INPUT({})'.format(libs))
 
 
-def install_libatomic(install_path: Path, host: Host, arch: ndk.abis.Arch,
+def install_libatomic(install_path: Path, arch: ndk.abis.Arch,
                       subarch: str) -> None:
     triple = ndk.abis.arch_to_triple(arch)
     libdir_name = 'lib64' if arch.endswith('64') else 'lib'
-    install_gcc_lib(install_path, host, arch, subarch,
+    install_gcc_lib(install_path, arch, subarch,
                     Path('lib/gcc') / triple / '4.9.x', 'libatomic.a',
                     Path(triple) / libdir_name)
 
@@ -1821,10 +1822,9 @@ class BaseToolchain(ndk.builds.Module):
         yield from Sysroot().notices
         yield from SystemStl().notices
         yield ANDROID_DIR / 'toolchain/binutils/binutils-2.27/gas/COPYING'
-        for host in Host:
-            for arch in ndk.abis.ALL_ARCHITECTURES:
-                # For libgcc/libatomic.
-                yield get_gcc_prebuilt_path(host, arch) / 'NOTICE'
+        for arch in ndk.abis.ALL_ARCHITECTURES:
+            # For libgcc/libatomic.
+            yield get_gcc_prebuilt_path(arch) / 'NOTICE'
 
     def build(self) -> None:
         pass
@@ -1862,13 +1862,12 @@ class BaseToolchain(ndk.builds.Module):
             # We still need libgcc/libatomic. Copy them from the old GCC
             # prebuilts.
             for subarch in get_subarches(arch):
-                install_libgcc(Path(install_dir), self.host, arch, subarch)
-                install_libatomic(Path(install_dir), self.host, arch, subarch)
+                install_libgcc(Path(install_dir), arch, subarch)
+                install_libatomic(Path(install_dir), arch, subarch)
 
                 # We don't actually want this, but Clang won't recognize a
                 # -gcc-toolchain without it.
-                install_gcc_crtbegin(Path(install_dir), self.host, arch,
-                                     subarch)
+                install_gcc_crtbegin(Path(install_dir), arch, subarch)
 
         platforms = self.get_dep('platforms')
         assert isinstance(platforms, Platforms)
@@ -1998,7 +1997,6 @@ class Toolchain(ndk.builds.Module):
             # libunwind isn't available until libc++ has been built.
             for subarch in get_subarches(arch):
                 install_libgcc(Path(install_dir),
-                               self.host,
                                arch,
                                subarch,
                                new_layout=True)
