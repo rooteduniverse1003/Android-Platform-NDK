@@ -110,6 +110,7 @@ class Module:
     # each architecture. The Module object will be cloned for each arch and
     # each will have build_arch set to the architecture that should be built by
     # that module. If build_arch is None, the module has not yet been split.
+    # TODO: Remove.
     split_build_by_arch = False
     build_arch: Optional[Arch] = None
 

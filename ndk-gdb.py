@@ -706,6 +706,10 @@ def main():
     device = args.device
     use_lldb = not args.no_lldb
 
+    if not use_lldb:
+        print("WARNING: --no-lldb was used by GDB is no longer supported.")
+        print("GDB will be used, but will be removed in a future release.")
+
     if device is None:
         error("Could not find a unique connected device/emulator.")
 
