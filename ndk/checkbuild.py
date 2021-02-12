@@ -438,12 +438,12 @@ class Clang(ndk.builds.Module):
         if self.host != Host.Windows64:
             python_bin_dir = install_path / 'python3' / 'bin'
             python_files_to_remove = [
-                '2to3', '2to3-3.8', 'easy_install-3.8', 'idle3', 'idle3.8', 'pip3',
-                'pip3.8', 'pydoc3', 'pydoc3.8', 'python3-config',
-                'python3.8-config',
+                '2to3*', 'easy_install*', 'idle*', 'pip*',
+                'pydoc*', 'python*-config',
             ]
-            for pyfile in python_files_to_remove:
-                (python_bin_dir / pyfile).unlink()
+            for file_pattern in python_files_to_remove:
+                for pyfile in python_bin_dir.glob(file_pattern):
+                    pyfile.unlink()
 
         if self.host != Host.Linux:
             # We don't build target binaries as part of the Darwin or Windows
