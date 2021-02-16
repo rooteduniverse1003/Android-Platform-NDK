@@ -1408,13 +1408,6 @@ check_toolchain_src_dir ()
         echo "ERROR: Not a directory: '$SRC_DIR'"
         exit 1
     fi
-
-    if [ ! -f "$SRC_DIR/build/configure" -o ! -d "$SRC_DIR/gcc" ]; then
-        echo "ERROR: Either the file $SRC_DIR/build/configure or"
-        echo "       the directory $SRC_DIR/gcc does not exist."
-        echo "This is not the top of a toolchain tree: $SRC_DIR"
-        exit 1
-    fi
 }
 
 make_repo_prop () {
