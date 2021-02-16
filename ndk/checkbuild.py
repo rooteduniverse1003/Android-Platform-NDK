@@ -442,6 +442,11 @@ class Clang(ndk.builds.Module):
                 for pyfile in python_bin_dir.glob(file_pattern):
                     pyfile.unlink()
 
+        # Remove lldb-argdumper in site-packages. libc++ is not available there.
+        # People should use bin/lldb-argdumper instead.
+        for pylib in (install_path / 'lib').glob('python*'):
+            (pylib / f'site-packages/lldb/lldb-argdumper{bin_ext}').unlink()
+
         if self.host != Host.Linux:
             # We don't build target binaries as part of the Darwin or Windows
             # build. These toolchains need to get these from the Linux
