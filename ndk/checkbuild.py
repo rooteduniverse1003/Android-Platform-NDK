@@ -396,7 +396,8 @@ class Clang(ndk.builds.Module):
             shutil.rmtree(install_path)
         if not install_path.parent.exists():
             install_path.parent.mkdir(parents=True)
-        shutil.copytree(ClangToolchain.path_for_host(self.host), install_path)
+        shutil.copytree(ClangToolchain.path_for_host(self.host), install_path,
+                        symlinks=not self.host.is_windows)
 
         # clang-4053586 was patched in the prebuilts directory to add the
         # libc++ includes. These are almost certainly a different revision than
