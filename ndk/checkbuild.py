@@ -612,11 +612,13 @@ def get_subarches(arch: ndk.abis.Arch) -> List[str]:
     ]
 
 
-class ShaderTools(ndk.builds.InvokeBuildModule):
+class ShaderTools(ndk.builds.CMakeModule):
     name = 'shader-tools'
+    src = ANDROID_DIR / 'external' / 'shaderc' / 'shaderc'
     path = Path('shader-tools/{host}')
-    script = Path('build-shader-tools.py')
+    run_ctest = True
     notice_group = ndk.builds.NoticeGroup.TOOLCHAIN
+    deps = {'clang'}
 
     @property
     def notices(self) -> Iterator[Path]:
@@ -628,6 +630,92 @@ class ShaderTools(ndk.builds.InvokeBuildModule):
         yield shaderc_dir / 'third_party/LICENSE.spirv-tools'
         yield glslang_dir / 'LICENSE.txt'
         yield spirv_dir / 'LICENSE'
+
+    @property
+    def defines(self) -> Dict[str, str]:
+        gtest_dir = ANDROID_DIR / 'external' / 'googletest'
+        effcee_dir = ANDROID_DIR / 'external' / 'effcee'
+        re2_dir = ANDROID_DIR / 'external' / 'regex-re2'
+        spirv_headers_dir = self.src.parent / 'spirv-headers'
+        defines = {
+            'SHADERC_EFFCEE_DIR': str(effcee_dir),
+            'SHADERC_RE2_DIR': str(re2_dir),
+            'SHADERC_GOOGLE_TEST_DIR': str(gtest_dir),
+            'SHADERC_THIRD_PARTY_ROOT_DIR': str(self.src.parent),
+            'EFFCEE_GOOGLETEST_DIR': str(gtest_dir),
+            'EFFCEE_RE2_DIR': str(re2_dir),
+            # SPIRV-Tools tests require effcee and re2.
+            # Don't enable RE2 testing because it's long and not useful to us.
+            'RE2_BUILD_TESTING': 'OFF',
+            'SPIRV-Headers_SOURCE_DIR': str(spirv_headers_dir),
+        }
+        return defines
+
+    @property
+    def flags(self) -> List[str]:
+        return super().flags + [
+            '-Wno-unused-command-line-argument',
+            '-fno-rtti',
+            '-fno-exceptions',
+        ]
+
+    @property
+    def env(self) -> Dict[str, str]:
+        # Sets path for libc++, for ctest.
+        if self.host == Host.Linux:
+            return {'LD_LIBRARY_PATH': str(self._libcxx_dir)}
+        elif self.host == Host.Darwin:
+            return {'DYLD_LIBRARY_PATH': str(self._libcxx_dir)}
+        return {}
+
+    @property
+    def _libcxx_dir(self) -> List[Path]:
+        return self.get_dep('clang').get_build_host_install() / 'lib64'
+
+    @property
+    def _libcxx(self) -> List[Path]:
+        path = self._libcxx_dir
+        if self.host == Host.Linux:
+            return [
+                path / 'libc++.so.1',
+                path / 'libc++abi.so.1',
+            ]
+        elif self.host == Host.Darwin:
+            return [
+                path / 'libc++.1.dylib',
+                path / 'libc++abi.1.dylib',
+            ]
+        return []
+
+    def install(self) -> None:
+        self.get_install_path().mkdir(parents=True, exist_ok=True)
+        ext = '.exe' if self.host.is_windows else ''
+        files_to_copy = [
+            f'glslc{ext}', f'spirv-as{ext}', f'spirv-dis{ext}',
+            f'spirv-val{ext}', f'spirv-cfg{ext}', f'spirv-opt{ext}',
+            f'spirv-link{ext}', f'spirv-reduce{ext}'
+        ]
+        scripts_to_copy = ['spirv-lesspipe.sh']
+
+        # Copy to install tree.
+        for src in files_to_copy + scripts_to_copy:
+            shutil.copy2(self.builder.install_directory / 'bin' / src,
+                         self.get_install_path())
+
+        if self.host.is_windows:
+            for src in scripts_to_copy:
+                # Convert line endings on scripts.
+                # Do it in place to preserve executable permissions.
+                subprocess.check_call(
+                    ['unix2dos', '-o',
+                     self.get_install_path() / src])
+
+        # Symlink libc++ to install path.
+        for lib in self._libcxx:
+            symlink_name = self.get_install_path() / lib.name
+            symlink_name.unlink(missing_ok=True)
+            symlink_name.symlink_to(
+                Path(os.path.relpath(lib, symlink_name.parent)))
 
 
 class Make(ndk.builds.AutoconfModule):
