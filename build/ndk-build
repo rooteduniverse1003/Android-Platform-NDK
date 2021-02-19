@@ -231,58 +231,11 @@ if [ "$OSTYPE" = "cygwin" ] ; then
     log "Cygwin-compatible GNU make detected"
 fi
 
+NDK_ANALYZER_FLAGS=
 if [ "$NDK_ANALYZE" = 1 ]; then
-    . $PROGDIR/tools/dev-defaults.sh  # for DEFAULT_LLVM_VERSION
-
-    # Return flags send in env. or command line which are enough to retrive APP_ABI and TOOLCHAIN_PREFIX later
-    gen_flags ()
-    {
-        local FLAGS=
-
-        if [ -n "$PROJECT_PATH" ] ; then
-            FLAGS=$FLAGS" -C $PROJECT_PATH"
-        fi
-        if [ -n "$APP_ABI" ] ; then
-            FLAGS=$FLAGS" APP_ABI=$APP_ABI"
-        fi
-        echo "$FLAGS"
-    }
-
-    get_build_var ()
-    {
-        local VAR=$1
-        local FLAGS=`gen_flags`
-        $GNUMAKE --no-print-dir -f $PROGDIR/core/build-local.mk $FLAGS DUMP_${VAR} | tail -1
-    }
-
-    get_build_var_for_abi ()
-    {
-        local VAR=$1
-        local ABI=$2
-        local FLAGS=`gen_flags`
-        $GNUMAKE --no-print-dir -f $PROGDIR/core/build-local.mk $FLAGS DUMP_${VAR} APP_ABI=${ABI} | tail -1
-    }
-
-    APP_ABIS=`get_build_var APP_ABI`
-    for ABI in $APP_ABIS; do
-        LLVM_TOOLCHAIN_PREFIX=`get_build_var LLVM_TOOLCHAIN_PREFIX`
-        ANALYZER_OUT=`get_build_var NDK_APP_ANALYZER_OUT`
-
-        ANALYZER_CC=${LLVM_TOOLCHAIN_PREFIX}clang
-        ANALYZER_CXX=${LLVM_TOOLCHAIN_PREFIX}clang++
-
-        ANALYZER_OUT_FLAG=
-        if [ -n "$NDK_ANALYZER_OUT" ]; then
-            ANALYZER_OUT_FLAG="-o $NDK_ANALYZER_OUT/$ABI"
-        fi
-
-        perl ${LLVM_TOOLCHAIN_PREFIX}scan-build \
-            --use-cc $ANALYZER_CC \
-            --use-c++ $ANALYZER_CXX \
-            --status-bugs \
-            $ANALYZER_OUT_FLAG \
-            $GNUMAKE -f $PROGDIR/core/build-local.mk "$@" APP_ABI=$ABI
-    done
-else
-    $GNUMAKE -O -f $PROGDIR/core/build-local.mk "$@"
+    # Continue supporting the old interface to the static analyzer. clang-tidy
+    # does all the same checks by default (and some new ones).
+    NDK_ANALYZER_FLAGS=APP_CLANG_TIDY=true
 fi
+
+$GNUMAKE -O -f $PROGDIR/core/build-local.mk $NDK_ANALYZER_FLAGS "$@"

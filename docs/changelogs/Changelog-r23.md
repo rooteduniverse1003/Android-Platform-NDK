@@ -33,9 +33,14 @@ For Android Studio issues, follow the docs on the [Android Studio site].
   static libraries.
 * [Issue 1390]: ndk-build now warns when building a static executable with the
   wrong API level.
+* [Issue 1452]: `NDK_ANALYZE=1` now sets `APP_CLANG_TIDY=true` rather than using
+  scan-build. clang-tidy performs all the same checks by default, and scan-build
+  was no longer working. See the bug for more details, but no user-side changes
+  should be needed.
 
 [Issue 929]: https://github.com/android/ndk/issues/929
 [Issue 1390]: https://github.com/android/ndk/issues/1390
+[Issue 1452]: https://github.com/android/ndk/issues/1452
 
 ## Known Issues
 

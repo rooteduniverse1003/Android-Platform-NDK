@@ -15,34 +15,29 @@
 #
 import os
 import subprocess
+import sys
 from typing import Tuple
 
 from ndk.abis import Abi
 
 
 def run_test(ndk_path: str, abi: Abi, api: int) -> Tuple[bool, str]:
-    """Runs the static analyzer on a sample project."""
+    """Checks ndk-build output for clang-tidy warnings."""
     ndk_build = os.path.join(ndk_path, 'ndk-build')
+    if sys.platform == 'win32':
+        ndk_build += '.cmd'
     project_path = 'project'
-    analyzer_out = os.path.join(project_path, 'report')
     ndk_args = [
         f'APP_ABI={abi}',
         f'APP_PLATFORM=android-{api}',
         'NDK_ANALYZE=1',
-        f'NDK_ANALYZER_OUT={analyzer_out}',
     ]
     proc = subprocess.Popen([ndk_build, '-C', project_path] + ndk_args,
                             stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
                             encoding='utf-8')
     out, _ = proc.communicate()
-    # We expect the analyzer to find an issue and exit with a failure.
-    if proc.returncode == 0:
-        return False, out
+    if proc.returncode != 0:
+        return proc.returncode == 0, out
 
-    analyzer_abi_out = os.path.join(analyzer_out, abi)
-    # The out directory gets created even if the analyzer fails, so we
-    # intentionally include bad code and make sure we get a failure report.
-    if not os.listdir(analyzer_abi_out):
-        return False, 'No analyzer output found in ' + analyzer_abi_out
-
-    return True, out
+    expect = "warning: Potential memory leak [clang-analyzer-unix.Malloc]"
+    return expect in out, out
