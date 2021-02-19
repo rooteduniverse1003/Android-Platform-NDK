@@ -102,11 +102,8 @@ LLVM_TOOLCHAIN_PREFIX := $(TOOLCHAIN_ROOT)/bin/
 # the toolchain's setup.mk script.
 TOOLCHAIN_PREFIX = $(TOOLCHAIN_ROOT)/bin/$(TOOLCHAIN_NAME)-
 
-ifneq ($(findstring ccc-analyzer,$(CC)),)
-    TARGET_CC = $(CC)
-else
-    TARGET_CC = $(LLVM_TOOLCHAIN_PREFIX)clang$(HOST_EXEEXT)
-endif
+TARGET_CC = $(LLVM_TOOLCHAIN_PREFIX)clang$(HOST_EXEEXT)
+TARGET_CXX = $(LLVM_TOOLCHAIN_PREFIX)clang++$(HOST_EXEEXT)
 
 CLANG_TIDY = $(LLVM_TOOLCHAIN_PREFIX)clang-tidy$(HOST_EXEEXT)
 
@@ -142,12 +139,6 @@ GLOBAL_CXXFLAGS = $(GLOBAL_CFLAGS) -fno-exceptions -fno-rtti
 TARGET_CFLAGS =
 TARGET_CONLYFLAGS =
 TARGET_CXXFLAGS = $(TARGET_CFLAGS)
-
-ifneq ($(findstring c++-analyzer,$(CXX)),)
-    TARGET_CXX = $(CXX)
-else
-    TARGET_CXX = $(LLVM_TOOLCHAIN_PREFIX)clang++$(HOST_EXEEXT)
-endif
 
 TARGET_RS_CC    = $(RENDERSCRIPT_TOOLCHAIN_PREFIX)llvm-rs-cc
 TARGET_RS_BCC   = $(RENDERSCRIPT_TOOLCHAIN_PREFIX)bcc_compat
