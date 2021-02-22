@@ -19,6 +19,12 @@ For Android Studio issues, follow the docs on the [Android Studio site].
 
   See the Changes section below for more information.
 
+## r22b
+
+  * [Issue 1427]: Fix Clang auto-detection for CMake 3.19 and older for Windows.
+
+[Issue 1427]: https://github.com/android/ndk/issues/1427
+
 ## Changes
 
 * Updated LLVM to r399163b, based on LLVM 11 development.
