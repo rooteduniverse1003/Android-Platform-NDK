@@ -23,6 +23,7 @@ from __future__ import annotations
 # https://github.com/PyCQA/pylint/issues/73
 from distutils.dir_util import copy_tree
 from enum import auto, Enum, unique
+from ndk.cmake import CMakeBuilder
 import os
 from pathlib import Path, PureWindowsPath
 import shutil
@@ -324,6 +325,48 @@ class AutoconfModule(Module):
 
     def build(self) -> None:
         self.builder.build(self.configure_args)
+
+    def install(self) -> None:
+        install_dir = self.get_install_path()
+        install_dir.mkdir(parents=True, exist_ok=True)
+        copy_tree(
+            str(self.builder.install_directory),
+            str(install_dir))
+
+
+class CMakeModule(Module):
+    # Path to the source code
+    src: Path
+    _builder: Optional[CMakeBuilder] = None
+    run_ctest: bool = False
+
+    @property
+    def builder(self) -> CMakeBuilder:
+        """Returns the lazily initialized builder for this module."""
+        if self._builder is None:
+            self._builder = CMakeBuilder(
+                self.src,
+                self.intermediate_out_dir,
+                self.host,
+                additional_flags=self.flags,
+                additional_env=self.env,
+                run_ctest=self.run_ctest)
+        return self._builder
+
+    @property
+    def env(self) -> Dict[str, str]:
+        return dict()
+
+    @property
+    def flags(self) -> List[str]:
+        return []
+
+    @property
+    def defines(self) -> Dict[str, str]:
+        return dict()
+
+    def build(self) -> None:
+        self.builder.build(self.defines)
 
     def install(self) -> None:
         install_dir = self.get_install_path()
