@@ -19,6 +19,17 @@ For Android Studio issues, follow the docs on the [Android Studio site].
 
   See the Changes section below for more information.
 
+## r22b
+
+  * [Issue 1388]: Fixed LLVM's incorrect conversion to list files for long command
+    lines on Windows.
+  * [Issue 1391]: Fixed missing symbols from libz.a.
+  * [Issue 1427]: Fixed Clang auto-detection for CMake 3.19 and older for Windows.
+
+[Issue 1388]: https://github.com/android/ndk/issues/1388
+[Issue 1391]: https://github.com/android/ndk/issues/1391
+[Issue 1427]: https://github.com/android/ndk/issues/1427
+
 ## Changes
 
 * Updated LLVM to r399163b, based on LLVM 11 development.
@@ -37,10 +48,10 @@ For Android Studio issues, follow the docs on the [Android Studio site].
 
 * [Issue 609]: `std::filesystem` support is now included. There are two known
   issues:
-      * [Issue 1258]: `std::filesystem::perm_options::nofollow` may not be
-        honored on old devices.
-      * [Issue 1260]: `std::filesystem:canonical` will incorrectly succeed when
-        passed a non-existent path on old devices.
+   * [Issue 1258]: `std::filesystem::perm_options::nofollow` may not be
+     honored on old devices.
+   * [Issue 1260]: `std::filesystem::canonical` will incorrectly succeed when
+     passed a non-existent path on old devices.
 
 * [Issue 843]: `llvm-strip` is now used instead of `strip` to avoid breaking
    RelRO with LLD. Note that the Android Gradle Plugin performs its own
