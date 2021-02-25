@@ -21,9 +21,10 @@ For Android Studio issues, follow the docs on the [Android Studio site].
 
 * Includes preview Android S DP 1 APIs.
 * Updated LLVM to clang-r412851, based on LLVM 12 development.
-    * [Issue 1047]: Fixes crash when using ASan with the CFI unwinder.
-    * [Issue 1096]: Includes support for [Polly]. Enable by adding
-      `-mllvm -polly` to your cflags.
+  * [Issue 1047]: Fixes crash when using ASan with the CFI unwinder.
+  * [Issue 1096]: Includes support for [Polly]. Enable by adding `-mllvm -polly`
+    to your cflags.
+  * [Issue 1406]: Fixes crash with Neon intrinsic.
 * Vulkan validation layer source and binaries are no longer shipped in the NDK.
   The latest are now posted directly to [GitHub](https://github.com/KhronosGroup/Vulkan-ValidationLayers/releases).
 * Vulkan tools source is also removed, specifically vulkan_wrapper.
@@ -46,6 +47,7 @@ For Android Studio issues, follow the docs on the [Android Studio site].
 [Issue 1047]: https://github.com/android/ndk/issues/1047
 [Issue 1096]: https://github.com/android/ndk/issues/1096
 [Issue 1390]: https://github.com/android/ndk/issues/1390
+[Issue 1406]: https://github.com/android/ndk/issues/1406
 [Issue 1452]: https://github.com/android/ndk/issues/1452
 [Polly]: https://polly.llvm.org/
 
