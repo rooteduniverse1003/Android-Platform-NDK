@@ -758,54 +758,53 @@ class NdkWhich(ndk.builds.FileModule):
     src = NDK_DIR / 'ndk-which'
 
 
-class HostTools(ndk.builds.Module):
-    name = 'host-tools'
+class Python(ndk.builds.Module):
+    """Module for host Python 2 to support GDB.
+
+    This is now a prebuilt. Next time this or GDB breaks we'll be removing both
+    and migrating the tools we ship with ndk-build to Python 3.
+    """
+
+    name = 'python'
     path = Path('prebuilt/{host}')
+    PREBUILTS_BASE = ANDROID_DIR / 'prebuilts/ndk/python'
+    notice = ANDROID_DIR / 'prebuilts/ndk/python/NOTICE'
     notice_group = ndk.builds.NoticeGroup.TOOLCHAIN
 
-    @property
-    def notices(self) -> Iterator[Path]:
-        yield ANDROID_DIR / 'toolchain/python/Python-2.7.5/LICENSE'
-        yield NDK_DIR / 'sources/host-tools/toolbox/NOTICE'
-
     def build(self) -> None:
-        build_args = ndk.builds.common_build_args(self.out_dir, self.dist_dir,
-                                                  self.host)
-
-        if self.host.is_windows:
-            print('Building toolbox...')
-            ndk.builds.invoke_external_build(
-                NDK_DIR / 'sources/host-tools/toolbox/build.py', build_args)
-
-        print('Building Python...')
-        ndk.builds.invoke_external_build(
-            ANDROID_DIR / 'toolchain/python/build.py', build_args)
+        pass
 
     def install(self) -> None:
+        copy_tree(str(self.PREBUILTS_BASE / self.host.tag),
+                  str(self.get_install_path()))
+
+
+class Toolbox(ndk.builds.InvokeExternalBuildModule):
+    name = 'toolbox'
+    path = Path('prebuilt/{host}')
+    notice_group = ndk.builds.NoticeGroup.TOOLCHAIN
+    notice = NDK_DIR / 'sources/host-tools/toolbox/NOTICE'
+    script = NDK_DIR / 'sources/host-tools/toolbox/build.py'
+
+    def build(self) -> None:
+        if not self.host.is_windows:
+            print(f'Nothing to do for {self.host}')
+            return
+        super().build()
+
+    def install(self) -> None:
+        if not self.host.is_windows:
+            print(f'Nothing to do for {self.host}')
+            return
+
         install_dir = self.get_install_path()
         install_dir.mkdir(parents=True, exist_ok=True)
 
-        packages = [
-            'ndk-python'
-        ]
-
-        if self.host.is_windows:
-            packages.append('toolbox')
-
-        package_names = [f'{p}-{self.host.tag}.tar.bz2' for p in packages]
-        for package_name in package_names:
-            package_path = self.out_dir / self.host.value / package_name
-            subprocess.check_call(
-                ['tar', 'xf', str(package_path), '-C', str(install_dir),
-                 '--strip-components=1'])
-
-        # Remove unused python scripts.
-        exclude_files = [
-            'python2.7-config', 'python-config.sh', 'pydoc', 'idle', '2to3',
-            'smtpd.py', 'python2-config', 'python-config'
-        ]
-        for file_to_remove in exclude_files:
-            (install_dir / 'bin' / file_to_remove).unlink()
+        package_name = f'toolbox-{self.host.tag}.tar.bz2'
+        package_path = self.out_dir / self.host.value / package_name
+        subprocess.check_call(
+            ['tar', 'xf', str(package_path), '-C', str(install_dir),
+             '--strip-components=1'])
 
 
 def install_exe(out_dir: str, install_dir: str, name: str, host: Host) -> None:
@@ -2379,7 +2378,6 @@ ALL_MODULES = [
     CpuFeatures(),
     Gdb(),
     Gtest(),
-    HostTools(),
     LibAndroidSupport(),
     LibShaderc(),
     Libcxx(),
@@ -2400,6 +2398,7 @@ ALL_MODULES = [
     NdkWhich(),
     NdkWhichShortcut(),
     Platforms(),
+    Python(),
     PythonPackages(),
     Readme(),
     RenderscriptLibs(),
@@ -2409,6 +2408,7 @@ ALL_MODULES = [
     SourceProperties(),
     Sysroot(),
     SystemStl(),
+    Toolbox(),
     Toolchain(),
     Vulkan(),
     WrapSh(),
