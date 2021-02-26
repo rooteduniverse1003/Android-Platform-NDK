@@ -669,7 +669,7 @@ class ShaderTools(ndk.builds.CMakeModule):
         return {}
 
     @property
-    def _libcxx_dir(self) -> List[Path]:
+    def _libcxx_dir(self) -> Path:
         return self.get_dep('clang').get_build_host_install() / 'lib64'
 
     @property
