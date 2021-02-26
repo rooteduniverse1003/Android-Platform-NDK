@@ -49,8 +49,9 @@ class CMakeBuilder:
                  src_path: Path,
                  build_dir: Path,
                  host: Host,
-                 additional_flags: List[str] = None,
-                 additional_env: Optional[Dict[str, str]] = None) -> None:
+                 additional_flags: Optional[List[str]] = None,
+                 additional_env: Optional[Dict[str, str]] = None,
+                 run_ctest: bool = False) -> None:
         """Initializes an autoconf builder.
 
         Args:
@@ -68,6 +69,7 @@ class CMakeBuilder:
         self.host = host
         self.additional_flags = additional_flags
         self.additional_env = additional_env
+        self.run_ctest = run_ctest
 
         self.working_directory = self.build_directory / 'build'
         self.install_directory = self.build_directory / 'install'
@@ -114,6 +116,11 @@ class CMakeBuilder:
     def _ninja(self) -> Path:
         return (ndk.paths.ANDROID_DIR / 'prebuilts' / 'ninja' /
                 (get_default_host().value + '-x86') / 'ninja')
+
+    @property
+    def _ctest(self) -> Path:
+        return (ndk.paths.ANDROID_DIR / 'prebuilts' / 'cmake' /
+                (get_default_host().value + '-x86') / 'bin' / 'ctest')
 
     @property
     def cmake_defines(self) -> Dict[str, str]:
@@ -175,9 +182,13 @@ class CMakeBuilder:
         """Builds the project."""
         self._run([str(self._ninja)])
 
+    def test(self) -> None:
+        """Runs tests."""
+        self._run([str(self._ctest), '--verbose'])
+
     def install(self) -> None:
         """Installs the project."""
-        self._run([str(self._ninja), 'install'])
+        self._run([str(self._ninja), 'install/strip'])
 
     def build(self,
               additional_defines: Optional[Dict[str, str]] = None) -> None:
@@ -192,4 +203,6 @@ class CMakeBuilder:
         self.configure(
             {} if additional_defines is None else additional_defines)
         self.make()
+        if not self.host.is_windows and self.run_ctest:
+            self.test()
         self.install()

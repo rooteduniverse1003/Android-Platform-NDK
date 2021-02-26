@@ -23,15 +23,15 @@ from __future__ import annotations
 # https://github.com/PyCQA/pylint/issues/73
 from distutils.dir_util import copy_tree
 from enum import auto, Enum, unique
+from ndk.cmake import CMakeBuilder
 import os
 from pathlib import Path, PureWindowsPath
 import shutil
 import stat
 import subprocess
 import textwrap
-from typing import Any, Dict, Iterable, Iterator, List, Optional, Set
+from typing import Any, Dict, Iterator, List, Optional, Set
 
-from ndk.abis import Arch, ALL_ARCHITECTURES
 from ndk.autoconf import AutoconfBuilder
 import ndk.ext.shutil
 from ndk.hosts import Host
@@ -59,12 +59,11 @@ class BuildContext:
     """Class containing build context information."""
 
     def __init__(self, out_dir: Path, dist_dir: Path, modules: List[Module],
-                 host: Host, arches: List[Arch], build_number: str) -> None:
+                 host: Host, build_number: str) -> None:
         self.out_dir = out_dir
         self.dist_dir = dist_dir
         self.modules = {m.name: m for m in modules}
         self.host = host
-        self.arches = arches
         self.build_number = build_number
 
 
@@ -105,13 +104,6 @@ class Module:
     # in $NDK/NOTICE, whereas NoticeGroup.TOOLCHAIN will result in the license
     # text being included in NOTICE.toolchain.
     notice_group = NoticeGroup.BASE
-
-    # If split_build_by_arch is set, one workqueue task will be created for
-    # each architecture. The Module object will be cloned for each arch and
-    # each will have build_arch set to the architecture that should be built by
-    # that module. If build_arch is None, the module has not yet been split.
-    split_build_by_arch = False
-    build_arch: Optional[Arch] = None
 
     # Set to True if this module is merely a build convenience and not intented
     # to be shipped. For example, Platforms has its own build steps but is
@@ -193,20 +185,17 @@ class Module:
         assert self.context is not None
         return self.context.modules[name]
 
-    def get_build_host_install(self, arch: Optional[Arch] = None) -> Path:
+    def get_build_host_install(self) -> Path:
         """Returns the module's install path for the current host.
 
         In a cross-compiling context (i.e. building the Windows NDK from
         Linux), this will return the install directory for the build OS rather
         than the target OS.
 
-        Args:
-            arch: Architecture to fetch for architecture-specific modules.
-
         Returns:
             This module's install path for the build host.
         """
-        return self.get_install_path(Host.current(), arch)
+        return self.get_install_path(Host.current())
 
     @property
     def out_dir(self) -> Path:
@@ -226,12 +215,6 @@ class Module:
         assert self.context is not None
         return self.context.host
 
-    @property
-    def arches(self) -> List[Arch]:
-        """Architectures targeted by the current build."""
-        assert self.context is not None
-        return self.context.arches
-
     def build(self) -> None:
         """Builds the module.
 
@@ -250,48 +233,26 @@ class Module:
         The install phase should only copy files, not create them. Compilation
         should happen in the build phase.
         """
-        package_installs = ndk.packaging.expand_packages(
-            self.name, str(self.path), self.host, self.arches)
+        package_name, package_install = ndk.packaging.expand_package(
+            self.name, str(self.path), self.host)
 
         install_base = Path(
             ndk.paths.get_install_path(str(self.out_dir), self.host))
         if self.intermediate_module:
             install_base = self.intermediate_out_dir / 'install'
-        for package_name, package_install in package_installs:
-            assert self.context is not None
-            install_path = install_base / package_install
-            package = self.context.dist_dir / package_name
-            if install_path.exists():
-                shutil.rmtree(install_path)
-            ndk.packaging.extract_zip(str(package), str(install_path))
 
-    def get_install_paths(self, host: Host,
-                          arches: Optional[Iterable[Arch]]) -> List[Path]:
-        """Returns the install paths for the given archiectures."""
-        install_subdirs = [
-            Path(p)
-            for p in ndk.packaging.expand_paths(str(self.path), host, arches)
-        ]
-        install_base = Path(ndk.paths.get_install_path(str(self.out_dir),
-                                                       host))
-        if self.intermediate_module:
-            install_base = self.intermediate_out_dir / 'install'
-        return [install_base / d for d in install_subdirs]
+        assert self.context is not None
+        install_path = install_base / package_install
+        package = self.context.dist_dir / package_name
+        if install_path.exists():
+            shutil.rmtree(install_path)
+        ndk.packaging.extract_zip(str(package), str(install_path))
 
-    def get_install_path(self,
-                         host: Optional[Host] = None,
-                         arch: Optional[Arch] = None) -> Path:
+    def get_install_path(self, host: Optional[Host] = None) -> Path:
         """Returns the install path for the given module config.
-
-        For an architecture-independent module, there should only ever be one
-        install path.
-
-        For an architecture-dependent module, the optional arch argument must
-        be provided to select between the install paths.
 
         Args:
             host: The host to use for a host-specific install path.
-            arch: The architecture to use for an architecure-dependent module.
 
         Raises:
             ValueError: This is an architecture-dependent module and no
@@ -302,45 +263,19 @@ class Module:
         if host is None:
             host = self.host
 
-        arch_dependent = False
-        if ndk.packaging.package_varies_by(str(self.path), 'abi'):
-            arch_dependent = True
-        elif ndk.packaging.package_varies_by(str(self.path), 'arch'):
-            arch_dependent = True
-        elif ndk.packaging.package_varies_by(str(self.path), 'toolchain'):
-            arch_dependent = True
-        elif ndk.packaging.package_varies_by(str(self.path), 'triple'):
-            arch_dependent = True
-
-        arches = None
-        if arch is not None:
-            arches = [arch]
-        elif self.build_arch is not None:
-            arches = [self.build_arch]
-        elif arch_dependent:
-            raise ValueError(
-                f'get_install_path for {arch} requires valid arch')
-
-        install_subdirs = self.get_install_paths(host, arches)
-
-        if len(install_subdirs) != 1:
-            raise RuntimeError(
-                f'non-unique install path for single arch: {self.path}')
-
-        return install_subdirs[0]
+        install_subdir = Path(ndk.packaging.expand_path(str(self.path), host))
+        install_base = Path(ndk.paths.get_install_path(str(self.out_dir),
+                                                       host))
+        if self.intermediate_module:
+            install_base = self.intermediate_out_dir / 'install'
+        return install_base / install_subdir
 
     @property
     def intermediate_out_dir(self) -> Path:
         """Path for intermediate outputs of this module."""
-        base_path = self.out_dir / self.host.value / self.name
-        if self.split_build_by_arch:
-            return base_path / self.build_arch
-        else:
-            return base_path
+        return self.out_dir / self.host.value / self.name
 
     def __str__(self) -> str:
-        if self.split_build_by_arch and self.build_arch is not None:
-            return f'{self.name} [{self.build_arch}]'
         return self.name
 
     def __hash__(self) -> int:
@@ -355,12 +290,7 @@ class Module:
     @property
     def log_file(self) -> str:
         """Returns the basename of the log file for this module."""
-        if self.split_build_by_arch and self.build_arch is not None:
-            return f'{self.name}-{self.build_arch}.log'
-        elif self.split_build_by_arch:
-            raise RuntimeError('Called log_file on unsplit module')
-        else:
-            return f'{self.name}.log'
+        return f'{self.name}.log'
 
     def log_path(self, log_dir: Path) -> Path:
         """Returns the path to the log file for this module."""
@@ -404,6 +334,48 @@ class AutoconfModule(Module):
             str(install_dir))
 
 
+class CMakeModule(Module):
+    # Path to the source code
+    src: Path
+    _builder: Optional[CMakeBuilder] = None
+    run_ctest: bool = False
+
+    @property
+    def builder(self) -> CMakeBuilder:
+        """Returns the lazily initialized builder for this module."""
+        if self._builder is None:
+            self._builder = CMakeBuilder(
+                self.src,
+                self.intermediate_out_dir,
+                self.host,
+                additional_flags=self.flags,
+                additional_env=self.env,
+                run_ctest=self.run_ctest)
+        return self._builder
+
+    @property
+    def env(self) -> Dict[str, str]:
+        return dict()
+
+    @property
+    def flags(self) -> List[str]:
+        return []
+
+    @property
+    def defines(self) -> Dict[str, str]:
+        return dict()
+
+    def build(self) -> None:
+        self.builder.build(self.defines)
+
+    def install(self) -> None:
+        install_dir = self.get_install_path()
+        install_dir.mkdir(parents=True, exist_ok=True)
+        copy_tree(
+            str(self.builder.install_directory),
+            str(install_dir))
+
+
 class PackageModule(Module):
     """A directory to be installed to the NDK.
 
@@ -416,25 +388,11 @@ class PackageModule(Module):
     def default_notice_path(self) -> Path:
         return self.src / 'NOTICE'
 
-    def validate(self) -> None:
-        super().validate()
-
-        if ndk.packaging.package_varies_by(str(self.path), 'abi'):
-            raise self.validate_error('PackageModule cannot vary by abi')
-        if ndk.packaging.package_varies_by(str(self.path), 'arch'):
-            raise self.validate_error('PackageModule cannot vary by arch')
-        if ndk.packaging.package_varies_by(str(self.path), 'toolchain'):
-            raise self.validate_error('PackageModule cannot vary by toolchain')
-        if ndk.packaging.package_varies_by(str(self.path), 'triple'):
-            raise self.validate_error('PackageModule cannot vary by triple')
-
     def build(self) -> None:
         pass
 
     def install(self) -> None:
-        install_paths = self.get_install_paths(self.host, ALL_ARCHITECTURES)
-        assert len(install_paths) == 1
-        install_path = install_paths[0]
+        install_path = self.get_install_path(self.host)
         install_directory(self.src, install_path)
 
 
@@ -448,20 +406,8 @@ class InvokeExternalBuildModule(Module):
     #: The path to the build script relative to the top of the source tree.
     script: Path
 
-    #: True if the module can be built in parallel per-architecture.
-    arch_specific = False
-
     def build(self) -> None:
         build_args = common_build_args(self.out_dir, self.dist_dir, self.host)
-        if self.split_build_by_arch:
-            build_args.append(f'--arch={self.build_arch}')
-        elif self.arch_specific and len(self.arches) == 1:
-            build_args.append(f'--arch={self.arches[0]}')
-        elif set(self.arches) == set(ALL_ARCHITECTURES):
-            pass
-        else:
-            raise NotImplementedError(
-                f'Module {self.name} can only build all architectures or none')
         script = self.get_script_path()
         invoke_external_build(script, build_args)
 
@@ -597,12 +543,7 @@ class ScriptShortcutModule(Module):
 
     def get_script_path(self) -> Path:
         """Returns the installed path of the script."""
-        scripts = [
-            Path(p) for p in ndk.packaging.expand_paths(
-                str(self.script), self.host, ALL_ARCHITECTURES)
-        ]
-        assert len(scripts) == 1
-        return scripts[0]
+        return Path(ndk.packaging.expand_path(str(self.script), self.host))
 
 
 class PythonPackage(Module):
