@@ -13,8 +13,18 @@ For Android Studio issues, follow the docs on the [Android Studio site].
   removed in the next release. If you are building with `-fno-integrated-as`,
   file bugs if anything is preventing you from removing that flag.
 
+* Support for GDB has ended. The GDB from r22 will continue to be included in
+  the NDK, but it will be removed if and when it stops working. Use LLDB
+  instead. Note that `ndk-gdb` uses LLDB by default.
+
 ## Changes
 
+* Includes preview Android S DP 1 APIs.
+* Updated LLVM to clang-r412851, based on LLVM 12 development.
+  * [Issue 1047]: Fixes crash when using ASan with the CFI unwinder.
+  * [Issue 1096]: Includes support for [Polly]. Enable by adding `-mllvm -polly`
+    to your cflags.
+  * [Issue 1406]: Fixes crash with Neon intrinsic.
 * Vulkan validation layer source and binaries are no longer shipped in the NDK.
   The latest are now posted directly to [GitHub](https://github.com/KhronosGroup/Vulkan-ValidationLayers/releases).
 * Vulkan tools source is also removed, specifically vulkan_wrapper.
@@ -28,9 +38,18 @@ For Android Studio issues, follow the docs on the [Android Studio site].
   static libraries.
 * [Issue 1390]: ndk-build now warns when building a static executable with the
   wrong API level.
+* [Issue 1452]: `NDK_ANALYZE=1` now sets `APP_CLANG_TIDY=true` rather than using
+  scan-build. clang-tidy performs all the same checks by default, and scan-build
+  was no longer working. See the bug for more details, but no user-side changes
+  should be needed.
 
 [Issue 929]: https://github.com/android/ndk/issues/929
+[Issue 1047]: https://github.com/android/ndk/issues/1047
+[Issue 1096]: https://github.com/android/ndk/issues/1096
 [Issue 1390]: https://github.com/android/ndk/issues/1390
+[Issue 1406]: https://github.com/android/ndk/issues/1406
+[Issue 1452]: https://github.com/android/ndk/issues/1452
+[Polly]: https://polly.llvm.org/
 
 ## Known Issues
 

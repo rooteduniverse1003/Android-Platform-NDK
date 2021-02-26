@@ -36,48 +36,17 @@ PACKAGE_VARIANTS = (
 )
 
 
-def expand_paths(package: str, host: Host,
-                 arches: Optional[Iterable[ndk.abis.Arch]]) -> List[str]:
-    """Expands package definition tuple into list of full package names.
+def expand_path(package: str, host: Host) -> str:
+    """Expands package definition tuple into a package name.
 
-    >>> expand_paths('gcc-{toolchain}-{host}', Host.Linux, ['arm', 'x86_64'])
-    ['gcc-arm-linux-androideabi-linux-x86_64', 'gcc-x86_64-linux-x86_64']
+    >>> expand_path('llvm-{host}', Host.Linux)
+    'llvm-linux-x86_64'
 
-    >>> expand_paths('gdbserver-{arch}', Host.Linux, ['arm64', 'x86_64'])
-    ['gdbserver-arm64', 'gdbserver-x86_64']
-
-    >>> expand_paths('llvm-{host}', Host.Linux, None)
-    ['llvm-linux-x86_64']
-
-    >>> expand_paths('platforms', Host.Linux, ['arm'])
-    ['platforms']
-
-    >>> expand_paths('libc++-{abi}', Host.Linux, ['arm'])
-    ['libc++-armeabi-v7a']
-
-    >>> expand_paths('binutils/{triple}', Host.Linux, ['arm', 'x86_64'])
-    ['binutils/arm-linux-androideabi', 'binutils/x86_64-linux-android']
-
-    >> expand_paths('toolchains/{toolchain}-4.9', Host.Linux, ['arm', 'x86'])
-    ['toolchains/arm-linux-androideabi-4.9', 'toolchains/x86-4.9']
+    >>> expand_path('platforms', Host.Linux)
+    'platforms'
     """
     host_tag = host_to_tag(host)
-    if arches is None:
-        return [package.format(host=host_tag)]
-
-    seen_packages: Set[str] = set()
-    packages = []
-    for arch in arches:
-        triple = ndk.abis.arch_to_triple(arch)
-        toolchain = ndk.abis.arch_to_toolchain(arch)
-        for abi in ndk.abis.arch_to_abis(arch):
-            expanded = package.format(
-                abi=abi, arch=arch, host=host_tag, triple=triple,
-                toolchain=toolchain)
-            if expanded not in seen_packages:
-                packages.append(expanded)
-            seen_packages.add(expanded)
-    return packages
+    return package.format(host=host_tag)
 
 
 def package_varies_by(install_path: str, variant: str) -> bool:
@@ -100,17 +69,17 @@ def package_varies_by(install_path: str, variant: str) -> bool:
     return variant_replacement_str in install_path
 
 
-def expand_packages(package: str, install_path: str, host: Host,
-                    arches: List[ndk.abis.Arch]) -> Iterable[Tuple[str, str]]:
-    """Returns a list of tuples of `(package, install_path)`."""
+def expand_package(package: str, install_path: str,
+                   host: Host) -> Tuple[str, str]:
+    """Returns a tuple of `(package, install_path)`."""
     package_template = package
     for variant in PACKAGE_VARIANTS:
         if package_varies_by(install_path, variant):
             package_template += '-{' + variant + '}'
 
-    expanded_packages = expand_paths(package_template, host, arches)
-    expanded_installs = expand_paths(install_path, host, arches)
-    return zip(expanded_packages, expanded_installs)
+    expanded_packages = expand_path(package_template, host)
+    expanded_installs = expand_path(install_path, host)
+    return expanded_packages, expanded_installs
 
 
 def extract_zip(package_path: str, install_path: str) -> None:
