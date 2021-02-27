@@ -779,18 +779,33 @@ class Python(ndk.builds.Module):
                   str(self.get_install_path()))
 
 
-class Toolbox(ndk.builds.InvokeExternalBuildModule):
+class Toolbox(ndk.builds.Module):
     name = 'toolbox'
-    path = Path('prebuilt/{host}')
+    path = Path('prebuilt/{host}/bin')
     notice_group = ndk.builds.NoticeGroup.TOOLCHAIN
     notice = NDK_DIR / 'sources/host-tools/toolbox/NOTICE'
-    script = NDK_DIR / 'sources/host-tools/toolbox/build.py'
+
+    def build_exe(self, src: Path, name: str) -> None:
+        toolchain = ClangToolchain(self.host)
+        cmd = [
+            str(toolchain.cc),
+            '-s',
+            '-o',
+            str(self.intermediate_out_dir / f'{name}.exe'),
+            str(src),
+        ] + toolchain.flags
+        subprocess.run(cmd, check=True)
 
     def build(self) -> None:
         if not self.host.is_windows:
             print(f'Nothing to do for {self.host}')
             return
-        super().build()
+
+        self.intermediate_out_dir.mkdir(parents=True, exist_ok=True)
+
+        src_dir = NDK_DIR / 'sources/host-tools/toolbox'
+        self.build_exe(src_dir / 'echo_win.c', 'echo')
+        self.build_exe(src_dir / 'cmp_win.c', 'cmp')
 
     def install(self) -> None:
         if not self.host.is_windows:
@@ -800,12 +815,8 @@ class Toolbox(ndk.builds.InvokeExternalBuildModule):
         install_dir = self.get_install_path()
         install_dir.mkdir(parents=True, exist_ok=True)
 
-        package_name = f'toolbox-{self.host.tag}.tar.bz2'
-        package_path = self.out_dir / self.host.value / package_name
-        subprocess.check_call(
-            ['tar', 'xf', str(package_path), '-C', str(install_dir),
-             '--strip-components=1'])
-
+        shutil.copy2(self.intermediate_out_dir / 'echo.exe', install_dir)
+        shutil.copy2(self.intermediate_out_dir / 'cmp.exe', install_dir)
 
 def install_exe(out_dir: str, install_dir: str, name: str, host: Host) -> None:
     ext = '.exe' if host.is_windows else ''
