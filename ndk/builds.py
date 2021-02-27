@@ -396,38 +396,6 @@ class PackageModule(Module):
         install_directory(self.src, install_path)
 
 
-class InvokeExternalBuildModule(Module):
-    """A module that uses a build.py script.
-
-    These are legacy modules that have not yet been properly merged into
-    checkbuild.py.
-    """
-
-    #: The path to the build script relative to the top of the source tree.
-    script: Path
-
-    def build(self) -> None:
-        build_args = common_build_args(self.out_dir, self.dist_dir, self.host)
-        script = self.get_script_path()
-        invoke_external_build(script, build_args)
-
-    def get_script_path(self) -> Path:
-        """Returns the absolute path to the build script."""
-        return ANDROID_DIR / self.script
-
-
-# TODO: Convert shadertools and remove this.
-class InvokeBuildModule(InvokeExternalBuildModule):
-    """A module that uses a build.py script within ndk/build/tools.
-
-    Identical to InvokeExternalBuildModule, but the script path is relative to
-    ndk/build/tools instead of the top of the source tree.
-    """
-
-    def get_script_path(self) -> Path:
-        return NDK_DIR / 'build/tools' / self.script
-
-
 class FileModule(Module):
     """A module that installs a single file to the NDK."""
 
@@ -567,40 +535,6 @@ class PythonPackage(Module):
 
     def install(self) -> None:
         pass
-
-
-def invoke_external_build(script: Path, args: List[str]) -> None:
-    """Invokes a build.py script rooted within the top level source tree.
-
-    Args:
-        script: Path to the script to be executed within the top level source
-            tree.
-        args: Command line arguments to be passed to the script.
-    """
-    subprocess.check_call(['python3', str(script)] + args)
-
-
-def common_build_args(out_dir: Path, dist_dir: Path, host: Host) -> List[str]:
-    """Returns a list of common arguments for build.py scripts.
-
-    Modules that have not been fully merged into checkbuild.py still use a
-    separately executed build.py script via InvokeBuildModule or
-    InvokeExternalBuildModule. These have a common command line interface for
-    determining out directories and target host.
-
-    Args:
-        out_dir: Base out directory for the target host.
-        dist_dir: Distribution directory for archived artifacts.
-        host: Target host.
-
-    Returns:
-        List of command line arguments to be used with build.py.
-    """
-    return [
-        f'--out-dir={out_dir / host.value}',
-        f'--dist-dir={dist_dir}',
-        f'--host={host.value}',
-    ]
 
 
 def install_directory(src: Path, dst: Path) -> None:

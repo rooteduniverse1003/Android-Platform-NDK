@@ -2040,10 +2040,9 @@ class RenderscriptLibs(ndk.builds.PackageModule):
     src = NDK_DIR / 'sources/android/renderscript'
 
 
-class RenderscriptToolchain(ndk.builds.InvokeBuildModule):
+class RenderscriptToolchain(ndk.builds.Module):
     name = 'renderscript-toolchain'
     path = Path('toolchains/renderscript/prebuilt/{host}')
-    script = Path('build-renderscript.py')
 
     @property
     def notices(self) -> Iterator[Path]:
@@ -2051,6 +2050,22 @@ class RenderscriptToolchain(ndk.builds.InvokeBuildModule):
         yield base / 'darwin-x86/current/NOTICE'
         yield base / 'linux-x86/current/NOTICE'
         yield base / 'windows-x86/current/NOTICE'
+
+    def build(self) -> None:
+        pass
+
+    @property
+    def prebuilt_directory(self) -> Path:
+        tag = {
+            Host.Darwin: 'darwin-x86',
+            Host.Linux: 'linux-x86',
+            Host.Windows64: 'windows-x86',
+        }[self.host]
+        return ANDROID_DIR / 'prebuilts/renderscript/host' / tag / 'current'
+
+    def install(self) -> None:
+        install_path = self.get_install_path(self.host)
+        ndk.builds.install_directory(self.prebuilt_directory, install_path)
 
 
 class Changelog(ndk.builds.FileModule):
