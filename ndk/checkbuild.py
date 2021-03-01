@@ -2010,7 +2010,7 @@ class SimplePerf(ndk.builds.Module):
         os.makedirs(install_dir)
 
         simpleperf_path = ndk.paths.android_path('prebuilts/simpleperf')
-        dirs = ['doc', 'inferno', 'bin/android', 'app_api']
+        dirs = ['doc', 'inferno', 'bin/android', 'app_api', 'purgatorio']
         host_bin_dir = 'windows' if self.host.is_windows else self.host.value
         dirs.append(os.path.join('bin/', host_bin_dir))
         for d in dirs:
@@ -2019,7 +2019,8 @@ class SimplePerf(ndk.builds.Module):
 
         for item in os.listdir(simpleperf_path):
             should_copy = False
-            if item.endswith('.py') and item not in ['update.py', 'test.py']:
+            if item.endswith('.py') and item not in ['update.py', 'test.py',
+                                                     'test_monitor.py']:
                 should_copy = True
             elif item == 'report_html.js':
                 should_copy = True
