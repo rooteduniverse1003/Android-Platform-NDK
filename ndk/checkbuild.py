@@ -922,9 +922,6 @@ class Libcxx(ndk.builds.Module):
         shutil.copy2(os.path.join(static_lib_dir, 'libc++abi.a'), lib_dir)
         shutil.copy2(os.path.join(static_lib_dir, 'libc++_static.a'), lib_dir)
 
-        if abi == 'armeabi-v7a':
-            shutil.copy2(os.path.join(static_lib_dir, 'libunwind.a'), lib_dir)
-
         if abi in ndk.abis.LP32_ABIS:
             shutil.copy2(
                 os.path.join(static_lib_dir, 'libandroid_support.a'), lib_dir)
@@ -1755,8 +1752,6 @@ class Toolchain(ndk.builds.Module):
                 'libc++_static.a',
                 'libc++abi.a',
             ]
-            if arch == 'arm':
-                libs.append('libunwind.a')
             if abi in ndk.abis.LP32_ABIS:
                 libs.append('libandroid_support.a')
 
