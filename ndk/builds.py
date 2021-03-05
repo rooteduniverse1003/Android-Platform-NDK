@@ -35,7 +35,6 @@ from typing import Any, Dict, Iterator, List, Optional, Set
 from ndk.autoconf import AutoconfBuilder
 import ndk.ext.shutil
 from ndk.hosts import Host
-import ndk.packaging
 import ndk.paths
 from ndk.paths import ANDROID_DIR, NDK_DIR
 
@@ -223,7 +222,7 @@ class Module:
 
         The build phase should not modify the install directory.
         """
-        raise NotImplementedError
+        raise NotImplementedError(f"{self.name} didn't implement build().")
 
     def install(self) -> None:
         """Installs the module.
@@ -233,20 +232,7 @@ class Module:
         The install phase should only copy files, not create them. Compilation
         should happen in the build phase.
         """
-        package_name, package_install = ndk.packaging.expand_package(
-            self.name, str(self.path), self.host)
-
-        install_base = Path(
-            ndk.paths.get_install_path(str(self.out_dir), self.host))
-        if self.intermediate_module:
-            install_base = self.intermediate_out_dir / 'install'
-
-        assert self.context is not None
-        install_path = install_base / package_install
-        package = self.context.dist_dir / package_name
-        if install_path.exists():
-            shutil.rmtree(install_path)
-        ndk.packaging.extract_zip(str(package), str(install_path))
+        raise NotImplementedError(f"{self.name} didn't implement install().")
 
     def get_install_path(self, host: Optional[Host] = None) -> Path:
         """Returns the install path for the given module config.
@@ -263,7 +249,7 @@ class Module:
         if host is None:
             host = self.host
 
-        install_subdir = Path(ndk.packaging.expand_path(str(self.path), host))
+        install_subdir = ndk.paths.expand_path(self.path, host)
         install_base = Path(ndk.paths.get_install_path(str(self.out_dir),
                                                        host))
         if self.intermediate_module:
@@ -457,18 +443,6 @@ class ScriptShortcutModule(Module):
     def validate(self) -> None:
         super().validate()
 
-        if ndk.packaging.package_varies_by(str(self.script), 'abi'):
-            raise self.validate_error(
-                'ScriptShortcutModule cannot vary by abi')
-        if ndk.packaging.package_varies_by(str(self.script), 'arch'):
-            raise self.validate_error(
-                'ScriptShortcutModule cannot vary by arch')
-        if ndk.packaging.package_varies_by(str(self.script), 'toolchain'):
-            raise self.validate_error(
-                'ScriptShortcutModule cannot vary by toolchain')
-        if ndk.packaging.package_varies_by(str(self.script), 'triple'):
-            raise self.validate_error(
-                'ScriptShortcutModule cannot vary by triple')
         if self.windows_ext is None:
             raise self.validate_error(
                 'ScriptShortcutModule requires windows_ext')
@@ -511,7 +485,7 @@ class ScriptShortcutModule(Module):
 
     def get_script_path(self) -> Path:
         """Returns the installed path of the script."""
-        return Path(ndk.packaging.expand_path(str(self.script), self.host))
+        return ndk.paths.expand_path(self.script, self.host)
 
 
 class PythonPackage(Module):
