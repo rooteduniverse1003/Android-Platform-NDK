@@ -499,7 +499,7 @@ CLEAN_OBJS_DIRS     += $(LOCAL_OBJS_DIR)
 # If we're using LLD we need to use a slower build-id algorithm to work around
 # the old version of LLDB in Android Studio, which doesn't understand LLD's
 # default hash ("fast").
-linker_ldflags += -Wl,--build-id=sha1
+linker_ldflags := -Wl,--build-id=sha1
 
 ifneq (,$(call lt,$(APP_PLATFORM_LEVEL),29))
     # https://github.com/android/ndk/issues/1196

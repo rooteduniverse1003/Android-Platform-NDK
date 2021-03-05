@@ -669,7 +669,7 @@ class ShaderTools(ndk.builds.CMakeModule):
         return {}
 
     @property
-    def _libcxx_dir(self) -> List[Path]:
+    def _libcxx_dir(self) -> Path:
         return self.get_dep('clang').get_build_host_install() / 'lib64'
 
     @property
@@ -758,55 +758,65 @@ class NdkWhich(ndk.builds.FileModule):
     src = NDK_DIR / 'ndk-which'
 
 
-class HostTools(ndk.builds.Module):
-    name = 'host-tools'
+class Python(ndk.builds.Module):
+    """Module for host Python 2 to support GDB.
+
+    This is now a prebuilt. Next time this or GDB breaks we'll be removing both
+    and migrating the tools we ship with ndk-build to Python 3.
+    """
+
+    name = 'python'
     path = Path('prebuilt/{host}')
+    PREBUILTS_BASE = ANDROID_DIR / 'prebuilts/ndk/python'
+    notice = ANDROID_DIR / 'prebuilts/ndk/python/NOTICE'
     notice_group = ndk.builds.NoticeGroup.TOOLCHAIN
 
-    @property
-    def notices(self) -> Iterator[Path]:
-        yield ANDROID_DIR / 'toolchain/python/Python-2.7.5/LICENSE'
-        yield NDK_DIR / 'sources/host-tools/toolbox/NOTICE'
-
     def build(self) -> None:
-        build_args = ndk.builds.common_build_args(self.out_dir, self.dist_dir,
-                                                  self.host)
-
-        if self.host.is_windows:
-            print('Building toolbox...')
-            ndk.builds.invoke_external_build(
-                NDK_DIR / 'sources/host-tools/toolbox/build.py', build_args)
-
-        print('Building Python...')
-        ndk.builds.invoke_external_build(
-            ANDROID_DIR / 'toolchain/python/build.py', build_args)
+        pass
 
     def install(self) -> None:
+        copy_tree(str(self.PREBUILTS_BASE / self.host.tag),
+                  str(self.get_install_path()))
+
+
+class Toolbox(ndk.builds.Module):
+    name = 'toolbox'
+    path = Path('prebuilt/{host}/bin')
+    notice_group = ndk.builds.NoticeGroup.TOOLCHAIN
+    notice = NDK_DIR / 'sources/host-tools/toolbox/NOTICE'
+
+    def build_exe(self, src: Path, name: str) -> None:
+        toolchain = ClangToolchain(self.host)
+        cmd = [
+            str(toolchain.cc),
+            '-s',
+            '-o',
+            str(self.intermediate_out_dir / f'{name}.exe'),
+            str(src),
+        ] + toolchain.flags
+        subprocess.run(cmd, check=True)
+
+    def build(self) -> None:
+        if not self.host.is_windows:
+            print(f'Nothing to do for {self.host}')
+            return
+
+        self.intermediate_out_dir.mkdir(parents=True, exist_ok=True)
+
+        src_dir = NDK_DIR / 'sources/host-tools/toolbox'
+        self.build_exe(src_dir / 'echo_win.c', 'echo')
+        self.build_exe(src_dir / 'cmp_win.c', 'cmp')
+
+    def install(self) -> None:
+        if not self.host.is_windows:
+            print(f'Nothing to do for {self.host}')
+            return
+
         install_dir = self.get_install_path()
         install_dir.mkdir(parents=True, exist_ok=True)
 
-        packages = [
-            'ndk-python'
-        ]
-
-        if self.host.is_windows:
-            packages.append('toolbox')
-
-        package_names = [f'{p}-{self.host.tag}.tar.bz2' for p in packages]
-        for package_name in package_names:
-            package_path = self.out_dir / self.host.value / package_name
-            subprocess.check_call(
-                ['tar', 'xf', str(package_path), '-C', str(install_dir),
-                 '--strip-components=1'])
-
-        # Remove unused python scripts.
-        exclude_files = [
-            'python2.7-config', 'python-config.sh', 'pydoc', 'idle', '2to3',
-            'smtpd.py', 'python2-config', 'python-config'
-        ]
-        for file_to_remove in exclude_files:
-            (install_dir / 'bin' / file_to_remove).unlink()
-
+        shutil.copy2(self.intermediate_out_dir / 'echo.exe', install_dir)
+        shutil.copy2(self.intermediate_out_dir / 'cmp.exe', install_dir)
 
 def install_exe(out_dir: str, install_dir: str, name: str, host: Host) -> None:
     ext = '.exe' if host.is_windows else ''
@@ -911,9 +921,6 @@ class Libcxx(ndk.builds.Module):
 
         shutil.copy2(os.path.join(static_lib_dir, 'libc++abi.a'), lib_dir)
         shutil.copy2(os.path.join(static_lib_dir, 'libc++_static.a'), lib_dir)
-
-        if abi == 'armeabi-v7a':
-            shutil.copy2(os.path.join(static_lib_dir, 'libunwind.a'), lib_dir)
 
         if abi in ndk.abis.LP32_ABIS:
             shutil.copy2(
@@ -1745,8 +1752,6 @@ class Toolchain(ndk.builds.Module):
                 'libc++_static.a',
                 'libc++abi.a',
             ]
-            if arch == 'arm':
-                libs.append('libunwind.a')
             if abi in ndk.abis.LP32_ABIS:
                 libs.append('libandroid_support.a')
 
@@ -2000,7 +2005,7 @@ class SimplePerf(ndk.builds.Module):
         os.makedirs(install_dir)
 
         simpleperf_path = ndk.paths.android_path('prebuilts/simpleperf')
-        dirs = ['doc', 'inferno', 'bin/android', 'app_api']
+        dirs = ['doc', 'inferno', 'bin/android', 'app_api', 'purgatorio']
         host_bin_dir = 'windows' if self.host.is_windows else self.host.value
         dirs.append(os.path.join('bin/', host_bin_dir))
         for d in dirs:
@@ -2009,7 +2014,8 @@ class SimplePerf(ndk.builds.Module):
 
         for item in os.listdir(simpleperf_path):
             should_copy = False
-            if item.endswith('.py') and item not in ['update.py', 'test.py']:
+            if item.endswith('.py') and item not in ['update.py', 'test.py',
+                                                     'test_monitor.py']:
                 should_copy = True
             elif item == 'report_html.js':
                 should_copy = True
@@ -2030,10 +2036,9 @@ class RenderscriptLibs(ndk.builds.PackageModule):
     src = NDK_DIR / 'sources/android/renderscript'
 
 
-class RenderscriptToolchain(ndk.builds.InvokeBuildModule):
+class RenderscriptToolchain(ndk.builds.Module):
     name = 'renderscript-toolchain'
     path = Path('toolchains/renderscript/prebuilt/{host}')
-    script = Path('build-renderscript.py')
 
     @property
     def notices(self) -> Iterator[Path]:
@@ -2041,6 +2046,22 @@ class RenderscriptToolchain(ndk.builds.InvokeBuildModule):
         yield base / 'darwin-x86/current/NOTICE'
         yield base / 'linux-x86/current/NOTICE'
         yield base / 'windows-x86/current/NOTICE'
+
+    def build(self) -> None:
+        pass
+
+    @property
+    def prebuilt_directory(self) -> Path:
+        tag = {
+            Host.Darwin: 'darwin-x86',
+            Host.Linux: 'linux-x86',
+            Host.Windows64: 'windows-x86',
+        }[self.host]
+        return ANDROID_DIR / 'prebuilts/renderscript/host' / tag / 'current'
+
+    def install(self) -> None:
+        install_path = self.get_install_path(self.host)
+        ndk.builds.install_directory(self.prebuilt_directory, install_path)
 
 
 class Changelog(ndk.builds.FileModule):
@@ -2379,7 +2400,6 @@ ALL_MODULES = [
     CpuFeatures(),
     Gdb(),
     Gtest(),
-    HostTools(),
     LibAndroidSupport(),
     LibShaderc(),
     Libcxx(),
@@ -2400,6 +2420,7 @@ ALL_MODULES = [
     NdkWhich(),
     NdkWhichShortcut(),
     Platforms(),
+    Python(),
     PythonPackages(),
     Readme(),
     RenderscriptLibs(),
@@ -2409,6 +2430,7 @@ ALL_MODULES = [
     SourceProperties(),
     Sysroot(),
     SystemStl(),
+    Toolbox(),
     Toolchain(),
     Vulkan(),
     WrapSh(),
