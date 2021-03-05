@@ -39,7 +39,6 @@ import multiprocessing
 import os
 from pathlib import Path
 import pipes
-import pprint
 import re
 import shutil
 import site
@@ -313,9 +312,6 @@ def build_ndk_tests(out_dir: str, dist_dir: str,
     with open(ndk.paths.ndk_path('qa_config.json')) as config_file:
         test_config = json.load(config_file)
 
-    if args.arch is not None:
-        test_config['abis'] = ndk.abis.arch_to_abis(args.arch)
-
     test_spec = ndk.test.builder.test_spec_from_config(test_config)
     builder = ndk.test.builder.TestBuilder(
         test_spec, test_options, printer)
@@ -396,7 +392,8 @@ class Clang(ndk.builds.Module):
             shutil.rmtree(install_path)
         if not install_path.parent.exists():
             install_path.parent.mkdir(parents=True)
-        shutil.copytree(ClangToolchain.path_for_host(self.host), install_path)
+        shutil.copytree(ClangToolchain.path_for_host(self.host), install_path,
+                        symlinks=not self.host.is_windows)
 
         # clang-4053586 was patched in the prebuilts directory to add the
         # libc++ includes. These are almost certainly a different revision than
@@ -418,18 +415,15 @@ class Clang(ndk.builds.Module):
             (bin_dir / 'clang.real').rename(clang)
             (bin_dir / 'clang++').symlink_to('clang')
 
-            # The prebuilts have duplicates as clang-MAJ. Remove these to save
-            # space.
-            for path in bin_dir.glob('clang-*'):
-                if re.search(r'^clang-\d+$', path.name) is not None:
-                    path.unlink()
-
-        # Remove LLD duplicates. We only need ld.lld.
-        # http://b/74250510
         bin_ext = '.exe' if self.host.is_windows else ''
-        (bin_dir / f'ld64.lld{bin_ext}').unlink()
-        (bin_dir / f'lld{bin_ext}').unlink()
-        (bin_dir / f'lld-link{bin_ext}').unlink()
+        if self.host.is_windows:
+            # Remove LLD duplicates. We only need ld.lld. For non-Windows these
+            # are all symlinks so we can keep them (and *need* to keep lld
+            # since that's the real binary).
+            # http://b/74250510
+            (bin_dir / f'ld64.lld{bin_ext}').unlink()
+            (bin_dir / f'lld{bin_ext}').unlink()
+            (bin_dir / f'lld-link{bin_ext}').unlink()
 
         install_clanglib = install_path / 'lib64/clang'
         linux_prebuilt_path = ClangToolchain.path_for_host(Host.Linux)
@@ -438,12 +432,17 @@ class Clang(ndk.builds.Module):
         if self.host != Host.Windows64:
             python_bin_dir = install_path / 'python3' / 'bin'
             python_files_to_remove = [
-                '2to3', '2to3-3.8', 'easy_install-3.8', 'idle3', 'idle3.8', 'pip3',
-                'pip3.8', 'pydoc3', 'pydoc3.8', 'python3-config',
-                'python3.8-config',
+                '2to3*', 'easy_install*', 'idle*', 'pip*',
+                'pydoc*', 'python*-config',
             ]
-            for pyfile in python_files_to_remove:
-                (python_bin_dir / pyfile).unlink()
+            for file_pattern in python_files_to_remove:
+                for pyfile in python_bin_dir.glob(file_pattern):
+                    pyfile.unlink()
+
+        # Remove lldb-argdumper in site-packages. libc++ is not available there.
+        # People should use bin/lldb-argdumper instead.
+        for pylib in (install_path / 'lib').glob('python*'):
+            (pylib / f'site-packages/lldb/lldb-argdumper{bin_ext}').unlink()
 
         if self.host != Host.Linux:
             # We don't build target binaries as part of the Darwin or Windows
@@ -478,14 +477,17 @@ class Clang(ndk.builds.Module):
         shutil.rmtree(install_path / 'lib64/cmake')
 
 
-def get_gcc_prebuilt_path(host: Host, arch: ndk.abis.Arch) -> Path:
-    """Returns the path to the GCC prebuilt for the given host/arch."""
-    toolchain = ndk.abis.arch_to_toolchain(arch) + '-4.9'
-    prebuilt_path = (ANDROID_DIR / 'prebuilts/ndk/current/toolchains' /
-                     host.tag / toolchain)
+def get_gcc_prebuilt_path(arch: ndk.abis.Arch) -> Path:
+    """Returns the path to the GCC prebuilt for the given arch.
+
+    Since this is only used for getting *target* binaries like libgcc, we
+    always use the Linux prebuilts.
+    """
+    prebuilt_path = (ANDROID_DIR /
+                     'prebuilts/ndk/current/toolchains/linux-x86_64' /
+                     f'{ndk.abis.arch_to_toolchain(arch)}-4.9')
     if not prebuilt_path.is_dir():
-        raise RuntimeError(
-            'Could not find prebuilt GCC at {}'.format(prebuilt_path))
+        raise RuntimeError(f'Could not find prebuilt GCC at {prebuilt_path}')
     return prebuilt_path
 
 
@@ -519,7 +521,6 @@ def versioned_so(host: Host, lib: str, version: str) -> str:
 
 
 def install_gcc_lib(install_path: Path,
-                    host: Host,
                     arch: ndk.abis.Arch,
                     subarch: str,
                     lib_subdir: Path,
@@ -533,25 +534,24 @@ def install_gcc_lib(install_path: Path,
         lib_install_dir.mkdir(parents=True)
 
     shutil.copy2(
-        get_gcc_prebuilt_path(host, arch) / src_subdir / subarch / libname,
+        get_gcc_prebuilt_path(arch) / src_subdir / subarch / libname,
         lib_install_dir / libname)
 
 
-def install_gcc_crtbegin(install_path: Path, host: Host, arch: ndk.abis.Arch,
+def install_gcc_crtbegin(install_path: Path, arch: ndk.abis.Arch,
                          subarch: str) -> None:
     triple = ndk.abis.arch_to_triple(arch)
     subdir = Path('lib/gcc') / triple / '4.9.x'
-    install_gcc_lib(install_path, host, arch, subarch, subdir, 'crtbegin.o')
+    install_gcc_lib(install_path, arch, subarch, subdir, 'crtbegin.o')
 
 
 def install_libgcc(install_path: Path,
-                   host: Host,
                    arch: ndk.abis.Arch,
                    subarch: str,
                    new_layout: bool = False) -> None:
     triple = ndk.abis.arch_to_triple(arch)
     subdir = Path('lib/gcc') / triple / '4.9.x'
-    install_gcc_lib(install_path, host, arch, subarch, subdir, 'libgcc.a')
+    install_gcc_lib(install_path, arch, subarch, subdir, 'libgcc.a')
 
     if new_layout:
         # For all architectures, we want to ensure that libcompiler_rt-extras
@@ -591,11 +591,11 @@ def install_libgcc(install_path: Path,
         libgcc_path.write_text('INPUT({})'.format(libs))
 
 
-def install_libatomic(install_path: Path, host: Host, arch: ndk.abis.Arch,
+def install_libatomic(install_path: Path, arch: ndk.abis.Arch,
                       subarch: str) -> None:
     triple = ndk.abis.arch_to_triple(arch)
     libdir_name = 'lib64' if arch.endswith('64') else 'lib'
-    install_gcc_lib(install_path, host, arch, subarch,
+    install_gcc_lib(install_path, arch, subarch,
                     Path('lib/gcc') / triple / '4.9.x', 'libatomic.a',
                     Path(triple) / libdir_name)
 
@@ -612,11 +612,13 @@ def get_subarches(arch: ndk.abis.Arch) -> List[str]:
     ]
 
 
-class ShaderTools(ndk.builds.InvokeBuildModule):
+class ShaderTools(ndk.builds.CMakeModule):
     name = 'shader-tools'
+    src = ANDROID_DIR / 'external' / 'shaderc' / 'shaderc'
     path = Path('shader-tools/{host}')
-    script = Path('build-shader-tools.py')
+    run_ctest = True
     notice_group = ndk.builds.NoticeGroup.TOOLCHAIN
+    deps = {'clang'}
 
     @property
     def notices(self) -> Iterator[Path]:
@@ -628,6 +630,92 @@ class ShaderTools(ndk.builds.InvokeBuildModule):
         yield shaderc_dir / 'third_party/LICENSE.spirv-tools'
         yield glslang_dir / 'LICENSE.txt'
         yield spirv_dir / 'LICENSE'
+
+    @property
+    def defines(self) -> Dict[str, str]:
+        gtest_dir = ANDROID_DIR / 'external' / 'googletest'
+        effcee_dir = ANDROID_DIR / 'external' / 'effcee'
+        re2_dir = ANDROID_DIR / 'external' / 'regex-re2'
+        spirv_headers_dir = self.src.parent / 'spirv-headers'
+        defines = {
+            'SHADERC_EFFCEE_DIR': str(effcee_dir),
+            'SHADERC_RE2_DIR': str(re2_dir),
+            'SHADERC_GOOGLE_TEST_DIR': str(gtest_dir),
+            'SHADERC_THIRD_PARTY_ROOT_DIR': str(self.src.parent),
+            'EFFCEE_GOOGLETEST_DIR': str(gtest_dir),
+            'EFFCEE_RE2_DIR': str(re2_dir),
+            # SPIRV-Tools tests require effcee and re2.
+            # Don't enable RE2 testing because it's long and not useful to us.
+            'RE2_BUILD_TESTING': 'OFF',
+            'SPIRV-Headers_SOURCE_DIR': str(spirv_headers_dir),
+        }
+        return defines
+
+    @property
+    def flags(self) -> List[str]:
+        return super().flags + [
+            '-Wno-unused-command-line-argument',
+            '-fno-rtti',
+            '-fno-exceptions',
+        ]
+
+    @property
+    def env(self) -> Dict[str, str]:
+        # Sets path for libc++, for ctest.
+        if self.host == Host.Linux:
+            return {'LD_LIBRARY_PATH': str(self._libcxx_dir)}
+        elif self.host == Host.Darwin:
+            return {'DYLD_LIBRARY_PATH': str(self._libcxx_dir)}
+        return {}
+
+    @property
+    def _libcxx_dir(self) -> List[Path]:
+        return self.get_dep('clang').get_build_host_install() / 'lib64'
+
+    @property
+    def _libcxx(self) -> List[Path]:
+        path = self._libcxx_dir
+        if self.host == Host.Linux:
+            return [
+                path / 'libc++.so.1',
+                path / 'libc++abi.so.1',
+            ]
+        elif self.host == Host.Darwin:
+            return [
+                path / 'libc++.1.dylib',
+                path / 'libc++abi.1.dylib',
+            ]
+        return []
+
+    def install(self) -> None:
+        self.get_install_path().mkdir(parents=True, exist_ok=True)
+        ext = '.exe' if self.host.is_windows else ''
+        files_to_copy = [
+            f'glslc{ext}', f'spirv-as{ext}', f'spirv-dis{ext}',
+            f'spirv-val{ext}', f'spirv-cfg{ext}', f'spirv-opt{ext}',
+            f'spirv-link{ext}', f'spirv-reduce{ext}'
+        ]
+        scripts_to_copy = ['spirv-lesspipe.sh']
+
+        # Copy to install tree.
+        for src in files_to_copy + scripts_to_copy:
+            shutil.copy2(self.builder.install_directory / 'bin' / src,
+                         self.get_install_path())
+
+        if self.host.is_windows:
+            for src in scripts_to_copy:
+                # Convert line endings on scripts.
+                # Do it in place to preserve executable permissions.
+                subprocess.check_call(
+                    ['unix2dos', '-o',
+                     self.get_install_path() / src])
+
+        # Symlink libc++ to install path.
+        for lib in self._libcxx:
+            symlink_name = self.get_install_path() / lib.name
+            symlink_name.unlink(missing_ok=True)
+            symlink_name.symlink_to(
+                Path(os.path.relpath(lib, symlink_name.parent)))
 
 
 class Make(ndk.builds.AutoconfModule):
@@ -740,7 +828,6 @@ class Libcxx(ndk.builds.Module):
     path = Path('sources/cxx-stl/llvm-libc++')
     notice = src / 'LICENSE.TXT'
     notice_group = ndk.builds.NoticeGroup.TOOLCHAIN
-    arch_specific = True
     deps = {
         'base-toolchain',
         'libandroid_support',
@@ -756,13 +843,6 @@ class Libcxx(ndk.builds.Module):
     def lib_out(self) -> str:
         return os.path.join(self.out_dir, 'libcxx/libs')
 
-    @property
-    def abis(self) -> List[ndk.abis.Abi]:
-        abis = []
-        for arch in self.arches:
-            abis.extend(ndk.abis.arch_to_abis(arch))
-        return abis
-
     def build(self) -> None:
         ndk_build = os.path.join(
             self.get_dep('ndk-build').get_build_host_install(), 'ndk-build')
@@ -773,7 +853,6 @@ class Libcxx(ndk.builds.Module):
 
         build_cmd = [
             'bash', ndk_build, build_support.jobs_arg(), 'V=1',
-            'APP_ABI=' + ' '.join(self.abis),
 
             # Since nothing in this build depends on libc++_static, we need to
             # name it to force it to build.
@@ -811,7 +890,7 @@ class Libcxx(ndk.builds.Module):
             os.path.join(install_root, 'include'))
         shutil.copytree(self.lib_out, os.path.join(install_root, 'libs'))
 
-        for abi in self.abis:
+        for abi in ndk.abis.ALL_ABIS:
             lib_dir = os.path.join(install_root, 'libs', abi)
 
             # The static libraries installed to the obj dir, not the lib dir.
@@ -1085,373 +1164,43 @@ class Platforms(ndk.builds.Module):
 class Gdb(ndk.builds.Module):
     """Module for multi-arch host GDB.
 
-    Note that the device side, gdbserver, is a separate module because it needs
-    to be cross compiled for all four Android ABIs.
+    This is now a prebuilt. GDB is no longer supported. Next time it breaks
+    we'll be removing it.
     """
 
     name = 'gdb'
-    path = Path('prebuilt/{host}')
+    path = Path('prebuilt')
 
-    deps = {
-        'make',
-        'host-tools',
-    }
-
-    GDB_VERSION = '8.3'
-
-    expat_src = ndk.paths.ANDROID_DIR / 'toolchain/expat/expat-2.0.1'
-    lzma_src = ndk.paths.ANDROID_DIR / 'toolchain/xz'
-    gdb_src = ndk.paths.ANDROID_DIR / f'toolchain/gdb/gdb-{GDB_VERSION}'
-
+    PREBUILTS_BASE = ANDROID_DIR / 'prebuilts/ndk/gdb'
+    notice = ANDROID_DIR / 'prebuilts/ndk/gdb/NOTICE'
     notice_group = ndk.builds.NoticeGroup.TOOLCHAIN
 
-    _expat_builder: Optional[ndk.autoconf.AutoconfBuilder] = None
-    _lzma_builder: Optional[ndk.cmake.CMakeBuilder] = None
-    _gdb_builder: Optional[ndk.autoconf.AutoconfBuilder] = None
-
-    @property
-    def notices(self) -> Iterator[Path]:
-        yield self.expat_src / 'COPYING'
-        yield self.gdb_src / 'COPYING'
-        yield self.lzma_src / 'COPYING'
-
-    @property
-    def expat_builder(self) -> ndk.autoconf.AutoconfBuilder:
-        """Returns the lazily initialized expat builder for this module."""
-        if self._expat_builder is None:
-            self._expat_builder = ndk.autoconf.AutoconfBuilder(
-                self.expat_src / 'configure',
-                self.intermediate_out_dir / 'expat',
-                self.host,
-                use_clang=True)
-        return self._expat_builder
-
-    @property
-    def lzma_builder(self) -> ndk.cmake.CMakeBuilder:
-        """Returns the lazily initialized lzma builder for this module."""
-        if self._lzma_builder is None:
-            self._lzma_builder = ndk.cmake.CMakeBuilder(
-                self.lzma_src,
-                self.intermediate_out_dir / 'lzma',
-                self.host)
-        return self._lzma_builder
-
-    @property
-    def gdb_builder(self) -> ndk.autoconf.AutoconfBuilder:
-        """Returns the lazily initialized gdb builder for this module."""
-        if self._gdb_builder is None:
-            no_build_or_host = False
-            additional_flags = []
-            if self.host == Host.Darwin:
-                # Awful Darwin hack. For some reason GDB doesn't produce a gdb
-                # executable when using --build/--host.
-                no_build_or_host = True
-                additional_flags.append('-Wl,-rpath,@loader_path/../lib')
-            if self.host == Host.Linux:
-                additional_flags.append('-Wl,-rpath,$$$$\\ORIGIN/../lib')
-            # Add path for libc++.
-            clang_path = ClangToolchain.path_for_host(self.host)
-            additional_flags.append('-L' + str(clang_path / 'lib64'))
-            self._gdb_builder = ndk.autoconf.AutoconfBuilder(
-                self.gdb_src / 'configure',
-                self.intermediate_out_dir / 'gdb',
-                self.host,
-                use_clang=True,
-                no_build_or_host=no_build_or_host,
-                # Since we statically link libpython, python dynamic libraries may
-                # depend on symbols in gdb binary.
-                no_strip=True,
-                additional_flags=additional_flags)
-        return self._gdb_builder
-
-    @property
-    def gdb_stub_install_path(self) -> Path:
-        """The gdb stub install path."""
-        return self.gdb_builder.install_directory / 'bin/gdb-stub'
-
-    def build_expat(self) -> None:
-        """Builds the expat dependency."""
-        self.expat_builder.build([
-            '--disable-shared',
-            '--enable-static',
-        ])
-
-    def build_lzma(self) -> None:
-        """Builds the liblzma dependency."""
-        self.lzma_builder.build({
-            'BUILD_SHARED_LIBS': 'OFF',
-        })
-
-    def build_gdb(self) -> None:
-        """Builds GDB itself."""
-        targets = ' '.join(ndk.abis.ALL_TRIPLES)
-        # TODO: Cleanup Python module so we don't need this explicit path.
-        python_config = (Path(self.out_dir) / self.host.value / 'python' /
-                         self.host.tag /
-                         'install/host-tools/bin/python-config.sh')
-        configure_args = [
-            '--with-expat',
-            f'--with-libexpat-prefix={self.expat_builder.install_directory}',
-            f'--with-python={python_config}',
-            f'--enable-targets={targets}',
-            '--disable-shared',
-            '--disable-werror',
-            '--disable-nls',
-            '--disable-docs',
-            '--without-mpc',
-            '--without-mpfr',
-            '--without-gmp',
-            '--without-isl',
-            '--disable-sim',
-            '--enable-gdbserver=no',
-        ]
-
-        configure_args.extend([
-            '--with-lzma',
-            f'--with-liblzma-prefix={self.lzma_builder.install_directory}',
-        ])
-
-        self.gdb_builder.build(configure_args)
-
-    def build_gdb_stub(self) -> None:
-        """Builds a gdb wrapper to setup PYTHONHOME.
-
-        We need to use gdb with the Python it was built against, so we need to
-        setup PYTHONHOME to point to the NDK's Python, not the host's.
-        """
-        if self.host.is_windows:
-            # TODO: Does it really need to be an executable?
-            # It's probably an executable because the original author wanted a
-            # .exe rather than a .cmd. Not sure how disruptive this change
-            # would be now. Presumably hardly at all because everyone needs to
-            # use ndk-gdb for reasonable behavior anyway?
-            self.build_exe_gdb_stub()
-        else:
-            self.build_sh_gdb_stub()
-
-    def build_exe_gdb_stub(self) -> None:
-        # Don't need to worry about extension here because it'll be renamed on
-        # install anyway.
-        gdb_stub_path = self.gdb_builder.install_directory / 'bin/gdb-stub'
-        stub_src = ndk.paths.NDK_DIR / 'sources/host-tools/gdb-stub/gdb-stub.c'
-        mingw_path = (ndk.paths.ANDROID_DIR /
-                      'prebuilts/gcc/linux-x86/host/x86_64-w64-mingw32-4.8/bin'
-                      / 'x86_64-w64-mingw32-gcc')
-
-        cmd = [
-            str(mingw_path),
-            '-O2',
-            '-s',
-            '-DNDEBUG',
-            str(stub_src),
-            '-o',
-            str(gdb_stub_path),
-        ]
-        pp_cmd = ' '.join([pipes.quote(arg) for arg in cmd])
-        print('Running: {}'.format(pp_cmd))
-        subprocess.run(cmd, check=True)
-
-    def build_sh_gdb_stub(self) -> None:
-        self.gdb_stub_install_path.write_text(
-            textwrap.dedent("""\
-            #!/bin/bash
-            GDBDIR=$(cd $(dirname $0) && pwd)
-            PYTHONHOME="$GDBDIR/.." "$GDBDIR/gdb-orig" "$@"
-            """))
-        self.gdb_stub_install_path.chmod(0o755)
-
     def build(self) -> None:
-        """Builds GDB."""
-        if self.intermediate_out_dir.exists():
-            shutil.rmtree(self.intermediate_out_dir)
+        pass
 
-        self.build_expat()
-        self.build_lzma()
-        self.build_gdb()
-        self.build_gdb_stub()
+    @property
+    def install_dir(self) -> Path:
+        return Path(self.get_install_path())
+
+    def gdbserver_for(self, arch: ndk.abis.Arch) -> Path:
+        return self.PREBUILTS_BASE / f'android-{arch}'
+
+    def install_gdbserver(self, arch: ndk.abis.Arch) -> None:
+        gdbserver_dir = Path(f'android-{arch}/gdbserver')
+        install_dir = self.install_dir / gdbserver_dir
+        if install_dir.exists():
+            shutil.rmtree(install_dir)
+        shutil.copytree(self.PREBUILTS_BASE / gdbserver_dir, install_dir)
+
+    def install_gdb(self) -> None:
+        copy_tree(str(self.PREBUILTS_BASE / self.host.tag),
+                  str(self.install_dir / self.host.tag))
 
     def install(self) -> None:
         """Installs GDB."""
-        install_dir = Path(self.get_install_path())
-        copy_tree(
-            str(self.gdb_builder.install_directory / 'bin'),
-            str(install_dir / 'bin'))
-        gdb_share_dir = self.gdb_builder.install_directory / 'share/gdb'
-        gdb_share_install_dir = install_dir / 'share/gdb'
-        if gdb_share_install_dir.exists():
-            shutil.rmtree(gdb_share_install_dir)
-        shutil.copytree(gdb_share_dir, gdb_share_install_dir)
-
-        exe_suffix = '.exe' if self.host.is_windows else ''
-        gdb_exe = install_dir / ('bin/gdb' + exe_suffix)
-
-        # gdb is currently gdb(.exe)? and the gdb stub is currently gdb-stub.
-        # Make them gdb-orig(.exe)? and gdb(.exe)? respectively.
-        gdb_exe.rename(install_dir / ('bin/gdb-orig' + exe_suffix))
-
-        gdb_stub = install_dir / 'bin/gdb-stub'
-        gdb_stub.rename(install_dir / ('bin/gdb' + exe_suffix))
-
-        # Install libc++.
-        clang_path = ClangToolchain.path_for_host(self.host)
-        libcxx_files: Dict[Host, List[str]] = {
-            Host.Darwin: ['libc++abi.1.dylib', 'libc++.1.dylib'],
-            Host.Linux: ['libc++abi.so.1', 'libc++.so.1'],
-            Host.Windows64: [],
-        }
-        for f in libcxx_files[self.host]:
-            shutil.copy(clang_path / 'lib64' / f, install_dir / 'lib')
-
-
-class GdbServer(ndk.builds.Module):
-    name = 'gdbserver'
-    path = Path('prebuilt/android-{arch}/gdbserver')
-    notice = ANDROID_DIR / f'toolchain/gdb/gdb-{Gdb.GDB_VERSION}/gdb/COPYING'
-    notice_group = ndk.builds.NoticeGroup.TOOLCHAIN
-    arch_specific = True
-    split_build_by_arch = True
-    deps = {
-        'toolchain',
-    }
-    max_api = Platforms().get_apis()[-1]
-
-    libthread_db_src_dir = ndk.paths.ndk_path('sources/android/libthread_db')
-    gdbserver_src_dir = ndk.paths.android_path(
-        f'toolchain/gdb/gdb-{Gdb.GDB_VERSION}/gdb/gdbserver')
-
-    @property
-    def build_dir(self) -> Path:
-        """Returns the build directory for the current architecture."""
-        assert self.build_arch is not None
-        return self.out_dir / self.name / self.build_arch
-
-    @property
-    def libthread_db_a_path(self) -> str:
-        """Returns the path to the built libthread_db.a."""
-        return os.path.join(self.build_dir, 'libthread_db.a')
-
-    def get_tool(self, name: str) -> Path:
-        """Returns the path to the given tool in the toolchain.
-
-        Args:
-            name: Name of the tool. e.g. 'ar'.
-
-        Returns:
-            Path to the specified tool.
-        """
-        toolchain = Path(self.get_dep('toolchain').get_build_host_install())
-        return toolchain / 'bin' / name
-
-    def build_libthread_db(self, api_level: int) -> None:
-        """Builds libthread_db.a for the current architecture."""
-        assert self.build_arch is not None
-
-        libthread_db_c = os.path.join(self.libthread_db_src_dir,
-                                      'libthread_db.c')
-        libthread_db_o = os.path.join(self.build_dir, 'libthread_db.o')
-        cc_args = [
-            str(self.get_tool('clang')),
-            '-target',
-            ndk.abis.clang_target(self.build_arch, api_level),
-            '-I',
-            self.libthread_db_src_dir,
-            '-o',
-            libthread_db_o,
-            '-c',
-            libthread_db_c,
-        ]
-
-        print('Running: {}'.format(' '.join(
-            [pipes.quote(arg) for arg in cc_args])))
-        subprocess.run(cc_args, check=True)
-
-        ar_args = [
-            str(self.get_tool('llvm-ar')),
-            'rD',
-            self.libthread_db_a_path,
-            libthread_db_o,
-        ]
-
-        print('Running: {}'.format(' '.join(
-            [pipes.quote(arg) for arg in ar_args])))
-        subprocess.run(ar_args, check=True)
-
-    def configure(self, api_level: int) -> None:
-        """Configures the gdbserver build for the current architecture."""
-        assert self.build_arch is not None
-        gdbserver_host = {
-            'arm': 'arm-eabi-linux',
-            'arm64': 'aarch64-eabi-linux',
-            'x86': 'i686-linux-android',
-            'x86_64': 'x86_64-linux-android',
-        }[self.build_arch]
-
-        cflags = ['-O2', '-I' + self.libthread_db_src_dir]
-        if self.build_arch.startswith('arm'):
-            cflags.append('-fno-short-enums')
-        if self.build_arch.endswith('64'):
-            cflags.append('-DUAPI_HEADERS')
-
-        ldflags = '-static -Wl,-z,nocopyreloc -Wl,--no-undefined'
-
-        # Use --target as part of CC so it is used when linking as well.
-        target = ndk.abis.clang_target(self.build_arch, api_level)
-        clang = f'{self.get_tool("clang")} --target={target}'
-        clangplusplus = f'{self.get_tool("clang++")} --target={target}'
-        configure_env = {
-            'CC': clang,
-            'CXX': clangplusplus,
-            'AR': str(self.get_tool('llvm-ar')),
-            'RANLIB': str(self.get_tool('llvm-ranlib')),
-            'CFLAGS': ' '.join(cflags),
-            'CXXFLAGS': ' '.join(cflags),
-            'LDFLAGS': ldflags,
-        }
-
-        configure_args = [
-            os.path.join(self.gdbserver_src_dir, 'configure'),
-            '--build=x86_64-linux-gnu',
-            f'--host={gdbserver_host}',
-            f'--with-libthread-db={self.libthread_db_a_path}',
-            '--disable-inprocess-agent',
-            '--enable-werror=no',
-        ]
-
-        subproc_env = dict(os.environ)
-        subproc_env.update(configure_env)
-        print('Running: {} with env:\n{}'.format(
-            ' '.join([pipes.quote(arg) for arg in configure_args]),
-            pprint.pformat(configure_env, indent=4)))
-        subprocess.run(configure_args, env=subproc_env, check=True)
-
-    def make(self) -> None:
-        """Runs make for the configured build."""
-        subprocess.run(['make', build_support.jobs_arg()], check=True)
-
-    def build(self) -> None:
-        """Builds gdbserver."""
-        if not os.path.exists(self.build_dir):
-            os.makedirs(self.build_dir)
-
-        max_api = Platforms().get_apis()[-1]
-        with ndk.ext.os.cd(str(self.build_dir)):
-            self.build_libthread_db(max_api)
-            self.configure(max_api)
-            self.make()
-
-    def install(self) -> None:
-        """Installs gdbserver."""
-        if os.path.exists(self.get_install_path()):
-            shutil.rmtree(self.get_install_path())
-        os.makedirs(self.get_install_path())
-
-        objcopy_args = [
-            str(self.get_tool('llvm-objcopy')),
-            '--strip-unneeded',
-            os.path.join(self.build_dir, 'gdbserver'),
-            os.path.join(self.get_install_path(), 'gdbserver'),
-        ]
-        subprocess.run(objcopy_args, check=True)
+        self.install_gdb()
+        for arch in ndk.abis.ALL_ARCHITECTURES:
+            self.install_gdbserver(arch)
 
 
 class LibShaderc(ndk.builds.Module):
@@ -1598,22 +1347,8 @@ class Gtest(ndk.builds.PackageModule):
 
     def install(self) -> None:
         super().install()
-
-        # GTest renamed these files to be all lower case, but the SDK patcher
-        # doesn't handle that properly. Rename them back to the old names so
-        # the SDK patches apply properly.
-        # http://b/122741472
-        install_dir = self.get_install_path()
-        docs_dir = os.path.join(install_dir, 'docs')
-        rename_map = {
-            'faq.md': 'FAQ.md',
-            'primer.md': 'Primer.md',
-            'samples.md': 'Samples.md',
-        }
-        for rename_from, rename_to in rename_map.items():
-            os.rename(
-                os.path.join(docs_dir, rename_from),
-                os.path.join(docs_dir, rename_to))
+        # Docs are moved to top level directory.
+        shutil.rmtree(self.get_install_path() / 'docs')
 
 
 class Sysroot(ndk.builds.Module):
@@ -1821,10 +1556,9 @@ class BaseToolchain(ndk.builds.Module):
         yield from Sysroot().notices
         yield from SystemStl().notices
         yield ANDROID_DIR / 'toolchain/binutils/binutils-2.27/gas/COPYING'
-        for host in Host:
-            for arch in ndk.abis.ALL_ARCHITECTURES:
-                # For libgcc/libatomic.
-                yield get_gcc_prebuilt_path(host, arch) / 'NOTICE'
+        for arch in ndk.abis.ALL_ARCHITECTURES:
+            # For libgcc/libatomic.
+            yield get_gcc_prebuilt_path(arch) / 'NOTICE'
 
     def build(self) -> None:
         pass
@@ -1852,7 +1586,7 @@ class BaseToolchain(ndk.builds.Module):
         shutil.copyfile(lld, new_bin_ld)
         shutil.copystat(lld, new_bin_ld)
 
-        for arch in self.arches:
+        for arch in ndk.abis.ALL_ARCHITECTURES:
             binutils_dir = get_binutils_prebuilt_path(self.host, arch)
             triple = ndk.abis.arch_to_triple(arch)
 
@@ -1862,13 +1596,12 @@ class BaseToolchain(ndk.builds.Module):
             # We still need libgcc/libatomic. Copy them from the old GCC
             # prebuilts.
             for subarch in get_subarches(arch):
-                install_libgcc(Path(install_dir), self.host, arch, subarch)
-                install_libatomic(Path(install_dir), self.host, arch, subarch)
+                install_libgcc(Path(install_dir), arch, subarch)
+                install_libatomic(Path(install_dir), arch, subarch)
 
                 # We don't actually want this, but Clang won't recognize a
                 # -gcc-toolchain without it.
-                install_gcc_crtbegin(Path(install_dir), self.host, arch,
-                                     subarch)
+                install_gcc_crtbegin(Path(install_dir), arch, subarch)
 
         platforms = self.get_dep('platforms')
         assert isinstance(platforms, Platforms)
@@ -1990,7 +1723,7 @@ class Toolchain(ndk.builds.Module):
         libcxxabi_inc_src = os.path.join(libcxxabi_dir, 'include')
         copy_tree(libcxxabi_inc_src, libcxx_inc_dst)
 
-        for arch in self.arches:
+        for arch in ndk.abis.ALL_ARCHITECTURES:
             # We need to replace libgcc with linker scripts that also use
             # libunwind on arm32.
             #
@@ -1998,7 +1731,6 @@ class Toolchain(ndk.builds.Module):
             # libunwind isn't available until libc++ has been built.
             for subarch in get_subarches(arch):
                 install_libgcc(Path(install_dir),
-                               self.host,
                                arch,
                                subarch,
                                new_layout=True)
@@ -2561,17 +2293,6 @@ def do_install(worker: ndk.workqueue.Worker,
     module.install()
 
 
-def split_module_by_arch(module: ndk.builds.Module, arches: List[ndk.abis.Arch]
-                         ) -> Iterator[ndk.builds.Module]:
-    if module.split_build_by_arch:
-        for arch in arches:
-            build_module = copy.deepcopy(module)
-            build_module.build_arch = arch
-            yield build_module
-    else:
-        yield module
-
-
 def _get_transitive_module_deps(
         module: ndk.builds.Module, deps: Set[ndk.builds.Module],
         unknown_deps: Set[str], seen: Set[ndk.builds.Module]) -> None:
@@ -2603,7 +2324,7 @@ def get_transitive_module_deps(
 
 
 def get_modules_to_build(
-        module_names: Iterable[str], arches: List[ndk.abis.Arch]
+        module_names: Iterable[str]
 ) -> Tuple[List[ndk.builds.Module], Set[ndk.builds.Module]]:
     """Returns a list of modules to be built given a list of module names.
 
@@ -2644,8 +2365,7 @@ def get_modules_to_build(
 
     build_modules = []
     for module in modules:
-        for build_module in split_module_by_arch(module, arches):
-            build_modules.append(build_module)
+        build_modules.append(module)
 
     return sorted(list(build_modules), key=str), deps_only
 
@@ -2658,7 +2378,6 @@ ALL_MODULES = [
     Clang(),
     CpuFeatures(),
     Gdb(),
-    GdbServer(),
     Gtest(),
     HostTools(),
     LibAndroidSupport(),
@@ -2715,10 +2434,6 @@ def parse_args() -> Tuple[argparse.Namespace, List[str]]:
     parser = argparse.ArgumentParser(
         description=inspect.getdoc(sys.modules[__name__]))
 
-    parser.add_argument(
-        '--arch',
-        choices=('arm', 'arm64', 'x86', 'x86_64'),
-        help='Build for the given architecture. Build all by default.')
     parser.add_argument(
         '-j', '--jobs', type=int, default=multiprocessing.cpu_count(),
         help=('Number of parallel builds to run. Note that this will not '
@@ -2838,12 +2553,8 @@ def wait_for_build(deps: ndk.deps.DependencyManager,
 def build_ndk(modules: List[ndk.builds.Module],
               deps_only: Set[ndk.builds.Module], out_dir: Path, dist_dir: Path,
               args: argparse.Namespace) -> Path:
-    arches = list(ndk.abis.ALL_ARCHITECTURES)
-    if args.arch is not None:
-        arches = [args.arch]
-
     build_context = ndk.builds.BuildContext(
-        out_dir, dist_dir, ALL_MODULES, args.system, arches, args.build_number)
+        out_dir, dist_dir, ALL_MODULES, args.system, args.build_number)
 
     for module in modules:
         module.context = build_context
@@ -2876,14 +2587,14 @@ def build_ndk(modules: List[ndk.builds.Module],
         workqueue.join()
 
 
-def build_ndk_for_cross_compile(out_dir: Path, arches: List[ndk.abis.Arch],
+def build_ndk_for_cross_compile(out_dir: Path,
                                 args: argparse.Namespace) -> None:
     args = copy.deepcopy(args)
     args.system = Host.current()
     if args.system != Host.Linux:
         raise NotImplementedError
     module_names = NAMES_TO_MODULES.keys()
-    modules, deps_only = get_modules_to_build(module_names, arches)
+    modules, deps_only = get_modules_to_build(module_names)
     print('Building Linux modules: {}'.format(' '.join(
         [str(m) for m in modules])))
     build_ndk(modules, deps_only, out_dir, out_dir, args)
@@ -2940,10 +2651,6 @@ def main() -> None:
 
     os.environ['ANDROID_BUILD_TOP'] = ndk.paths.android_path()
 
-    arches = list(ndk.abis.ALL_ARCHITECTURES)
-    if args.arch is not None:
-        arches = [args.arch]
-
     out_dir = ndk.paths.get_out_dir()
     dist_dir = ndk.paths.get_dist_dir(out_dir)
 
@@ -2952,9 +2659,9 @@ def main() -> None:
     if args.system.is_windows and not args.skip_deps:
         # Since the Windows NDK is cross compiled, we need to build a Linux NDK
         # first so we can build components like libc++.
-        build_ndk_for_cross_compile(Path(out_dir), arches, args)
+        build_ndk_for_cross_compile(Path(out_dir), args)
 
-    modules, deps_only = get_modules_to_build(module_names, arches)
+    modules, deps_only = get_modules_to_build(module_names)
     print('Building modules: {}'.format(' '.join(
         [str(m) for m in modules
          if not args.skip_deps or m not in deps_only])))
