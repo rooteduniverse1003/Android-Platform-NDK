@@ -659,12 +659,24 @@ class ShaderTools(ndk.builds.CMakeModule):
         ]
 
     @property
+    def ldflags(self) -> List[str]:
+        ldflags = super().ldflags
+        if self.host == Host.Linux:
+            # Our libc++.so.1 re-exports libc++abi, and it will be installed in
+            # the same directory as the executables.
+            ldflags += ['-Wl,-rpath,\\$ORIGIN']
+        if self.host == Host.Windows64:
+            # TODO: The shaderc CMake files already pass these options for
+            # gcc+mingw but not for clang+mingw. See
+            # https://github.com/android/ndk/issues/1464.
+            ldflags += ['-static', '-static-libgcc', '-static-libstdc++']
+        return ldflags
+
+    @property
     def env(self) -> Dict[str, str]:
         # Sets path for libc++, for ctest.
         if self.host == Host.Linux:
             return {'LD_LIBRARY_PATH': str(self._libcxx_dir)}
-        elif self.host == Host.Darwin:
-            return {'DYLD_LIBRARY_PATH': str(self._libcxx_dir)}
         return {}
 
     @property
@@ -675,15 +687,7 @@ class ShaderTools(ndk.builds.CMakeModule):
     def _libcxx(self) -> List[Path]:
         path = self._libcxx_dir
         if self.host == Host.Linux:
-            return [
-                path / 'libc++.so.1',
-                path / 'libc++abi.so.1',
-            ]
-        elif self.host == Host.Darwin:
-            return [
-                path / 'libc++.1.dylib',
-                path / 'libc++abi.1.dylib',
-            ]
+            return [path / 'libc++.so.1']
         return []
 
     def install(self) -> None:

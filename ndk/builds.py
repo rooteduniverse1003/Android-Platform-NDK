@@ -335,6 +335,7 @@ class CMakeModule(Module):
                 self.intermediate_out_dir,
                 self.host,
                 additional_flags=self.flags,
+                additional_ldflags=self.ldflags,
                 additional_env=self.env,
                 run_ctest=self.run_ctest)
         return self._builder
@@ -345,6 +346,10 @@ class CMakeModule(Module):
 
     @property
     def flags(self) -> List[str]:
+        return []
+
+    @property
+    def ldflags(self) -> List[str]:
         return []
 
     @property
