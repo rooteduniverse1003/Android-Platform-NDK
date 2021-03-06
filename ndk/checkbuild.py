@@ -62,7 +62,6 @@ from typing import (
     Union,
 )
 
-from build.lib import build_support
 import ndk.abis
 import ndk.ansi
 import ndk.autoconf
@@ -415,15 +414,18 @@ class Clang(ndk.builds.Module):
             (bin_dir / 'clang.real').rename(clang)
             (bin_dir / 'clang++').symlink_to('clang')
 
+            # The prebuilts have duplicates as clang-MAJ. Remove these to save
+            # space.
+            for path in bin_dir.glob('clang-*'):
+                if re.search(r'^clang-\d+$', path.name) is not None:
+                    path.unlink()
+
+        # Remove LLD duplicates. We only need ld.lld.
+        # http://b/74250510
         bin_ext = '.exe' if self.host.is_windows else ''
-        if self.host.is_windows:
-            # Remove LLD duplicates. We only need ld.lld. For non-Windows these
-            # are all symlinks so we can keep them (and *need* to keep lld
-            # since that's the real binary).
-            # http://b/74250510
-            (bin_dir / f'ld64.lld{bin_ext}').unlink()
-            (bin_dir / f'lld{bin_ext}').unlink()
-            (bin_dir / f'lld-link{bin_ext}').unlink()
+        (bin_dir / f'ld64.lld{bin_ext}').unlink()
+        (bin_dir / f'lld{bin_ext}').unlink()
+        (bin_dir / f'lld-link{bin_ext}').unlink()
 
         install_clanglib = install_path / 'lib64/clang'
         linux_prebuilt_path = ClangToolchain.path_for_host(Host.Linux)
@@ -660,12 +662,24 @@ class ShaderTools(ndk.builds.CMakeModule):
         ]
 
     @property
+    def ldflags(self) -> List[str]:
+        ldflags = super().ldflags
+        if self.host == Host.Linux:
+            # Our libc++.so.1 re-exports libc++abi, and it will be installed in
+            # the same directory as the executables.
+            ldflags += ['-Wl,-rpath,\\$ORIGIN']
+        if self.host == Host.Windows64:
+            # TODO: The shaderc CMake files already pass these options for
+            # gcc+mingw but not for clang+mingw. See
+            # https://github.com/android/ndk/issues/1464.
+            ldflags += ['-static', '-static-libgcc', '-static-libstdc++']
+        return ldflags
+
+    @property
     def env(self) -> Dict[str, str]:
         # Sets path for libc++, for ctest.
         if self.host == Host.Linux:
             return {'LD_LIBRARY_PATH': str(self._libcxx_dir)}
-        elif self.host == Host.Darwin:
-            return {'DYLD_LIBRARY_PATH': str(self._libcxx_dir)}
         return {}
 
     @property
@@ -676,15 +690,7 @@ class ShaderTools(ndk.builds.CMakeModule):
     def _libcxx(self) -> List[Path]:
         path = self._libcxx_dir
         if self.host == Host.Linux:
-            return [
-                path / 'libc++.so.1',
-                path / 'libc++abi.so.1',
-            ]
-        elif self.host == Host.Darwin:
-            return [
-                path / 'libc++.1.dylib',
-                path / 'libc++abi.1.dylib',
-            ]
+            return [path / 'libc++.so.1']
         return []
 
     def install(self) -> None:
@@ -862,7 +868,7 @@ class Libcxx(ndk.builds.Module):
         application_mk = self.src / 'Application.mk'
 
         build_cmd = [
-            'bash', ndk_build, build_support.jobs_arg(), 'V=1',
+            'bash', ndk_build, f'-j{multiprocessing.cpu_count()}', 'V=1',
 
             # Since nothing in this build depends on libc++_static, we need to
             # name it to force it to build.
@@ -921,6 +927,9 @@ class Libcxx(ndk.builds.Module):
 
         shutil.copy2(os.path.join(static_lib_dir, 'libc++abi.a'), lib_dir)
         shutil.copy2(os.path.join(static_lib_dir, 'libc++_static.a'), lib_dir)
+
+        if abi == 'armeabi-v7a':
+            shutil.copy2(os.path.join(static_lib_dir, 'libunwind.a'), lib_dir)
 
         if abi in ndk.abis.LP32_ABIS:
             shutil.copy2(
@@ -1225,10 +1234,13 @@ class LibShaderc(ndk.builds.Module):
         yield shaderc_dir / 'third_party/LICENSE.spirv-tools'
 
     def build(self) -> None:
+        pass
+
+    def install(self) -> None:
         copies = [
             {
                 'source_dir': os.path.join(self.src, 'shaderc'),
-                'dest_dir': 'shaderc',
+                'dest_dir': '',
                 'files': [
                     'Android.mk', 'libshaderc/Android.mk',
                     'libshaderc_util/Android.mk',
@@ -1243,7 +1255,7 @@ class LibShaderc(ndk.builds.Module):
             },
             {
                 'source_dir': os.path.join(self.src, 'spirv-tools'),
-                'dest_dir': 'shaderc/third_party/spirv-tools',
+                'dest_dir': 'third_party/spirv-tools',
                 'files': [
                     'utils/generate_grammar_tables.py',
                     'utils/generate_language_headers.py',
@@ -1256,8 +1268,7 @@ class LibShaderc(ndk.builds.Module):
             },
             {
                 'source_dir': os.path.join(self.src, 'spirv-headers'),
-                'dest_dir':
-                    'shaderc/third_party/spirv-tools/external/spirv-headers',
+                'dest_dir': 'third_party/spirv-tools/external/spirv-headers',
                 'dirs': ['include'],
                 'files': [
                     'include/spirv/1.0/spirv.py',
@@ -1268,7 +1279,7 @@ class LibShaderc(ndk.builds.Module):
             },
             {
                 'source_dir': os.path.join(self.src, 'glslang'),
-                'dest_dir': 'shaderc/third_party/glslang',
+                'dest_dir': 'third_party/glslang',
                 'files': [
                     'Android.mk',
                     'glslang/OSDependent/osinclude.h',
@@ -1297,36 +1308,32 @@ class LibShaderc(ndk.builds.Module):
             "*test.h",
             "*test.cc")
 
-        temp_dir = tempfile.mkdtemp()
-        shaderc_path = os.path.join(temp_dir, 'shaderc')
-        try:
-            for properties in copies:
-                source_dir = properties['source_dir']
-                assert isinstance(source_dir, str)
-                assert isinstance(properties['dest_dir'], str)
-                dest_dir = os.path.join(temp_dir, properties['dest_dir'])
-                for d in properties['dirs']:
-                    assert isinstance(d, str)
-                    src = os.path.join(source_dir, d)
-                    dst = os.path.join(dest_dir, d)
-                    print(src, " -> ", dst)
-                    shutil.copytree(src, dst,
-                                    ignore=default_ignore_patterns)
-                for f in properties['files']:
-                    print(source_dir, ':', dest_dir, ":", f)
-                    # Only copy if the source file exists.  That way
-                    # we can update this script in anticipation of
-                    # source files yet-to-come.
-                    assert isinstance(f, str)
-                    if os.path.exists(os.path.join(source_dir, f)):
-                        install_file(f, source_dir, dest_dir)
-                    else:
-                        print(source_dir, ':', dest_dir, ":", f, "SKIPPED")
+        install_dir = self.get_install_path()
+        if install_dir.exists():
+            shutil.rmtree(install_dir)
 
-            build_support.make_package('libshaderc', shaderc_path,
-                                       self.dist_dir)
-        finally:
-            shutil.rmtree(temp_dir)
+        for properties in copies:
+            source_dir = properties['source_dir']
+            assert isinstance(source_dir, str)
+            assert isinstance(properties['dest_dir'], str)
+            dest_dir = os.path.join(install_dir, properties['dest_dir'])
+            for d in properties['dirs']:
+                assert isinstance(d, str)
+                src = os.path.join(source_dir, d)
+                dst = os.path.join(dest_dir, d)
+                print(src, " -> ", dst)
+                shutil.copytree(src, dst,
+                                ignore=default_ignore_patterns)
+            for f in properties['files']:
+                print(source_dir, ':', dest_dir, ":", f)
+                # Only copy if the source file exists.  That way
+                # we can update this script in anticipation of
+                # source files yet-to-come.
+                assert isinstance(f, str)
+                if os.path.exists(os.path.join(source_dir, f)):
+                    install_file(f, source_dir, dest_dir)
+                else:
+                    print(source_dir, ':', dest_dir, ":", f, "SKIPPED")
 
 
 class CpuFeatures(ndk.builds.PackageModule):
@@ -1365,88 +1372,87 @@ class Sysroot(ndk.builds.Module):
     intermediate_module = True
 
     def build(self) -> None:
-        temp_dir = tempfile.mkdtemp()
-        try:
-            path = ndk.paths.android_path('prebuilts/ndk/platform/sysroot')
-            install_path = os.path.join(temp_dir, 'sysroot')
-            shutil.copytree(path, install_path)
-            if self.host != 'linux':
-                # linux/netfilter has some headers with names that differ only
-                # by case, which can't be extracted to a case-insensitive
-                # filesystem, which are the defaults for Darwin and Windows :(
-                #
-                # There isn't really a good way to decide which of these to
-                # keep and which to remove. The capitalized versions expose
-                # different APIs, but we can't keep both. So far no one has
-                # filed bugs about needing either API, so let's just dedup them
-                # consistently and we can change that if we hear otherwise.
-                remove_paths = [
-                    'usr/include/linux/netfilter_ipv4/ipt_ECN.h',
-                    'usr/include/linux/netfilter_ipv4/ipt_TTL.h',
-                    'usr/include/linux/netfilter_ipv6/ip6t_HL.h',
-                    'usr/include/linux/netfilter/xt_CONNMARK.h',
-                    'usr/include/linux/netfilter/xt_DSCP.h',
-                    'usr/include/linux/netfilter/xt_MARK.h',
-                    'usr/include/linux/netfilter/xt_RATEEST.h',
-                    'usr/include/linux/netfilter/xt_TCPMSS.h',
-                ]
-                for remove_path in remove_paths:
-                    os.remove(os.path.join(install_path, remove_path))
+        pass
 
-            ndk_version_h_path = os.path.join(
-                install_path, 'usr/include/android/ndk-version.h')
-            with open(ndk_version_h_path, 'w') as ndk_version_h:
-                major = ndk.config.major
-                minor = ndk.config.hotfix
-                beta = ndk.config.beta
-                canary = '1' if ndk.config.canary else '0'
-                assert self.context is not None
+    def install(self) -> None:
+        install_path = self.get_install_path()
+        if install_path.exists():
+            shutil.rmtree(install_path)
+        path = ndk.paths.android_path('prebuilts/ndk/platform/sysroot')
+        shutil.copytree(path, install_path)
+        if self.host != 'linux':
+            # linux/netfilter has some headers with names that differ only
+            # by case, which can't be extracted to a case-insensitive
+            # filesystem, which are the defaults for Darwin and Windows :(
+            #
+            # There isn't really a good way to decide which of these to
+            # keep and which to remove. The capitalized versions expose
+            # different APIs, but we can't keep both. So far no one has
+            # filed bugs about needing either API, so let's just dedup them
+            # consistently and we can change that if we hear otherwise.
+            remove_paths = [
+                'usr/include/linux/netfilter_ipv4/ipt_ECN.h',
+                'usr/include/linux/netfilter_ipv4/ipt_TTL.h',
+                'usr/include/linux/netfilter_ipv6/ip6t_HL.h',
+                'usr/include/linux/netfilter/xt_CONNMARK.h',
+                'usr/include/linux/netfilter/xt_DSCP.h',
+                'usr/include/linux/netfilter/xt_MARK.h',
+                'usr/include/linux/netfilter/xt_RATEEST.h',
+                'usr/include/linux/netfilter/xt_TCPMSS.h',
+            ]
+            for remove_path in remove_paths:
+                os.remove(os.path.join(install_path, remove_path))
 
-                ndk_version_h.write(textwrap.dedent(f"""\
-                    #pragma once
+        ndk_version_h_path = os.path.join(install_path,
+                                          'usr/include/android/ndk-version.h')
+        with open(ndk_version_h_path, 'w') as ndk_version_h:
+            major = ndk.config.major
+            minor = ndk.config.hotfix
+            beta = ndk.config.beta
+            canary = '1' if ndk.config.canary else '0'
+            assert self.context is not None
 
-                    /**
-                     * Set to 1 if this is an NDK, unset otherwise. See
-                     * https://android.googlesource.com/platform/bionic/+/master/docs/defines.md.
-                     */
-                    #define __ANDROID_NDK__ 1
+            ndk_version_h.write(textwrap.dedent(f"""\
+                #pragma once
 
-                    /**
-                     * Major version of this NDK.
-                     *
-                     * For example: 16 for r16.
-                     */
-                    #define __NDK_MAJOR__ {major}
+                /**
+                 * Set to 1 if this is an NDK, unset otherwise. See
+                 * https://android.googlesource.com/platform/bionic/+/master/docs/defines.md.
+                 */
+                #define __ANDROID_NDK__ 1
 
-                    /**
-                     * Minor version of this NDK.
-                     *
-                     * For example: 0 for r16 and 1 for r16b.
-                     */
-                    #define __NDK_MINOR__ {minor}
+                /**
+                 * Major version of this NDK.
+                 *
+                 * For example: 16 for r16.
+                 */
+                #define __NDK_MAJOR__ {major}
 
-                    /**
-                     * Set to 0 if this is a release build, or 1 for beta 1,
-                     * 2 for beta 2, and so on.
-                     */
-                    #define __NDK_BETA__ {beta}
+                /**
+                 * Minor version of this NDK.
+                 *
+                 * For example: 0 for r16 and 1 for r16b.
+                 */
+                #define __NDK_MINOR__ {minor}
 
-                    /**
-                     * Build number for this NDK.
-                     *
-                     * For a local development build of the NDK, this is -1.
-                     */
-                    #define __NDK_BUILD__ {self.context.build_number}
+                /**
+                 * Set to 0 if this is a release build, or 1 for beta 1,
+                 * 2 for beta 2, and so on.
+                 */
+                #define __NDK_BETA__ {beta}
 
-                    /**
-                     * Set to 1 if this is a canary build, 0 if not.
-                     */
-                    #define __NDK_CANARY__ {canary}
-                    """))
+                /**
+                 * Build number for this NDK.
+                 *
+                 * For a local development build of the NDK, this is -1.
+                 */
+                #define __NDK_BUILD__ {self.context.build_number}
 
-            build_support.make_package('sysroot', install_path, self.dist_dir)
-        finally:
-            shutil.rmtree(temp_dir)
+                /**
+                 * Set to 1 if this is a canary build, 0 if not.
+                 */
+                #define __NDK_CANARY__ {canary}
+                """))
 
 
 def write_clang_shell_script(wrapper_path: str, clang_name: str,
@@ -1752,6 +1758,8 @@ class Toolchain(ndk.builds.Module):
                 'libc++_static.a',
                 'libc++abi.a',
             ]
+            if arch == 'arm':
+                libs.append('libunwind.a')
             if abi in ndk.abis.LP32_ABIS:
                 libs.append('libandroid_support.a')
 
@@ -1998,11 +2006,14 @@ class SimplePerf(ndk.builds.Module):
     notice = ANDROID_DIR / 'prebuilts/simpleperf/NOTICE'
 
     def build(self) -> None:
-        print('Building simpleperf...')
-        install_dir = os.path.join(self.out_dir, 'simpleperf')
-        if os.path.exists(install_dir):
+        pass
+
+    def install(self) -> None:
+        print('Installing simpleperf...')
+        install_dir = self.get_install_path()
+        if install_dir.exists():
             shutil.rmtree(install_dir)
-        os.makedirs(install_dir)
+        install_dir.mkdir(parents=True)
 
         simpleperf_path = ndk.paths.android_path('prebuilts/simpleperf')
         dirs = ['doc', 'inferno', 'bin/android', 'app_api', 'purgatorio']
@@ -2027,7 +2038,6 @@ class SimplePerf(ndk.builds.Module):
                 shutil.copy2(os.path.join(simpleperf_path, item), install_dir)
 
         shutil.copy2(os.path.join(simpleperf_path, 'ChangeLog'), install_dir)
-        build_support.make_package('simpleperf', install_dir, self.dist_dir)
 
 
 class RenderscriptLibs(ndk.builds.PackageModule):
