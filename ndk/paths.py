@@ -58,6 +58,19 @@ def toolchain_path(*args: str) -> str:
     return android_path('toolchain', *args)
 
 
+def expand_path(path: Path, host: ndk.hosts.Host) -> Path:
+    """Expands package definition tuple into a package name.
+
+    >>> expand_path('llvm-{host}', Host.Linux)
+    'llvm-linux-x86_64'
+
+    >>> expand_path('platforms', Host.Linux)
+    'platforms'
+    """
+    host_tag = ndk.hosts.host_to_tag(host)
+    return Path(str(path).format(host=host_tag))
+
+
 def _get_dir_from_env(default: str, env_var: str) -> str:
     """Returns the path to a directory specified by the environment.
 

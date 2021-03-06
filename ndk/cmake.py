@@ -50,6 +50,7 @@ class CMakeBuilder:
                  build_dir: Path,
                  host: Host,
                  additional_flags: Optional[List[str]] = None,
+                 additional_ldflags: Optional[List[str]] = None,
                  additional_env: Optional[Dict[str, str]] = None,
                  run_ctest: bool = False) -> None:
         """Initializes an autoconf builder.
@@ -68,6 +69,7 @@ class CMakeBuilder:
         self.build_directory = build_dir
         self.host = host
         self.additional_flags = additional_flags
+        self.additional_ldflags = additional_ldflags
         self.additional_env = additional_env
         self.run_ctest = run_ctest
 
@@ -91,6 +93,13 @@ class CMakeBuilder:
         if self.additional_flags:
             flags.extend(self.additional_flags)
         return flags
+
+    @property
+    def ldflags(self) -> List[str]:
+        ldflags = []
+        if self.additional_ldflags:
+            ldflags.extend(self.additional_ldflags)
+        return ldflags
 
     def _run(self, cmd: List[str]) -> None:
         """Runs and logs execution of a subprocess."""
@@ -128,6 +137,7 @@ class CMakeBuilder:
         flags = self.toolchain.flags + self.flags
         cflags = ' '.join(flags)
         cxxflags = ' '.join(flags + ['-stdlib=libc++'])
+        ldflags = ' '.join(self.ldflags)
         defines: Dict[str, str] = {
             'CMAKE_C_COMPILER': str(self.toolchain.cc),
             'CMAKE_C_COMPILER_TARGET': HOST_TRIPLE_MAP[self.host],
@@ -141,6 +151,9 @@ class CMakeBuilder:
             'CMAKE_ASM_FLAGS': cflags,
             'CMAKE_C_FLAGS': cflags,
             'CMAKE_CXX_FLAGS': cxxflags,
+            'CMAKE_EXE_LINKER_FLAGS': ldflags,
+            'CMAKE_SHARED_LINKER_FLAGS': ldflags,
+            'CMAKE_MODULE_LINKER_FLAGS': ldflags,
             'CMAKE_BUILD_TYPE': 'Release',
             'CMAKE_INSTALL_PREFIX': str(self.install_directory),
             'CMAKE_MAKE_PROGRAM': str(self._ninja),
