@@ -414,15 +414,18 @@ class Clang(ndk.builds.Module):
             (bin_dir / 'clang.real').rename(clang)
             (bin_dir / 'clang++').symlink_to('clang')
 
+            # The prebuilts have duplicates as clang-MAJ. Remove these to save
+            # space.
+            for path in bin_dir.glob('clang-*'):
+                if re.search(r'^clang-\d+$', path.name) is not None:
+                    path.unlink()
+
+        # Remove LLD duplicates. We only need ld.lld.
+        # http://b/74250510
         bin_ext = '.exe' if self.host.is_windows else ''
-        if self.host.is_windows:
-            # Remove LLD duplicates. We only need ld.lld. For non-Windows these
-            # are all symlinks so we can keep them (and *need* to keep lld
-            # since that's the real binary).
-            # http://b/74250510
-            (bin_dir / f'ld64.lld{bin_ext}').unlink()
-            (bin_dir / f'lld{bin_ext}').unlink()
-            (bin_dir / f'lld-link{bin_ext}').unlink()
+        (bin_dir / f'ld64.lld{bin_ext}').unlink()
+        (bin_dir / f'lld{bin_ext}').unlink()
+        (bin_dir / f'lld-link{bin_ext}').unlink()
 
         install_clanglib = install_path / 'lib64/clang'
         linux_prebuilt_path = ClangToolchain.path_for_host(Host.Linux)
@@ -924,6 +927,9 @@ class Libcxx(ndk.builds.Module):
 
         shutil.copy2(os.path.join(static_lib_dir, 'libc++abi.a'), lib_dir)
         shutil.copy2(os.path.join(static_lib_dir, 'libc++_static.a'), lib_dir)
+
+        if abi == 'armeabi-v7a':
+            shutil.copy2(os.path.join(static_lib_dir, 'libunwind.a'), lib_dir)
 
         if abi in ndk.abis.LP32_ABIS:
             shutil.copy2(
@@ -1752,6 +1758,8 @@ class Toolchain(ndk.builds.Module):
                 'libc++_static.a',
                 'libc++abi.a',
             ]
+            if arch == 'arm':
+                libs.append('libunwind.a')
             if abi in ndk.abis.LP32_ABIS:
                 libs.append('libandroid_support.a')
 
