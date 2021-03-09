@@ -35,7 +35,6 @@ from typing import Any, Dict, Iterator, List, Optional, Set
 from ndk.autoconf import AutoconfBuilder
 import ndk.ext.shutil
 from ndk.hosts import Host
-import ndk.packaging
 import ndk.paths
 from ndk.paths import ANDROID_DIR, NDK_DIR
 
@@ -223,7 +222,7 @@ class Module:
 
         The build phase should not modify the install directory.
         """
-        raise NotImplementedError
+        raise NotImplementedError(f"{self.name} didn't implement build().")
 
     def install(self) -> None:
         """Installs the module.
@@ -233,20 +232,7 @@ class Module:
         The install phase should only copy files, not create them. Compilation
         should happen in the build phase.
         """
-        package_name, package_install = ndk.packaging.expand_package(
-            self.name, str(self.path), self.host)
-
-        install_base = Path(
-            ndk.paths.get_install_path(str(self.out_dir), self.host))
-        if self.intermediate_module:
-            install_base = self.intermediate_out_dir / 'install'
-
-        assert self.context is not None
-        install_path = install_base / package_install
-        package = self.context.dist_dir / package_name
-        if install_path.exists():
-            shutil.rmtree(install_path)
-        ndk.packaging.extract_zip(str(package), str(install_path))
+        raise NotImplementedError(f"{self.name} didn't implement install().")
 
     def get_install_path(self, host: Optional[Host] = None) -> Path:
         """Returns the install path for the given module config.
@@ -263,7 +249,7 @@ class Module:
         if host is None:
             host = self.host
 
-        install_subdir = Path(ndk.packaging.expand_path(str(self.path), host))
+        install_subdir = ndk.paths.expand_path(self.path, host)
         install_base = Path(ndk.paths.get_install_path(str(self.out_dir),
                                                        host))
         if self.intermediate_module:
@@ -349,6 +335,7 @@ class CMakeModule(Module):
                 self.intermediate_out_dir,
                 self.host,
                 additional_flags=self.flags,
+                additional_ldflags=self.ldflags,
                 additional_env=self.env,
                 run_ctest=self.run_ctest)
         return self._builder
@@ -359,6 +346,10 @@ class CMakeModule(Module):
 
     @property
     def flags(self) -> List[str]:
+        return []
+
+    @property
+    def ldflags(self) -> List[str]:
         return []
 
     @property
@@ -394,38 +385,6 @@ class PackageModule(Module):
     def install(self) -> None:
         install_path = self.get_install_path(self.host)
         install_directory(self.src, install_path)
-
-
-class InvokeExternalBuildModule(Module):
-    """A module that uses a build.py script.
-
-    These are legacy modules that have not yet been properly merged into
-    checkbuild.py.
-    """
-
-    #: The path to the build script relative to the top of the source tree.
-    script: Path
-
-    def build(self) -> None:
-        build_args = common_build_args(self.out_dir, self.dist_dir, self.host)
-        script = self.get_script_path()
-        invoke_external_build(script, build_args)
-
-    def get_script_path(self) -> Path:
-        """Returns the absolute path to the build script."""
-        return ANDROID_DIR / self.script
-
-
-# TODO: Convert shadertools and remove this.
-class InvokeBuildModule(InvokeExternalBuildModule):
-    """A module that uses a build.py script within ndk/build/tools.
-
-    Identical to InvokeExternalBuildModule, but the script path is relative to
-    ndk/build/tools instead of the top of the source tree.
-    """
-
-    def get_script_path(self) -> Path:
-        return NDK_DIR / 'build/tools' / self.script
 
 
 class FileModule(Module):
@@ -489,18 +448,6 @@ class ScriptShortcutModule(Module):
     def validate(self) -> None:
         super().validate()
 
-        if ndk.packaging.package_varies_by(str(self.script), 'abi'):
-            raise self.validate_error(
-                'ScriptShortcutModule cannot vary by abi')
-        if ndk.packaging.package_varies_by(str(self.script), 'arch'):
-            raise self.validate_error(
-                'ScriptShortcutModule cannot vary by arch')
-        if ndk.packaging.package_varies_by(str(self.script), 'toolchain'):
-            raise self.validate_error(
-                'ScriptShortcutModule cannot vary by toolchain')
-        if ndk.packaging.package_varies_by(str(self.script), 'triple'):
-            raise self.validate_error(
-                'ScriptShortcutModule cannot vary by triple')
         if self.windows_ext is None:
             raise self.validate_error(
                 'ScriptShortcutModule requires windows_ext')
@@ -543,7 +490,7 @@ class ScriptShortcutModule(Module):
 
     def get_script_path(self) -> Path:
         """Returns the installed path of the script."""
-        return Path(ndk.packaging.expand_path(str(self.script), self.host))
+        return ndk.paths.expand_path(self.script, self.host)
 
 
 class PythonPackage(Module):
@@ -567,40 +514,6 @@ class PythonPackage(Module):
 
     def install(self) -> None:
         pass
-
-
-def invoke_external_build(script: Path, args: List[str]) -> None:
-    """Invokes a build.py script rooted within the top level source tree.
-
-    Args:
-        script: Path to the script to be executed within the top level source
-            tree.
-        args: Command line arguments to be passed to the script.
-    """
-    subprocess.check_call(['python3', str(script)] + args)
-
-
-def common_build_args(out_dir: Path, dist_dir: Path, host: Host) -> List[str]:
-    """Returns a list of common arguments for build.py scripts.
-
-    Modules that have not been fully merged into checkbuild.py still use a
-    separately executed build.py script via InvokeBuildModule or
-    InvokeExternalBuildModule. These have a common command line interface for
-    determining out directories and target host.
-
-    Args:
-        out_dir: Base out directory for the target host.
-        dist_dir: Distribution directory for archived artifacts.
-        host: Target host.
-
-    Returns:
-        List of command line arguments to be used with build.py.
-    """
-    return [
-        f'--out-dir={out_dir / host.value}',
-        f'--dist-dir={dist_dir}',
-        f'--host={host.value}',
-    ]
 
 
 def install_directory(src: Path, dst: Path) -> None:
