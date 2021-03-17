@@ -24,6 +24,9 @@ For Android Studio issues, follow the docs on the [Android Studio site].
   * [Issue 1047]: Fixes crash when using ASan with the CFI unwinder.
   * [Issue 1096]: Includes support for [Polly]. Enable by adding `-mllvm -polly`
     to your cflags.
+  * [Issue 1230]: LLVM's libunwind is now used instead of libgcc for all
+    architectures rather than just 32-bit Arm.
+  * [Issue 1231]: LLVM's libclang_rt.builtins is now used instead of libgcc.
   * [Issue 1406]: Fixes crash with Neon intrinsic.
 * Vulkan validation layer source and binaries are no longer shipped in the NDK.
   The latest are now posted directly to [GitHub](https://github.com/KhronosGroup/Vulkan-ValidationLayers/releases).
@@ -46,6 +49,8 @@ For Android Studio issues, follow the docs on the [Android Studio site].
 [Issue 929]: https://github.com/android/ndk/issues/929
 [Issue 1047]: https://github.com/android/ndk/issues/1047
 [Issue 1096]: https://github.com/android/ndk/issues/1096
+[Issue 1230]: https://github.com/android/ndk/issues/1230
+[Issue 1231]: https://github.com/android/ndk/issues/1231
 [Issue 1390]: https://github.com/android/ndk/issues/1390
 [Issue 1406]: https://github.com/android/ndk/issues/1406
 [Issue 1452]: https://github.com/android/ndk/issues/1452
