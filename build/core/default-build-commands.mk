@@ -31,7 +31,6 @@ TARGET-get-linker-objects-and-libraries = \
     $(call host-path, $1) \
     $(call link-whole-archives,$3) \
     $(call host-path, $2) \
-    $(PRIVATE_LIBGCC) \
     $(PRIVATE_LIBATOMIC) \
     $(call host-path, $4) \
 
@@ -42,15 +41,6 @@ TARGET_FORMAT_STRING_CFLAGS := -Wformat -Werror=format-security
 # This flag disables the above security checks
 TARGET_DISABLE_FORMAT_STRING_CFLAGS := -Wno-error=format-security
 
-# NOTE: Ensure that TARGET_LIBGCC is placed after all private objects
-#       and static libraries, but before any other library in the link
-#       command line when generating shared libraries and executables.
-#
-#       This ensures that all libgcc.a functions required by the target
-#       will be included into it, instead of relying on what's available
-#       on other libraries like libc.so, which may change between system
-#       releases due to toolchain or library changes.
-#
 define cmd-build-shared-library
 $(PRIVATE_CXX) \
     -Wl,-soname,$(notdir $(LOCAL_BUILT_MODULE)) \
@@ -90,8 +80,7 @@ cmd-strip = $(PRIVATE_STRIP) $(PRIVATE_STRIP_MODE) $(call host-path,$1)
 # script. Hide both regardless of architecture to future-proof us in case we
 # move other architectures to a linker script (which we may want to do so we
 # automatically link libclangrt on other architectures).
-TARGET_LIBGCC = -lgcc -Wl,--exclude-libs,libgcc.a -Wl,--exclude-libs,libgcc_real.a
-TARGET_LIBATOMIC = -latomic -Wl,--exclude-libs,libatomic.a
+TARGET_LIBATOMIC = -latomic
 TARGET_LDLIBS := -lc -lm
 
 TOOLCHAIN_ROOT := $(NDK_ROOT)/toolchains/llvm/prebuilt/$(HOST_TAG64)
