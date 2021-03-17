@@ -316,12 +316,11 @@ version scripts should be used. Linking libc++ and its dependencies manually
 should only be used as a last resort.
 
 Note: Linking libc++ and its dependencies explicitly may be necessary to defend
-against exception unwinding bugs caused by improperly built dependencies on
-ARM32 (see [Issue 379]). If not dependent on stack unwinding (the usual reason
-being that the application does not make use of C++ exceptions) or if no
-dependencies were improperly built, this is not necessary. If needed, link the
-libraries as listed in the linker script and be sure to follow the instructions
-in [Unwinding].
+against exception unwinding bugs caused by improperly built dependencies (see
+[Issue 379]). If not dependent on stack unwinding (the usual reason being that
+the application does not make use of C++ exceptions) or if no dependencies were
+improperly built, this is not necessary. If needed, link the libraries as listed
+in the linker script and be sure to follow the instructions in [Unwinding].
 
 [Important Considerations]: https://developer.android.com/ndk/guides/cpp-support#important_considerations
 [Issue 379]: https://github.com/android-ndk/ndk/issues/379
@@ -423,13 +422,6 @@ symbols in a static library, `-Wl,--whole-archive <library>
 preserved. By default, only symbols in used sections will be included in the
 linked binary.
 
-If this behavior is not desired for your build system, ensure that these flags
-are at least used for `libgcc.a` (`libgcc_real.a` on Arm32, where `libgcc.a` is
-a linker script, as `--exclude-libs` does not have any effect on the contents of
-linker scripts) and `libunwind.a` (libunwind is only used for ARM32). This is
-necessary to avoid unwinding bugs on Arm32. See [Unwinding] for more
-information.
-
 [visibility]: https://gcc.gnu.org/wiki/Visibility
 
 ### Controlling Binary Size
@@ -510,47 +502,40 @@ default.
 ### Unwinding
 [Unwinding]: #unwinding
 
-For 32-bit ARM the NDK makes use of two unwinders: libgcc and LLVM's libunwind.
-libunwind is needed to provide C++ exception handling support. libgcc is needed
-to provide compiler runtime support and as such its unwinder is also seen by the
-linker.
+The NDK uses LLVM's libunwind. libunwind is needed to provide C++ exception
+handling support and C's `__attribute__((cleanup))`. The unwinder is linked
+automatically by Clang, and is built with hidden visibility to avoid shared
+libraries re-exporting the unwind interface.
 
-These two unwinders are not ABI compatible but do use the same names, so caution
-is required to avoid ODR bugs. For 32-bit ARM, the libgcc.a in the NDK is a
-linker script that ensures that libunwind is linked before libgcc, causing the
-linker to prefer symbols from libunwind to those from libgcc.
+Until NDK r23, libgcc was the unwinder for all architectures other than 32-bit
+ARM, and even 32-bit ARM used libgcc to provide compiler runtime support.
+Libraries built with NDKs older than r23 by build systems that did not follow
+the advice in this document may re-export that incompatible unwinder. In this
+case those libraries can prevent the correct unwinder from being used by your
+build, resulting in crashes or incorrect behavior at runtime.
 
-As these are static libraries, the symbols will be included in the linked
-binary. By default they will be linked with public visibility. If used in a
-build system that does not strictly adhere to only linking shared libraries
-after all objects and static libraries, the binary being linked may instead load
-these symbols from a shared library. If this library was built with the wrong
-unwinder, it is possible for one unwinder to call into the other. As they are
-not compatible, this will likely result in either a crash or a failed unwind. To
-avoid this problem, libraries should always be built with
-`-Wl,--exclude-libs,libgcc.a`, `-Wl,--exclude-libs,libgcc_real.a` and
-`-Wl,--exclude-libs,libunwind.a` (the latter is only necessary for 32-bit Arm)
-to ensure that unwind symbols are not re-exported from shared libraries. Note
-that `libgcc_real.a` is needed because on some architectures (currently only
-32-bit Arm) `libgcc.a` is a linker script and `--exclude-libs` does not extend
-to the contents of linker scripts.
+The best way to avoid this problem is to ensure all libraries in the application
+were built with NDK r23 or newer.
 
-Even with the above precautions, it is still possible for an improperly built
-external dependency to provide an incorrect unwind implementation as described
-in the above paragraph. The only way to guarantee protection against this for
-libraries built in your build system is to ensure that objects are linked in the
-following order:
+For cases where that is not an option, build systems can ensure that shared
+libraries are always linked **after** static libraries, and explicitly link the
+unwinder between each group. The linker will prefer definitions that appear
+sooner in the link order, so libunwind appearing **before** the shared libraries
+will prevent the linker from considering the incompatible unwinder provided by
+the broken library. libunwind must be linked after other static libraries to
+provide the unwind interface to those static libraries.
+
+The following link order will protect against incorrectly built dependencies:
 
  1. crtbegin
  2. object files
  3. static libraries
- 4. libgcc
+ 4. libunwind
  5. shared libraries
  6. crtend
 
 Unless using `-nostdlib` when linking, crtend and crtbegin will be linked
-automatically by Clang. Linking libraries in the order above will require
-`-nostdlib++` when using libc++.
+automatically by Clang. libunwind can be manually linked with `-lunwind`.
 
 ## Windows Specific Issues
 
