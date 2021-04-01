@@ -17,10 +17,10 @@ Building the NDK for Mac OS X requires at least 10.9.
         repo init -u https://android.googlesource.com/platform/manifest \
             -b master-ndk
 
-        # Googlers, use
+        # Googlers, follow http://go/repo-init/aosp-master-ndk. At time of
+        # writing, the correct invocation is:
         repo init -u \
-            persistent-https://android.git.corp.google.com/platform/manifest \
-            -b master-ndk
+            sso://android.git.corp.google.com/platform/manifest -b master-ndk
         ```
 
 If you wish to rebuild a given release of the NDK, the release branches can also

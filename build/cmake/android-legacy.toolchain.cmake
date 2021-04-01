@@ -331,17 +331,6 @@ set(ANDROID_COMPILER_FLAGS_RELEASE)
 set(ANDROID_LINKER_FLAGS)
 set(ANDROID_LINKER_FLAGS_EXE)
 
-# Don't re-export libgcc symbols in every binary.
-list(APPEND ANDROID_LINKER_FLAGS -Wl,--exclude-libs,libgcc.a)
-# arm32 currently uses a linker script in place of libgcc to ensure that
-# libunwind is linked in the correct order. --exclude-libs does not propagate to
-# the contents of the linker script and can't be specified within the linker
-# script. Hide both regardless of architecture to future-proof us in case we
-# move other architectures to a linker script (which we may want to do so we
-# automatically link libclangrt on other architectures).
-list(APPEND ANDROID_LINKER_FLAGS -Wl,--exclude-libs,libgcc_real.a)
-list(APPEND ANDROID_LINKER_FLAGS -Wl,--exclude-libs,libatomic.a)
-
 # STL.
 set(ANDROID_CXX_STANDARD_LIBRARIES)
 if(ANDROID_STL STREQUAL system)
@@ -487,13 +476,6 @@ if(ANDROID_ABI STREQUAL x86 AND ANDROID_PLATFORM_LEVEL LESS 24)
 endif()
 
 list(APPEND ANDROID_COMPILER_FLAGS -D_FORTIFY_SOURCE=2)
-
-# STL specific flags.
-if(ANDROID_STL MATCHES "^c\\+\\+_")
-  if(ANDROID_ABI MATCHES "^armeabi")
-    list(APPEND ANDROID_LINKER_FLAGS "-Wl,--exclude-libs,libunwind.a")
-  endif()
-endif()
 
 set(CMAKE_C_STANDARD_LIBRARIES_INIT "-latomic -lm")
 set(CMAKE_CXX_STANDARD_LIBRARIES_INIT "${CMAKE_C_STANDARD_LIBRARIES_INIT}")

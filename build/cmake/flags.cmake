@@ -21,17 +21,6 @@ set(_ANDROID_NDK_INIT_CFLAGS_RELEASE)
 set(_ANDROID_NDK_INIT_LDFLAGS)
 set(_ANDROID_NDK_INIT_LDFLAGS_EXE)
 
-# Don't re-export libgcc symbols in every binary.
-string(APPEND _ANDROID_NDK_INIT_LDFLAGS " -Wl,--exclude-libs,libgcc.a")
-# arm32 currently uses a linker script in place of libgcc to ensure that
-# libunwind is linked in the correct order. --exclude-libs does not propagate to
-# the contents of the linker script and can't be specified within the linker
-# script. Hide both regardless of architecture to future-proof us in case we
-# move other architectures to a linker script (which we may want to do so we
-# automatically link libclangrt on other architectures).
-string(APPEND _ANDROID_NDK_INIT_LDFLAGS " -Wl,--exclude-libs,libgcc_real.a")
-string(APPEND _ANDROID_NDK_INIT_LDFLAGS " -Wl,--exclude-libs,libatomic.a")
-
 # Generic flags.
 string(APPEND _ANDROID_NDK_INIT_CFLAGS
   " -DANDROID"
@@ -67,13 +56,6 @@ if(CMAKE_ANDROID_ARCH_ABI STREQUAL x86 AND CMAKE_SYSTEM_VERSION LESS 24)
 endif()
 
 string(APPEND _ANDROID_NDK_INIT_CFLAGS " -D_FORTIFY_SOURCE=2")
-
-# STL specific flags.
-if(CMAKE_ANDROID_STL_TYPE MATCHES "^c\\+\\+_")
-  if(CMAKE_ANDROID_ARCH_ABI MATCHES "^armeabi")
-    string(APPEND _ANDROID_NDK_INIT_LDFLAGS " -Wl,--exclude-libs,libunwind.a")
-  endif()
-endif()
 
 if(CMAKE_ANDROID_ARCH_ABI MATCHES "armeabi")
   # Clang does not set this up properly when using -fno-integrated-as.
