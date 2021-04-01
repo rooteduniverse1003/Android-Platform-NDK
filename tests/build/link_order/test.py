@@ -67,6 +67,16 @@ def find_link_args(link_line):
     return args
 
 
+def builtins_basename(abi: Abi):
+    runtimes_arch = {
+        'armeabi-v7a': 'arm',
+        'arm64-v8a': 'aarch64',
+        'x86': 'i686',
+        'x86_64': 'x86_64',
+    }[abi]
+    return 'libclang_rt.builtins-' + runtimes_arch + '-android.a'
+
+
 def check_link_order(link_line: str, abi: Abi,
                      api: int) -> Tuple[bool, Optional[Iterator[str]]]:
     """Determines if a given link command has the correct ordering.
@@ -80,26 +90,27 @@ def check_link_order(link_line: str, abi: Abi,
         suitable for use with `' '.join()`. The diff represents the changes
         between the expected link order and the actual link order.
     """
-    libunwind_arg = ['libunwind.a'] if abi == 'armeabi-v7a' else []
     android_support_arg = ['libandroid_support.a'] if api < 21 else []
     expected = [
         'crtbegin_so.o',
         'foo.o',
-    ] + android_support_arg + libunwind_arg + [
-        # The most important part of this test is checking that libgcc comes
-        # *before* the shared libraries so we can be sure we're actually
-        # getting libgcc symbols rather than getting them from some shared
+    ] + android_support_arg + [
+        # The most important part of this test is checking that libunwind.a
+        # comes *before* the shared libraries so we can be sure we're actually
+        # getting libunwind.a symbols rather than getting them from some shared
         # library dependency that's re-exporting them.
-        '-lgcc',
+        'libunwind.a',
         '-latomic',
         'libc++_shared.so',
         '-lc',
         '-lm',
         '-lm',
-        '-lgcc',
+        builtins_basename(abi),
+        '-l:libunwind.a',
         '-ldl',
         '-lc',
-        '-lgcc',
+        builtins_basename(abi),
+        '-l:libunwind.a',
         '-ldl',
         'crtend_so.o',
     ]

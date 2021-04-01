@@ -414,18 +414,15 @@ class Clang(ndk.builds.Module):
             (bin_dir / 'clang.real').rename(clang)
             (bin_dir / 'clang++').symlink_to('clang')
 
-            # The prebuilts have duplicates as clang-MAJ. Remove these to save
-            # space.
-            for path in bin_dir.glob('clang-*'):
-                if re.search(r'^clang-\d+$', path.name) is not None:
-                    path.unlink()
-
-        # Remove LLD duplicates. We only need ld.lld.
-        # http://b/74250510
         bin_ext = '.exe' if self.host.is_windows else ''
-        (bin_dir / f'ld64.lld{bin_ext}').unlink()
-        (bin_dir / f'lld{bin_ext}').unlink()
-        (bin_dir / f'lld-link{bin_ext}').unlink()
+        if self.host.is_windows:
+            # Remove LLD duplicates. We only need ld.lld. For non-Windows these
+            # are all symlinks so we can keep them (and *need* to keep lld
+            # since that's the real binary).
+            # http://b/74250510
+            (bin_dir / f'ld64.lld{bin_ext}').unlink()
+            (bin_dir / f'lld{bin_ext}').unlink()
+            (bin_dir / f'lld-link{bin_ext}').unlink()
 
         install_clanglib = install_path / 'lib64/clang'
         linux_prebuilt_path = ClangToolchain.path_for_host(Host.Linux)
@@ -467,6 +464,23 @@ class Clang(ndk.builds.Module):
             shutil.rmtree(dst_lib_dir)
             shutil.copytree(ndk_runtimes, dst_lib_dir)
 
+            # Create empty libatomic.a stub libraries to keep -latomic working.
+            # This is needed for backwards compatibility and might be useful if
+            # upstream LLVM splits out the __atomic_* APIs from the builtins.
+            for arch in ndk.abis.ALL_ARCHITECTURES:
+                # Only the arch-specific subdir is on the linker search path.
+                subdir = {
+                    ndk.abis.Abi('arm'): 'arm',
+                    ndk.abis.Abi('arm64'): 'aarch64',
+                    ndk.abis.Abi('x86'): 'i386',
+                    ndk.abis.Abi('x86_64'): 'x86_64',
+                }[arch]
+                (dst_lib_dir / subdir / 'libatomic.a').write_text(
+                    textwrap.dedent("""\
+                    /* The __atomic_* APIs are now in libclang_rt.builtins-*.a. They might
+                       eventually be broken out into a separate library -- see llvm.org/D47606. */
+                    """))
+
         # Also remove the other libraries that we installed, but they were only
         # installed on Linux.
         if self.host == Host.Linux:
@@ -477,20 +491,6 @@ class Clang(ndk.builds.Module):
         # its internal APIs. We want to purge these so apps don't accidentally
         # depend on them. See http://b/142327416 for more info.
         shutil.rmtree(install_path / 'lib64/cmake')
-
-
-def get_gcc_prebuilt_path(arch: ndk.abis.Arch) -> Path:
-    """Returns the path to the GCC prebuilt for the given arch.
-
-    Since this is only used for getting *target* binaries like libgcc, we
-    always use the Linux prebuilts.
-    """
-    prebuilt_path = (ANDROID_DIR /
-                     'prebuilts/ndk/current/toolchains/linux-x86_64' /
-                     f'{ndk.abis.arch_to_toolchain(arch)}-4.9')
-    if not prebuilt_path.is_dir():
-        raise RuntimeError(f'Could not find prebuilt GCC at {prebuilt_path}')
-    return prebuilt_path
 
 
 def get_binutils_prebuilt_path(host: Host, arch: ndk.abis.Arch) -> Path:
@@ -520,98 +520,6 @@ def versioned_so(host: Host, lib: str, version: str) -> str:
     elif host == Host.Linux:
         return f'{lib}.so.{version}'
     raise ValueError(f'Unsupported host: {host}')
-
-
-def install_gcc_lib(install_path: Path,
-                    arch: ndk.abis.Arch,
-                    subarch: str,
-                    lib_subdir: Path,
-                    libname: str,
-                    src_subdir: Optional[Path] = None) -> None:
-    if src_subdir is None:
-        src_subdir = lib_subdir
-
-    lib_install_dir = install_path / lib_subdir / subarch
-    if not lib_install_dir.exists():
-        lib_install_dir.mkdir(parents=True)
-
-    shutil.copy2(
-        get_gcc_prebuilt_path(arch) / src_subdir / subarch / libname,
-        lib_install_dir / libname)
-
-
-def install_gcc_crtbegin(install_path: Path, arch: ndk.abis.Arch,
-                         subarch: str) -> None:
-    triple = ndk.abis.arch_to_triple(arch)
-    subdir = Path('lib/gcc') / triple / '4.9.x'
-    install_gcc_lib(install_path, arch, subarch, subdir, 'crtbegin.o')
-
-
-def install_libgcc(install_path: Path,
-                   arch: ndk.abis.Arch,
-                   subarch: str,
-                   new_layout: bool = False) -> None:
-    triple = ndk.abis.arch_to_triple(arch)
-    subdir = Path('lib/gcc') / triple / '4.9.x'
-    install_gcc_lib(install_path, arch, subarch, subdir, 'libgcc.a')
-
-    if new_layout:
-        # For all architectures, we want to ensure that libcompiler_rt-extras
-        # is linked when libgcc is linked. Some day this will be entirely
-        # replaced by compiler-rt, but for now we are still dependent on libgcc
-        # but still need some things from compiler_rt-extras.
-        #
-        # For ARM32 we need to use LLVM's libunwind rather than libgcc.
-        # Unfortunately we still use libgcc for the compiler builtins, so we we
-        # have to link both. To make sure that the LLVM unwinder gets used, add
-        # a linker script for libgcc to make sure that libunwind is placed
-        # first whenever libgcc is used. This also necessitates linking libdl
-        # since libunwind makes use of dl_iterate_phdr.
-        #
-        # Historically we dealt with this in the libc++ linker script, but
-        # since the new toolchain setup has the toolchain link the STL for us
-        # the correct way to use the static libc++ is to use
-        # `-static-libstdc++' which will expand to `-Bstatic -lc++ -Bshared`,
-        # which results in the static libdl being used. The stub implementation
-        # of libdl.a causes the unwind to fail, so we can't link libdl there.
-        # If we don't link it at all, linking fails when building a static
-        # executable since the driver does not link libdl when building a
-        # static executable.
-        #
-        # We only do this for the new toolchain layout since build systems
-        # using the legacy toolchain already needed to handle this, and
-        # -lunwind may not be valid in those configurations (it could have been
-        # linked by a full path instead).
-        libgcc_base_path = install_path / subdir / subarch
-        libgcc_path = libgcc_base_path / 'libgcc.a'
-        libgcc_real_path = libgcc_base_path / 'libgcc_real.a'
-        libgcc_path.rename(libgcc_real_path)
-        if arch == 'arm':
-            libs = '-lunwind -lcompiler_rt-extras -lgcc_real -ldl'
-        else:
-            libs = '-lcompiler_rt-extras -lgcc_real'
-        libgcc_path.write_text('INPUT({})'.format(libs))
-
-
-def install_libatomic(install_path: Path, arch: ndk.abis.Arch,
-                      subarch: str) -> None:
-    triple = ndk.abis.arch_to_triple(arch)
-    libdir_name = 'lib64' if arch.endswith('64') else 'lib'
-    install_gcc_lib(install_path, arch, subarch,
-                    Path('lib/gcc') / triple / '4.9.x', 'libatomic.a',
-                    Path(triple) / libdir_name)
-
-
-def get_subarches(arch: ndk.abis.Arch) -> List[str]:
-    if arch != ndk.abis.Arch('arm'):
-        return ['']
-
-    return [
-        '',
-        'thumb',
-        'armv7-a',
-        'armv7-a/thumb'
-    ]
 
 
 class ShaderTools(ndk.builds.CMakeModule):
@@ -927,9 +835,6 @@ class Libcxx(ndk.builds.Module):
 
         shutil.copy2(os.path.join(static_lib_dir, 'libc++abi.a'), lib_dir)
         shutil.copy2(os.path.join(static_lib_dir, 'libc++_static.a'), lib_dir)
-
-        if abi == 'armeabi-v7a':
-            shutil.copy2(os.path.join(static_lib_dir, 'libunwind.a'), lib_dir)
 
         if abi in ndk.abis.LP32_ABIS:
             shutil.copy2(
@@ -1569,9 +1474,6 @@ class BaseToolchain(ndk.builds.Module):
         yield from Sysroot().notices
         yield from SystemStl().notices
         yield ANDROID_DIR / 'toolchain/binutils/binutils-2.27/gas/COPYING'
-        for arch in ndk.abis.ALL_ARCHITECTURES:
-            # For libgcc/libatomic.
-            yield get_gcc_prebuilt_path(arch) / 'NOTICE'
 
     def build(self) -> None:
         pass
@@ -1605,16 +1507,6 @@ class BaseToolchain(ndk.builds.Module):
 
             gas = binutils_dir / f'bin/{triple}-as{exe}'
             shutil.copy2(gas, bin_dir)
-
-            # We still need libgcc/libatomic. Copy them from the old GCC
-            # prebuilts.
-            for subarch in get_subarches(arch):
-                install_libgcc(Path(install_dir), arch, subarch)
-                install_libatomic(Path(install_dir), arch, subarch)
-
-                # We don't actually want this, but Clang won't recognize a
-                # -gcc-toolchain without it.
-                install_gcc_crtbegin(Path(install_dir), arch, subarch)
 
         platforms = self.get_dep('platforms')
         assert isinstance(platforms, Platforms)
@@ -1737,17 +1629,6 @@ class Toolchain(ndk.builds.Module):
         copy_tree(libcxxabi_inc_src, libcxx_inc_dst)
 
         for arch in ndk.abis.ALL_ARCHITECTURES:
-            # We need to replace libgcc with linker scripts that also use
-            # libunwind on arm32.
-            #
-            # This needs to be done here rather than in BaseToolchain because
-            # libunwind isn't available until libc++ has been built.
-            for subarch in get_subarches(arch):
-                install_libgcc(Path(install_dir),
-                               arch,
-                               subarch,
-                               new_layout=True)
-
             triple = ndk.abis.arch_to_triple(arch)
             abi, = ndk.abis.arch_to_abis(arch)
             libcxx_lib_dir = os.path.join(libcxx_dir, 'libs', abi)
@@ -1758,8 +1639,6 @@ class Toolchain(ndk.builds.Module):
                 'libc++_static.a',
                 'libc++abi.a',
             ]
-            if arch == 'arm':
-                libs.append('libunwind.a')
             if abi in ndk.abis.LP32_ABIS:
                 libs.append('libandroid_support.a')
 
