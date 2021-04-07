@@ -13,8 +13,7 @@ For Android Studio issues, follow the docs on the [Android Studio site].
   removed in the next release. If you are building with `-fno-integrated-as`,
   file bugs if anything is preventing you from removing that flag.
 
-* Support for GDB has ended. The GDB from r22 will continue to be included in
-  the NDK, but it will be removed if and when it stops working. Use LLDB
+* Support for GDB has ended. GDB will be removed from the next release. Use LLDB
   instead. Note that `ndk-gdb` uses LLDB by default.
 
 ## Changes
