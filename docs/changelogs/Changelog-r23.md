@@ -16,6 +16,15 @@ For Android Studio issues, follow the docs on the [Android Studio site].
 * Support for GDB has ended. GDB will be removed from the next release. Use LLDB
   instead. Note that `ndk-gdb` uses LLDB by default.
 
+* NDK r23 is the last release that will support non-Neon. Beginning with NDK
+  r24, the armeabi-v7a libraries in the sysroot will be built with Neon. A very
+  small number of very old devices do not support Neon so most apps will not
+  notice aside from the performance improvement.
+
+* Jelly Bean (APIs 16, 17, and 18) will not be supported in the next NDK
+  release. The minimum OS supported by the NDK for r24 will be KitKat (API level
+  19).
+
 ## Changes
 
 * Includes preview Android S DP 1 APIs.
