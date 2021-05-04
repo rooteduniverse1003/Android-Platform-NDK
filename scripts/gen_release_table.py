@@ -32,7 +32,7 @@ def get_lines():
     """Returns all stdin input until the first empty line."""
     lines = []
     while True:
-        line = raw_input()  # pylint: disable=undefined-variable
+        line = input()
         if line.strip() == '':
             return lines
         lines.append(line)
