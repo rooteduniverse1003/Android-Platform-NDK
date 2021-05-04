@@ -410,6 +410,7 @@ class Clang(ndk.builds.Module):
             # useful and are available on Windows.
             (bin_dir / 'clang++.real').unlink()
             (bin_dir / 'clang++').unlink()
+            (bin_dir / 'clang-cl').unlink()
             clang = install_path / 'bin/clang'
             (bin_dir / 'clang.real').rename(clang)
             (bin_dir / 'clang++').symlink_to('clang')
