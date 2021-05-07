@@ -13,14 +13,22 @@ For Android Studio issues, follow the docs on the [Android Studio site].
   removed in the next release. If you are building with `-fno-integrated-as`,
   file bugs if anything is preventing you from removing that flag.
 
-* Support for GDB has ended. The GDB from r22 will continue to be included in
-  the NDK, but it will be removed if and when it stops working. Use LLDB
+* Support for GDB has ended. GDB will be removed from the next release. Use LLDB
   instead. Note that `ndk-gdb` uses LLDB by default.
+
+* NDK r23 is the last release that will support non-Neon. Beginning with NDK
+  r24, the armeabi-v7a libraries in the sysroot will be built with Neon. A very
+  small number of very old devices do not support Neon so most apps will not
+  notice aside from the performance improvement.
+
+* Jelly Bean (APIs 16, 17, and 18) will not be supported in the next NDK
+  release. The minimum OS supported by the NDK for r24 will be KitKat (API level
+  19).
 
 ## Changes
 
-* Includes preview Android S DP 1 APIs.
-* Updated LLVM to clang-r416183, based on LLVM 12 development.
+* Includes preview Android S Beta 1 APIs.
+* Updated LLVM to clang-r416183b, based on LLVM 12 development.
   * [Issue 1047]: Fixes crash when using ASan with the CFI unwinder.
   * [Issue 1096]: Includes support for [Polly]. Enable by adding `-mllvm -polly`
     to your cflags.
@@ -34,7 +42,7 @@ For Android Studio issues, follow the docs on the [Android Studio site].
   It should be downloaded upstream from [GitHub](https://github.com/KhronosGroup/Vulkan-Tools).
 * The toolchain file (android.toolchain.cmake) is refactored to base on cmake's
   integrated Android support. This new toolchain file will be enabled by default
-  for cmake 3.20 and newer. No user side change is expected. But if anything goes
+  for cmake 3.21 and newer. No user side change is expected. But if anything goes
   wrong, please file a bug and set `ANDROID_USE_LEGACY_TOOLCHAIN_FILE=ON` to
   restore the legacy behavior.
 * [Issue 929]: `find_library` now prefers shared libraries from the sysroot over
