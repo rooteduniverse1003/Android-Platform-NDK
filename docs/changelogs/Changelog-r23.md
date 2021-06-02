@@ -27,7 +27,7 @@ For Android Studio issues, follow the docs on the [Android Studio site].
 
 ## Changes
 
-* Includes preview Android S Beta 1 APIs.
+* Includes preview Android S Beta 2 APIs.
 * Updated LLVM to clang-r416183b, based on LLVM 12 development.
   * [Issue 1047]: Fixes crash when using ASan with the CFI unwinder.
   * [Issue 1096]: Includes support for [Polly]. Enable by adding `-mllvm -polly`
