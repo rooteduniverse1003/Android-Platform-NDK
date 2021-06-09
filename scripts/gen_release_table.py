@@ -68,11 +68,11 @@ def main():
         # Some lines are updates to the repository.xml files used by the SDK
         # manager. We don't care about these.
         # <sha>        12,345  path/to/repository.xml
-        if line.endswith('.xml'):
+        if line.endswith('.xml') or 'android-ndk' not in line:
             continue
 
         # Real entries look like this (the leading hex number is optional):
-        # 0x1234 <sha>   123,456,789  path/to/android-ndk-r11c-linux-x86_64.zip
+        # 0x1234 <sha>   123,456,789  path/to/android-ndk-r23-beta5-linux.zip
         match = re.match(
             r'^(?:0x[0-9a-f]+)?\s*(\w+)\s+([0-9,]+)\s+(.+)$', line)
         if match is None:
@@ -87,11 +87,11 @@ def main():
         path = match.group(3)
         package = os.path.basename(path)
 
-        # android-ndk-$VERSION-$HOST-$HOST_ARCH.$EXT
+        # android-ndk-$VERSION-$HOST.$EXT
         # $VERSION might contain a hyphen for beta/RC releases.
         # Split on all hyphens and join $HOST and $EXT to get the platform.
         package_name, package_ext = os.path.splitext(package)
-        host = package_name.split('-')[-2] + '-' + package_ext[1:]
+        host = package_name.split('-')[-1] + '-' + package_ext[1:]
         pretty_host = {
             'darwin-zip': 'macOS',
             'darwin-dmg': 'macOS App Bundle',
