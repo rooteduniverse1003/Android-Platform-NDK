@@ -45,7 +45,6 @@ import site
 import stat
 import subprocess
 import sys
-import tempfile
 import textwrap
 import traceback
 from typing import (
@@ -55,7 +54,6 @@ from typing import (
     Iterable,
     Iterator,
     List,
-    Optional,
     Set,
     TextIO,
     Tuple,
@@ -894,7 +892,7 @@ class Platforms(ndk.builds.Module):
                 api = int(api_str)
                 if api >= self.min_supported_api:
                     apis.append(api)
-            except ValueError:
+            except ValueError as ex:
                 # Codenamed release like android-O, android-O-MR1, etc.
                 # Codenamed APIs are not supported, since having
                 # non-integer API directories breaks all kinds of tools, we
@@ -903,7 +901,7 @@ class Platforms(ndk.builds.Module):
                     f'No codenamed API is allowed: {api_str}\n'
                     'Use the update_platform.py tool from the '
                     'platform/prebuilts/ndk dev branch to remove or rename it.'
-                )
+                ) from ex
 
         return sorted(apis)
 

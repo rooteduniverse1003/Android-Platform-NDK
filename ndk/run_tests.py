@@ -185,9 +185,7 @@ class LibcxxTestCase(TestCase):
         # The executable name ends with .exe. Remove that so it matches the
         # filter that would be used to build the test.
         name = '.'.join(['libc++', filter_name[:-4]])
-        super(LibcxxTestCase, self).__init__(
-            name, test_src_dir, config, 'libc++', device_dir)
-
+        super().__init__(name, test_src_dir, config, 'libc++', device_dir)
         self.suite = suite
         self.executable = executable
 
@@ -569,7 +567,7 @@ def wait_for_results(report: Report, workqueue: ShardingWorkQueue,
             while not workqueue.finished():
                 results = workqueue.get_results()
                 verbose = logger().isEnabledFor(logging.INFO)
-                if verbose or any([r.failed() for r in results]):
+                if verbose or any(r.failed() for r in results):
                     ui.clear()
                 for result in results:
                     suite = result.test.build_system
