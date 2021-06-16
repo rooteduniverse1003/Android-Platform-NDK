@@ -50,7 +50,8 @@ system. The entry point for this build system is `$NDK/build/ndk-build` (or
 
 A CMake toolchain file is included at
 `$NDK/build/cmake/android.toolchain.cmake`. This is separate from CMake's own
-support for the NDK.
+support for the NDK. As of NDK r23 and CMake 3.21, CMake's built-in support
+delegates to the hooks in `$NDK/build/cmake/hooks`.
 
 `$NDK/build/tools/make_standalone_toolchain.py` is a tool which can create a
 redistributable toolchain that targets a single Android ABI and API level. As of
