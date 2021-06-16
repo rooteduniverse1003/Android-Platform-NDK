@@ -1,20 +1,12 @@
 # Clang Migration Notes
 
-The Android OS switched to clang several years ago. Future versions of
-the NDK will remove GCC, so the sooner you start testing your project
-with clang the better!
+NDK r17 was the last version to include GCC. If you're upgrading from an old NDK
+and need to migrate to Clang, this doc can help.
 
-## How to switch to clang
+If you maintain a custom build system, see the [Build System Maintainers]
+documentation.
 
-For `ndk-build`, remove lines setting `NDK_TOOLCHAIN` or
-`NDK_TOOLCHAIN_VERSION`.
-
-For cmake, remove lines setting `ANDROID_TOOLCHAIN`.
-
-For standalone toolchains, use the `clang`/`clang++` binaries instead of
-`gcc`/`g++`.
-
-For other build systems, ask the owners of that build system.
+[Build System Maintainers]: ./BuildSystemMaintainers.md
 
 ## `-Oz` versus `-Os`
 

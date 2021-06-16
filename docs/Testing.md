@@ -24,10 +24,12 @@ requirements listed in the `devices` section of the test configuration file (see
 [qa\_config.json] for the defaults, or use `--config` to choose your own). Each
 test will be run on all devices compatible with that test.
 
-The full QA configuration takes roughly 6 minutes to run (P920 Linux host, 4
+The full QA configuration takes roughly 10 minutes to run (P920 Linux host, 4
 Galaxy Nexūs for Jelly Bean, 2 Pixels for Pie, 1 emulator for x86-64 Pie).
 Attaching multiple devices will allow the test runner to shard tests among those
-devices.
+devices. Pushing tests can take up a large portion of the test time (3 of the 10
+minutes quoted above), but `adb push --sync` is used to prevent unnecessary
+pushes on reruns or when only a subset of tests are rebuilt.
 
 The tests can be rebuilt without running `checkbuild.py` (which is necessary in
 the case of not having a full NDK checkout, as you might when running the
@@ -35,7 +37,6 @@ Windows tests on a release from the build server) with `run_tests.py --rebuild`.
 
 [qa\_config.json]: ../qa_config.json
 [Building.md]: Building.md
-
 
 ## Restricting Test Configurations
 
@@ -78,12 +79,11 @@ $ ./run_tests.py --rebuild \
     --filter test-googletest-full
 ```
 
-
 ## Testing Releases
 
 When testing a release candidate, your first choice should be to run the test
 artifacts built on the build server for the given build. This is the
-ndk-tests.tar.bz2 artifact in the same directory as the NDK tarball. Extract the
+ndk-tests.tar.bz2 artifact in the same directory as the NDK zip. Extract the
 tests somewhere, and then run:
 
 ```bash
@@ -101,7 +101,6 @@ build the tests, run:
 $ ./run_tests.py --rebuild --ndk path/to/extracted/ndk out
 ```
 
-
 ## Broken and Unsupported Tests
 
 To mark tests as currently broken or as unsupported for a given configuration,
@@ -116,22 +115,28 @@ failure, whereas a passing test will become an "UNEXPECTED SUCCESS" and count as
 a failure.
 
 By default, `run_tests.py` will hide expected failures from the output since the
-user is most likely only interested in seeing what effect their change had. To
+caller is most likely only interested in seeing what effect their change had. To
 see the list of expected failures, pass `--show-all`.
 
 Here's an example `test_config.py` that marks this test as broken when building
 for arm64 and unsupported when running on a pre-Lollipop device:
 
 ```python
-def build_broken(abi, platform):
-    if abi == 'arm64-v8a':
-        return abi, 'https://github.com/android-ndk/ndk/issues/foo'
+from typing import Optional
+
+from ndk.test.devices import Device
+from ndk.test.types import Test
+
+
+def build_broken(test: Test) -> tuple[Optional[str], Optional[str]]:
+    if test.abi == 'arm64-v8a':
+        return test.abi, 'https://github.com/android-ndk/ndk/issues/foo'
     return None, None
 
 
-def run_unsupported(abi, device_api, name):
-    if device_api < 21:
-        return device_api
+def run_unsupported(test: Test, device: Device) -> Optional[str]:
+    if device.version < 21:
+        return f'{device.version}'
     return None
 ```
 
@@ -161,9 +166,10 @@ For Nexus/Pixel devices, factory images are available here:
 https://developers.google.com/android/nexus/images.
 
 For emulators, use emulator images from the SDK rather than from a platform
-build, as these are what our users will be using. Note that the emulators are
-known to break some NDK tests from update to update (namely test-googletest-full
-and asan-smoke).
+build, as these are what our users will be using. Note that some NDK tests
+(namely test-googletest-full and asan-smoke) are known to break between emulator
+updates. It is not known whether these are NDK bugs, emulator bugs, or x86_64
+system image bugs.
 
 After installing the emulator images from the SDK manager, they can be
 configured and launched for testing with (assuming the SDK tools directory is in
@@ -171,26 +177,28 @@ your path):
 
 ```bash
 $ android create avd --name $NAME --target android-$LEVEL --abi $ABI
-$ emulator -avd $NAME -no-window
+$ emulator -avd $NAME
 ```
 
-This will create a new virtual device and launch it in a headless state. Note
-that SIGINT will not stop the emulator, and SIGTERM might leave it in a broken
-state. To shut down an emulator, use `adb shell reboot -p`.
+This will create and launch a new virtual device.
 
-Note that there are no ARM64 emulators whatsoever in the SDK manager. Testing
-ARM64 will require a physical device.
-
+ARM64 emulators are available in the SDK manager but emulated testing (as
+compared to virtualized testing on x86_64) is very slow. Physical devices are
+recommended for testing ARM64.
 
 ## Windows VMs
+
+Warning: the process below hasn't been tested in a very long time. Googlers
+should refer to http://go/ndk-windows-vm for slightly more up-to-date Google-
+specific setup instructions, but http://go/windows-cloudtop may be easier.
 
 Windows testing can be done on Windows VMs in Google Compute Engine. To create
 one:
 
- * Install the [Google Cloud SDK](https://cloud.google.com/sdk/).
- * Run `scripts/create_windows_instance.py $PROJECT_NAME $INSTANCE_NAME`
-   * The project name is the name of the project you configured for the VMs.
-   * The instance name is whatever name you want to use for the VM.
+* Install the [Google Cloud SDK](https://cloud.google.com/sdk/).
+* Run `scripts/create_windows_instance.py $PROJECT_NAME $INSTANCE_NAME`
+    * The project name is the name of the project you configured for the VMs.
+    * The instance name is whatever name you want to use for the VM.
 
 This process will create a `secrets.py` file in the NDK project directory that
 contains the connection information.
