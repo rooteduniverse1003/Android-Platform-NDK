@@ -33,9 +33,9 @@ def call_output(cmd: List[str], *args: Any, **kwargs: Any) -> Tuple[int, Any]:
         'stdout': subprocess.PIPE,
         'stderr': subprocess.STDOUT,
     })
-    proc = subprocess.Popen(cmd, *args, **kwargs)
-    out, _ = proc.communicate()
-    return proc.returncode, out
+    with subprocess.Popen(cmd, *args, **kwargs) as proc:
+        out, _ = proc.communicate()
+        return proc.returncode, out
 
 
 def make_standalone_toolchain(ndk_path: str, arch: str, api: int,

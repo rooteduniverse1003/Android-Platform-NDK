@@ -31,7 +31,7 @@ class TestProgressUi(Ui):
 
     def __init__(self, ui_renderer: UiRenderer, show_worker_status: bool,
                  show_device_groups: bool,
-                 workqueue: ShardingWorkQueue) -> None:
+                 workqueue: ShardingWorkQueue[DeviceShardingGroup]) -> None:
         super().__init__(ui_renderer)
         self.show_worker_status = show_worker_status
         self.show_device_groups = show_device_groups
@@ -44,10 +44,10 @@ class TestProgressUi(Ui):
             for group, group_queues in self.workqueue.work_queues.items():
                 for device, work_queue in group_queues.items():
                     style = font_bold()
-                    if all([
+                    if all(
                             w.status == Worker.IDLE_STATUS
                             for w in work_queue.workers
-                    ]):
+                    ):
                         style = font_faint()
                     lines.append(f'{style}{device}{font_reset()}')
                     for worker in work_queue.workers:
