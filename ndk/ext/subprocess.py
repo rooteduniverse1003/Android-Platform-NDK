@@ -14,11 +14,11 @@
 # limitations under the License.
 #
 """Helpers for subprocess APIs."""
-from __future__ import absolute_import
+from __future__ import annotations
 
 import logging
-import os
 import subprocess
+import sys
 from typing import Any, Sequence, Tuple
 
 
@@ -43,9 +43,9 @@ def _call_output_inner(cmd: Sequence[str], *args: Any,
         'stdout': subprocess.PIPE,
         'stderr': subprocess.STDOUT,
     })
-    proc = subprocess.Popen(cmd, *args, **kwargs)
-    out, _ = proc.communicate()
-    return proc.returncode, out
+    with subprocess.Popen(cmd, *args, **kwargs) as proc:
+        out, _ = proc.communicate()
+        return proc.returncode, out
 
 
 def call_output(cmd: Sequence[str], *args: Any,
@@ -60,7 +60,7 @@ def call_output(cmd: Sequence[str], *args: Any,
 
     Returns: Tuple of (exit_code, output).
     """
-    if os.name == 'nt':
+    if sys.platform == 'win32':
         try:
             return _call_output_inner(cmd, *args, **kwargs)
         except WindowsError as error:  # pylint: disable=undefined-variable

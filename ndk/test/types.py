@@ -172,8 +172,8 @@ class PythonBuildTest(BuildTest):
         try:
             assert self.api is not None
             int(self.api)
-        except ValueError:
-            raise ValueError(f'{self.api} is not a valid API number')
+        except ValueError as ex:
+            raise ValueError(f'{self.api} is not a valid API number') from ex
 
     def get_build_dir(self, out_dir: str) -> str:
         return os.path.join(out_dir, str(self.config), 'test.py', self.name)
