@@ -33,11 +33,13 @@ from typing import (
     Callable,
     Deque,
     Dict,
+    Generic,
     Iterable,
     List,
     Mapping,
     Optional,
     Tuple,
+    TypeVar,
     Union,
 )
 
@@ -371,9 +373,9 @@ class BasicWorkQueue:
         task = self.task_queue.popleft()
         try:
             return task.run(BasicWorker(self.worker_data))
-        except:
+        except Exception as ex:
             trace = ''.join(traceback.format_exception(*sys.exc_info()))
-            raise TaskError(trace)
+            raise TaskError(trace) from ex
 
     def terminate(self) -> None:
         """Does nothing."""
@@ -467,14 +469,17 @@ class ShardingGroup:
         raise NotImplementedError
 
 
-class ShardingWorkQueue:
-    def __init__(self, device_groups: Iterable[ShardingGroup],
+ShardingGroupType = TypeVar('ShardingGroupType', bound=ShardingGroup)
+
+
+class ShardingWorkQueue(Generic[ShardingGroupType]):
+    def __init__(self, device_groups: Iterable[ShardingGroupType],
                  procs_per_device: int) -> None:
         self.manager = multiprocessing.Manager()
         self.result_queue = self.manager.Queue()
-        self.task_queues: Dict[ShardingGroup, Queue] = {}
+        self.task_queues: Dict[ShardingGroupType, Queue] = {}
 
-        self.work_queues: Dict[ShardingGroup, Dict[Any, WorkQueue]] = {}
+        self.work_queues: Dict[ShardingGroupType, Dict[Any, WorkQueue]] = {}
         self.num_tasks = 0
         for group in device_groups:
             self.work_queues[group] = {}
@@ -486,7 +491,7 @@ class ShardingWorkQueue:
                     result_queue=self.result_queue,
                     worker_data=[shard])
 
-    def add_task(self, group: ShardingGroup, func: Callable[..., Any],
+    def add_task(self, group: ShardingGroupType, func: Callable[..., Any],
                  *args: Any, **kwargs: Any) -> None:
         self.task_queues[group].put(
             Task(func, args, kwargs))
