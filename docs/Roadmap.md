@@ -204,20 +204,6 @@ may be present in their equivalent of `targetSdkVersion` but not in their
 `minSdkVersion`. We could potentially do something similar. See
 [issue 1003](https://github.com/android-ndk/ndk/issues/1003).
 
-### C++ Modules
-
-By Q2 2019 Clang may have a complete enough implementation of the modules TS and
-Android may have a Clang with those changes available.
-
-At least for the current spec (which is in the process of merging with the Clang
-implementation, so could change), the NDK will need to:
-
- 1. Support compiling module interfaces.
- 2. Support either automated discovery (currently very messy) or specification
-    of module dependencies.
- 3. Begin creating module interfaces for system libraries. Frameworks, libc,
-    libc++, etc.
-
 ---
 
 ## Historical releases
