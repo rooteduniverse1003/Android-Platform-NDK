@@ -23,7 +23,6 @@ from __future__ import annotations
 # https://github.com/PyCQA/pylint/issues/73
 from distutils.dir_util import copy_tree
 from enum import auto, Enum, unique
-from ndk.cmake import CMakeBuilder
 import os
 from pathlib import Path, PureWindowsPath
 import shutil
@@ -33,10 +32,10 @@ import textwrap
 from typing import Any, Dict, Iterator, List, Optional, Set
 
 from ndk.autoconf import AutoconfBuilder
+from ndk.cmake import CMakeBuilder
 import ndk.ext.shutil
 from ndk.hosts import Host
 import ndk.paths
-from ndk.paths import ANDROID_DIR, NDK_DIR
 
 
 class ModuleValidateError(RuntimeError):
