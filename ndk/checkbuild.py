@@ -492,20 +492,6 @@ class Clang(ndk.builds.Module):
         shutil.rmtree(install_path / 'lib64/cmake')
 
 
-def get_binutils_prebuilt_path(host: Host, arch: ndk.abis.Arch) -> Path:
-    if host == Host.Windows64:
-        host_dir_name = 'win64'
-    else:
-        host_dir_name = host.value
-
-    prebuilt_path = (ANDROID_DIR / 'prebuilts/ndk/binutils' / host_dir_name /
-                     f'binutils-{arch}-{host_dir_name}')
-    if not prebuilt_path.is_dir():
-        raise RuntimeError(
-            f'Could not find prebuilt binutils at {prebuilt_path}')
-    return prebuilt_path
-
-
 def versioned_so(host: Host, lib: str, version: str) -> str:
     """Returns the formatted versioned library for the given host.
 
@@ -1499,13 +1485,6 @@ class BaseToolchain(ndk.builds.Module):
 
         shutil.copyfile(lld, new_bin_ld)
         shutil.copystat(lld, new_bin_ld)
-
-        for arch in ndk.abis.ALL_ARCHITECTURES:
-            binutils_dir = get_binutils_prebuilt_path(self.host, arch)
-            triple = ndk.abis.arch_to_triple(arch)
-
-            gas = binutils_dir / f'bin/{triple}-as{exe}'
-            shutil.copy2(gas, bin_dir)
 
         platforms = self.get_dep('platforms')
         assert isinstance(platforms, Platforms)
