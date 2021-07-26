@@ -15,14 +15,15 @@
 # limitations under the License.
 #
 """Generates an HTML table for the downloads page."""
-from __future__ import print_function
+from __future__ import annotations
 
 import argparse
+from dataclasses import dataclass
 import logging
-import operator
-import os.path
+from pathlib import Path
 import re
 import sys
+from typing import Optional
 
 
 # pylint: disable=design
@@ -49,6 +50,58 @@ def parse_args():
     return parser.parse_args()
 
 
+@dataclass(frozen=True, order=True)
+class Artifact:
+    # Host comes first to ensure that it dominates the sort order.
+    host: str
+    package: str
+    size: int
+    sha: str
+
+    @property
+    def pretty_host(self) -> str:
+        return {
+            'darwin': 'macOS',
+            'linux': 'Linux',
+            'windows': 'Windows',
+        }[self.host]
+
+    @classmethod
+    def from_line(cls, line: str) -> Optional[Artifact]:
+        # Some lines are updates to the repository.xml files used by the SDK
+        # manager. We don't care about these.
+        # <sha>        12,345  path/to/repository.xml
+        if line.endswith('.xml') or 'android-ndk' not in line:
+            return None
+
+        # Real entries look like this (the leading hex number is optional):
+        # 0x1234 <sha>   123,456,789  path/to/android-ndk-r23-beta5-linux.zip
+        match = re.match(
+            r'^(?:0x[0-9a-f]+)?\s*(\w+)\s+([0-9,]+)\s+(.+)$', line)
+        if match is None:
+            logging.error('Skipping unrecognized line: %s', line)
+            return None
+
+        sha = match.group(1)
+
+        size_str = match.group(2)
+        size = int(size_str.replace(',', ''))
+
+        path = Path(match.group(3))
+        if path.suffix == ".zip" and "darwin" in path.name:
+            # Ignore. We only publish the DMG on the web page.
+            return None
+
+        return Artifact(cls.host_from_package_path(path), path.name, size, sha)
+
+    @staticmethod
+    def host_from_package_path(path: Path) -> str:
+        # android-ndk-$VERSION-$HOST.$EXT
+        # $VERSION might contain a hyphen for beta/RC releases.
+        # Split on all hyphens and join $HOST and $EXT to get the platform.
+        return path.stem.split("-")[-1]
+
+
 def main():
     """Program entry point."""
     args = parse_args()
@@ -65,44 +118,11 @@ def main():
 
     artifacts = []
     for line in lines:
-        # Some lines are updates to the repository.xml files used by the SDK
-        # manager. We don't care about these.
-        # <sha>        12,345  path/to/repository.xml
-        if line.endswith('.xml') or 'android-ndk' not in line:
-            continue
+        if (artifact := Artifact.from_line(line)) is not None:
+            artifacts.append(artifact)
 
-        # Real entries look like this (the leading hex number is optional):
-        # 0x1234 <sha>   123,456,789  path/to/android-ndk-r23-beta5-linux.zip
-        match = re.match(
-            r'^(?:0x[0-9a-f]+)?\s*(\w+)\s+([0-9,]+)\s+(.+)$', line)
-        if match is None:
-            logging.error('Skipping unrecognized line: %s', line)
-            continue
-
-        sha = match.group(1)
-
-        size_str = match.group(2)
-        size = int(size_str.replace(',', ''))
-
-        path = match.group(3)
-        package = os.path.basename(path)
-
-        # android-ndk-$VERSION-$HOST.$EXT
-        # $VERSION might contain a hyphen for beta/RC releases.
-        # Split on all hyphens and join $HOST and $EXT to get the platform.
-        package_name, package_ext = os.path.splitext(package)
-        host = package_name.split('-')[-1] + '-' + package_ext[1:]
-        pretty_host = {
-            'darwin-zip': 'macOS',
-            'darwin-dmg': 'macOS App Bundle',
-            'linux-zip': 'Linux',
-            'windows-zip': 'Windows',
-        }[host]
-
-        artifacts.append((host, pretty_host, package, size, sha))
-
-    # Sort the artifacts by the platform name.
-    artifacts = sorted(artifacts, key=operator.itemgetter(0))
+    # Sort the artifacts by the host name.
+    artifacts = sorted(artifacts)
 
     print('For GitHub:')
     print('<table>')
@@ -112,37 +132,36 @@ def main():
     print('    <th>Size (bytes)</th>')
     print('    <th>SHA1 Checksum</th>')
     print('  </tr>')
-    for host, pretty_host, package, size, sha in artifacts:
+    for artifact in artifacts:
         url_base = 'https://dl.google.com/android/repository/'
-        package_url = url_base + package
-        link = '<a href="{}">{}</a>'.format(package_url, package)
+        package_url = url_base + artifact.package
+        link = '<a href="{}">{}</a>'.format(package_url, artifact.package)
 
         print('  <tr>')
-        print('    <td>{}</td>'.format(pretty_host))
+        print('    <td>{}</td>'.format(artifact.pretty_host))
         print('    <td>{}</td>'.format(link))
-        print('    <td>{}</td>'.format(size))
-        print('    <td>{}</td>'.format(sha))
+        print('    <td>{}</td>'.format(artifact.size))
+        print('    <td>{}</td>'.format(artifact.sha))
         print('  </tr>')
     print('</table>')
     print()
     print('For DAC:')
 
     var_prefix = 'ndk_beta' if args.beta else 'ndk'
-    for host, pretty_host, package, size, sha in artifacts:
+    for artifact in artifacts:
         dac_host = {
-            'darwin-zip': 'mac64',
-            'darwin-dmg': 'mac64_dmg',
-            'linux-zip': 'linux64',
-            'windows-zip': 'win64',
-        }[host]
+            'darwin': 'mac64_dmg',
+            'linux': 'linux64',
+            'windows': 'win64',
+        }[artifact.host]
         print()
-        print('{{# {} #}}'.format(pretty_host))
+        print('{{# {} #}}'.format(artifact.pretty_host))
         print('{{% setvar {}_{}_download %}}{}{{% endsetvar %}}'.format(
-            var_prefix, dac_host, package))
+            var_prefix, dac_host, artifact.package))
         print('{{% setvar {}_{}_bytes %}}{}{{% endsetvar %}}'.format(
-            var_prefix, dac_host, size))
+            var_prefix, dac_host, artifact.size))
         print('{{% setvar {}_{}_checksum %}}{}{{% endsetvar %}}'.format(
-            var_prefix, dac_host, sha))
+            var_prefix, dac_host, artifact.sha))
 
 
 if __name__ == '__main__':
