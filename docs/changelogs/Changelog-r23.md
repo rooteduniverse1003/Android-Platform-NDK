@@ -27,7 +27,7 @@ For Android Studio issues, follow the docs on the [Android Studio site].
 
 ## Changes
 
-* Includes preview Android S Beta 2 APIs.
+* Includes Android 12 APIs.
 * Updated LLVM to clang-r416183b, based on LLVM 12 development.
   * [Issue 1047]: Fixes crash when using ASan with the CFI unwinder.
   * [Issue 1096]: Includes support for [Polly]. Enable by adding `-mllvm -polly`
@@ -40,11 +40,18 @@ For Android Studio issues, follow the docs on the [Android Studio site].
   The latest are now posted directly to [GitHub](https://github.com/KhronosGroup/Vulkan-ValidationLayers/releases).
 * Vulkan tools source is also removed, specifically vulkan_wrapper.
   It should be downloaded upstream from [GitHub](https://github.com/KhronosGroup/Vulkan-Tools).
-* The toolchain file (android.toolchain.cmake) is refactored to base on cmake's
+* The toolchain file (android.toolchain.cmake) is refactored to base on CMake's
   integrated Android support. This new toolchain file will be enabled by default
-  for cmake 3.21 and newer. No user side change is expected. But if anything goes
+  for CMake 3.21 and newer. No user side change is expected. But if anything goes
   wrong, please file a bug and set `ANDROID_USE_LEGACY_TOOLCHAIN_FILE=ON` to
   restore the legacy behavior.
+    * When using the new behavior (when using CMake 3.21+ and not explicitly
+      selecting the legacy toolchain), **default build flags may change**. One
+      of the primary goals was to reduce the behavior differences between our
+      toolchain and CMake, and CMake's default flags do not always match the
+      legacy toolchain file. Most notably, if using `CMAKE_BUILD_TYPE=Release`,
+      your optimization type will likely be `-O3` instead of `-O2` or `-Oz`. See
+      [Issue 1536] for more information.
 * [Issue 929]: `find_library` now prefers shared libraries from the sysroot over
   static libraries.
 * [Issue 1390]: ndk-build now warns when building a static executable with the
@@ -62,6 +69,7 @@ For Android Studio issues, follow the docs on the [Android Studio site].
 [Issue 1390]: https://github.com/android/ndk/issues/1390
 [Issue 1406]: https://github.com/android/ndk/issues/1406
 [Issue 1452]: https://github.com/android/ndk/issues/1452
+[Issue 1536]: https://github.com/android/ndk/issues/1536
 [Polly]: https://polly.llvm.org/
 
 ## Known Issues
