@@ -469,10 +469,10 @@ class Clang(ndk.builds.Module):
             for arch in ndk.abis.ALL_ARCHITECTURES:
                 # Only the arch-specific subdir is on the linker search path.
                 subdir = {
-                    ndk.abis.Abi('arm'): 'arm',
-                    ndk.abis.Abi('arm64'): 'aarch64',
-                    ndk.abis.Abi('x86'): 'i386',
-                    ndk.abis.Abi('x86_64'): 'x86_64',
+                    ndk.abis.Arch('arm'): 'arm',
+                    ndk.abis.Arch('arm64'): 'aarch64',
+                    ndk.abis.Arch('x86'): 'i386',
+                    ndk.abis.Arch('x86_64'): 'x86_64',
                 }[arch]
                 (dst_lib_dir / subdir / 'libatomic.a').write_text(
                     textwrap.dedent("""\
