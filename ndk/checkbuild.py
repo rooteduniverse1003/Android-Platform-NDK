@@ -2115,23 +2115,6 @@ class SourceProperties(ndk.builds.Module):
             ])
 
 
-class AdbPy(ndk.builds.PythonPackage):
-    name = 'adb.py'
-    path = ANDROID_DIR / 'development/python-packages/adb/setup.py'
-    notice = ANDROID_DIR / 'development/python-packages/NOTICE'
-
-
-class Lit(ndk.builds.PythonPackage):
-    name = 'lit'
-    path = ANDROID_DIR / 'toolchain/llvm-project/llvm/utils/lit/setup.py'
-    notice = ANDROID_DIR / 'toolchain/llvm-project/llvm/LICENSE.TXT'
-
-
-class NdkPy(ndk.builds.PythonPackage):
-    name = 'ndk.py'
-    path = NDK_DIR / 'setup.py'
-
-
 def create_notice_file(path: Path, for_group: ndk.builds.NoticeGroup) -> None:
     # Using sets here so we can perform some amount of duplicate reduction. In
     # a lot of cases there will be minor differences that cause lots of
@@ -2259,7 +2242,6 @@ def get_modules_to_build(
 
 
 ALL_MODULES = [
-    AdbPy(),
     BaseToolchain(),
     CanaryReadme(),
     Changelog(),
@@ -2271,7 +2253,6 @@ ALL_MODULES = [
     LibShaderc(),
     Libcxx(),
     Libcxxabi(),
-    Lit(),
     Make(),
     Meta(),
     NativeAppGlue(),
@@ -2281,7 +2262,6 @@ ALL_MODULES = [
     NdkGdbShortcut(),
     NdkLldbShortcut(),
     NdkHelper(),
-    NdkPy(),
     NdkStack(),
     NdkStackShortcut(),
     NdkWhich(),
