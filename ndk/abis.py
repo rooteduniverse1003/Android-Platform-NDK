@@ -16,6 +16,8 @@
 """Constants and helper functions for NDK ABIs."""
 from typing import List, NewType
 
+from .platforms import FIRST_LP64_API_LEVEL, MIN_API_LEVEL
+
 
 Arch = NewType('Arch', str)
 Abi = NewType('Abi', str)
@@ -123,7 +125,7 @@ def min_api_for_abi(abi: Abi) -> int:
     21
 
     >>> min_api_for_abi('armeabi-v7a')
-    16
+    19
 
     >>> min_api_for_abi('foobar')
     Traceback (most recent call last):
@@ -131,8 +133,8 @@ def min_api_for_abi(abi: Abi) -> int:
     ValueError: Invalid ABI: foobar
     """
     if abi in LP64_ABIS:
-        return 21
+        return FIRST_LP64_API_LEVEL
     elif abi in LP32_ABIS:
-        return 16
+        return MIN_API_LEVEL
     else:
         raise ValueError('Invalid ABI: {}'.format(abi))

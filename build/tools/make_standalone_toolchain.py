@@ -23,6 +23,7 @@ import argparse
 import atexit
 from distutils.dir_util import copy_tree
 import inspect
+import json
 import logging
 import os
 import shutil
@@ -275,6 +276,12 @@ def warn_unnecessary(arch, api, host_tag):
             new_clang=new_clang)))
 
 
+def get_min_supported_api_level():
+    platforms_json = os.path.join(NDK_DIR, "meta/platforms.json")
+    with open(platforms_json) as platforms:
+        return json.load(platforms)["min"]
+
+
 def parse_args():
     """Parse command line arguments from sys.argv."""
     parser = argparse.ArgumentParser(
@@ -330,7 +337,7 @@ def main():
     check_ndk_or_die()
 
     lp32 = args.arch in ('arm', 'x86')
-    min_api = 16 if lp32 else 21
+    min_api = get_min_supported_api_level() if lp32 else 21
     api = args.api
     if api is None:
         logger().warning(

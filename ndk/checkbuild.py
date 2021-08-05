@@ -19,11 +19,6 @@
 Cleans old build artifacts, configures the required environment, determines
 build goals, and invokes the build scripts.
 """
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-from __future__ import unicode_literals
-
 import argparse
 import collections
 import contextlib
@@ -74,6 +69,7 @@ from ndk.hosts import Host
 import ndk.notify
 import ndk.paths
 from ndk.paths import ANDROID_DIR, NDK_DIR
+from ndk.platforms import MIN_API_LEVEL
 import ndk.test.builder
 import ndk.test.printers
 import ndk.test.spec
@@ -835,7 +831,7 @@ class Platforms(ndk.builds.Module):
         'clang',
     }
 
-    min_supported_api = 16
+    min_supported_api = MIN_API_LEVEL
 
     # These API levels had no new native APIs. The contents of these platforms
     # directories would be identical to the previous extant API level, so they
