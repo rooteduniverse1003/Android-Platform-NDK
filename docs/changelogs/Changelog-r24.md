@@ -22,6 +22,11 @@ For Android Studio issues, follow the docs on the [Android Studio site].
   devices do not support Neon so most apps will not notice aside from the
   performance improvement.
 
+* RenderScript build support has been removed. RenderScript was
+  [deprecated](https://developer.android.com/about/versions/12/deprecations#renderscript)
+  in Android 12. If you have not finished migrating your apps away from
+  RenderScript, NDK r23 LTS can be used.
+
 ## Changes
 
 ## Known Issues
