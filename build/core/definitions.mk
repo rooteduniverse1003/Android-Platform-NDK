@@ -76,9 +76,6 @@ check-required-vars = $(foreach __varname,$1,\
 # The list of default C++ extensions supported by GCC.
 default-c++-extensions := .cc .cp .cxx .cpp .CPP .c++ .C
 
-# The list of default RS extensions supported by llvm-rs-cc
-default-rs-extensions := .rs .fs
-
 # -----------------------------------------------------------------------------
 # Function : generate-empty-file
 # Arguments: 1: file path
@@ -264,10 +261,6 @@ modules-LOCALS := \
     MODULE_FILENAME \
     PATH \
     PCH \
-    RENDERSCRIPT_FLAGS \
-    RENDERSCRIPT_INCLUDES \
-    RENDERSCRIPT_INCLUDES_OVERRIDE \
-    RENDERSCRIPT_TARGET_API \
     SHARED_LIBRARIES \
     SHORT_COMMANDS \
     SRC_FILES \
@@ -1230,7 +1223,7 @@ get-object-name = $(strip \
     $(subst ../,__/,\
       $(subst :,_,\
         $(eval __obj := $1)\
-        $(foreach __ext,.c .s .S .asm $(LOCAL_CPP_EXTENSION) $(LOCAL_RS_EXTENSION),\
+        $(foreach __ext,.c .s .S .asm $(LOCAL_CPP_EXTENSION),\
             $(eval __obj := $(__obj:%$(__ext)=%$(TARGET_OBJ_EXTENSION)))\
         )\
         $(__obj)\
@@ -1239,43 +1232,11 @@ get-object-name = $(strip \
 -test-get-object-name = \
   $(eval TARGET_OBJ_EXTENSION=.o)\
   $(eval LOCAL_CPP_EXTENSION ?= .cpp)\
-  $(eval LOCAL_RS_EXTENSION ?= .rs)\
   $(call test-expect,foo.o,$(call get-object-name,foo.c))\
   $(call test-expect,bar.o,$(call get-object-name,bar.s))\
   $(call test-expect,zoo.o,$(call get-object-name,zoo.S))\
   $(call test-expect,tot.o,$(call get-object-name,tot.cpp))\
-  $(call test-expect,RS.o,$(call get-object-name,RS.rs))\
   $(call test-expect,goo.o,$(call get-object-name,goo.asm))
-
-get-rs-scriptc-name = $(strip \
-    $(subst ../,__/,\
-      $(subst :,_,\
-        $(eval __obj := $1)\
-        $(foreach __ext,$(LOCAL_RS_EXTENSION),\
-            $(eval __obj := $(__obj:%$(__ext)=%.cpp))\
-        )\
-        $(dir $(__obj))ScriptC_$(notdir $(__obj))\
-    )))
-
-get-rs-bc-name = $(strip \
-    $(subst ../,__/,\
-      $(subst :,_,\
-        $(eval __obj := $1)\
-        $(foreach __ext,$(LOCAL_RS_EXTENSION),\
-            $(eval __obj := $(__obj:%$(__ext)=%.bc))\
-        )\
-        $(__obj)\
-    )))
-
-get-rs-so-name = $(strip \
-    $(subst ../,__/,\
-      $(subst :,_,\
-        $(eval __obj := $1)\
-        $(foreach __ext,$(LOCAL_RS_EXTENSION),\
-            $(eval __obj := $(__obj:%$(__ext)=%$(TARGET_SONAME_EXTENSION)))\
-        )\
-        $(notdir $(__obj))\
-    )))
 
 # -----------------------------------------------------------------------------
 # Macro    : hide
@@ -1341,7 +1302,7 @@ $$(_OBJ): $$(_OPTIONS_LISTFILE)
 endif
 
 $$(call generate-file-dir,$$(_OBJ))
-$$(_OBJ): $$(_SRC) $$(LOCAL_MAKEFILE) $$(NDK_APP_APPLICATION_MK) $(LOCAL_RS_OBJECTS)
+$$(_OBJ): $$(_SRC) $$(LOCAL_MAKEFILE) $$(NDK_APP_APPLICATION_MK)
 	$$(call host-echo-build-step,$$(PRIVATE_ABI),$$(PRIVATE_TEXT)) "$$(PRIVATE_MODULE) <= $$(notdir $$(PRIVATE_SRC))"
 	$$(hide) $$(call host-rm,$$(call host-path,$$(PRIVATE_OBJ)))
 	$$(hide) $$(PRIVATE_CC) -MMD -MP -MF $$(PRIVATE_DEPS) $$(PRIVATE_CFLAGS) $$(call host-path,$$(PRIVATE_SRC)) -o $$(call host-path,$$(PRIVATE_OBJ))
@@ -1379,79 +1340,6 @@ $$(_JSON_INTERMEDIATE): $$(LOCAL_MAKEFILE) $$(NDK_APP_APPLICATION_MK)
 
 $$(COMPILE_COMMANDS_JSON): $$(_JSON_INTERMEDIATE)
 sub_commands_json += $$(_JSON_INTERMEDIATE)
-endef
-
-
-# For renderscript: slightly different from the above ev-build-file
-# _RS_SRC: RS source file
-# _CPP_SRC: ScriptC_RS.cpp source file
-# _BC_SRC: Bitcode source file
-# _BC_SO: Bitcode SO name, no path
-# _OBJ: destination file
-# _RS_CC: 'compiler' command for _RS_SRC
-# _RS_BCC: 'compiler' command for _BC_SRC
-# _CXX: 'compiler' command for _CPP_SRC
-# _RS_FLAGS: 'compiler' flags for _RS_SRC
-# _CPP_FLAGS: 'compiler' flags for _CPP_SRC
-# _LD_FLAGS: 'compiler' flags for linking
-# _TEXT: Display text (e.g. "Compile RS")
-# _OUT: output dir
-# _COMPAT: 'true' if bcc_compat is required
-#
-define ev-build-rs-file
-$$(_OBJ): PRIVATE_ABI       := $$(TARGET_ARCH_ABI)
-$$(_OBJ): PRIVATE_RS_SRC    := $$(_RS_SRC)
-$$(_OBJ): PRIVATE_CPP_SRC   := $$(_CPP_SRC)
-$$(_OBJ): PRIVATE_BC_SRC    := $$(_BC_SRC)
-$$(_OBJ): PRIVATE_OBJ       := $$(_OBJ)
-$$(_OBJ): PRIVATE_BC_OBJ    := $$(_BC_SRC)$(TARGET_OBJ_EXTENSION)
-$$(_OBJ): PRIVATE_BC_SO     := $$(_BC_SO)
-$$(_OBJ): PRIVATE_DEPS      := $$(call host-path,$$(_OBJ).d)
-$$(_OBJ): PRIVATE_MODULE    := $$(LOCAL_MODULE)
-$$(_OBJ): PRIVATE_TEXT      := $$(_TEXT)
-$$(_OBJ): PRIVATE_RS_CC     := $$(_RS_CC)
-$$(_OBJ): PRIVATE_RS_BCC    := $$(_RS_BCC)
-$$(_OBJ): PRIVATE_CXX       := $$(_CXX)
-$$(_OBJ): PRIVATE_RS_FLAGS  := $$(_RS_FLAGS)
-$$(_OBJ): PRIVATE_CPPFLAGS  := $$(_CPP_FLAGS)
-$$(_OBJ): PRIVATE_LD        := $$(TARGET_LD)
-$$(_OBJ): PRIVATE_LDFLAGS   := $$(_LD_FLAGS)
-$$(_OBJ): PRIVATE_OUT       := $$(TARGET_OUT)
-$$(_OBJ): PRIVATE_RS_TRIPLE := $$(RS_TRIPLE)
-$$(_OBJ): PRIVATE_COMPAT    := $$(_COMPAT)
-$$(_OBJ): PRIVATE_LIB_PATH  := $$(RENDERSCRIPT_TOOLCHAIN_PREBUILT_ROOT)/platform/$(TARGET_ARCH)
-$$(_OBJ): PRIVATE_SYSROOT_LINK_ARG := $$(SYSROOT_LINK_ARG)
-
-ifeq ($$(LOCAL_SHORT_COMMANDS),true)
-_OPTIONS_LISTFILE := $$(_OBJ).cflags
-$$(_OBJ): $$(call generate-list-file,$$(_CPP_FLAGS),$$(_OPTIONS_LISTFILE))
-$$(_OBJ): PRIVATE_CPPFLAGS := @$$(call host-path,$$(_OPTIONS_LISTFILE))
-$$(_OBJ): $$(_OPTIONS_LISTFILE)
-endif
-
-# llvm-rc-cc.exe has problem accepting input *.rs with path. To workaround:
-# cd ($dir $(_SRC)) ; llvm-rs-cc $(notdir $(_SRC)) -o ...full-path...
-#
-ifeq ($$(_COMPAT),true)
-	# In COMPAT mode, use LD instead of CXX to bypass the gradle check for their book-keeping of native libs.
-	# And this is what we do with SDK.
-	# TODO: We could use CXX after gradle can correctly handle librs.*.so.
-$$(_OBJ): $$(_RS_SRC) $$(LOCAL_MAKEFILE) $$(NDK_APP_APPLICATION_MK)
-	$$(call host-echo-build-step,$$(PRIVATE_ABI),$$(PRIVATE_TEXT)) "$$(PRIVATE_MODULE) <= $$(notdir $$(PRIVATE_RS_SRC))"
-	$$(hide) \
-	cd $$(call host-path,$$(dir $$(PRIVATE_RS_SRC))) && $$(PRIVATE_RS_CC) -o $$(call host-path,$$(abspath $$(dir $$(PRIVATE_OBJ))))/ -d $$(abspath $$(call host-path,$$(dir $$(PRIVATE_OBJ)))) -MD -reflect-c++ -target-api $(strip $(subst android-,,$(APP_PLATFORM))) $$(PRIVATE_RS_FLAGS) $$(notdir $$(PRIVATE_RS_SRC))
-	$$(hide) \
-	$$(PRIVATE_RS_BCC) -O3 -o $$(call host-path,$$(PRIVATE_BC_OBJ)) -fPIC -shared -rt-path $$(PRIVATE_LIB_PATH)/librsrt.bc -mtriple $$(PRIVATE_RS_TRIPLE) $$(call host-path,$$(PRIVATE_BC_SRC))
-	$$(PRIVATE_LD) -shared -Bsymbolic -z noexecstack -z relro -z now -nostdlib $$(call host-path,$$(PRIVATE_BC_OBJ)) $$(PRIVATE_LIB_PATH)/libcompiler_rt.a -o $$(call host-path,$$(PRIVATE_OUT)/librs.$$(PRIVATE_BC_SO)) $$(PRIVATE_SYSROOT_LINK_ARG) -L $$(PRIVATE_LIB_PATH) -lRSSupport -lm -lc
-	$$(PRIVATE_CXX) -MMD -MP -MF $$(PRIVATE_DEPS) $$(PRIVATE_CPPFLAGS) $$(call host-path,$$(PRIVATE_CPP_SRC)) -o $$(call host-path,$$(PRIVATE_OBJ))
-else
-$$(_OBJ): $$(_RS_SRC) $$(LOCAL_MAKEFILE) $$(NDK_APP_APPLICATION_MK)
-	$$(call host-echo-build-step,$$(PRIVATE_ABI),$$(PRIVATE_TEXT)) "$$(PRIVATE_MODULE) <= $$(notdir $$(PRIVATE_RS_SRC))"
-	$$(hide) \
-	cd $$(call host-path,$$(dir $$(PRIVATE_RS_SRC))) && $$(PRIVATE_RS_CC) -o $$(call host-path,$$(abspath $$(dir $$(PRIVATE_OBJ))))/ -d $$(abspath $$(call host-path,$$(dir $$(PRIVATE_OBJ)))) -MD -reflect-c++ -target-api $(strip $(subst android-,,$(APP_PLATFORM))) $$(PRIVATE_RS_FLAGS) $$(notdir $$(PRIVATE_RS_SRC))
-	$$(hide) \
-	$$(PRIVATE_CXX) -MMD -MP -MF $$(PRIVATE_DEPS) $$(PRIVATE_CPPFLAGS) $$(call host-path,$$(PRIVATE_CPP_SRC)) -o $$(call host-path,$$(PRIVATE_OBJ))
-endif
 endef
 
 # This assumes the same things than ev-build-file, but will handle
@@ -1624,7 +1512,7 @@ $$(_OBJ): $$(_OPTIONS_LISTFILE)
 endif
 
 $$(call generate-file-dir,$$(_OBJ))
-$$(_OBJ): $$(_SRC) $$(LOCAL_MAKEFILE) $$(NDK_APP_APPLICATION_MK) $(LOCAL_RS_OBJECTS)
+$$(_OBJ): $$(_SRC) $$(LOCAL_MAKEFILE) $$(NDK_APP_APPLICATION_MK)
 	$$(call host-echo-build-step,$$(PRIVATE_ABI),$$(PRIVATE_TEXT)) "$$(PRIVATE_MODULE) <= $$(notdir $$(PRIVATE_SRC))"
 	$$(hide) $$(PRIVATE_CC) $$(PRIVATE_CFLAGS) $$(call host-path,$$(PRIVATE_SRC)) -o $$(call host-path,$$(PRIVATE_OBJ))
 endef
@@ -1830,72 +1718,6 @@ endef
 # Usage     : $(call compile-cpp-source,<srcfile>)
 # -----------------------------------------------------------------------------
 clang-tidy-cpp = $(eval $(call ev-clang-tidy-cpp,$1,$2))
-
-# -----------------------------------------------------------------------------
-# Template  : ev-compile-rs-source
-# Arguments : 1: single RS source file name (relative to LOCAL_PATH)
-#             2: intermediate cpp file (without path)
-#             3: intermediate bc file (without path)
-#             4: so file from bc (without path)
-#             5: target object file (without path)
-#             6: 'true' if bcc_compat is required
-# Returns   : None
-# Usage     : $(eval $(call ev-compile-rs-source,<srcfile>,<cppfile>,<objfile>)
-# Rationale : Internal template evaluated by compile-rs-source
-# -----------------------------------------------------------------------------
-
-define  ev-compile-rs-source
-_RS_SRC:=$$(call local-source-file-path,$(1))
-_CPP_SRC:=$$(LOCAL_OBJS_DIR:%/=%)/$(2)
-_BC_SRC:=$$(LOCAL_OBJS_DIR:%/=%)/$(3)
-_BC_SO:=$(4)
-_OBJ:=$$(LOCAL_OBJS_DIR:%/=%)/$(5)
-_COMPAT := $(6)
-_CPP_FLAGS := \
-    $$(GLOBAL_CXXFLAGS) \
-    $$(TARGET_CXXFLAGS) \
-    $$(call get-src-file-target-cflags,$(1)) \
-    $$(call host-c-includes, $$(LOCAL_C_INCLUDES) $$(LOCAL_PATH)) \
-    $$(NDK_APP_CFLAGS) \
-    $$(NDK_APP_CPPFLAGS) \
-    $$(NDK_APP_CXXFLAGS) \
-    $$(LOCAL_CFLAGS) \
-    $$(LOCAL_CPPFLAGS) \
-    $$(LOCAL_CXXFLAGS) \
-    -fno-rtti \
-    -c \
-
-_LD_FLAGS := \
-    $$(GLOBAL_LDFLAGS) \
-    $$(TARGET_LDFLAGS) \
-
-_RS_FLAGS := $$(call host-c-includes, $$(LOCAL_RENDERSCRIPT_INCLUDES) $$(LOCAL_PATH)) \
-          $$(TARGET_RS_FLAGS) \
-          $$(LOCAL_RENDERSCRIPT_FLAGS) \
-          $$(call host-c-includes,$$(TARGET_RENDERSCRIPT_INCLUDES)) \
-
-_RS_CC  := $$(NDK_CCACHE) $$(TARGET_RS_CC)
-_RS_BCC := $$(NDK_CCACHE) $$(TARGET_RS_BCC)
-_CXX    := $$(NDK_CCACHE) $$(TARGET_CXX)
-_TEXT   := Compile RS
-_OUT    := $$(TARGET_OUT)
-
-$$(eval $$(call ev-build-rs-file))
-endef
-
-# -----------------------------------------------------------------------------
-# Function  : compile-rs-source
-# Arguments : 1: single RS source file name (relative to LOCAL_PATH)
-#             2: intermediate cpp file name
-#             3: intermediate bc file
-#             4: so file from bc (without path)
-#             5: object file name
-#             6: 'true' if bcc_compat is required
-# Returns   : None
-# Usage     : $(call compile-rs-source,<srcfile>)
-# Rationale : Setup everything required to build a single RS source file
-# -----------------------------------------------------------------------------
-compile-rs-source = $(eval $(call ev-compile-rs-source,$1,$2,$3,$4,$5,$6))
 
 #
 #  Module imports

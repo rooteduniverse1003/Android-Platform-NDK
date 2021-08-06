@@ -85,7 +85,7 @@ include $(NDK_TOOLCHAIN.$(TARGET_TOOLCHAIN).setup)
 # Note that these are not needed for the typical case of invoking Clang, as
 # Clang already knows where the sysroot is relative to itself. We still need to
 # manually refer to these in some places because other tools such as yasm and
-# the renderscript compiler don't have this knowledge.
+# don't have this knowledge.
 
 # SYSROOT_INC points to a directory that contains all public header files for a
 # given platform.

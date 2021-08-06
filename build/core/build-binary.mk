@@ -27,7 +27,6 @@ LOCAL_CONLYFLAGS := $(__ndk_modules.$(LOCAL_MODULE).CONLYFLAGS)
 LOCAL_CPPFLAGS := $(__ndk_modules.$(LOCAL_MODULE).CPPFLAGS)
 LOCAL_CXXFLAGS := $(__ndk_modules.$(LOCAL_MODULE).CXXFLAGS)
 LOCAL_LDFLAGS := $(__ndk_modules.$(LOCAL_MODULE).LDFLAGS)
-LOCAL_RENDERSCRIPT_FLAGS := $(__ndk_modules.$(LOCAL_MODULE).RENDERSCRIPT_FLAGS)
 
 # For now, only support target (device-specific modules).
 # We may want to introduce support for host modules in the future
@@ -133,9 +132,6 @@ endif
 # list of generated object files
 LOCAL_OBJECTS :=
 
-# list of generated object files from RS files, subset of LOCAL_OBJECTS
-LOCAL_RS_OBJECTS :=
-
 # always define ANDROID when building binaries
 #
 LOCAL_CFLAGS := -DANDROID $(LOCAL_CFLAGS)
@@ -162,7 +158,6 @@ ifeq ($(LOCAL_CPP_EXTENSION),)
   # Match the default GCC C++ extensions.
   LOCAL_CPP_EXTENSION := $(default-c++-extensions)
 endif
-LOCAL_RS_EXTENSION := $(default-rs-extensions)
 
 ifneq ($(NDK_APP_STL),system)
     LOCAL_CFLAGS += -nostdinc++
@@ -327,13 +322,12 @@ LOCAL_DEPENDENCY_DIRS :=
 # all_source_patterns contains the list of filename patterns that correspond
 # to source files recognized by our build system
 ifneq ($(filter x86 x86_64, $(TARGET_ARCH_ABI)),)
-all_source_extensions := .c .s .S .asm $(LOCAL_CPP_EXTENSION) $(LOCAL_RS_EXTENSION)
+all_source_extensions := .c .s .S .asm $(LOCAL_CPP_EXTENSION)
 else
-all_source_extensions := .c .s .S $(LOCAL_CPP_EXTENSION) $(LOCAL_RS_EXTENSION)
+all_source_extensions := .c .s .S $(LOCAL_CPP_EXTENSION)
 endif
 all_source_patterns   := $(foreach _ext,$(all_source_extensions),%$(_ext))
 all_cpp_patterns      := $(foreach _ext,$(LOCAL_CPP_EXTENSION),%$(_ext))
-all_rs_patterns       := $(foreach _ext,$(LOCAL_RS_EXTENSION),%$(_ext))
 
 unknown_sources := $(strip $(filter-out $(all_source_patterns),$(LOCAL_SRC_FILES)))
 ifdef unknown_sources
@@ -353,15 +347,6 @@ LOCAL_OBJECTS := $(subst ../,__/,$(LOCAL_OBJECTS))
 LOCAL_OBJECTS := $(subst :,_,$(LOCAL_OBJECTS))
 LOCAL_OBJECTS := $(foreach _obj,$(LOCAL_OBJECTS),$(LOCAL_OBJS_DIR)/$(_obj))
 
-LOCAL_RS_OBJECTS := $(filter $(all_rs_patterns),$(LOCAL_SRC_FILES))
-$(foreach _ext,$(LOCAL_RS_EXTENSION),\
-    $(eval LOCAL_RS_OBJECTS := $$(LOCAL_RS_OBJECTS:%$(_ext)=%$$(TARGET_OBJ_EXTENSION)))\
-)
-LOCAL_RS_OBJECTS := $(filter %$(TARGET_OBJ_EXTENSION),$(LOCAL_RS_OBJECTS))
-LOCAL_RS_OBJECTS := $(subst ../,__/,$(LOCAL_RS_OBJECTS))
-LOCAL_RS_OBJECTS := $(subst :,_,$(LOCAL_RS_OBJECTS))
-LOCAL_RS_OBJECTS := $(foreach _obj,$(LOCAL_RS_OBJECTS),$(LOCAL_OBJS_DIR)/$(_obj))
-
 # If the module has any kind of C++ features, enable them in LOCAL_CPPFLAGS
 #
 ifneq (,$(call module-has-c++-features,$(LOCAL_MODULE),rtti))
@@ -370,23 +355,6 @@ endif
 ifneq (,$(call module-has-c++-features,$(LOCAL_MODULE),exceptions))
     LOCAL_CPPFLAGS += -fexceptions
 endif
-
-# Set include patch for renderscript
-ifneq ($(LOCAL_RENDERSCRIPT_INCLUDES_OVERRIDE),)
-    LOCAL_RENDERSCRIPT_INCLUDES := $(LOCAL_RENDERSCRIPT_INCLUDES_OVERRIDE)
-else
-    LOCAL_RENDERSCRIPT_INCLUDES := \
-        $(RENDERSCRIPT_PLATFORM_HEADER)/scriptc \
-        $(RENDERSCRIPT_TOOLCHAIN_HEADER) \
-        $(LOCAL_RENDERSCRIPT_INCLUDES)
-endif
-
-# Only enable the compatibility path when LOCAL_RENDERSCRIPT_COMPATIBILITY is defined.
-RS_COMPAT :=
-ifeq ($(LOCAL_RENDERSCRIPT_COMPATIBILITY),true)
-    RS_COMPAT := true
-endif
-
 
 # Build PCH
 
@@ -451,14 +419,6 @@ endif
 # Build the sources to object files
 #
 
-# Include RenderScript headers if rs files are found.
-ifneq ($(filter $(all_rs_patterns),$(LOCAL_SRC_FILES)),)
-    LOCAL_C_INCLUDES += \
-        $(RENDERSCRIPT_PLATFORM_HEADER) \
-        $(RENDERSCRIPT_PLATFORM_HEADER)/cpp \
-        $(TARGET_OBJS)/$(LOCAL_MODULE)
-endif
-
 do_tidy := $(NDK_APP_CLANG_TIDY)
 ifdef LOCAL_CLANG_TIDY
     do_tidy := $(LOCAL_CLANG_TIDY)
@@ -475,10 +435,6 @@ $(foreach src,$(filter %.c,$(LOCAL_SRC_FILES)), $(call compile-c-source,$(src),$
 $(foreach src,$(filter %.S %.s,$(LOCAL_SRC_FILES)), $(call compile-s-source,$(src),$(call get-object-name,$(src))))
 $(foreach src,$(filter $(all_cpp_patterns),$(LOCAL_SRC_FILES)),\
     $(call compile-cpp-source,$(src),$(call get-object-name,$(src)))\
-)
-
-$(foreach src,$(filter $(all_rs_patterns),$(LOCAL_SRC_FILES)),\
-    $(call compile-rs-source,$(src),$(call get-rs-scriptc-name,$(src)),$(call get-rs-bc-name,$(src)),$(call get-rs-so-name,$(src)),$(call get-object-name,$(src)),$(RS_COMPAT))\
 )
 
 ifneq ($(filter x86 x86_64, $(TARGET_ARCH_ABI)),)

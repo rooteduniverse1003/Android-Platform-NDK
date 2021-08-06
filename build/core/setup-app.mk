@@ -107,14 +107,6 @@ clean-installed-binaries::
 	$(hide) $(call host-rm,$(NDK_APP_ABI:%=$(NDK_APP_LIBS_OUT)/%/gdb.setup))
 endif
 
-# Renderscript
-
-RENDERSCRIPT_TOOLCHAIN_PREBUILT_ROOT := \
-    $(NDK_ROOT)/toolchains/renderscript/prebuilt/$(HOST_TAG64)
-RENDERSCRIPT_TOOLCHAIN_PREFIX := $(RENDERSCRIPT_TOOLCHAIN_PREBUILT_ROOT)/bin/
-RENDERSCRIPT_TOOLCHAIN_HEADER := $(RENDERSCRIPT_TOOLCHAIN_PREBUILT_ROOT)/clang-include
-RENDERSCRIPT_PLATFORM_HEADER := $(RENDERSCRIPT_TOOLCHAIN_PREBUILT_ROOT)/platform/rs
-
 COMPILE_COMMANDS_JSON := $(call host-path,compile_commands.json)
 sub_commands_json :=
 
