@@ -43,9 +43,15 @@ def parse_args():
     """Parses and returns command line arguments."""
     parser = argparse.ArgumentParser()
 
-    parser.add_argument(
+    release_type_group = parser.add_mutually_exclusive_group()
+
+    release_type_group.add_argument(
         '--beta', action='store_true',
         help='Generate content for a beta release.')
+
+    release_type_group.add_argument(
+        '--lts', action='store_true',
+        help='Generate content for an LTS release.')
 
     return parser.parse_args()
 
@@ -147,7 +153,12 @@ def main():
     print()
     print('For DAC:')
 
-    var_prefix = 'ndk_beta' if args.beta else 'ndk'
+    if args.beta:
+        var_prefix = 'ndk_beta'
+    elif args.lts:
+        var_prefix = 'ndk_lts'
+    else:
+        var_prefix = 'ndk'
     for artifact in artifacts:
         dac_host = {
             'darwin': 'mac64_dmg',
