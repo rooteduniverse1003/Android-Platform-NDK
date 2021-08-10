@@ -14,14 +14,11 @@
 # limitations under the License.
 #
 """Helper functions for NDK build and test paths."""
-from __future__ import absolute_import
-
 import os
 from pathlib import Path
 import sys
 from typing import Callable, Iterator, Optional
 
-import ndk.abis
 import ndk.config
 import ndk.hosts
 
@@ -38,19 +35,6 @@ def android_path(*args: str) -> str:
 def ndk_path(*args: str) -> str:
     """Returns the absolute path rooted within the NDK source tree."""
     return android_path('ndk', *args)
-
-
-def sysroot_path(toolchain: ndk.abis.Toolchain) -> str:
-    """Returns the path to the prebuilt sysroot for the given toolchain."""
-    arch = ndk.abis.toolchain_to_arch(toolchain)
-    # Only ARM has more than one ABI, and they both have the same minimum
-    # platform level.
-    abi = ndk.abis.arch_to_abis(arch)[0]
-    version = ndk.abis.min_api_for_abi(abi)
-
-    prebuilt_ndk = 'prebuilts/ndk/current'
-    sysroot_subpath = 'platforms/android-{}/arch-{}'.format(version, arch)
-    return android_path(prebuilt_ndk, sysroot_subpath)
 
 
 def toolchain_path(*args: str) -> str:
