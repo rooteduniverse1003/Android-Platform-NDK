@@ -50,6 +50,7 @@ import traceback
 from typing import (
     Any,
     Callable,
+    ContextManager,
     Dict,
     Iterable,
     Iterator,
@@ -2102,21 +2103,32 @@ def create_notice_file(path: Path, for_group: ndk.builds.NoticeGroup) -> None:
 
 
 def launch_build(worker: ndk.workqueue.Worker, module: ndk.builds.Module,
-                 log_dir: Path) -> Tuple[bool, ndk.builds.Module]:
-    result = do_build(worker, module, log_dir)
+                 log_dir: Path,
+                 debuggable: bool) -> Tuple[bool, ndk.builds.Module]:
+    result = do_build(worker, module, log_dir, debuggable)
     if not result:
         return result, module
     do_install(worker, module)
     return True, module
 
 
-def do_build(worker: ndk.workqueue.Worker, module: ndk.builds.Module,
-             log_dir: Path) -> bool:
-    with module.log_path(log_dir).open('w') as log_file:
+@contextlib.contextmanager
+def file_logged_context(path: Path) -> Iterator[None]:
+    with path.open('w') as log_file:
         os.dup2(log_file.fileno(), sys.stdout.fileno())
         os.dup2(log_file.fileno(), sys.stderr.fileno())
+        yield
+
+
+def do_build(worker: ndk.workqueue.Worker, module: ndk.builds.Module,
+             log_dir: Path, debuggable: bool) -> bool:
+    if debuggable:
+        cm: ContextManager = contextlib.nullcontext()
+    else:
+        cm = file_logged_context(module.log_path(log_dir))
+    with cm:
         try:
-            worker.status = 'Building {}...'.format(module)
+            worker.status = f'Building {module}...'
             module.build()
             return True
         except Exception:  # pylint: disable=broad-except
@@ -2268,10 +2280,20 @@ def parse_args() -> Tuple[argparse.Namespace, List[str]]:
         description=inspect.getdoc(sys.modules[__name__]))
 
     parser.add_argument(
-        '-j', '--jobs', type=int, default=multiprocessing.cpu_count(),
+        '-j',
+        '--jobs',
+        type=int,
+        default=multiprocessing.cpu_count(),
         help=('Number of parallel builds to run. Note that this will not '
               'affect the -j used for make; this just parallelizes '
-              'checkbuild.py. Defaults to the number of CPUs available.'))
+              'checkbuild.py. Defaults to the number of CPUs available. '
+              'Disabled when --debugabble is used.'))
+
+    parser.add_argument(
+        '--debuggable',
+        action='store_true',
+        help=('Prints build output to the console and disables threading to '
+              'allow debugging with breakpoint()'))
 
     parser.add_argument(
         '--skip-deps', action='store_true',
@@ -2335,7 +2357,7 @@ def log_build_failure(log_path: str, dist_dir: str) -> None:
 
 def launch_buildable(deps: ndk.deps.DependencyManager,
                      workqueue: ndk.workqueue.AnyWorkQueue, log_dir: Path,
-                     skip_deps: bool,
+                     debuggable: bool, skip_deps: bool,
                      skip_modules: Set[ndk.builds.Module]) -> None:
     # If args.skip_deps is true, we could get into a case where we just
     # dequeued the only module that was still building and the only
@@ -2351,36 +2373,46 @@ def launch_buildable(deps: ndk.deps.DependencyManager,
             if skip_deps and module in skip_modules:
                 deps.complete(module)
                 continue
-            workqueue.add_task(launch_build, module, log_dir)
+            workqueue.add_task(launch_build, module, log_dir, debuggable)
+
+
+@contextlib.contextmanager
+def build_ui_context(debuggable: bool) -> Iterator[None]:
+    if debuggable:
+        yield
+    else:
+        console = ndk.ansi.get_console()
+        with ndk.ansi.disable_terminal_echo(sys.stdin):
+            with console.cursor_hide_context():
+                yield
 
 
 def wait_for_build(deps: ndk.deps.DependencyManager,
                    workqueue: ndk.workqueue.AnyWorkQueue, dist_dir: str,
-                   log_dir: Path, skip_deps: bool,
+                   log_dir: Path, debuggable: bool, skip_deps: bool,
                    skip_modules: Set[ndk.builds.Module]) -> None:
     console = ndk.ansi.get_console()
     ui = ndk.ui.get_build_progress_ui(console, workqueue)
-    with ndk.ansi.disable_terminal_echo(sys.stdin):
-        with console.cursor_hide_context():
-            while not workqueue.finished():
-                result, module = workqueue.get_result()
-                if not result:
-                    ui.clear()
-                    print('Build failed: {}'.format(module))
-                    log_build_failure(
-                        module.log_path(log_dir), dist_dir)
-                    sys.exit(1)
-                elif not console.smart_console:
-                    ui.clear()
-                    print('Build succeeded: {}'.format(module))
+    with build_ui_context(debuggable):
+        while not workqueue.finished():
+            result, module = workqueue.get_result()
+            if not result:
+                ui.clear()
+                print('Build failed: {}'.format(module))
+                log_build_failure(
+                    module.log_path(log_dir), dist_dir)
+                sys.exit(1)
+            elif not console.smart_console:
+                ui.clear()
+                print('Build succeeded: {}'.format(module))
 
-                deps.complete(module)
-                launch_buildable(deps, workqueue, log_dir, skip_deps,
-                                 skip_modules)
+            deps.complete(module)
+            launch_buildable(deps, workqueue, log_dir, debuggable,
+                             skip_deps, skip_modules)
 
-                ui.draw()
-            ui.clear()
-            print('Build finished')
+            ui.draw()
+        ui.clear()
+        print('Build finished')
 
 
 def build_ndk(modules: List[ndk.builds.Module],
@@ -2399,12 +2431,15 @@ def build_ndk(modules: List[ndk.builds.Module],
     ndk_dir.mkdir(parents=True, exist_ok=True)
 
     deps = ndk.deps.DependencyManager(modules)
-    workqueue = ndk.workqueue.WorkQueue(args.jobs)
+    if args.debuggable:
+        workqueue: ndk.workqueue.AnyWorkQueue = ndk.workqueue.BasicWorkQueue()
+    else:
+        workqueue = ndk.workqueue.WorkQueue(args.jobs)
     try:
-        launch_buildable(deps, workqueue, log_dir, args.skip_deps,
-                         deps_only)
+        launch_buildable(deps, workqueue, log_dir, args.debuggable,
+                         args.skip_deps, deps_only)
         wait_for_build(deps, workqueue, str(dist_dir), log_dir,
-                       args.skip_deps, deps_only)
+                       args.debuggable, args.skip_deps, deps_only)
 
         if deps.get_buildable():
             raise RuntimeError(
