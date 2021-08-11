@@ -366,7 +366,7 @@ def _install_file(src_file: str, dst_file: str) -> None:
 
 class Clang(ndk.builds.Module):
     name = 'clang'
-    path = Path('toolchains/llvm/prebuilt/{host}')
+    install_path = Path('toolchains/llvm/prebuilt/{host}')
     notice_group = ndk.builds.NoticeGroup.TOOLCHAIN
 
     @property
@@ -507,7 +507,7 @@ def versioned_so(host: Host, lib: str, version: str) -> str:
 class ShaderTools(ndk.builds.CMakeModule):
     name = 'shader-tools'
     src = ANDROID_DIR / 'external' / 'shaderc' / 'shaderc'
-    path = Path('shader-tools/{host}')
+    install_path = Path('shader-tools/{host}')
     run_ctest = True
     notice_group = ndk.builds.NoticeGroup.TOOLCHAIN
     deps = {'clang'}
@@ -616,7 +616,7 @@ class ShaderTools(ndk.builds.CMakeModule):
 
 class Make(ndk.builds.AutoconfModule):
     name = 'make'
-    path = Path('prebuilt/{host}')
+    install_path = Path('prebuilt/{host}')
     notice_group = ndk.builds.NoticeGroup.TOOLCHAIN
     src = ANDROID_DIR / 'toolchain/make'
     # The macOS sed chokes on invalid UTF-8 in config.h-vms.template, at least
@@ -631,7 +631,7 @@ class Make(ndk.builds.AutoconfModule):
 
 class Yasm(ndk.builds.AutoconfModule):
     name = 'yasm'
-    path = Path('prebuilt/{host}')
+    install_path = Path('prebuilt/{host}')
     notice_group = ndk.builds.NoticeGroup.TOOLCHAIN
     src = ANDROID_DIR / 'toolchain/yasm'
 
@@ -650,7 +650,7 @@ class Yasm(ndk.builds.AutoconfModule):
 
 class NdkWhich(ndk.builds.FileModule):
     name = 'ndk-which'
-    path = Path('prebuilt/{host}/bin/ndk-which')
+    install_path = Path('prebuilt/{host}/bin/ndk-which')
     src = NDK_DIR / 'ndk-which'
 
 
@@ -662,7 +662,7 @@ class Python(ndk.builds.Module):
     """
 
     name = 'python'
-    path = Path('prebuilt/{host}')
+    install_path = Path('prebuilt/{host}')
     PREBUILTS_BASE = ANDROID_DIR / 'prebuilts/ndk/python'
     notice = ANDROID_DIR / 'prebuilts/ndk/python/NOTICE'
     notice_group = ndk.builds.NoticeGroup.TOOLCHAIN
@@ -677,7 +677,7 @@ class Python(ndk.builds.Module):
 
 class Toolbox(ndk.builds.Module):
     name = 'toolbox'
-    path = Path('prebuilt/{host}/bin')
+    install_path = Path('prebuilt/{host}/bin')
     notice_group = ndk.builds.NoticeGroup.TOOLCHAIN
     notice = NDK_DIR / 'sources/host-tools/toolbox/NOTICE'
 
@@ -731,7 +731,7 @@ def make_linker_script(path: str, libs: List[str]) -> None:
 class Libcxx(ndk.builds.Module):
     name = 'libc++'
     src = ANDROID_DIR / 'toolchain/llvm-project/libcxx'
-    path = Path('sources/cxx-stl/llvm-libc++')
+    install_path = Path('sources/cxx-stl/llvm-libc++')
     notice = src / 'LICENSE.TXT'
     notice_group = ndk.builds.NoticeGroup.TOOLCHAIN
     deps = {
@@ -825,7 +825,7 @@ class Libcxx(ndk.builds.Module):
 
 class Platforms(ndk.builds.Module):
     name = 'platforms'
-    path = Path('platforms')
+    install_path = Path('platforms')
 
     deps = {
         'clang',
@@ -991,7 +991,7 @@ class Platforms(ndk.builds.Module):
                 self.check_elf_note(dst_path)
 
     def build(self) -> None:
-        build_dir = os.path.join(self.out_dir, self.path)
+        build_dir = os.path.join(self.out_dir, self.install_path)
         if os.path.exists(build_dir):
             shutil.rmtree(build_dir)
 
@@ -1009,7 +1009,7 @@ class Platforms(ndk.builds.Module):
                                        self.context.build_number)
 
     def install(self) -> None:
-        build_dir = os.path.join(self.out_dir, self.path)
+        build_dir = os.path.join(self.out_dir, self.install_path)
         install_dir = self.get_install_path()
 
         if os.path.exists(install_dir):
@@ -1072,7 +1072,7 @@ class Gdb(ndk.builds.Module):
     """
 
     name = 'gdb'
-    path = Path('prebuilt')
+    install_path = Path('prebuilt')
 
     PREBUILTS_BASE = ANDROID_DIR / 'prebuilts/ndk/gdb'
     notice = ANDROID_DIR / 'prebuilts/ndk/gdb/NOTICE'
@@ -1108,7 +1108,7 @@ class Gdb(ndk.builds.Module):
 
 class LibShaderc(ndk.builds.Module):
     name = 'libshaderc'
-    path = Path('sources/third_party/shaderc')
+    install_path = Path('sources/third_party/shaderc')
     src = ANDROID_DIR / 'external/shaderc'
     notice_group = ndk.builds.NoticeGroup.TOOLCHAIN
 
@@ -1225,25 +1225,25 @@ class LibShaderc(ndk.builds.Module):
 
 class CpuFeatures(ndk.builds.PackageModule):
     name = 'cpufeatures'
-    path = Path('sources/android/cpufeatures')
+    install_path = Path('sources/android/cpufeatures')
     src = NDK_DIR / 'sources/android/cpufeatures'
 
 
 class NativeAppGlue(ndk.builds.PackageModule):
     name = 'native_app_glue'
-    path = Path('sources/android/native_app_glue')
+    install_path = Path('sources/android/native_app_glue')
     src = NDK_DIR / 'sources/android/native_app_glue'
 
 
 class NdkHelper(ndk.builds.PackageModule):
     name = 'ndk_helper'
-    path = Path('sources/android/ndk_helper')
+    install_path = Path('sources/android/ndk_helper')
     src = NDK_DIR / 'sources/android/ndk_helper'
 
 
 class Gtest(ndk.builds.PackageModule):
     name = 'gtest'
-    path = Path('sources/third_party/googletest')
+    install_path = Path('sources/third_party/googletest')
     src = ANDROID_DIR / 'external/googletest/googletest'
 
     def install(self) -> None:
@@ -1254,7 +1254,7 @@ class Gtest(ndk.builds.PackageModule):
 
 class Sysroot(ndk.builds.Module):
     name = 'sysroot'
-    path = Path('sysroot')
+    install_path = Path('sysroot')
     notice = ANDROID_DIR / 'prebuilts/ndk/platform/sysroot/NOTICE'
     intermediate_module = True
 
@@ -1435,7 +1435,7 @@ class BaseToolchain(ndk.builds.Module):
 
     name = 'base-toolchain'
     # This is installed to the Clang location to avoid migration pain.
-    path = Path('toolchains/llvm/prebuilt/{host}')
+    install_path = Path('toolchains/llvm/prebuilt/{host}')
     notice_group = ndk.builds.NoticeGroup.TOOLCHAIN
     deps = {
         'clang',
@@ -1532,7 +1532,7 @@ class BaseToolchain(ndk.builds.Module):
 
 class Vulkan(ndk.builds.Module):
     name = 'vulkan'
-    path = Path('sources/third_party/vulkan')
+    install_path = Path('sources/third_party/vulkan')
     notice = ANDROID_DIR / 'external/vulkan-headers/NOTICE'
 
     def build(self) -> None:
@@ -1572,7 +1572,7 @@ class Toolchain(ndk.builds.Module):
 
     name = 'toolchain'
     # This is installed to the Clang location to avoid migration pain.
-    path = Path('toolchains/llvm/prebuilt/{host}')
+    install_path = Path('toolchains/llvm/prebuilt/{host}')
     notice_group = ndk.builds.NoticeGroup.TOOLCHAIN
     deps = {
         'base-toolchain',
@@ -1751,7 +1751,7 @@ def system_libs_meta_transform(metadata: Dict) -> Dict[str, Any]:
 
 class NdkBuild(ndk.builds.PackageModule):
     name = 'ndk-build'
-    path = Path('build')
+    install_path = Path('build')
     src = NDK_DIR / 'build'
     notice = NDK_DIR / 'NOTICE'
 
@@ -1832,31 +1832,31 @@ class NdkBuild(ndk.builds.PackageModule):
 
 class PythonPackages(ndk.builds.PackageModule):
     name = 'python-packages'
-    path = Path('python-packages')
+    install_path = Path('python-packages')
     src = ANDROID_DIR / 'development/python-packages'
 
 
 class SystemStl(ndk.builds.PackageModule):
     name = 'system-stl'
-    path = Path('sources/cxx-stl/system')
+    install_path = Path('sources/cxx-stl/system')
     src = NDK_DIR / 'sources/cxx-stl/system'
 
 
 class LibAndroidSupport(ndk.builds.PackageModule):
     name = 'libandroid_support'
-    path = Path('sources/android/support')
+    install_path = Path('sources/android/support')
     src = NDK_DIR / 'sources/android/support'
 
 
 class Libcxxabi(ndk.builds.PackageModule):
     name = 'libc++abi'
-    path = Path('sources/cxx-stl/llvm-libc++abi')
+    install_path = Path('sources/cxx-stl/llvm-libc++abi')
     src = ANDROID_DIR / 'toolchain/llvm-project/libcxxabi'
 
 
 class SimplePerf(ndk.builds.Module):
     name = 'simpleperf'
-    path = Path('simpleperf')
+    install_path = Path('simpleperf')
     notice = ANDROID_DIR / 'prebuilts/simpleperf/NOTICE'
 
     def build(self) -> None:
@@ -1896,14 +1896,14 @@ class SimplePerf(ndk.builds.Module):
 
 class Changelog(ndk.builds.FileModule):
     name = 'changelog'
-    path = Path('CHANGELOG.md')
+    install_path = Path('CHANGELOG.md')
     src = NDK_DIR / f'docs/changelogs/Changelog-r{ndk.config.major}.md'
     no_notice = True
 
 
 class NdkGdb(ndk.builds.MultiFileModule):
     name = 'ndk-gdb'
-    path = Path('prebuilt/{host}/bin')
+    install_path = Path('prebuilt/{host}/bin')
     notice = NDK_DIR / 'NOTICE'
 
     @property
@@ -1917,21 +1917,21 @@ class NdkGdb(ndk.builds.MultiFileModule):
 
 class NdkGdbShortcut(ndk.builds.ScriptShortcutModule):
     name = 'ndk-gdb-shortcut'
-    path = Path('ndk-gdb')
+    install_path = Path('ndk-gdb')
     script = Path('prebuilt/{host}/bin/ndk-gdb')
     windows_ext = '.cmd'
 
 
 class NdkLldbShortcut(ndk.builds.ScriptShortcutModule):
     name = 'ndk-lldb-shortcut'
-    path = Path('ndk-lldb')
+    install_path = Path('ndk-lldb')
     script = Path('prebuilt/{host}/bin/ndk-gdb')
     windows_ext = '.cmd'
 
 
 class NdkStack(ndk.builds.MultiFileModule):
     name = 'ndk-stack'
-    path = Path('prebuilt/{host}/bin')
+    install_path = Path('prebuilt/{host}/bin')
     notice = NDK_DIR / 'NOTICE'
 
     @property
@@ -1945,28 +1945,28 @@ class NdkStack(ndk.builds.MultiFileModule):
 
 class NdkStackShortcut(ndk.builds.ScriptShortcutModule):
     name = 'ndk-stack-shortcut'
-    path = Path('ndk-stack')
+    install_path = Path('ndk-stack')
     script = Path('prebuilt/{host}/bin/ndk-stack')
     windows_ext = '.cmd'
 
 
 class NdkWhichShortcut(ndk.builds.ScriptShortcutModule):
     name = 'ndk-which-shortcut'
-    path = Path('ndk-which')
+    install_path = Path('ndk-which')
     script = Path('prebuilt/{host}/bin/ndk-which')
     windows_ext = ''  # There isn't really a Windows ndk-which.
 
 
 class NdkBuildShortcut(ndk.builds.ScriptShortcutModule):
     name = 'ndk-build-shortcut'
-    path = Path('ndk-build')
+    install_path = Path('ndk-build')
     script = Path('build/ndk-build')
     windows_ext = '.cmd'
 
 
 class Readme(ndk.builds.FileModule):
     name = 'readme'
-    path = Path('README.md')
+    install_path = Path('README.md')
     src = NDK_DIR / 'UserReadme.md'
 
 
@@ -1982,7 +1982,7 @@ CANARY_TEXT = textwrap.dedent("""\
 
 class CanaryReadme(ndk.builds.Module):
     name = 'canary-readme'
-    path = Path('README.canary')
+    install_path = Path('README.canary')
     no_notice = True
 
     def build(self) -> None:
@@ -1995,7 +1995,7 @@ class CanaryReadme(ndk.builds.Module):
 
 class Meta(ndk.builds.PackageModule):
     name = 'meta'
-    path = Path('meta')
+    install_path = Path('meta')
     src = NDK_DIR / 'meta'
     no_notice = True
 
@@ -2052,14 +2052,14 @@ class Meta(ndk.builds.PackageModule):
 
 class WrapSh(ndk.builds.PackageModule):
     name = 'wrap.sh'
-    path = Path('wrap.sh')
+    install_path = Path('wrap.sh')
     src = NDK_DIR / 'wrap.sh'
     no_notice = True
 
 
 class SourceProperties(ndk.builds.Module):
     name = 'source.properties'
-    path = Path('source.properties')
+    install_path = Path('source.properties')
     no_notice = True
 
     def build(self) -> None:
