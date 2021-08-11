@@ -74,12 +74,12 @@ class Module:
     # We override __getattribute__ to catch any uses of this value
     # uninitialized and raise an error.
     name: str = ''
-    path: Path = Path()
+    install_path: Path = Path()
     deps: Set[str] = set()
 
     def __getattribute__(self, name: str) -> Any:
         attr = super().__getattribute__(name)
-        if name in ('name', 'path') and attr == '':
+        if name in ('name', 'install_path') and attr == '':
             raise RuntimeError(f'Uninitialized use of {name}')
         return attr
 
@@ -146,8 +146,8 @@ class Module:
         """
         if self.name is None:
             raise ModuleValidateError(f'{self.__class__} has no name')
-        if self.path is None:
-            raise self.validate_error('path property not set')
+        if self.install_path is None:
+            raise self.validate_error('install_path property not set')
         if self.notice_group not in NoticeGroup:
             raise self.validate_error('invalid notice group')
         self.validate_notice()
@@ -248,7 +248,7 @@ class Module:
         if host is None:
             host = self.host
 
-        install_subdir = ndk.paths.expand_path(self.path, host)
+        install_subdir = ndk.paths.expand_path(self.install_path, host)
         install_base = Path(ndk.paths.get_install_path(str(self.out_dir),
                                                        host))
         if self.intermediate_module:
@@ -504,12 +504,12 @@ class PythonPackage(Module):
 
     def default_notice_path(self) -> Path:
         # Assume there's a NOTICE file in the same directory as the setup.py.
-        return self.path.parent / 'NOTICE'
+        return self.install_path.parent / 'NOTICE'
 
     def build(self) -> None:
         subprocess.check_call(
-            ['python3', str(self.path), 'sdist', '-d', self.out_dir],
-            cwd=self.path.parent)
+            ['python3', str(self.install_path), 'sdist', '-d', self.out_dir],
+            cwd=self.install_path.parent)
 
     def install(self) -> None:
         pass
