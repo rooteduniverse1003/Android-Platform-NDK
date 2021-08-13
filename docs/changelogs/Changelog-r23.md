@@ -30,9 +30,14 @@ For Android Studio issues, follow the docs on the [Android Studio site].
 
 ## r23b
 
+* [Issue 1560]: Fixed pull-up of unsupported API levels when using the new CMake
+  toolchain file. This affects CMake 3.21 and
+  `ANDROID_USE_LEGACY_TOOLCHAIN_FILE=ON` use cases, and was the common case for
+  AGP users with a `minSdkVersion` below 21.
 * [Issue 1573]: Fixed `ANDROID_USE_LEGACY_TOOLCHAIN_FILE` not being obeyed
   during CMake try-compile.
 
+[Issue 1560]: https://github.com/android/ndk/issues/1560
 [Issue 1573]: https://github.com/android/ndk/issues/1573
 
 ## Changes
