@@ -32,11 +32,6 @@
 
 __BEGIN_DECLS
 
-#if __ANDROID_API__ < __ANDROID_API_K__
-intmax_t imaxabs(intmax_t) __attribute_const__;
-imaxdiv_t imaxdiv(intmax_t, intmax_t) __attribute_const__;
-#endif
-
 #if __ANDROID_API__ < __ANDROID_API_L__
 intmax_t wcstoimax(const wchar_t* __restrict, wchar_t** __restrict, int);
 uintmax_t wcstoumax(const wchar_t* __restrict, wchar_t** __restrict, int);
