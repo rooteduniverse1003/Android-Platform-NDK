@@ -301,6 +301,13 @@ def enumerate_basic_tests(out_dir_base: str, test_src_dir: str,
                 continue
             if test_file.endswith('.sh'):
                 continue
+            if test_file.endswith('.a'):
+                test_path = os.path.join(out_dir, test_file)
+                logger().error(
+                    'Found static library in app install directory. Static '
+                    'libraries should never be installed. This is a bug in '
+                    'build system: %s', test_path)
+                continue
             name = '.'.join([test_subdir, test_file])
             if not test_filter.filter(name):
                 continue
