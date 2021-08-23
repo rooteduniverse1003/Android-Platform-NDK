@@ -41,7 +41,7 @@ class ReportTest(unittest.TestCase):
 
         # Expected failure. Not filtered.
         report.add_result('build', ndk.test.result.ExpectedFailure(
-            MockTest(), 'bug', 'config'))
+            MockTest(), 'failed', 'bug', 'config'))
 
         # Unexpected success. Not filtered.
         report.add_result('build', ndk.test.result.UnexpectedSuccess(
