@@ -85,8 +85,10 @@ class Skipped(TestResult):
 
 
 class ExpectedFailure(TestResult):
-    def __init__(self, test: Test, broken_config: str, bug: str) -> None:
+    def __init__(self, test: Test, message: str, broken_config: str,
+                 bug: str) -> None:
         super().__init__(test)
+        self.message = message
         self.broken_config = broken_config
         self.bug = bug
 
@@ -98,8 +100,9 @@ class ExpectedFailure(TestResult):
 
     def to_string(self, colored: bool = False) -> str:
         label = ndk.termcolor.maybe_color('KNOWN FAIL', 'yellow', colored)
-        return (f'{label} {self.test.name} [{self.test.config}]: '
-                f'known failure for {self.broken_config} ({self.bug})')
+        return (
+            f'{label} {self.test.name} [{self.test.config}]: known failure '
+            f'for {self.broken_config} ({self.bug}): {self.message}')
 
 
 class UnexpectedSuccess(TestResult):

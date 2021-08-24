@@ -257,7 +257,8 @@ class TestRun:
         if config is not None:
             assert bug is not None
             if result.failed():
-                return ExpectedFailure(self, config, bug)
+                assert isinstance(result, Failure)
+                return ExpectedFailure(self, result.message, config, bug)
             elif result.passed():
                 return UnexpectedSuccess(self, config, bug)
             raise ValueError('Test result must have either failed or passed.')

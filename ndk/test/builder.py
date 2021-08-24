@@ -72,7 +72,8 @@ def scan_test_suite(suite_dir: str, test_scanner: TestScanner) -> List[Test]:
 def _fixup_expected_failure(result: ndk.test.result.TestResult, config: str,
                             bug: str) -> ndk.test.result.TestResult:
     if isinstance(result, ndk.test.result.Failure):
-        return ndk.test.result.ExpectedFailure(result.test, config, bug)
+        return ndk.test.result.ExpectedFailure(result.test, result.message,
+                                               config, bug)
     elif isinstance(result, ndk.test.result.Success):
         return ndk.test.result.UnexpectedSuccess(result.test, config, bug)
     else:  # Skipped, UnexpectedSuccess, or ExpectedFailure.
