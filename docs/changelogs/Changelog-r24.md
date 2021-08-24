@@ -10,7 +10,8 @@ For Android Studio issues, follow the docs on the [Android Studio site].
 ## Announcements
 
 * The GNU Assembler (GAS), has been removed. If you were building with
-  `-fno-integrated-as` you'll need to remove that flag.
+  `-fno-integrated-as` you'll need to remove that flag. See
+  [Clang Migration Notes] for advice on making assembly compatible with LLVM.
 
 * GDB has been removed. Use LLDB instead. Note that `ndk-gdb` uses LLDB by
   default, and Android Studio has only ever supported LLDB.
@@ -26,6 +27,8 @@ For Android Studio issues, follow the docs on the [Android Studio site].
   [deprecated](https://developer.android.com/about/versions/12/deprecations#renderscript)
   in Android 12. If you have not finished migrating your apps away from
   RenderScript, NDK r23 LTS can be used.
+
+[Clang Migration Notes]: ClangMigration.md
 
 ## Changes
 
