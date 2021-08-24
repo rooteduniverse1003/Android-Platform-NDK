@@ -11,9 +11,10 @@ For Android Studio issues, follow the docs on the [Android Studio site].
 
 * GNU binutils, excluding the GNU Assembler (GAS), has been removed. GAS will be
   removed in the next release. If you are building with `-fno-integrated-as`,
-  file bugs if anything is preventing you from removing that flag.
+  file bugs if anything is preventing you from removing that flag. See
+  [Clang Migration Notes] for advice about making assembly compatible with LLVM.
 
-* Support for GDB has ended. GDB will be removed from the next release. Use LLDB
+* Support for GDB has ended. GDB will be removed in the next release. Use LLDB
   instead. Note that `ndk-gdb` uses LLDB by default.
 
 * NDK r23 is the last release that will support non-Neon. Beginning with NDK
@@ -24,6 +25,8 @@ For Android Studio issues, follow the docs on the [Android Studio site].
 * Jelly Bean (APIs 16, 17, and 18) will not be supported in the next NDK
   release. The minimum OS supported by the NDK for r24 will be KitKat (API level
   19).
+
+[Clang Migration Notes]: ClangMigration.md
 
 ## Changes
 
