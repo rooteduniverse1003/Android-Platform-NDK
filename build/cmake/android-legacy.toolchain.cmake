@@ -28,7 +28,6 @@
 # ANDROID_CPP_FEATURES
 # ANDROID_ALLOW_UNDEFINED_SYMBOLS
 # ANDROID_ARM_MODE
-# ANDROID_ARM_NEON
 # ANDROID_DISABLE_FORMAT_STRING_CHECKS
 # ANDROID_CCACHE
 
@@ -99,7 +98,6 @@ if(ANDROID_TOOLCHAIN_NAME AND NOT ANDROID_TOOLCHAIN)
 endif()
 if(ANDROID_ABI STREQUAL "armeabi-v7a with NEON")
   set(ANDROID_ABI armeabi-v7a)
-  set(ANDROID_ARM_NEON TRUE)
 elseif(ANDROID_TOOLCHAIN_NAME AND NOT ANDROID_ABI)
   if(ANDROID_TOOLCHAIN_NAME MATCHES "^arm-linux-androideabi-")
     set(ANDROID_ABI armeabi-v7a)
@@ -166,7 +164,11 @@ elseif(ANDROID_ABI MATCHES "^(mips|mips64)$")
   message(FATAL_ERROR "MIPS and MIPS64 are no longer supported.")
 endif()
 
-if(ANDROID_ABI STREQUAL armeabi-v7a AND NOT DEFINED ANDROID_ARM_NEON)
+if(DEFINED ANDROID_ARM_NEON AND NOT ANDROID_ARM_NEON)
+  message(FATAL_ERROR "Disabling Neon is no longer supported")
+endif()
+
+if(ANDROID_ABI STREQUAL armeabi-v7a)
   set(ANDROID_ARM_NEON TRUE)
 endif()
 
@@ -518,10 +520,6 @@ if(ANDROID_ABI MATCHES "armeabi")
     # Default behavior.
   else()
     message(FATAL_ERROR "Invalid Android ARM mode: ${ANDROID_ARM_MODE}.")
-  endif()
-  if(ANDROID_ABI STREQUAL armeabi-v7a AND NOT ANDROID_ARM_NEON)
-    list(APPEND ANDROID_COMPILER_FLAGS
-      -mfpu=vfpv3-d16)
   endif()
 endif()
 

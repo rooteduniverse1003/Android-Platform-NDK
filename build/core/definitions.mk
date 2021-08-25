@@ -1006,11 +1006,13 @@ all-subdir-makefiles = $(call all-makefiles-under,$(call my-dir))
 # 'tags' associated to it. A tag name must not contain space, and its
 # usage can vary.
 #
-# For example, the 'debug' tag is used to sources that must be built
-# in debug mode, the 'arm' tag is used for sources that must be built
-# using the 32-bit instruction set on ARM platforms, and 'neon' is used
-# for sources that must be built with ARM Advanced SIMD (a.k.a. NEON)
-# support.
+# For example, the 'debug' tag is used to sources that must be built in debug
+# mode, the 'arm' tag is used for sources that must be built using the 32-bit
+# instruction set on ARM platforms. Historically .neon was used to enable Neon
+# for a given source file, but Neon was made the default in r21 and non-Neon
+# mode is no longer supported in r24 so these tags are accepted but have no
+# effect. A no_neon tag was supported as an implementation detail only; it could
+# not be used by Android.mk files, and is no longer present.
 #
 # More tags might be introduced in the future.
 #

@@ -1,38 +1,6 @@
 LOCAL_PATH := $(call my-dir)
 
-# We build 8 armeabi-v7a binaries because we need to check neon as well
-#
 ifneq ($(filter $(TARGET_ARCH_ABI), armeabi-v7a),)
-
-include $(CLEAR_VARS)
-LOCAL_MODULE := test_build_mode_thumb2
-LOCAL_CFLAGS += -DCHECK_THUMB2
-LOCAL_SRC_FILES := main.c
-LOCAL_ARM_NEON := false
-include $(BUILD_EXECUTABLE)
-
-include $(CLEAR_VARS)
-LOCAL_MODULE := test_build_mode_thumb2_b
-LOCAL_CFLAGS += -DCHECK_THUMB2
-LOCAL_SRC_FILES := main.c
-LOCAL_ARM_MODE := thumb
-LOCAL_ARM_NEON := false
-include $(BUILD_EXECUTABLE)
-
-include $(CLEAR_VARS)
-LOCAL_MODULE := test_build_mode_armv7
-LOCAL_CFLAGS += -DCHECK_ARM
-LOCAL_SRC_FILES := main.c.arm
-LOCAL_ARM_NEON := false
-include $(BUILD_EXECUTABLE)
-
-include $(CLEAR_VARS)
-LOCAL_MODULE := test_build_mode_armv7_b
-LOCAL_CFLAGS += -DCHECK_ARM
-LOCAL_SRC_FILES := main.c
-LOCAL_ARM_MODE := arm
-LOCAL_ARM_NEON := false
-include $(BUILD_EXECUTABLE)
 
 include $(CLEAR_VARS)
 LOCAL_MODULE := test_build_mode_thumb2_neon
