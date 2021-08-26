@@ -39,6 +39,26 @@ class Host(enum.Enum):
     def tag(self) -> str:
         return host_to_tag(self)
 
+    @property
+    def platform_tag(self) -> str:
+        """Returns the tag used for this host in the platform tree.
+
+        The NDK uses full architecture names like x86_64, whereas the platform
+        has always used just x86, even for the 64-bit tools.
+        """
+        if self is Host.Windows64:
+            # The value for this is still "windows64" since we historically
+            # supported 32-bit Windows. Can clean this up if we ever fix the
+            # value of the enum.
+            return 'windows-x86'
+        return f'{self.value}-x86'
+
+    @property
+    def exe_suffix(self) -> str:
+        if self is Host.Windows64:
+            return '.exe'
+        return ''
+
     @classmethod
     def current(cls) -> Host:
         """Returns the Host matching the current machine."""

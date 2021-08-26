@@ -15,6 +15,7 @@
 #
 """APIs for dealing with cmake scripts."""
 
+from functools import cached_property
 import os
 from pathlib import Path
 import pprint
@@ -23,7 +24,7 @@ import shutil
 import subprocess
 from typing import Dict, List, Optional
 
-from ndk.hosts import Host, get_default_host
+from ndk.hosts import Host
 import ndk.paths
 import ndk.toolchains
 
@@ -38,6 +39,18 @@ HOST_TRIPLE_MAP = {
     Host.Linux: 'x86_64-linux-gnu',
     Host.Windows64: 'x86_64-w64-mingw32',
 }
+
+
+def find_cmake() -> Path:
+    host = Host.current()
+    return (ndk.paths.ANDROID_DIR / 'prebuilts' / 'cmake' / host.platform_tag /
+            'bin' / 'cmake').with_suffix(host.exe_suffix)
+
+
+def find_ninja() -> Path:
+    host = Host.current()
+    return (ndk.paths.ANDROID_DIR / 'prebuilts' / 'ninja' / host.platform_tag /
+            'ninja').with_suffix(host.exe_suffix)
 
 
 class CMakeBuilder:
@@ -116,20 +129,20 @@ class CMakeBuilder:
 
         subprocess.check_call(cmd, env=subproc_env, cwd=self.working_directory)
 
-    @property
+    @cached_property
     def _cmake(self) -> Path:
-        return (ndk.paths.ANDROID_DIR / 'prebuilts' / 'cmake' /
-                (get_default_host().value + '-x86') / 'bin' / 'cmake')
+        return find_cmake()
 
-    @property
+    @cached_property
     def _ninja(self) -> Path:
-        return (ndk.paths.ANDROID_DIR / 'prebuilts' / 'ninja' /
-                (get_default_host().value + '-x86') / 'ninja')
+        return find_ninja()
 
     @property
     def _ctest(self) -> Path:
+        host = Host.current()
         return (ndk.paths.ANDROID_DIR / 'prebuilts' / 'cmake' /
-                (get_default_host().value + '-x86') / 'bin' / 'ctest')
+                host.platform_tag / 'bin' / 'ctest').with_suffix(
+                    host.exe_suffix)
 
     @property
     def cmake_defines(self) -> Dict[str, str]:
