@@ -14,14 +14,16 @@
 # limitations under the License.
 #
 """Tools for verifying the presence or absence of flags in builds."""
+from __future__ import annotations
+
 from pathlib import Path
 import shutil
 import subprocess
-from typing import List, Optional, Tuple
+from typing import Optional
 
-from ndk.abis import Abi
 from ndk.hosts import Host
 import ndk.paths
+from ndk.test.spec import BuildConfiguration, CMakeToolchainFile
 
 
 class FlagVerifierResult:
@@ -34,7 +36,7 @@ class FlagVerifierResult:
         """Returns True if verification failed."""
         raise NotImplementedError
 
-    def make_test_result_tuple(self) -> Tuple[bool, Optional[str]]:
+    def make_test_result_tuple(self) -> tuple[bool, Optional[str]]:
         """Creates a test result tuple in the format expect by run_test."""
         return not self.failed(), self.error_message
 
@@ -60,14 +62,22 @@ class FlagVerifierFailure(FlagVerifierResult):
 class FlagVerifier:
     """Verifies that a build receives the expected flags."""
 
-    def __init__(self, project: Path, ndk_path: Path, abi: Abi,
-                 api: int) -> None:
+    def __init__(self, project: Path, ndk_path: Path,
+                 config: BuildConfiguration) -> None:
         self.project = project
         self.ndk_path = ndk_path
-        self.abi = abi
+        self.abi = config.abi
+        self.api = config.api
+        if config.toolchain_file is CMakeToolchainFile.Legacy:
+            self.toolchain_mode = 'ON'
+        else:
+            self.toolchain_mode = 'OFF'
+        self.expected_flags: list[str] = []
+        self.not_expected_flags: list[str] = []
+
+    def with_api(self, api: int) -> FlagVerifier:
         self.api = api
-        self.expected_flags: List[str] = []
-        self.not_expected_flags: List[str] = []
+        return self
 
     def expect_flag(self, flag: str) -> None:
         """Verify that the given string is present in the build output.
@@ -93,7 +103,7 @@ class FlagVerifier:
             raise ValueError(f'Flag {flag} both expected and not expected')
         self.not_expected_flags.append(flag)
 
-    def _check_build(self, cmd: List[str]) -> FlagVerifierResult:
+    def _check_build(self, cmd: list[str]) -> FlagVerifierResult:
         result = subprocess.run(cmd,
                                 check=False,
                                 stdout=subprocess.PIPE,
@@ -103,8 +113,8 @@ class FlagVerifier:
             return FlagVerifierFailure(result.stdout)
 
         words = result.stdout.split(' ')
-        missing_flags: List[str] = []
-        wrong_flags: List[str] = []
+        missing_flags: list[str] = []
+        wrong_flags: list[str] = []
         for expected in self.expected_flags:
             if expected not in words:
                 missing_flags.append(expected)
@@ -182,6 +192,7 @@ class FlagVerifier:
             f'-DCMAKE_TOOLCHAIN_FILE={toolchain_file}',
             f'-DANDROID_ABI={self.abi}',
             f'-DANDROID_PLATFORM=android-{self.api}',
+            f'-DANDROID_USE_LEGACY_TOOLCHAIN_FILE={self.toolchain_mode}',
             '-GNinja',
             f'-DCMAKE_MAKE_PROGRAM={ninja}',
         ]
