@@ -241,30 +241,18 @@ endif
 
 $(call clear-all-src-tags)
 
-# As a special extension, the NDK also supports the .neon extension suffix
-# to indicate that a single file can be compiled with ARM NEON support
-# We must support both foo.c.neon and foo.c.arm.neon here
-#
-# Also, if LOCAL_ARM_NEON is set to 'true', force Neon mode for all source
-# files
-#
+# Historically the NDK supported both Neon and non-Neon as variants of the
+# armeabi-v7a ABI. These were practically two ABIs but the distinction was not
+# official (APKs did not have separate libraries for Neon and non-Neon devices).
+# As of NDK r24 non-Neon devices are no longer supported, so any options opting
+# *in* to Neon are ignored, and options explicitly opting out of Neon are an
+# error. Users that choose a non-Neon -mfpu in their CFLAGS will receive no
+# diagnostic.
 
 LOCAL_ARM_NEON := $(strip $(LOCAL_ARM_NEON))
-ifdef LOCAL_ARM_NEON
-  $(if $(filter-out true false,$(LOCAL_ARM_NEON)),\
-    $(call __ndk_info,LOCAL_ARM_NEON must be defined either to 'true' or 'false' in $(LOCAL_MAKEFILE), not '$(LOCAL_ARM_NEON)')\
-    $(call __ndk_error,Aborting) \
-  )
-endif
 
 ifeq ($(LOCAL_ARM_NEON),false)
-  no_neon_sources := $(filter-out %.neon,$(LOCAL_SRC_FILES))
-  no_neon_sources := $(strip $(no_neon_sources))
-  $(call tag-src-files,$(no_neon_sources:%.arm=%),no_neon)
-  # tag the precompiled header with 'neon' tag if it exists
-  ifneq (,$(LOCAL_PCH))
-    $(call tag-src-files,$(LOCAL_PCH),no_neon)
-  endif
+    $(call __ndk_error,Building non-Neon code is no longer supported.)
 endif
 
 LOCAL_SRC_FILES := $(LOCAL_SRC_FILES:%.neon=%)
@@ -376,10 +364,9 @@ ifneq (,$(LOCAL_PCH))
     # Build PCH
     $(call compile-cpp-source,$(LOCAL_PCH),$(LOCAL_BUILT_PCH).gch)
 
-    # The PCH must be compiled the same way as the sources (thumb vs arm, neon
-    # vs non-neon must match). This means that we'd have to generate a PCH for
-    # each combination of foo.c.arm and foo.c.neon (do we allow
-    # foo.c.arm.neon?).
+    # The PCH must be compiled the same way as the sources (thumb vs arm must
+    # match). This means that we'd have to generate a PCH for both foo.c and
+    # foo.c.arm.
     #
     # Since files with those source tags should be the minority, precompiling
     # that header might be a net loss compared to just using it normally. As
@@ -387,11 +374,6 @@ ifneq (,$(LOCAL_PCH))
     #
     # See https://github.com/android-ndk/ndk/issues/14
     TAGS_TO_FILTER :=
-
-    # If neon is off, strip out .neon files.
-    ifneq (true,$(LOCAL_ARM_NEON))
-        TAGS_TO_FILTER += neon
-    endif
 
     # If we're building thumb, strip out .arm files.
     ifneq (arm,$(LOCAL_ARM_MODE))

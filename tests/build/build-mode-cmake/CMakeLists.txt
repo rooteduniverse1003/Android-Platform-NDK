@@ -46,20 +46,6 @@ if(ANDROID_ABI STREQUAL armeabi-v7a)
           ARM_MODE arm
           CHECK_NEON CHECK_ARM)
 
-  add_test(test_build_mode_no_neon
-          NEON OFF
-          CHECK_THUMB2)
-
-  add_test(test_build_mode_thumb2_no_neon
-          ARM_MODE thumb
-          NEON OFF
-          CHECK_THUMB2)
-
-  add_test(test_build_mode_armv7_no_neon
-          ARM_MODE arm
-          NEON OFF
-          CHECK_ARM)
-
   add_test(test_build_mode_neon
           NEON ON
           CHECK_NEON CHECK_THUMB2)

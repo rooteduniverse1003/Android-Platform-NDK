@@ -64,9 +64,6 @@ if(CMAKE_ANDROID_ARCH_ABI MATCHES "armeabi")
   if(NOT CMAKE_ANDROID_ARM_MODE)
     string(APPEND _ANDROID_NDK_INIT_CFLAGS " -mthumb")
   endif()
-  if(CMAKE_ANDROID_ARCH_ABI STREQUAL armeabi-v7a AND NOT CMAKE_ANDROID_ARM_NEON)
-    string(APPEND _ANDROID_NDK_INIT_CFLAGS " -mfpu=vfpv3-d16")
-  endif()
 endif()
 
 # CMake automatically forwards all compiler flags to the linker, and clang
