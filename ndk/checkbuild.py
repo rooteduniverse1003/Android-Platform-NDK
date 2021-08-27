@@ -74,7 +74,7 @@ import ndk.test.builder
 import ndk.test.printers
 import ndk.test.spec
 import ndk.timer
-from ndk.toolchains import ClangToolchain
+from ndk.toolchains import ClangToolchain, CLANG_VERSION
 import ndk.ui
 import ndk.workqueue
 
@@ -371,7 +371,11 @@ class Clang(ndk.builds.Module):
 
     @property
     def notices(self) -> Iterator[Path]:
-        # TODO: Inject Host before this runs.
+        # TODO: Inject Host before this runs and remove this hack.
+        # Just skip the license checking for dev builds. Without this the build
+        # will fail because there's only a clang-dev for one of the hosts.
+        if CLANG_VERSION == 'clang-dev':
+            return
         for host in Host:
             yield ClangToolchain.path_for_host(host) / 'NOTICE'
 
