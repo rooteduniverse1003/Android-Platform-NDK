@@ -20,7 +20,7 @@ from dataclasses import dataclass
 import enum
 from typing import Iterable, List, Optional
 
-from ndk.abis import Abi
+from ndk.abis import Abi, LP32_ABIS, LP64_ABIS
 
 
 @enum.unique
@@ -96,6 +96,14 @@ class BuildConfiguration:
             str(self.api),
             self.toolchain_file.value,
         ])
+
+    @property
+    def is_lp32(self) -> bool:
+        return self.abi in LP32_ABIS
+
+    @property
+    def is_lp64(self) -> bool:
+        return self.abi in LP64_ABIS
 
     @staticmethod
     def from_string(config_string: str) -> BuildConfiguration:
