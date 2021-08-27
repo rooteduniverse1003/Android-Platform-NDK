@@ -32,11 +32,11 @@ import xml.etree.ElementTree
 
 from ndk.abis import Abi
 import ndk.ansi
+from ndk.cmake import find_cmake, find_ninja
 import ndk.ext.os
 import ndk.ext.shutil
 import ndk.ext.subprocess
 import ndk.hosts
-from ndk.hosts import Host
 import ndk.ndkbuild
 import ndk.paths
 from ndk.test.config import LibcxxTestConfig, TestConfig
@@ -384,23 +384,8 @@ def _run_cmake_build_test(test: CMakeBuildTest, obj_dir: str, dist_dir: str,
                           use_legacy_toolchain_file: bool) -> TestResult:
     _prep_build_dir(test_dir, obj_dir)
 
-    # Add prebuilts to PATH.
-    host = ndk.hosts.get_default_host()
-    if host == Host.Windows64:
-        # The value for this is still "windows64" since we historically
-        # supported 32-bit Windows. Can clean this up if we ever fix the value
-        # of the enum.
-        prebuilts_host_tag = 'windows-x86'
-    else:
-        prebuilts_host_tag = ndk.hosts.get_default_host().value + '-x86'
-    cmake_bin = ndk.paths.android_path(
-        'prebuilts', 'cmake', prebuilts_host_tag, 'bin', 'cmake')
-    ninja_bin = ndk.paths.android_path(
-        'prebuilts', 'ninja', prebuilts_host_tag, 'ninja')
-
-    if host == Host.Windows64:
-        cmake_bin += '.exe'
-        ninja_bin += '.exe'
+    cmake_bin = find_cmake()
+    ninja_bin = find_ninja()
 
     toolchain_file = os.path.join(ndk_path, 'build', 'cmake',
                                   'android.toolchain.cmake')
@@ -423,11 +408,11 @@ def _run_cmake_build_test(test: CMakeBuildTest, obj_dir: str, dist_dir: str,
     else:
         args.append('-DANDROID_USE_LEGACY_TOOLCHAIN_FILE=OFF')
     rc, out = ndk.ext.subprocess.call_output(
-        [cmake_bin] + cmake_flags + args, encoding='utf-8')
+        [str(cmake_bin)] + cmake_flags + args, encoding='utf-8')
     if rc != 0:
         return Failure(test, out)
     rc, out = ndk.ext.subprocess.call_output(
-        [cmake_bin, '--build', abi_obj_dir, '--'] + _get_jobs_args(),
+        [str(cmake_bin), '--build', abi_obj_dir, '--'] + _get_jobs_args(),
         encoding='utf-8')
     if rc != 0:
         return Failure(test, out)
