@@ -40,7 +40,7 @@ $ rm -r $CLANG_PREBUILTS/clang-dev
 # The first path is in your llvm-toolchain's out directory. If you have a
 # tarball for the toolchain distribution, extract that to
 # $CLANG_PREBUILTS/clang-dev instead.
-$ cp -r path/to/llvm-toolchain/out/stage2-install $CLANG_PREBUILTS/clang-dev
+$ cp -r path/to/llvm-toolchain/out/install/$HOST/clang-dev $CLANG_PREBUILTS/
 # Update CLANG_VERSION in ndk/toolchains.py to clang-dev.
 $ ./checkbuild.py
 # Run tests. To run the NDK test suite, you will need to attach the
