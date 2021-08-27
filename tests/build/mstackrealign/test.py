@@ -19,16 +19,19 @@ http://b.android.com/222239 reports that old x86 targets have stack alignment
 issues. For these devices, verify that mstackrealign is used.
 """
 from pathlib import Path
-from typing import Optional, Tuple
+from typing import Optional
 
 from ndk.abis import Abi
+from ndk.test.spec import BuildConfiguration
 from ndk.testing.flag_verifier import FlagVerifier
 
 
-def run_test(ndk_path: str, abi: Abi, api: int) -> Tuple[bool, Optional[str]]:
+def run_test(ndk_path: str,
+             config: BuildConfiguration) -> tuple[bool, Optional[str]]:
     """Checks ndk-build V=1 output for mstackrealign flag."""
-    verifier = FlagVerifier(Path('project'), Path(ndk_path), abi, api)
-    if abi == Abi('x86') and api < 24:
+    verifier = FlagVerifier(Path('project'), Path(ndk_path), config)
+    assert config.api is not None
+    if config.abi == Abi('x86') and config.api < 24:
         verifier.expect_flag('-mstackrealign')
     else:
         verifier.expect_not_flag('-mstackrealign')

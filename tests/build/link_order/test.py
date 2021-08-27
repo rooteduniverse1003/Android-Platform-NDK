@@ -21,12 +21,13 @@ import re
 import shlex
 import subprocess
 import sys
-from typing import Iterator, Optional, Tuple
+from typing import Iterator, Optional
 
 from ndk.abis import Abi
+from ndk.test.spec import BuildConfiguration
 
 
-def is_linked_item(arg):
+def is_linked_item(arg: str) -> bool:
     """Returns True if the argument is an object or library to be linked."""
     if arg.endswith('.a'):
         return True
@@ -39,7 +40,7 @@ def is_linked_item(arg):
     return False
 
 
-def find_link_args(link_line):
+def find_link_args(link_line: str) -> list[str]:
     """Returns a list of objects and libraries in the link command."""
     args = []
 
@@ -67,7 +68,7 @@ def find_link_args(link_line):
     return args
 
 
-def builtins_basename(abi: Abi):
+def builtins_basename(abi: Abi) -> str:
     runtimes_arch = {
         'armeabi-v7a': 'arm',
         'arm64-v8a': 'aarch64',
@@ -77,12 +78,14 @@ def builtins_basename(abi: Abi):
     return 'libclang_rt.builtins-' + runtimes_arch + '-android.a'
 
 
-def check_link_order(link_line: str, abi: Abi,
-                     api: int) -> Tuple[bool, Optional[Iterator[str]]]:
+def check_link_order(
+        link_line: str,
+        config: BuildConfiguration) -> tuple[bool, Optional[Iterator[str]]]:
     """Determines if a given link command has the correct ordering.
 
     Args:
-        link_line (string): The full ld command.
+        link_line: The full ld command.
+        config: The test's build configuration.
 
     Returns:
         Tuple of (success, diff). The diff will be None on success or a
@@ -90,7 +93,8 @@ def check_link_order(link_line: str, abi: Abi,
         suitable for use with `' '.join()`. The diff represents the changes
         between the expected link order and the actual link order.
     """
-    android_support_arg = ['libandroid_support.a'] if api < 21 else []
+    assert config.api is not None
+    android_support_arg = ['libandroid_support.a'] if config.api < 21 else []
     expected = [
         'crtbegin_so.o',
         'foo.o',
@@ -105,11 +109,11 @@ def check_link_order(link_line: str, abi: Abi,
         '-lc',
         '-lm',
         '-lm',
-        builtins_basename(abi),
+        builtins_basename(config.abi),
         '-l:libunwind.a',
         '-ldl',
         '-lc',
-        builtins_basename(abi),
+        builtins_basename(config.abi),
         '-l:libunwind.a',
         '-ldl',
         'crtend_so.o',
@@ -120,15 +124,15 @@ def check_link_order(link_line: str, abi: Abi,
     return False, difflib.unified_diff(expected, link_args, lineterm='')
 
 
-def run_test(ndk_path: str, abi: Abi, api: int) -> Tuple[bool, str]:
+def run_test(ndk_path: str, config: BuildConfiguration) -> tuple[bool, str]:
     """Checks clang's -v output for proper link ordering."""
     ndk_build = os.path.join(ndk_path, 'ndk-build')
     if sys.platform == 'win32':
         ndk_build += '.cmd'
     project_path = 'project'
     ndk_args = [
-        f'APP_ABI={abi}',
-        f'APP_PLATFORM=android-{api}',
+        f'APP_ABI={config.abi}',
+        f'APP_PLATFORM=android-{config.api}',
     ]
     proc = subprocess.Popen([ndk_build, '-C', project_path] + ndk_args,
                             stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
@@ -150,5 +154,5 @@ def run_test(ndk_path: str, abi: Abi, api: int) -> Tuple[bool, str]:
     if link_line is None:
         return False, 'Did not find link line in out:\n{}'.format(out)
 
-    result, diff = check_link_order(link_line, abi, api)
+    result, diff = check_link_order(link_line, config)
     return result, '' if diff is None else os.linesep.join(diff)
