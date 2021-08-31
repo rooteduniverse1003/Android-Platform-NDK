@@ -40,7 +40,6 @@ from typing import (
     List,
     Mapping,
     Optional,
-    Sequence,
     Tuple,
     Union,
 )
@@ -80,18 +79,22 @@ from ndk.workqueue import ShardingWorkQueue, Worker, WorkQueue
 DEVICE_TEST_BASE_DIR = '/data/local/tmp/tests'
 
 
+AdbResult = tuple[int, str, str, str]
+
+
 def logger() -> logging.Logger:
     """Returns the module logger."""
     return logging.getLogger(__name__)
 
 
-def shell_nocheck_wrap_errors(device: Device,
-                              cmd: Sequence[str]) -> Tuple[int, str, str]:
+def shell_nocheck_wrap_errors(device: Device, cmd: str) -> AdbResult:
     """Invokes device.shell_nocheck and wraps exceptions as failed commands."""
+    repro_cmd = f'adb -s {device.serial} shell {shlex.quote(cmd)}'
     try:
-        return device.shell_nocheck(cmd)
+        rc, stdout, stderr = device.shell_nocheck([cmd])
+        return rc, stdout, stderr, repro_cmd
     except RuntimeError:
-        return 1, shlex.join(cmd), traceback.format_exc()
+        return 1, cmd, traceback.format_exc(), repro_cmd
 
 
 # TODO: Extract a common interface from this and ndk.test.types.Test for the
@@ -121,8 +124,12 @@ class TestCase:
             self, device: Device) -> Union[Tuple[None, None], Tuple[str, str]]:
         raise NotImplementedError
 
-    def run(self, device: Device) -> Tuple[int, str, str]:
+    def run(self, device: Device) -> AdbResult:
         raise NotImplementedError
+
+    def run_cmd(self, device: Device, cmd: str) -> AdbResult:
+        logger().info('%s: shell_nocheck "%s"', device.name, cmd)
+        return shell_nocheck_wrap_errors(device, cmd)
 
 
 class BasicTestCase(TestCase):
@@ -157,11 +164,10 @@ class BasicTestCase(TestCase):
             self, device: Device) -> Union[Tuple[None, None], Tuple[str, str]]:
         return self.get_test_config().run_broken(self, device)
 
-    def run(self, device: Device) -> Tuple[int, str, str]:
-        cmd = 'cd {} && LD_LIBRARY_PATH={} ./{} 2>&1'.format(
-            self.device_dir, self.device_dir, self.executable)
-        logger().info('%s: shell_nocheck "%s"', device.name, cmd)
-        return shell_nocheck_wrap_errors(device, [cmd])
+    def run(self, device: Device) -> AdbResult:
+        return self.run_cmd(
+            device, 'cd {} && LD_LIBRARY_PATH={} ./{} 2>&1'.format(
+                self.device_dir, self.device_dir, self.executable))
 
 
 class LibcxxTestCase(TestCase):
@@ -212,13 +218,12 @@ class LibcxxTestCase(TestCase):
             return config, bug
         return None, None
 
-    def run(self, device: Device) -> Tuple[int, str, str]:
+    def run(self, device: Device) -> AdbResult:
         libcxx_so_dir = posixpath.join(
             DEVICE_TEST_BASE_DIR, str(self.config), 'libcxx/libc++')
-        cmd = 'cd {} && LD_LIBRARY_PATH={} ./{} 2>&1'.format(
-            self.device_dir, libcxx_so_dir, self.executable)
-        logger().info('%s: shell_nocheck "%s"', device.name, cmd)
-        return shell_nocheck_wrap_errors(device, [cmd])
+        return self.run_cmd(
+            device, 'cd {} && LD_LIBRARY_PATH={} ./{} 2>&1'.format(
+                self.device_dir, libcxx_so_dir, self.executable))
 
 
 class TestRun:
@@ -241,15 +246,14 @@ class TestRun:
     def config(self) -> BuildConfiguration:
         return self.test_case.config
 
-    def make_result(self, adb_result_tuple: Tuple[int, str, str],
-                    device: Device) -> TestResult:
-        status, out, _ = adb_result_tuple
+    def make_result(self, adb_result: AdbResult, device: Device) -> TestResult:
+        status, out, _, cmd = adb_result
         result: TestResult
         if status == 0:
             result = Success(self)
         else:
             out = '\n'.join([str(device), out])
-            result = Failure(self, out)
+            result = Failure(self, out, cmd)
         return self.fixup_xfail(result, device)
 
     def fixup_xfail(self, result: TestResult, device: Device) -> TestResult:

@@ -14,7 +14,7 @@
 # limitations under the License.
 #
 """Test result classes."""
-from typing import Any
+from typing import Any, Optional
 
 import ndk.termcolor
 
@@ -41,9 +41,13 @@ class TestResult:
 
 
 class Failure(TestResult):
-    def __init__(self, test: Test, message: str) -> None:
+    def __init__(self,
+                 test: Test,
+                 message: str,
+                 repro_cmd: Optional[str] = None) -> None:
         super().__init__(test)
         self.message = message
+        self.repro_cmd = repro_cmd
 
     def passed(self) -> bool:
         return False
@@ -53,7 +57,9 @@ class Failure(TestResult):
 
     def to_string(self, colored: bool = False) -> str:
         label = ndk.termcolor.maybe_color('FAIL', 'red', colored)
-        return f'{label} {self.test.name} [{self.test.config}]: {self.message}'
+        repro = f' {self.repro_cmd}' if self.repro_cmd else ''
+        return (f'{label} {self.test.name} [{self.test.config}]:{repro}\n'
+                f'{self.message}')
 
 
 class Success(TestResult):
