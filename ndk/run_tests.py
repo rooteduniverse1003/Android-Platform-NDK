@@ -911,6 +911,8 @@ def main() -> None:
 
     good = results.success
     print('Finished {}'.format('successfully' if good else 'unsuccessfully'))
+    if (message := results.failure_message) is not None:
+        print(message)
 
     for timer, duration in results.times.items():
         print('{}: {}'.format(timer, duration))
