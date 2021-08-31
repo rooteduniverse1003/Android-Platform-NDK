@@ -30,6 +30,8 @@ For Android Studio issues, follow the docs on the [Android Studio site].
 
 ## r23b
 
+* Update LLVM to clang-r416183c, based on LLVM 12 development.
+  * [Issue 1544]: Now uses universal binaries for M1 Macs.
 * [Issue 1560]: Fixed pull-up of unsupported API levels when using the new CMake
   toolchain file. This affects CMake 3.21 and
   `ANDROID_USE_LEGACY_TOOLCHAIN_FILE=ON` use cases, and was the common case for
@@ -37,6 +39,7 @@ For Android Studio issues, follow the docs on the [Android Studio site].
 * [Issue 1573]: Fixed `ANDROID_USE_LEGACY_TOOLCHAIN_FILE` not being obeyed
   during CMake try-compile.
 
+[Issue 1544]: https://github.com/android/ndk/issues/1544
 [Issue 1560]: https://github.com/android/ndk/issues/1560
 [Issue 1573]: https://github.com/android/ndk/issues/1573
 
