@@ -39,11 +39,13 @@ For Android Studio issues, follow the docs on the [Android Studio site].
   AGP users with a `minSdkVersion` below 21.
 * [Issue 1573]: Fixed `ANDROID_USE_LEGACY_TOOLCHAIN_FILE` not being obeyed
   during CMake try-compile.
+* [Issue 1569]: Fixed `-fno-integrated-as` not being able to find the assembler.
 
 [Issue 1544]: https://github.com/android/ndk/issues/1544
 [Issue 1553]: https://github.com/android/ndk/issues/1553
 [Issue 1560]: https://github.com/android/ndk/issues/1560
 [Issue 1573]: https://github.com/android/ndk/issues/1573
+[Issue 1569]: https://github.com/android/ndk/issues/1569
 
 ## Changes
 
