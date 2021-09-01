@@ -161,12 +161,17 @@ class FlagVerifier:
             f'APP_PLATFORM=android-{self.api}',
         ])
 
-    def verify_cmake(self) -> FlagVerifierResult:
+    def verify_cmake(
+            self,
+            cmake_flags: Optional[list[str]] = None) -> FlagVerifierResult:
         """Verifies that CMake behaves as specified.
 
         Returns:
             A FlagVerifierResult object describing the verification result.
         """
+        if cmake_flags is None:
+            cmake_flags = []
+
         host = Host.current()
         if host == Host.Windows64:
             tag = 'windows-x86'
@@ -195,7 +200,7 @@ class FlagVerifier:
             f'-DANDROID_USE_LEGACY_TOOLCHAIN_FILE={self.toolchain_mode}',
             '-GNinja',
             f'-DCMAKE_MAKE_PROGRAM={ninja}',
-        ]
+        ] + cmake_flags
         result = subprocess.run(cmd,
                                 check=False,
                                 stdout=subprocess.PIPE,

@@ -32,6 +32,13 @@ For Android Studio issues, follow the docs on the [Android Studio site].
 
 * Update LLVM to clang-r416183c, based on LLVM 12 development.
   * [Issue 1544]: Now uses universal binaries for M1 Macs.
+* [Issue 1536]: Make optimization flags used with CMake more consistent.
+  Historically thumb release builds used `-Oz`, but AGP switched to using
+  `RelWithDebInfo` for release builds in the latest release which was not using
+  `-Oz`. To reduce per-arch differences and behavior differences compared to
+  CMake's defaults, `-Oz` use was removed. You may see code size increases for
+  armeabi-v7a due to this, but also increased optimization. To restore the prior
+  behavior, add `-Oz` to your cflags.
 * [Issue 1553]: Updated sysroot to latest Android 12.
 * [Issue 1560]: Fixed pull-up of unsupported API levels when using the new CMake
   toolchain file. This affects CMake 3.21 and
@@ -41,6 +48,7 @@ For Android Studio issues, follow the docs on the [Android Studio site].
   during CMake try-compile.
 * [Issue 1569]: Fixed `-fno-integrated-as` not being able to find the assembler.
 
+[Issue 1536]: https://github.com/android/ndk/issues/1536
 [Issue 1544]: https://github.com/android/ndk/issues/1544
 [Issue 1553]: https://github.com/android/ndk/issues/1553
 [Issue 1560]: https://github.com/android/ndk/issues/1560
