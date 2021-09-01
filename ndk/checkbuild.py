@@ -1504,8 +1504,27 @@ class BaseToolchain(ndk.builds.Module):
             binutils_dir = get_binutils_prebuilt_path(self.host, arch)
             triple = ndk.abis.arch_to_triple(arch)
 
-            gas = binutils_dir / f'bin/{triple}-as{exe}'
-            shutil.copy2(gas, bin_dir)
+            gas_name = f'{triple}-as{exe}'
+            gas = binutils_dir / 'bin' / gas_name
+            shutil.copy2(gas, bin_dir / gas_name)
+            triple_bin_dir = Path(install_dir) / triple / 'bin'
+            triple_bin_dir.mkdir(parents=True)
+            if self.host is Host.Windows64:
+                shutil.copy2(gas, triple_bin_dir / 'as.exe')
+            else:
+                (triple_bin_dir / 'as').symlink_to(bin_dir / gas_name)
+
+            # Without a GCC lib directory, Clang will not consider the
+            # toolchain to be a binutils directory, so won't find GAS when
+            # using -fno-integrated-as. To be considered a GCC directory it
+            # must contain a file named crtbegin.o, but the contents are
+            # irrelevant.
+            # https://github.com/android/ndk/issues/1569
+            gcc_lib_dir = install_dir / 'lib/gcc' / triple / '4.9.x'
+            gcc_lib_dir.mkdir(parents=True)
+            (gcc_lib_dir / 'crtbegin.o').write_text(
+                'This file cannot be used but is needed for Clang to find GAS.'
+            )
 
         platforms = self.get_dep('platforms')
         assert isinstance(platforms, Platforms)
