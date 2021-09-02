@@ -35,7 +35,6 @@ SYSTEM_NAME_MAP = {
 }
 
 HOST_TRIPLE_MAP = {
-    Host.Darwin: 'x86_64-apple-darwin',
     Host.Linux: 'x86_64-linux-gnu',
     Host.Windows64: 'x86_64-w64-mingw32',
 }
@@ -153,9 +152,7 @@ class CMakeBuilder:
         ldflags = ' '.join(self.ldflags)
         defines: Dict[str, str] = {
             'CMAKE_C_COMPILER': str(self.toolchain.cc),
-            'CMAKE_C_COMPILER_TARGET': HOST_TRIPLE_MAP[self.host],
             'CMAKE_CXX_COMPILER': str(self.toolchain.cxx),
-            'CMAKE_CXX_COMPILER_TARGET': HOST_TRIPLE_MAP[self.host],
             'CMAKE_AR': str(self.toolchain.ar),
             'CMAKE_RANLIB': str(self.toolchain.ranlib),
             'CMAKE_NM': str(self.toolchain.nm),
@@ -179,6 +176,11 @@ class CMakeBuilder:
         }
         if self.host.is_windows:
             defines['CMAKE_RC'] = str(self.toolchain.rescomp)
+        if self.host == Host.Darwin:
+            defines['CMAKE_OSX_ARCHITECTURES'] = 'x86_64;arm64'
+        else:
+            defines['CMAKE_C_COMPILER_TARGET'] = HOST_TRIPLE_MAP[self.host]
+            defines['CMAKE_CXX_COMPILER_TARGET'] = HOST_TRIPLE_MAP[self.host]
         return defines
 
     def clean(self) -> None:
