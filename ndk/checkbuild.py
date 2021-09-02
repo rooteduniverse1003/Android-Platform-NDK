@@ -645,15 +645,12 @@ class ShaderTools(ndk.builds.CMakeModule):
             make_symlink(symlink_name, lib)
 
 
-class Make(ndk.builds.AutoconfModule):
+class Make(ndk.builds.CMakeModule):
     name = 'make'
     path = Path('prebuilt/{host}')
     notice_group = ndk.builds.NoticeGroup.TOOLCHAIN
     src = ANDROID_DIR / 'toolchain/make'
-    # The macOS sed chokes on invalid UTF-8 in config.h-vms.template, at least
-    # for the old version on some build servers. (It works fine locally on
-    # 10.15.) This is stackoverflow's suggested workaround.
-    env = {'LC_ALL': 'C', 'LANG': 'C'}
+    deps = {'clang'}
 
     @property
     def notices(self) -> Iterator[Path]:
