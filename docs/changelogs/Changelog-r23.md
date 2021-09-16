@@ -55,8 +55,7 @@ For Android Studio issues, follow the docs on the [Android Studio site].
   `MINGW` to be incorrectly defined by CMake when building for Android on a
   Windows host. This only affected those using the Android toolchain file when
   CMake 3.21 or newer was used. This likely was not a regression for users not
-  using the Android toolchain, and the workaround only affects toolchain file
-  users.
+  using the Android toolchain. The change will fix both use cases.
 
 [CMake Issue 22647]: https://gitlab.kitware.com/cmake/cmake/-/issues/22647
 [Issue 1536]: https://github.com/android/ndk/issues/1536
