@@ -30,8 +30,12 @@ For Android Studio issues, follow the docs on the [Android Studio site].
 
 ## r23b
 
-* Update LLVM to clang-r416183c, based on LLVM 12 development.
+* Update LLVM to clang-r416183c1, based on LLVM 12 development.
+  * [Issue 1540]: Fixed compiler crash when using coroutines.
   * [Issue 1544]: Now uses universal binaries for M1 Macs.
+  * [Issue 1551]: Prevent each translation unit from receiving its own copy of
+    emulated thread-local global variables.
+  * [Issue 1555]: Fixed compiler crash for armeabi-v7a.
 * [Issue 1536]: Make optimization flags used with CMake more consistent.
   Historically thumb release builds used `-Oz`, but AGP switched to using
   `RelWithDebInfo` for release builds in the latest release which was not using
@@ -56,8 +60,11 @@ For Android Studio issues, follow the docs on the [Android Studio site].
 
 [CMake Issue 22647]: https://gitlab.kitware.com/cmake/cmake/-/issues/22647
 [Issue 1536]: https://github.com/android/ndk/issues/1536
+[Issue 1540]: https://github.com/android/ndk/issues/1540
 [Issue 1544]: https://github.com/android/ndk/issues/1544
+[Issue 1551]: https://github.com/android/ndk/issues/1551
 [Issue 1553]: https://github.com/android/ndk/issues/1553
+[Issue 1555]: https://github.com/android/ndk/issues/1555
 [Issue 1560]: https://github.com/android/ndk/issues/1560
 [Issue 1573]: https://github.com/android/ndk/issues/1573
 [Issue 1569]: https://github.com/android/ndk/issues/1569
