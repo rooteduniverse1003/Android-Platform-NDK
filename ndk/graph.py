@@ -39,7 +39,7 @@ class Node:
         assert isinstance(other, Node)
         return self.name == other.name
 
-    def __le__(self, other: object) -> bool:
+    def __lt__(self, other: object) -> bool:
         assert isinstance(other, Node)
         return self.name < other.name
 
