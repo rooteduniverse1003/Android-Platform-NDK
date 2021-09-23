@@ -247,8 +247,11 @@ assembling LLVM IR. If you are currently using `as` directly, you will need to
 migrate to using `clang` as a driver for building assembly.  See [Clang
 Migration Notes] for advice on fixing assembly to be LLVM compatible.
 
-GNU Binutils remains available up to and including r23, but has been
-removed in r24. In r23 or earlier, GNU binutils tools are installed to
+GNU Binutils remains available up to and including r22. All binutils tools with
+the exception of the assembler (GAS) were removed in r23. GAS was removed in
+r24.
+
+In r22 or earlier, GNU binutils tools are installed to
 `<NDK>/toolchains/llvm/prebuilt/<host-tag>/bin/<triple>-<tool>` and
 `<NDK>/toolchains/llvm/prebuilt/<host-tag>/<triple>/bin/<tool>`.
 
