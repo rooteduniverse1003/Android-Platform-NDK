@@ -244,15 +244,19 @@ are not limited to:
 
 Note that `llvm-as` is **not** an equivalent of GNU `as`, but rather a tool for
 assembling LLVM IR. If you are currently using `as` directly, you will need to
-migrate to using `clang` as a driver for building assembly.
+migrate to using `clang` as a driver for building assembly.  See [Clang
+Migration Notes] for advice on fixing assembly to be LLVM compatible.
 
-GNU Binutils remains available for now but is deprecated and will be removed in
-an upcoming release of the NDK. Those tools are installed to
+GNU Binutils remains available up to and including r23, but has been
+removed in r24. In r23 or earlier, GNU binutils tools are installed to
 `<NDK>/toolchains/llvm/prebuilt/<host-tag>/bin/<triple>-<tool>` and
 `<NDK>/toolchains/llvm/prebuilt/<host-tag>/<triple>/bin/<tool>`.
 
-Note that binutils `as` is used by Clang if the `-fno-integrated-as` argument is
-used.
+Note that by default `/usr/bin/as` is used by Clang if the
+`-fno-integrated-as` argument is used, which is almost certainly not
+what you want!
+
+[Clang Migration Notes]: ClangMigration.md
 
 ## Sysroot
 
@@ -285,8 +289,6 @@ provided by the Android OS but contain no implementation. They can be identified
 by their .so file extension and their presence in `<NDK>/meta/system_libs.json`.
 The entries in this file are a key/value pair that maps library names to the
 first API level the library is introduced.
-
-[Issue 801]: https://github.com/android-ndk/ndk/issues/801
 
 ## STL
 
@@ -383,12 +385,6 @@ properly align stacks for global constructors. See [Issue 635].
 Android requires [Position-independent executables] beginning with API 21. Clang
 builds PIE executables by default. If invoking the linker directly or not using
 Clang, use `-pie` when linking.
-
-Clang does not properly set the ARMv7 architecture for the non-integrated
-assembler. If using `-fno-integrated-as`, you must explicitly pass
-`-march=armv7-a` when compiling for 32-bit ARM. Note that by default Clang will
-use the integrated assembler, and this flag is not needed in that case. See
-[Issue 906].
 
 Android Studio's LLDB debugger uses a binary's build ID to locate debug
 information. To ensure that LLDB works with a binary, pass an option like
