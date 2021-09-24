@@ -15,3 +15,26 @@
 # This is a hook file that will be included by cmake at the beginning of
 # Modules/Platform/Android/Determine-Compiler.cmake.
 
+# Skip hook for the legacy toolchain workflow.
+if(CMAKE_SYSTEM_VERSION EQUAL 1)
+  return()
+endif()
+
+# If we don't explicitly set the target CMake will ID the compiler using the
+# default target, causing MINGW to be defined when a Windows host is used.
+# https://github.com/android/ndk/issues/1581
+# https://gitlab.kitware.com/cmake/cmake/-/issues/22647
+if(CMAKE_ANDROID_ARCH_ABI STREQUAL armeabi-v7a)
+  set(ANDROID_LLVM_TRIPLE armv7-none-linux-androideabi)
+elseif(CMAKE_ANDROID_ARCH_ABI STREQUAL arm64-v8a)
+  set(ANDROID_LLVM_TRIPLE aarch64-none-linux-android)
+elseif(CMAKE_ANDROID_ARCH_ABI STREQUAL x86)
+  set(ANDROID_LLVM_TRIPLE i686-none-linux-android)
+elseif(CMAKE_ANDROID_ARCH_ABI STREQUAL x86_64)
+  set(ANDROID_LLVM_TRIPLE x86_64-none-linux-android)
+else()
+  message(FATAL_ERROR "Invalid Android ABI: ${ANDROID_ABI}.")
+endif()
+set(CMAKE_ASM_COMPILER_TARGET "${ANDROID_LLVM_TRIPLE}${CMAKE_SYSTEM_VERSION}")
+set(CMAKE_C_COMPILER_TARGET "${ANDROID_LLVM_TRIPLE}${CMAKE_SYSTEM_VERSION}")
+set(CMAKE_CXX_COMPILER_TARGET "${ANDROID_LLVM_TRIPLE}${CMAKE_SYSTEM_VERSION}")

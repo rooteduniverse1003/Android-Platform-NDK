@@ -400,12 +400,12 @@ class Clang(ndk.builds.Module):
         # https://github.com/android-ndk/ndk/issues/564#issuecomment-342307128
         shutil.rmtree(install_path / 'include')
 
-        if not self.host.is_windows:
-            # The Linux and Darwin toolchains have Python compiler wrappers
-            # that currently do nothing. We don't have these for Windows and we
-            # want to make sure Windows behavior is consistent with the other
-            # platforms, so just unwrap the compilers until they do something
-            # useful and are available on Windows.
+        if self.host is Host.Linux:
+            # The Linux toolchain wraps the compiler to inject some behavior
+            # for the platform. They aren't used for every platform and we want
+            # consistent behavior across platforms, and we also don't want the
+            # extra cost they incur (fork/exec is cheap, but CreateProcess is
+            # expensive), so remove them.
             (bin_dir / 'clang++.real').unlink()
             (bin_dir / 'clang++').unlink()
             (bin_dir / 'clang-cl').unlink()
