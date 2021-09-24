@@ -166,34 +166,8 @@ elseif(ANDROID_TOOLCHAIN STREQUAL gcc)
   "https://android.googlesource.com/platform/ndk/+/master/docs/ClangMigration.md.")
 endif()
 
-include(${CMAKE_ANDROID_NDK}/build/cmake/platforms.cmake)
-
-if(ANDROID_NATIVE_API_LEVEL AND NOT ANDROID_PLATFORM)
-  if(ANDROID_NATIVE_API_LEVEL MATCHES "^android-[0-9]+$")
-    set(ANDROID_PLATFORM ${ANDROID_NATIVE_API_LEVEL})
-  elseif(ANDROID_NATIVE_API_LEVEL MATCHES "^[0-9]+$")
-    set(ANDROID_PLATFORM android-${ANDROID_NATIVE_API_LEVEL})
-  endif()
-endif()
-if(NOT CMAKE_SYSTEM_VERSION AND ANDROID_PLATFORM)
-  if(ANDROID_PLATFORM STREQUAL "latest")
-    message(STATUS
-      "Using latest available ANDROID_PLATFORM: ${NDK_MAX_PLATFORM_LEVEL}.")
-    set(CMAKE_SYSTEM_VERSION "${NDK_MAX_PLATFORM_LEVEL}")
-  else()
-    string(REPLACE "android-" "" CMAKE_SYSTEM_VERSION ${ANDROID_PLATFORM})
-    # Aliases defined by meta/platforms.json include codename aliases for platform
-    # API levels as well as cover any gaps in platforms that may not have had NDK
-    # APIs.
-    if(NOT "${NDK_PLATFORM_ALIAS_${CMAKE_SYSTEM_VERSION}}" STREQUAL "")
-      message(STATUS "\
-        ${CMAKE_SYSTEM_VERSION} is an alias for \
-        ${NDK_PLATFORM_ALIAS_${CMAKE_SYSTEM_VERSION}}.")
-      string(REPLACE "android-" "" CMAKE_SYSTEM_VERSION
-             "${NDK_PLATFORM_ALIAS_${CMAKE_SYSTEM_VERSION}}")
-    endif()
-  endif()
-endif()
+include(${CMAKE_ANDROID_NDK}/build/cmake/adjust_api_level.cmake)
+adjust_api_level("${ANDROID_PLATFORM}" CMAKE_SYSTEM_VERSION)
 
 if(NOT DEFINED CMAKE_ANDROID_STL_TYPE AND DEFINED ANDROID_STL)
   set(CMAKE_ANDROID_STL_TYPE ${ANDROID_STL})
@@ -265,6 +239,7 @@ set(CMAKE_TRY_COMPILE_PLATFORM_VARIABLES
   ANDROID_PLATFORM
   ANDROID_STL
   ANDROID_TOOLCHAIN
+  ANDROID_USE_LEGACY_TOOLCHAIN_FILE
 )
 
 if(DEFINED ANDROID_NO_UNDEFINED AND NOT DEFINED ANDROID_ALLOW_UNDEFINED_SYMBOLS)
@@ -276,11 +251,6 @@ if(DEFINED ANDROID_NO_UNDEFINED AND NOT DEFINED ANDROID_ALLOW_UNDEFINED_SYMBOLS)
 endif()
 if(DEFINED ANDROID_SO_UNDEFINED AND NOT DEFINED ANDROID_ALLOW_UNDEFINED_SYMBOLS)
   set(ANDROID_ALLOW_UNDEFINED_SYMBOLS "${ANDROID_SO_UNDEFINED}")
-endif()
-
-# https://github.com/android/ndk/issues/133
-if(CMAKE_ANDROID_ARCH_ABI MATCHES "^armeabi" AND NOT CMAKE_ANDROID_ARM_MODE)
-  string(APPEND _ANDROID_NDK_INIT_CFLAGS_RELEASE " -Oz")
 endif()
 
 # Exports compatible variables defined in exports.cmake.

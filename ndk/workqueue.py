@@ -47,7 +47,7 @@ IS_WINDOWS = sys.platform == 'win32'
 
 
 if IS_WINDOWS:
-    import ctypes
+    import ctypes.wintypes
     ProcessGroup = Optional[ctypes.wintypes.HANDLE]
 
 
