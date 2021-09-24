@@ -28,23 +28,22 @@ import os
 from pathlib import Path
 import subprocess
 import sys
-from typing import Tuple
 
 import ndk.testing.standalone_toolchain
 
 import ndk.abis
-from ndk.abis import Abi
 from ndk.hosts import Host
+from ndk.test.spec import BuildConfiguration
 
 
-def build(ndk_dir: str, abi: Abi, api: int) -> Tuple[bool, str]:
+def build(ndk_dir: str, config: BuildConfiguration) -> tuple[bool, str]:
     ndk_build = os.path.join(ndk_dir, 'ndk-build')
     if sys.platform == 'win32':
         ndk_build += '.cmd'
     project_path = 'project'
     ndk_args = [
-        f'APP_ABI={abi}',
-        f'APP_PLATFORM=android-{api}',
+        f'APP_ABI={config.abi}',
+        f'APP_PLATFORM=android-{config.api}',
         'V=1',
     ]
     proc = subprocess.Popen([ndk_build, '-C', project_path] + ndk_args,
@@ -53,13 +52,13 @@ def build(ndk_dir: str, abi: Abi, api: int) -> Tuple[bool, str]:
     return proc.returncode == 0, out.decode('utf-8')
 
 
-def run_test(ndk_path: str, abi: Abi, _api: int) -> Tuple[bool, str]:
+def run_test(ndk_path: str, config: BuildConfiguration) -> tuple[bool, str]:
     """Checks ndk-build V=1 output for correct compiler."""
     min_api = None
     max_api = None
     apis = []
     host = Host.current().tag
-    triple = ndk.abis.arch_to_triple(ndk.abis.abi_to_arch(abi))
+    triple = ndk.abis.arch_to_triple(ndk.abis.abi_to_arch(config.abi))
     toolchain_dir = Path(ndk_path) / f'toolchains/llvm/prebuilt/{host}'
     lib_dir = toolchain_dir / f'sysroot/usr/lib/{triple}'
     for path in lib_dir.iterdir():
@@ -83,7 +82,7 @@ def run_test(ndk_path: str, abi: Abi, _api: int) -> Tuple[bool, str]:
 
     missing_platforms = sorted(list(set(range(min_api, max_api)) - set(apis)))
     for api in missing_platforms:
-        result, out = build(ndk_path, abi, api)
+        result, out = build(ndk_path, config)
         if not result:
             return result, out
 

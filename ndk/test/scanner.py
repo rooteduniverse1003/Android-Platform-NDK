@@ -95,7 +95,6 @@ class BuildTestScanner(TestScanner):
         return [
             PythonBuildTest(name, path, config, self.ndk_path)
             for config in self.build_configurations
-            if config.toolchain_file == CMakeToolchainFile.Default
         ]
 
     def make_ndk_build_tests(self, path: str, name: str) -> List[Test]:

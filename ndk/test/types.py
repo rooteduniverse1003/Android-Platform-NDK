@@ -185,9 +185,8 @@ class PythonBuildTest(BuildTest):
         _prep_build_dir(self.test_dir, build_dir)
         with ndk.ext.os.cd(build_dir):
             module = imp.load_source('test', 'test.py')
-            assert self.api is not None
             success, failure_message = module.run_test(  # type: ignore
-                self.ndk_path, self.abi, self.api)
+                self.ndk_path, self.config)
             if success:
                 return Success(self), []
             else:
