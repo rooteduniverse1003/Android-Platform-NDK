@@ -28,6 +28,13 @@ For Android Studio issues, follow the docs on the [Android Studio site].
 
 [Clang Migration Notes]: ClangMigration.md
 
+## r23b
+
+* [Issue 1573]: Fixed `ANDROID_USE_LEGACY_TOOLCHAIN_FILE` not being obeyed
+  during CMake try-compile.
+
+[Issue 1573]: https://github.com/android/ndk/issues/1573
+
 ## Changes
 
 * Includes Android 12 APIs.
