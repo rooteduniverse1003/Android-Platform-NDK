@@ -28,6 +28,51 @@ For Android Studio issues, follow the docs on the [Android Studio site].
 
 [Clang Migration Notes]: ClangMigration.md
 
+## r23b
+
+* Update LLVM to clang-r416183c1, based on LLVM 12 development.
+  * [Issue 1540]: Fixed compiler crash when using coroutines.
+  * [Issue 1544]: Now uses universal binaries for M1 Macs.
+  * [Issue 1551]: Prevent each translation unit from receiving its own copy of
+    emulated thread-local global variables.
+  * [Issue 1555]: Fixed compiler crash for armeabi-v7a.
+* [Issue 1492]: ndk-build.cmd: Stop using make's `-O` (`--output-sync`) flag on
+  Windows to avoid `fcntl(): Bad file descriptor` error.
+* [Issue 1553]: Updated sysroot to latest Android 12.
+* [Issue 1569]: Fixed `-fno-integrated-as` not being able to find the assembler.
+* CMake changes:
+  * [Issue 1536]: Make optimization flags used with CMake more consistent.
+    Historically thumb release builds used `-Oz`, but AGP switched to using
+    `RelWithDebInfo` for release builds in the latest release which was not
+    using `-Oz`. To reduce per-arch differences and behavior differences
+    compared to CMake's defaults, `-Oz` use was removed. You may see code size
+    increases for armeabi-v7a due to this, but also increased optimization. To
+    restore the prior behavior, add `-Oz` to your cflags.
+  * [Issue 1560]: Fixed pull-up of unsupported API levels when using the new
+    CMake toolchain file. This affects CMake 3.21 and
+    `ANDROID_USE_LEGACY_TOOLCHAIN_FILE=ON` use cases, and was the common case
+    for AGP users with a `minSdkVersion` below 21.
+  * [Issue 1573]: Fixed `ANDROID_USE_LEGACY_TOOLCHAIN_FILE` not being obeyed
+    during CMake try-compile.
+  * [Issue 1581]: Added workaround for [CMake Issue 22647], which was causing
+    `MINGW` to be incorrectly defined by CMake when building for Android on a
+    Windows host. This only affected those using the Android toolchain file when
+    CMake 3.21 or newer was used. This likely was not a regression for users not
+    using the Android toolchain. The change will fix both use cases.
+
+[CMake Issue 22647]: https://gitlab.kitware.com/cmake/cmake/-/issues/22647
+[Issue 1492]: https://github.com/android/ndk/issues/1492
+[Issue 1536]: https://github.com/android/ndk/issues/1536
+[Issue 1540]: https://github.com/android/ndk/issues/1540
+[Issue 1544]: https://github.com/android/ndk/issues/1544
+[Issue 1551]: https://github.com/android/ndk/issues/1551
+[Issue 1553]: https://github.com/android/ndk/issues/1553
+[Issue 1555]: https://github.com/android/ndk/issues/1555
+[Issue 1560]: https://github.com/android/ndk/issues/1560
+[Issue 1569]: https://github.com/android/ndk/issues/1569
+[Issue 1573]: https://github.com/android/ndk/issues/1573
+[Issue 1581]: https://github.com/android/ndk/issues/1581
+
 ## Changes
 
 * Includes Android 12 APIs.

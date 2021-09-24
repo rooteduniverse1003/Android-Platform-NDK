@@ -18,16 +18,17 @@ import os
 import shutil
 import subprocess
 import tempfile
-from typing import Any, List, Tuple
+from typing import Any
 
 import ndk.abis
+from ndk.test.spec import BuildConfiguration
 
 
 def logger() -> logging.Logger:
     return logging.getLogger(__name__)
 
 
-def call_output(cmd: List[str], *args: Any, **kwargs: Any) -> Tuple[int, Any]:
+def call_output(cmd: list[str], *args: Any, **kwargs: Any) -> tuple[int, Any]:
     logger().info('COMMAND: %s', ' '.join(cmd))
     kwargs.update({
         'stdout': subprocess.PIPE,
@@ -38,15 +39,16 @@ def call_output(cmd: List[str], *args: Any, **kwargs: Any) -> Tuple[int, Any]:
         return proc.returncode, out
 
 
-def make_standalone_toolchain(ndk_path: str, arch: str, api: int,
-                              extra_args: List[str],
-                              install_dir: str) -> Tuple[bool, str]:
+def make_standalone_toolchain(ndk_path: str, config: BuildConfiguration,
+                              extra_args: list[str],
+                              install_dir: str) -> tuple[bool, str]:
     make_standalone_toolchain_path = os.path.join(
         ndk_path, 'build/tools/make_standalone_toolchain.py')
 
+    arch = ndk.abis.abi_to_arch(config.abi)
     cmd = [make_standalone_toolchain_path, '--force',
            '--install-dir=' + install_dir, '--arch=' + arch,
-           '--api={}'.format(api)] + extra_args
+           '--api={}'.format(config.api)] + extra_args
 
     if os.name == 'nt':
         # Windows doesn't process shebang lines, and we wouldn't be pointing at
@@ -67,7 +69,7 @@ def make_standalone_toolchain(ndk_path: str, arch: str, api: int,
 
 
 def test_standalone_toolchain(install_dir: str, test_source: str,
-                              flags: List[str]) -> Tuple[bool, str]:
+                              flags: list[str]) -> tuple[bool, str]:
     compiler_name = 'clang++'
 
     compiler = os.path.join(install_dir, 'bin', compiler_name)
@@ -81,14 +83,13 @@ def test_standalone_toolchain(install_dir: str, test_source: str,
     return rc == 0, out.decode('utf-8')
 
 
-def run_test(ndk_path: str, abi: ndk.abis.Abi, api: int, test_source: str,
-             extra_args: List[str], flags: List[str]) -> Tuple[bool, str]:
-    arch = ndk.abis.abi_to_arch(abi)
+def run_test(ndk_path: str, config: BuildConfiguration, test_source: str,
+             extra_args: list[str], flags: list[str]) -> tuple[bool, str]:
 
     install_dir = tempfile.mkdtemp()
     try:
         success, out = make_standalone_toolchain(
-            ndk_path, arch, api, extra_args, install_dir)
+            ndk_path, config, extra_args, install_dir)
         if not success:
             return success, out
         return test_standalone_toolchain(install_dir, test_source, flags)

@@ -18,10 +18,10 @@
 from pathlib import Path
 import re
 import subprocess
-from typing import Iterator, Tuple
+from typing import Iterator
 
-from ndk.abis import Abi
 import ndk.hosts
+from ndk.test.spec import BuildConfiguration
 
 
 def find_public_unwind_symbols(output: str) -> Iterator[str]:
@@ -55,7 +55,7 @@ def readelf(ndk_path: Path, host: ndk.hosts.Host, library: Path,
         stderr=subprocess.STDOUT).stdout
 
 
-def run_test(ndk_path: str, abi: Abi, api: int) -> Tuple[bool, str]:
+def run_test(ndk_path: str, config: BuildConfiguration) -> tuple[bool, str]:
     """Check that unwinder symbols are hidden in outputs."""
     ndk_build = Path(ndk_path) / 'ndk-build'
     host = ndk.hosts.get_default_host()
@@ -63,8 +63,8 @@ def run_test(ndk_path: str, abi: Abi, api: int) -> Tuple[bool, str]:
         ndk_build = ndk_build.with_suffix('.cmd')
     project_path = Path('project')
     ndk_args = [
-        f'APP_ABI={abi}',
-        f'APP_PLATFORM=android-{api}',
+        f'APP_ABI={config.abi}',
+        f'APP_PLATFORM=android-{config.api}',
     ]
     subprocess.run(
         [str(ndk_build), '-C', str(project_path)] + ndk_args,
@@ -72,7 +72,7 @@ def run_test(ndk_path: str, abi: Abi, api: int) -> Tuple[bool, str]:
         stdout=subprocess.PIPE,
         stderr=subprocess.STDOUT)
 
-    library = project_path / 'libs' / str(abi) / 'libfoo.so'
+    library = project_path / 'libs' / str(config.abi) / 'libfoo.so'
     readelf_output = readelf(Path(ndk_path), host, library, '-sW')
     for symbol in find_public_unwind_symbols(readelf_output):
         return False, f'Found public unwind symbol: {symbol}'
