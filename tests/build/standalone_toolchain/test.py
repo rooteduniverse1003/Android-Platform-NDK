@@ -13,13 +13,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-from typing import Tuple
-
-from ndk.abis import Abi
+from ndk.test.spec import BuildConfiguration
 import ndk.testing.standalone_toolchain
 
 
-def run_test(ndk_path: str, abi: Abi, api: int) -> Tuple[bool, str]:
-    return ndk.testing.standalone_toolchain.run_test(ndk_path, abi, api,
+def run_test(ndk_path: str, config: BuildConfiguration) -> tuple[bool, str]:
+    return ndk.testing.standalone_toolchain.run_test(ndk_path, config,
                                                      'foo.cpp',
                                                      ['--stl=libc++'], [])
