@@ -14,9 +14,8 @@
 # limitations under the License.
 #
 """Defines WorkQueue for delegating asynchronous work to subprocesses."""
-from __future__ import absolute_import
+from __future__ import annotations
 
-import ctypes  # pylint: disable=unused-import
 import collections
 import itertools
 import logging
@@ -44,7 +43,12 @@ from typing import (
 )
 
 
-ProcessGroup = Optional['ctypes.wintypes.HANDLE']
+IS_WINDOWS = sys.platform == 'win32'
+
+
+if IS_WINDOWS:
+    import ctypes
+    ProcessGroup = Optional[ctypes.wintypes.HANDLE]
 
 
 def logger() -> logging.Logger:
