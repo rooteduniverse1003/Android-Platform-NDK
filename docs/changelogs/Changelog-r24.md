@@ -32,6 +32,11 @@ For Android Studio issues, follow the docs on the [Android Studio site].
 
 ## Changes
 
+* Updated LLVM to clang-r433403, based on LLVM 13 development.
+  * [Issue 1590]: Fix LLDB help crash.
+
+[Issue 1590]: https://github.com/android/ndk/issues/1590
+
 ## Known Issues
 
 This is not intended to be a comprehensive list of all outstanding bugs.
