@@ -491,6 +491,14 @@ class Clang(ndk.builds.Module):
         # depend on them. See http://b/142327416 for more info.
         shutil.rmtree(install_path / 'lib64/cmake')
 
+        # Remove libc++.a and libc++abi.a on Darwin. Now that these files are
+        # universal binaries, they break notarization. Maybe it is possible to
+        # fix notarization by using ditto to preserve APFS extended attributes.
+        # See https://developer.apple.com/forums/thread/126038.
+        if self.host == Host.Darwin:
+            (install_path / 'lib64/libc++.a').unlink()
+            (install_path / 'lib64/libc++abi.a').unlink()
+
 
 def get_binutils_prebuilt_path(host: Host, arch: ndk.abis.Arch) -> Path:
     if host == Host.Windows64:
