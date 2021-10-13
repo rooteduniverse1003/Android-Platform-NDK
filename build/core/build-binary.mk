@@ -608,8 +608,7 @@ $(call -ndk-mod-debug,.  shared_libs='$(shared_libs)')
 $(call -ndk-mod-debug,.  static_libs='$(static_libs)')
 $(call -ndk-mod-debug,.  whole_static_libs='$(whole_static_libs)')
 
-shared_libs       := $(call map,module-get-built,$(shared_libs))\
-                     $(TARGET_PREBUILT_SHARED_LIBRARIES)
+shared_libs       := $(call map,module-get-built,$(shared_libs))
 static_libs       := $(call map,module-get-built,$(static_libs))
 whole_static_libs := $(call map,module-get-built,$(whole_static_libs))
 

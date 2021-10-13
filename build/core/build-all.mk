@@ -54,16 +54,6 @@ BUILD_EXECUTABLE          := $(BUILD_SYSTEM)/build-executable.mk
 PREBUILT_SHARED_LIBRARY   := $(BUILD_SYSTEM)/prebuilt-shared-library.mk
 PREBUILT_STATIC_LIBRARY   := $(BUILD_SYSTEM)/prebuilt-static-library.mk
 
-ANDROID_MK_INCLUDED := \
-  $(CLEAR_VARS) \
-  $(BUILD_HOST_EXECUTABLE) \
-  $(BUILD_HOST_STATIC_LIBRARY) \
-  $(BUILD_STATIC_LIBRARY) \
-  $(BUILD_SHARED_LIBRARY) \
-  $(BUILD_EXECUTABLE) \
-  $(PREBUILT_SHARED_LIBRARY) \
-
-
 # this is the list of directories containing dependency information
 # generated during the build. It will be updated by build scripts
 # when module definitions are parsed.
