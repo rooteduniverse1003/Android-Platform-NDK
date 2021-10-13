@@ -439,8 +439,9 @@ CLEAN_OBJS_DIRS     += $(LOCAL_OBJS_DIR)
 # default hash ("fast").
 linker_ldflags := -Wl,--build-id=sha1
 
-ifneq (,$(call lt,$(APP_PLATFORM_LEVEL),29))
+ifneq (,$(call lt,$(APP_PLATFORM_LEVEL),30))
     # https://github.com/android/ndk/issues/1196
+    # https://github.com/android/ndk/issues/1589
     linker_ldflags += -Wl,--no-rosegment
 endif
 
