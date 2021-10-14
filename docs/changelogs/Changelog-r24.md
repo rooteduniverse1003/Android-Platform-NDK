@@ -32,6 +32,7 @@ For Android Studio issues, follow the docs on the [Android Studio site].
 
 ## Changes
 
+* Includes Android 12.1 APIs.
 * Updated LLVM to clang-r433403, based on LLVM 13 development.
   * [Issue 1590]: Fix LLDB help crash.
 * [Issue 1559]: Added `LOCAL_ALLOW_MISSING_PREBUILT` option to
