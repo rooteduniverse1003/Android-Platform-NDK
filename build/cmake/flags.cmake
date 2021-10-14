@@ -39,8 +39,9 @@ string(APPEND _ANDROID_NDK_INIT_CFLAGS_DEBUG " -fno-limit-debug-info")
 # https://github.com/android/ndk/issues/885
 string(APPEND _ANDROID_NDK_INIT_LDFLAGS " -Wl,--build-id=sha1")
 
-if(CMAKE_SYSTEM_VERSION LESS 29)
+if(CMAKE_SYSTEM_VERSION LESS 30)
   # https://github.com/android/ndk/issues/1196
+  # https://github.com/android/ndk/issues/1589
   string(APPEND _ANDROID_NDK_INIT_LDFLAGS " -Wl,--no-rosegment")
 endif()
 
