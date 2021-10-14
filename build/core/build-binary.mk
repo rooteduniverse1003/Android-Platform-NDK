@@ -439,8 +439,9 @@ CLEAN_OBJS_DIRS     += $(LOCAL_OBJS_DIR)
 # default hash ("fast").
 linker_ldflags := -Wl,--build-id=sha1
 
-ifneq (,$(call lt,$(APP_PLATFORM_LEVEL),29))
+ifneq (,$(call lt,$(APP_PLATFORM_LEVEL),30))
     # https://github.com/android/ndk/issues/1196
+    # https://github.com/android/ndk/issues/1589
     linker_ldflags += -Wl,--no-rosegment
 endif
 
@@ -607,8 +608,7 @@ $(call -ndk-mod-debug,.  shared_libs='$(shared_libs)')
 $(call -ndk-mod-debug,.  static_libs='$(static_libs)')
 $(call -ndk-mod-debug,.  whole_static_libs='$(whole_static_libs)')
 
-shared_libs       := $(call map,module-get-built,$(shared_libs))\
-                     $(TARGET_PREBUILT_SHARED_LIBRARIES)
+shared_libs       := $(call map,module-get-built,$(shared_libs))
 static_libs       := $(call map,module-get-built,$(static_libs))
 whole_static_libs := $(call map,module-get-built,$(whole_static_libs))
 

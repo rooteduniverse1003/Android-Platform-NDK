@@ -228,6 +228,7 @@ link-whole-archive-flags = -Wl,--whole-archive $(call host-path,$1) -Wl,--no-who
 # These are documented by docs/ANDROID-MK.TXT. Exception is LOCAL_MODULE
 #
 modules-LOCALS := \
+    ALLOW_MISSING_PREBUILT \
     ALLOW_UNDEFINED_SYMBOLS \
     ARM_MODE \
     ARM_NEON \

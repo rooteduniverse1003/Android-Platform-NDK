@@ -28,7 +28,7 @@ def run_test(ndk_path: str,
              config: BuildConfiguration) -> tuple[bool, Optional[str]]:
     """Checks correct --no-rosegment use."""
     verifier = FlagVerifier(Path('project'), Path(ndk_path),
-                            config).with_api(28)
+                            config).with_api(29)
     verifier.expect_flag('-Wl,--no-rosegment')
     verifier.expect_not_flag('-Wl,--rosegment')
     result = verifier.verify()
@@ -36,6 +36,6 @@ def run_test(ndk_path: str,
         return result.make_test_result_tuple()
 
     verifier = FlagVerifier(Path('project'), Path(ndk_path),
-                            config).with_api(29)
+                            config).with_api(30)
     verifier.expect_not_flag('-Wl,--no-rosegment')
     return verifier.verify().make_test_result_tuple()
