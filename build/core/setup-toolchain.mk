@@ -61,8 +61,6 @@ else # NDK_TOOLCHAIN is not empty
     TARGET_TOOLCHAIN := $(NDK_TOOLCHAIN)
 endif # NDK_TOOLCHAIN is not empty
 
-TARGET_PREBUILT_SHARED_LIBRARIES :=
-
 # Define default values for TOOLCHAIN_NAME, this can be overriden in
 # the setup file.
 TOOLCHAIN_NAME   := $(TARGET_TOOLCHAIN)

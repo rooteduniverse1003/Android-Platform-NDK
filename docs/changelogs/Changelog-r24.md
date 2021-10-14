@@ -34,7 +34,12 @@ For Android Studio issues, follow the docs on the [Android Studio site].
 
 * Updated LLVM to clang-r433403, based on LLVM 13 development.
   * [Issue 1590]: Fix LLDB help crash.
+* [Issue 1559]: Added `LOCAL_ALLOW_MISSING_PREBUILT` option to
+  `PREBUILT_SHARED_LIBRARY` and `PREBUILT_STATIC_LIBRARY` which defers failures
+  for missing prebuilts to build time. This enables use cases within AGP where
+  one module provides "pre" built libraries to another module.
 
+[Issue 1559]: https://github.com/android/ndk/issues/1559
 [Issue 1590]: https://github.com/android/ndk/issues/1590
 
 ## Known Issues
