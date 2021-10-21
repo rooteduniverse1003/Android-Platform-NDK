@@ -140,7 +140,9 @@ def get_zip_info_from_offset(zip_file, offset):
     if offset >= file_size:
         return None
 
-    infos = zip_file.infolist()
+    # The code below requires that the infos are sorted by header_offset,
+    # so sort the infos.
+    infos = sorted(zip_file.infolist(), key=lambda info: info.header_offset)
     if not infos or offset < infos[0].header_offset:
         return None
 
