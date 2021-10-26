@@ -48,7 +48,6 @@ class AutoconfBuilder:
                  build_dir: Path,
                  host: Host,
                  add_toolchain_to_path: bool = False,
-                 use_clang: bool = False,
                  no_build_or_host: bool = False,
                  no_strip: bool = False,
                  additional_flags: Optional[list[str]] = None,
@@ -64,7 +63,6 @@ class AutoconfBuilder:
             add_toolchain_to_path: Adds the toolchain directory to the PATH
                 when invoking configure and make. Needed for some projects that
                 don't allow all tools to be passed via the environment.
-            use_clang: Set to True to use Clang to build this project.
             no_build_or_host: Don't pass --build or --host to configure.
             no_strip: Don't pass -s to compiler.
             additional_flags: Additional flags to pass to the compiler.
@@ -75,7 +73,6 @@ class AutoconfBuilder:
         self.build_directory = build_dir
         self.host = host
         self.add_toolchain_to_path = add_toolchain_to_path
-        self.use_clang = use_clang
         self.no_build_or_host = no_build_or_host
         self.no_strip = no_strip
         self.additional_flags = additional_flags
@@ -84,10 +81,7 @@ class AutoconfBuilder:
         self.working_directory = self.build_directory / 'build'
         self.install_directory = self.build_directory / 'install'
 
-        if use_clang:
-            self.toolchain = ndk.toolchains.ClangToolchain(self.host)
-        else:
-            self.toolchain = ndk.toolchains.GccToolchain(self.host)
+        self.toolchain = ndk.toolchains.ClangToolchain(self.host)
 
     @property
     def flags(self) -> List[str]:
