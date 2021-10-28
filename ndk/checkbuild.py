@@ -1004,7 +1004,21 @@ class Platforms(ndk.builds.Module):
         if os.path.exists(build_dir):
             shutil.rmtree(build_dir)
 
-        for api in self.get_apis():
+        apis = self.get_apis()
+        platforms_meta = json.loads(
+            ndk.file.read_file(ndk.paths.ndk_path('meta/platforms.json')))
+        max_sysroot_api = apis[-1]
+        max_meta_api = platforms_meta['max']
+        if max_sysroot_api != max_meta_api:
+            raise RuntimeError(
+                f'API {max_sysroot_api} is the newest API level in the '
+                'sysroot but does not match meta/platforms.json max of '
+                f'{max_meta_api}')
+        if max_sysroot_api not in platforms_meta['aliases'].values():
+            raise RuntimeError(
+                f'API {max_sysroot_api} is the newest API level in the '
+                'sysroot but has no alias in meta/platforms.json.')
+        for api in apis:
             if api in self.skip_apis:
                 continue
 
