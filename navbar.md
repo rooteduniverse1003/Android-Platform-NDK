@@ -1,4 +1,5 @@
 * [Home](/README.md)
+* [Onboarding](/docs/Onboarding.md)
 * [Building](/docs/Building.md)
 * [Clang Migration](/docs/ClangMigration.md)
 * [Testing](/docs/Testing.md)
