@@ -1526,7 +1526,7 @@ class BaseToolchain(ndk.builds.Module):
             if self.host is Host.Windows64:
                 shutil.copy2(gas, triple_bin_dir / 'as.exe')
             else:
-                (triple_bin_dir / 'as').symlink_to(bin_dir / gas_name)
+                make_symlink(triple_bin_dir / 'as', bin_dir / gas_name)
 
             # Without a GCC lib directory, Clang will not consider the
             # toolchain to be a binutils directory, so won't find GAS when
