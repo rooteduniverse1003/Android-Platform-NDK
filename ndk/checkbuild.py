@@ -898,7 +898,7 @@ class Platforms(ndk.builds.Module):
         return sorted(apis)
 
     @staticmethod
-    def get_arches(api: int) -> List[ndk.abis.Arch]:
+    def get_arches(api: Union[int, str]) -> list[ndk.abis.Arch]:
         arches = [ndk.abis.Arch('arm'), ndk.abis.Arch('x86')]
         # All codenamed APIs are at 64-bit capable.
         if isinstance(api, str) or api >= 21:
@@ -1707,7 +1707,7 @@ def var_dict_to_cmake(var_dict: Dict[str, Any]) -> str:
     return os.linesep.join(lines)
 
 
-def abis_meta_transform(metadata: Dict) -> Dict[str, Any]:
+def abis_meta_transform(metadata: dict[str, Any]) -> dict[str, Any]:
     default_abis = []
     deprecated_abis = []
     lp32_abis = []
@@ -1752,7 +1752,7 @@ def abis_meta_transform(metadata: Dict) -> Dict[str, Any]:
     return meta_vars
 
 
-def platforms_meta_transform(metadata: Dict) -> Dict[str, Any]:
+def platforms_meta_transform(metadata: dict[str, Any]) -> dict[str, Any]:
     meta_vars = {
         'NDK_MIN_PLATFORM_LEVEL': metadata['min'],
         'NDK_MAX_PLATFORM_LEVEL': metadata['max'],
@@ -1765,7 +1765,7 @@ def platforms_meta_transform(metadata: Dict) -> Dict[str, Any]:
     return meta_vars
 
 
-def system_libs_meta_transform(metadata: Dict) -> Dict[str, Any]:
+def system_libs_meta_transform(metadata: dict[str, Any]) -> dict[str, Any]:
     # This file also contains information about the first supported API level
     # for each library. We could use this to provide better diagnostics in
     # ndk-build, but currently do not.
@@ -1838,7 +1838,8 @@ class NdkBuild(ndk.builds.PackageModule):
             """))
 
     def generate_language_specific_metadata(
-            self, name: str, func: Callable[[Dict], Dict[str, Any]]) -> None:
+            self, name: str, func: Callable[[dict[str, Any]],
+                                            dict[str, Any]]) -> None:
         install_path = self.get_install_path()
         json_path = os.path.join(
             self.get_dep('meta').get_install_path(), name + '.json')
@@ -2142,7 +2143,7 @@ def file_logged_context(path: Path) -> Iterator[None]:
 def do_build(worker: ndk.workqueue.Worker, module: ndk.builds.Module,
              log_dir: Path, debuggable: bool) -> bool:
     if debuggable:
-        cm: ContextManager = contextlib.nullcontext()
+        cm: ContextManager[None] = contextlib.nullcontext()
     else:
         cm = file_logged_context(module.log_path(log_dir))
     with cm:

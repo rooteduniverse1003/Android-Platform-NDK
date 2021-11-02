@@ -88,7 +88,7 @@ def disable_terminal_echo(fd: TextIO) -> Iterator[None]:
         termattr = termios.tcgetattr(fd)
         # This is the example from the termios docs, but it doesn't pass type
         # checking...
-        termattr[3] &= ~termios.ECHO  # type: ignore
+        termattr[3] &= ~termios.ECHO
         termios.tcsetattr(fd, termios.TCSANOW, termattr)
         try:
             yield

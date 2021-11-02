@@ -70,8 +70,9 @@ class TestProgressUi(Ui):
         return lines
 
 
-def get_test_progress_ui(console: Console,
-                         workqueue: ShardingWorkQueue) -> TestProgressUi:
+def get_test_progress_ui(
+        console: Console,
+        workqueue: ShardingWorkQueue[DeviceShardingGroup]) -> TestProgressUi:
     ui_renderer: UiRenderer
     if console.smart_console:
         ui_renderer = AnsiUiRenderer(console)
