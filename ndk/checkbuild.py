@@ -1290,7 +1290,7 @@ class Sysroot(ndk.builds.Module):
             shutil.rmtree(install_path)
         path = ndk.paths.android_path('prebuilts/ndk/platform/sysroot')
         shutil.copytree(path, install_path)
-        if self.host != 'linux':
+        if self.host is not Host.Linux:
             # linux/netfilter has some headers with names that differ only
             # by case, which can't be extracted to a case-insensitive
             # filesystem, which are the defaults for Darwin and Windows :(
