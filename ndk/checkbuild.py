@@ -2440,6 +2440,38 @@ def wait_for_build(deps: ndk.deps.DependencyManager,
         print('Build finished')
 
 
+def check_ndk_symlink(ndk_dir: Path, src: Path, target: Path) -> None:
+    """Check that the symlink's target is relative, exists, and points within
+    the NDK installation.
+    """
+    if target.is_absolute():
+        raise RuntimeError(f'Symlink {src} points to absolute path {target}')
+    ndk_dir = ndk_dir.resolve()
+    cur = src.parent.resolve()
+    for part in target.parts:
+        # (cur / part) might itself be a symlink. Its validity is checked from
+        # the top-level scan, so it doesn't need to be checked here.
+        cur = (cur / part).resolve()
+        if not cur.exists():
+            raise RuntimeError(f'Symlink {src} targets non-existent {cur}')
+        if not cur.is_relative_to(ndk_dir):
+            raise RuntimeError(
+                f'Symlink {src} targets {cur} outside NDK {ndk_dir}')
+
+
+def check_ndk_symlinks(ndk_dir: Path, host: Host) -> None:
+    for path in ndk.paths.walk(ndk_dir):
+        if not path.is_symlink():
+            continue
+        if host == Host.Windows64:
+            # Symlinks aren't supported well enough on Windows. (e.g. They
+            # require Developer Mode and/or special permissions. Cygwin
+            # tools might create symlinks that non-Cygwin programs don't
+            # recognize.)
+            raise RuntimeError(f'Symlink {path} unexpected in Windows NDK')
+        check_ndk_symlink(ndk_dir, path, path.readlink())
+
+
 def build_ndk(modules: List[ndk.builds.Module],
               deps_only: Set[ndk.builds.Module], out_dir: Path, dist_dir: Path,
               args: argparse.Namespace) -> Path:
@@ -2474,6 +2506,7 @@ def build_ndk(modules: List[ndk.builds.Module],
         create_notice_file(ndk_dir / 'NOTICE', ndk.builds.NoticeGroup.BASE)
         create_notice_file(ndk_dir / 'NOTICE.toolchain',
                            ndk.builds.NoticeGroup.TOOLCHAIN)
+        check_ndk_symlinks(ndk_dir, args.system)
         return ndk_dir
     finally:
         workqueue.terminate()
