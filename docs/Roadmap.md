@@ -185,6 +185,44 @@ may be present in their equivalent of `targetSdkVersion` but not in their
 `minSdkVersion`. We could potentially do something similar. See
 [issue 1003](https://github.com/android-ndk/ndk/issues/1003).
 
+### Make the sysroot a separately installable SDK package
+
+The sysroot in the NDK is currently inherently a part of the NDK because it
+includes libc++ as well as some versioned artifacts like the CRT objects (with
+the ELF note identifying the NDK version that produced them) and
+`android/ndk-version.h`. Moving libc++ to the toolchain solves that coupling,
+and the others are probably tractable.
+
+While we'd always include the latest stable sysroot in the NDK toolchain so that
+it works out of the box, allowing the sysroot to be provided as a separate SDK
+package makes it easier for users to get new APIs without getting a new
+toolchain (via `compileSdkVersion` the same way it works for Java) and also
+easier for us to ship sysroot updates for preview API levels because they would
+no longer require a full NDK release.
+
+### LSan
+
+Leak sanitizer has not been ported for use with Android apps but would be
+helpful to app developers in tracking down memory leaks.
+
+### Portable NDK
+
+The Linux NDK is currently dependent on the version of glibc it was built with.
+To keep the NDK compatible with as many distributions as possible we build
+against a very old version of glibc, but there are still distros that we are
+incompatible with (especially distros that use an alternative libc!). We could
+potentially solve this by statically linking all our dependencies and/or by
+switching from glibc to musl. Not all binaries can be static executables because
+they require dlopen for plugin interfaces (even if our toolchain doesn't
+currently attempt to support user-provided compiler plugins, Polly is
+distributed this way, and we may want to offer such support in the future) so
+there are still some open questions.
+
+### rr debugger
+
+https://rr-project.org/ is a C/C++ debugger that supports replay debugging. We
+should investigate what is required to support that for Android.
+
 ---
 
 ## Historical releases
