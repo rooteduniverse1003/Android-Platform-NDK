@@ -145,6 +145,14 @@ def purge_unwanted_files(ndk_dir: Path) -> None:
             path.unlink()
 
 
+def make_symlink(src: Path, dest: Path) -> None:
+    src.unlink(missing_ok=True)
+    if dest.is_absolute():
+        src.symlink_to(Path(os.path.relpath(dest, src.parent)))
+    else:
+        src.symlink_to(dest)
+
+
 def create_stub_entry_point(path: Path) -> None:
     """Creates a stub "application" for the app bundle.
 
@@ -411,7 +419,7 @@ class Clang(ndk.builds.Module):
             (bin_dir / 'clang-cl').unlink()
             clang = install_path / 'bin/clang'
             (bin_dir / 'clang.real').rename(clang)
-            (bin_dir / 'clang++').symlink_to('clang')
+            make_symlink(bin_dir / 'clang++', Path('clang'))
 
         bin_ext = '.exe' if self.host.is_windows else ''
         if self.host.is_windows:
@@ -634,9 +642,7 @@ class ShaderTools(ndk.builds.CMakeModule):
         # Symlink libc++ to install path.
         for lib in self._libcxx:
             symlink_name = self.get_install_path() / lib.name
-            symlink_name.unlink(missing_ok=True)
-            symlink_name.symlink_to(
-                Path(os.path.relpath(lib, symlink_name.parent)))
+            make_symlink(symlink_name, lib)
 
 
 class Make(ndk.builds.AutoconfModule):
@@ -1520,7 +1526,7 @@ class BaseToolchain(ndk.builds.Module):
             if self.host is Host.Windows64:
                 shutil.copy2(gas, triple_bin_dir / 'as.exe')
             else:
-                (triple_bin_dir / 'as').symlink_to(bin_dir / gas_name)
+                make_symlink(triple_bin_dir / 'as', bin_dir / gas_name)
 
             # Without a GCC lib directory, Clang will not consider the
             # toolchain to be a binutils directory, so won't find GAS when
