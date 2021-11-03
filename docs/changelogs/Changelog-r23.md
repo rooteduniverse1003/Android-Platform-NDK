@@ -28,6 +28,11 @@ For Android Studio issues, follow the docs on the [Android Studio site].
 
 [Clang Migration Notes]: ClangMigration.md
 
+## r23c
+
+ * [Issue 1569]: Fix `-fno-integrated-as` for Linux and Darwin hosts by making
+   GAS symlink relative
+
 ## r23b
 
 * Update LLVM to clang-r416183c1, based on LLVM 12 development.
