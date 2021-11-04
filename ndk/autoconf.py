@@ -51,7 +51,7 @@ class AutoconfBuilder:
                  use_clang: bool = False,
                  no_build_or_host: bool = False,
                  no_strip: bool = False,
-                 additional_flags: List[str] = None,
+                 additional_flags: Optional[list[str]] = None,
                  additional_env: Optional[Dict[str, str]] = None) -> None:
         """Initializes an autoconf builder.
 
@@ -114,7 +114,7 @@ class AutoconfBuilder:
             flags.extend(self.additional_flags)
         return flags
 
-    def cd(self) -> ContextManager:
+    def cd(self) -> ContextManager[None]:
         """Context manager that moves into the working directory."""
         return ndk.ext.os.cd(str(self.working_directory))
 
@@ -134,7 +134,7 @@ class AutoconfBuilder:
         if self.additional_env:
             subproc_env.update(self.additional_env)
 
-        if subproc_env != os.environ:
+        if subproc_env != dict(os.environ):
             pp_env = pprint.pformat(env, indent=4)
             print('Running: {} with env:\n{}'.format(pp_cmd, pp_env))
         else:

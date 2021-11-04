@@ -59,7 +59,7 @@ def sigterm_handler(_signum: int, _trace: FrameType) -> None:
     sys.exit()
 
 
-def sleep_until_sigterm(pid_queue: Queue) -> None:
+def sleep_until_sigterm(pid_queue: Queue[int]) -> None:
     """Sleeps until signalled, then passes the PID through the queue."""
     signal.signal(signal.SIGTERM, sigterm_handler)
     try:
@@ -69,7 +69,7 @@ def sleep_until_sigterm(pid_queue: Queue) -> None:
         pid_queue.put(os.getpid())
 
 
-def spawn_child(_worker: Worker, pid_queue: Queue) -> None:
+def spawn_child(_worker: Worker, pid_queue: Queue[int]) -> None:
     """Spawns a child process to check behavior of terminate().
 
     The PIDs of both processes are returned via the pid_queue, and then both

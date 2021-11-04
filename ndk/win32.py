@@ -67,18 +67,19 @@ class UseLastErrorWinDLL(ctypes.WinDLL):  # type: ignore
     def __init__(self,
                  name: str,
                  mode: int = ctypes.DEFAULT_MODE,
-                 handle: int = None) -> None:
+                 handle: Optional[int] = None) -> None:
         super().__init__(name, mode, handle, use_last_error=True)
 
 _LOADER = ctypes.LibraryLoader(UseLastErrorWinDLL)
 
 
 def CreateJobObject(attributes: Optional[ctypes.Structure] = None,
-                    name: str = None) -> ctypes.wintypes.HANDLE:
+                    name: Optional[str] = None) -> ctypes.wintypes.HANDLE:
     fn_CreateJobObjectW = _LOADER.kernel32.CreateJobObjectW
     fn_CreateJobObjectW.restype = ctypes.wintypes.HANDLE
     fn_CreateJobObjectW.argtypes = [ctypes.c_void_p, ctypes.c_wchar_p]
-    job = fn_CreateJobObjectW(attributes, name)
+    job: Optional[ctypes.wintypes.HANDLE] = fn_CreateJobObjectW(
+        attributes, name)
     if job is None:
         # Automatically calls GetLastError and FormatError for us to create the
         # WindowsError exception.
@@ -114,7 +115,8 @@ def AssignProcessToJobObject(job: ctypes.wintypes.HANDLE,
 def GetCurrentProcess() -> ctypes.wintypes.HANDLE:
     fn_GetCurrentProcess = _LOADER.kernel32.GetCurrentProcess
     fn_GetCurrentProcess.restype = ctypes.wintypes.HANDLE
-    return fn_GetCurrentProcess()
+    handle: ctypes.wintypes.HANDLE = fn_GetCurrentProcess()
+    return handle
 
 
 def CloseHandle(handle: ctypes.wintypes.HANDLE) -> None:
