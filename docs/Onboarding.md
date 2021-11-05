@@ -17,6 +17,7 @@ work our release tooling.
 
 ## Guides and docs
 
+1. [Architecture](Architecture.md)
 1. [Building](Building.md)
 1. [Testing](Testing.md)
 1. [Release process](https://github.com/android/ndk/wiki/NDK-Release-Process)
