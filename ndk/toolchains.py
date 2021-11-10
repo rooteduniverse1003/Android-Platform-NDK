@@ -171,55 +171,16 @@ class Toolchain:
         raise NotImplementedError
 
 
-class GccToolchain(Toolchain):
-    """A GCC compiler toolchain."""
+class Sysroot:
+    """A sysroot for the target platform."""
 
-    def gcc_tool(self, tool_name: str) -> Path:
-        """Returns the path to the GCC tool targeting the given host."""
-        return self.path / 'bin' / f'{self.triple}-{tool_name}'
-
-    @property
-    def ar(self) -> Path:
-        """The path to the archiver."""
-        if self.target == Host.Darwin:
-            return self.darwin_sdk.ar
-        return self.gcc_tool('ar')
-
-    @property
-    def asm(self) -> Path:
-        """The path to the assembler."""
-        if self.target == Host.Darwin:
-            return self.darwin_sdk.asm
-        return self.gcc_tool('as')
+    def __init__(self, target: Host) -> None:
+        self.target = target
 
     @property
     def bin_paths(self) -> List[Path]:
         """The path to the toolchain binary directories for use with PATH."""
         return [self.path / 'bin']
-
-    @property
-    def cc(self) -> Path:
-        """The path to the C compiler."""
-        return self.gcc_tool('gcc')
-
-    @property
-    def cxx(self) -> Path:
-        """The path to the C++ compiler."""
-        return self.gcc_tool('g++')
-
-    @property
-    def flags(self) -> List[str]:
-        """The default flags to be used with the compiler."""
-        if self.target == Host.Darwin:
-            return self.darwin_sdk.flags
-        return []
-
-    @property
-    def ld(self) -> Path:
-        """The path to the linker."""
-        if self.target == Host.Darwin:
-            return self.darwin_sdk.ld
-        return self.gcc_tool('ld')
 
     @property
     def lib_dirs(self) -> List[Path]:
@@ -238,13 +199,6 @@ class GccToolchain(Toolchain):
         return lib_dirs
 
     @property
-    def nm(self) -> Path:
-        """The path to nm."""
-        if self.target == Host.Darwin:
-            return self.darwin_sdk.nm
-        return self.gcc_tool('nm')
-
-    @property
     def path(self) -> Path:
         """Returns the path to the top level toolchain directory."""
         if self.target == Host.Darwin:
@@ -256,34 +210,6 @@ class GccToolchain(Toolchain):
         else:
             return (ndk.paths.ANDROID_DIR /
                     'prebuilts/gcc/linux-x86/host/x86_64-w64-mingw32-4.8')
-
-    @property
-    def ranlib(self) -> Path:
-        """The path to ranlib."""
-        if self.target == Host.Darwin:
-            return self.darwin_sdk.ranlib
-        return self.gcc_tool('ranlib')
-
-    @property
-    def rescomp(self) -> Path:
-        """The path to the resource compiler."""
-        if not self.target.is_windows:
-            raise NotImplementedError
-        return self.gcc_tool('windres')
-
-    @property
-    def strip(self) -> Path:
-        """The path to strip."""
-        if self.target == Host.Darwin:
-            return self.darwin_sdk.strip
-        return self.gcc_tool('strip')
-
-    @property
-    def strings(self) -> Path:
-        """The path to strings."""
-        if self.target == Host.Darwin:
-            return self.darwin_sdk.strings
-        return self.gcc_tool('strings')
 
     @property
     def sysroot(self) -> Path:
@@ -307,7 +233,7 @@ class ClangToolchain(Toolchain):
 
     def __init__(self, target: Host, host: Host = get_default_host()) -> None:
         super().__init__(target, host=host)
-        self.gcc_toolchain = GccToolchain(target, host=host)
+        self.sysroot = Sysroot(target)
 
     @staticmethod
     def path_for_host(host: Host) -> Path:
@@ -332,17 +258,21 @@ class ClangToolchain(Toolchain):
     @property
     def ar(self) -> Path:
         """The path to the archiver."""
-        return self.gcc_toolchain.ar
+        if self.target == Host.Darwin:
+            return self.darwin_sdk.ar
+        return self.clang_tool('llvm-ar')
 
     @property
     def asm(self) -> Path:
         """The path to the assembler."""
-        return self.gcc_toolchain.asm
+        if self.target == Host.Darwin:
+            return self.darwin_sdk.asm
+        return self.cc
 
     @property
     def bin_paths(self) -> List[Path]:
         """The path to the toolchain binary directories for use with PATH."""
-        return self.gcc_toolchain.bin_paths + [self.path / 'bin']
+        return [self.path / 'bin']
 
     @property
     def cc(self) -> Path:
@@ -354,7 +284,7 @@ class ClangToolchain(Toolchain):
 
     @property
     def lib_dirs(self) -> List[Path]:
-        lib_dirs = self.gcc_toolchain.lib_dirs
+        lib_dirs = self.sysroot.lib_dirs
         # libc++ library path. Static only for Windows.
         if self.target.is_windows:
             lib_dirs.append(self.path_for_host(self.target) / 'lib64')
@@ -365,11 +295,8 @@ class ClangToolchain(Toolchain):
     @property
     def flags(self) -> List[str]:
         host_triple = HOST_TRIPLE_MAP[self.target]
-        toolchain_bin = (
-            self.gcc_toolchain.path / self.gcc_toolchain.triple / 'bin')
         flags = [
             f'--target={host_triple}',
-            f'-B{toolchain_bin}',
         ]
 
         if self.target.is_windows:
@@ -378,7 +305,7 @@ class ClangToolchain(Toolchain):
         if self.target == Host.Darwin:
             flags.extend(self.darwin_sdk.flags)
         else:
-            flags.append(f'--sysroot={self.gcc_toolchain.sysroot}')
+            flags.append(f'--sysroot={self.sysroot.sysroot}')
 
             for lib_dir in self.lib_dirs:
                 # Both -L and -B because Clang only searches for CRT
@@ -393,29 +320,41 @@ class ClangToolchain(Toolchain):
     @property
     def ld(self) -> Path:
         """The path to the linker."""
-        return self.gcc_toolchain.ld
+        if self.target == Host.Darwin:
+            return self.darwin_sdk.ld
+        return self.clang_tool('ld.lld')
 
     @property
     def nm(self) -> Path:
         """The path to nm."""
-        return self.gcc_toolchain.nm
+        if self.target == Host.Darwin:
+            return self.darwin_sdk.nm
+        return self.clang_tool('llvm-nm')
 
     @property
     def ranlib(self) -> Path:
         """The path to ranlib."""
-        return self.gcc_toolchain.ranlib
+        if self.target == Host.Darwin:
+            return self.darwin_sdk.ranlib
+        return self.clang_tool('llvm-ranlib')
 
     @property
     def rescomp(self) -> Path:
         """The path to the resource compiler."""
-        return self.gcc_toolchain.rescomp
+        if not self.target.is_windows:
+            raise NotImplementedError
+        return self.clang_tool('llvm-windres')
 
     @property
     def strip(self) -> Path:
         """The path to strip."""
-        return self.gcc_toolchain.strip
+        if self.target == Host.Darwin:
+            return self.darwin_sdk.strip
+        return self.clang_tool('llvm-strip')
 
     @property
     def strings(self) -> Path:
         """The path to strings."""
-        return self.gcc_toolchain.strings
+        if self.target == Host.Darwin:
+            return self.darwin_sdk.strings
+        return self.clang_tool('llvm-strings')
