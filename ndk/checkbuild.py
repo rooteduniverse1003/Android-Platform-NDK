@@ -1097,48 +1097,6 @@ class Platforms(ndk.builds.Module):
                         'This file forces git to keep the directory.')
 
 
-class Gdb(ndk.builds.Module):
-    """Module for multi-arch host GDB.
-
-    This is now a prebuilt. GDB is no longer supported. Next time it breaks
-    we'll be removing it.
-    """
-
-    name = 'gdb'
-    install_path = Path('prebuilt')
-
-    PREBUILTS_BASE = ANDROID_DIR / 'prebuilts/ndk/gdb'
-    notice = ANDROID_DIR / 'prebuilts/ndk/gdb/NOTICE'
-    notice_group = ndk.builds.NoticeGroup.TOOLCHAIN
-
-    def build(self) -> None:
-        pass
-
-    @property
-    def install_dir(self) -> Path:
-        return Path(self.get_install_path())
-
-    def gdbserver_for(self, arch: ndk.abis.Arch) -> Path:
-        return self.PREBUILTS_BASE / f'android-{arch}'
-
-    def install_gdbserver(self, arch: ndk.abis.Arch) -> None:
-        gdbserver_dir = Path(f'android-{arch}/gdbserver')
-        install_dir = self.install_dir / gdbserver_dir
-        if install_dir.exists():
-            shutil.rmtree(install_dir)
-        shutil.copytree(self.PREBUILTS_BASE / gdbserver_dir, install_dir)
-
-    def install_gdb(self) -> None:
-        copy_tree(str(self.PREBUILTS_BASE / self.host.tag),
-                  str(self.install_dir / self.host.tag))
-
-    def install(self) -> None:
-        """Installs GDB."""
-        self.install_gdb()
-        for arch in ndk.abis.ALL_ARCHITECTURES:
-            self.install_gdbserver(arch)
-
-
 class LibShaderc(ndk.builds.Module):
     name = 'libshaderc'
     install_path = Path('sources/third_party/shaderc')
@@ -2256,7 +2214,6 @@ ALL_MODULES = [
     Changelog(),
     Clang(),
     CpuFeatures(),
-    Gdb(),
     Gtest(),
     LibAndroidSupport(),
     LibShaderc(),

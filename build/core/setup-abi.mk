@@ -61,6 +61,4 @@ else
 TARGET_OBJS := $(TARGET_OUT)/objs
 endif
 
-TARGET_GDB_SETUP := $(TARGET_OUT)/setup.gdb
-
 include $(BUILD_SYSTEM)/setup-toolchain.mk
