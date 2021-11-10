@@ -196,6 +196,14 @@ else
   LOCAL_CFLAGS += $(TARGET_FORMAT_STRING_CFLAGS)
 endif
 
+# Enable branch protection for arm64-v8a
+LOCAL_BRANCH_PROTECTION := $(strip $(LOCAL_BRANCH_PROTECTION))
+ifdef LOCAL_BRANCH_PROTECTION
+    ifeq ($(TARGET_ARCH_ABI),arm64-v8a)
+        LOCAL_CFLAGS += -mbranch-protection=$(LOCAL_BRANCH_PROTECTION)
+    endif
+endif
+
 # http://b.android.com/222239
 # http://b.android.com/220159 (internal http://b/31809417)
 # x86 devices have stack alignment issues.
