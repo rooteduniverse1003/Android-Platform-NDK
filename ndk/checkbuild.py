@@ -948,9 +948,7 @@ class Platforms(ndk.builds.Module):
             dst,
         ] + srcs
 
-        if arch == ndk.abis.Arch('arm'):
-            args.append('-mfpu=vfpv3-d16')
-        elif arch == ndk.abis.Arch('arm64'):
+        if arch == ndk.abis.Arch('arm64'):
             args.append('-mbranch-protection=standard')
 
         return args
