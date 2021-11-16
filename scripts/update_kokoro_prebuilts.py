@@ -22,15 +22,14 @@ each build's main archive and extracts it into the appropriate place in an
 ndk-kokoro-main repo/pore checkout. It automatically creates a branch and a
 commit updating each prebuilt.
 
-The script uses the `stubby` CLI tool to access the Kokoro API to retrieve build
-details. This gives it the location of Kokoro builds (in placer) as well as
-a list of Git-on-Borg SHAs. For the given set of build IDs, it verifies that no
-two builds use different Git SHAs for a given repository, which guards against
-accidentally updating two hosts to different versions.
+The script uses the `gsutil` CLI tool from the Google Cloud SDK to download
+artifacts. It first uses a `gsutil ls` command with a '**' wildcard to search
+the GCS bucket for the XML manifests for the given UUIDs. These manifest paths
+contain the Kokoro job name.
 
-The script uses `fileutil` to download artifacts from placer.
-
-The script needs the google.protobuf Python module.
+For the given set of build IDs, the script verifies that no two builds use
+different Git SHAs for a given repository, which guards against accidentally
+updating two hosts to different versions.
 """
 
 import argparse
@@ -39,6 +38,7 @@ import glob
 import logging
 import os
 from pathlib import Path
+import re
 import shlex
 import shutil
 import subprocess
@@ -46,18 +46,13 @@ import sys
 import textwrap
 from typing import Sequence
 from uuid import UUID
-
-try:
-    import google.protobuf.text_format
-    from kokoro_api_pb2 import BuildStatusResponse
-except ImportError:
-    print('error: could not import protobuf modules')
-    print('Try "apt install python3-protobuf" or "pip install protobuf".\n')
-    raise
+from xml.etree import ElementTree
 
 
 THIS_DIR = Path(__file__).resolve().parent
 REPO_ROOT = THIS_DIR.parent.parent
+
+GCS_BUCKET = 'ndk-kokoro-release-artifacts'
 
 
 @dataclass(frozen=True)
@@ -70,32 +65,47 @@ class KokoroPrebuilt:
 # A map from a Kokoro job name to the paths needed for downloading and
 # extracting an archive.
 KOKORO_PREBUILTS: dict[str, KokoroPrebuilt] = {
-    'ndk/cmake/linux_continuous': KokoroPrebuilt(
+    'ndk/cmake/linux_release': KokoroPrebuilt(
         title='Linux CMake',
         extract_path='prebuilts/cmake/linux-x86',
         artifact_glob='cmake-linux-*-{build_id}.zip'
     ),
-    'ndk/cmake/darwin_continuous': KokoroPrebuilt(
+    'ndk/cmake/darwin_release': KokoroPrebuilt(
         title='Darwin CMake',
         extract_path='prebuilts/cmake/darwin-x86',
         artifact_glob='cmake-darwin-*-{build_id}.zip'
     ),
-    'ndk/cmake/windows_continuous': KokoroPrebuilt(
+    'ndk/cmake/windows_release': KokoroPrebuilt(
         title='Windows CMake',
         extract_path='prebuilts/cmake/windows-x86',
         artifact_glob='cmake-windows-*-{build_id}.zip'
     ),
-    'ndk/python3/linux_continuous': KokoroPrebuilt(
+    'ndk/ninja/linux_release': KokoroPrebuilt(
+        title='Linux Ninja',
+        extract_path='prebuilts/ninja/linux-x86',
+        artifact_glob='ninja-{build_id}.zip'
+    ),
+    'ndk/ninja/darwin_release': KokoroPrebuilt(
+        title='Darwin Ninja',
+        extract_path='prebuilts/ninja/darwin-x86',
+        artifact_glob='ninja-{build_id}.zip'
+    ),
+    'ndk/ninja/windows_release': KokoroPrebuilt(
+        title='Windows Ninja',
+        extract_path='prebuilts/ninja/windows-x86',
+        artifact_glob='ninja-{build_id}.zip'
+    ),
+    'ndk/python3/linux_release': KokoroPrebuilt(
         title='Linux Python3',
         extract_path='prebuilts/python/linux-x86',
         artifact_glob='python3-linux-{build_id}.tar.bz2'
     ),
-    'ndk/python3/darwin_continuous': KokoroPrebuilt(
+    'ndk/python3/darwin_release': KokoroPrebuilt(
         title='Darwin Python3',
         extract_path='prebuilts/python/darwin-x86',
         artifact_glob='python3-darwin-{build_id}.tar.bz2'
     ),
-    'ndk/python3/windows_continuous': KokoroPrebuilt(
+    'ndk/python3/windows_release': KokoroPrebuilt(
         title='Windows Python3',
         extract_path='prebuilts/python/windows-x86',
         artifact_glob='python3-windows-{build_id}.zip'
@@ -181,51 +191,77 @@ def parse_args() -> argparse.Namespace:
 class BuildStatus:
     job_name: str
     build_id: UUID
-    placer_path: str
+    gcs_path: str
     # name -> sha. (e.g. 'external/cmake' -> '86d651ddf5a1ca0ec3e4823bda800b0cea32d253')
     repos: dict[str, str]
 
 
-# References:
-#  - https://g3doc.corp.google.com/devtools/kokoro/g3doc/userdocs/general/api.md#example-of-using-the-stubby-cli
-#  - http://google3/devtools/kokoro/api/proto/kokoro_api.proto
-def get_build_status(build_id_list: list[UUID]) -> list[BuildStatus]:
-    """Use the stubby CLI to access the Kokoro API, to query build statuses of a
-    list of build IDs.
-    """
-    stubby_request = '\n'.join([f'build_id: "{x}"\n' for x in build_id_list])
-    logger().info('stubby_request="""%s"""', stubby_request)
+def parse_manifest_repos(manifest_path: Path) -> dict[str, str]:
+    root = ElementTree.parse(manifest_path).getroot()
+    logger().debug('parsing XML manifest %s', str(manifest_path))
+    result = {}
+    for project in root.findall('project'):
+        project_str = (ElementTree.tostring(project, encoding='unicode').strip()
+            + f' from {manifest_path}')
+        path = project.get('path')
+        if path is None:
+            sys.exit(f'error: path attribute missing from: {project_str}')
+        revision = project.get('revision')
+        if revision is None:
+            sys.exit(f'error: revision attribute missing from: {project_str}')
+        result[path] = revision
+    return result
 
-    stubby_path = shutil.which('stubby')
-    if not stubby_path:
-        sys.exit('error: no "stubby" in PATH. Run on a corp machine and/or run '
-                 '"apt install stubby-cli".')
 
-    stubby_cmd = [stubby_path, 'call', 'blade:kokoro-api',
-                  'KokoroApi.GetBuildStatus', '--batch', '--proto2']
-    logger().info('check_output `%s`', shlex.join(stubby_cmd))
-    stubby_out = subprocess.check_output(stubby_cmd, input=stubby_request,
-                                         encoding='utf8')
-    logger().debug('stubby_out="""%s"""', stubby_out)
+def get_build_status(build_id_list: list[UUID], gsutil_cmd: str,
+                     tmp_dir: Path) -> list[BuildStatus]:
+    """Use gsutil to query build statuses of a set of build IDs."""
 
-    results = []
+    # Search the GCS bucket for XML manifests matching the build IDs. Allow the
+    # command to fail, because we'll do a better job of reporting missing UUIDs
+    # afterwards.
+    gsutil_ls_cmd = ([gsutil_cmd, 'ls'] +
+        [f'gs://{GCS_BUCKET}/**/manifest-{x}.xml'
+            for x in build_id_list])
+    logger().info('run `%s`', shlex.join(gsutil_ls_cmd))
+    ls_output = subprocess.run(gsutil_ls_cmd, encoding='utf8',
+                               stdout=subprocess.PIPE, check=False)
 
-    # With --batch and text output, each BuildStatusResponse is separated by a
-    # blank line.
-    for response_txt in stubby_out.strip().split('\n\n'):
-        response = BuildStatusResponse()
-        google.protobuf.text_format.Parse(response_txt, response,
-                                          allow_unknown_field=True)
-        build_result = response.build_result
-        job_name = build_result.env_vars['JOB_NAME']
-        (placer_path,) = build_result.build_artifacts
-        repos = {x.name: x.sha1 for x in build_result.multi_scm_revision.git_on_borg_scm_revision}
-        build_id = UUID(response.build_id)
-        result = BuildStatus(job_name, build_id, placer_path, repos)
-        results.append(result)
+    @dataclass(frozen=True)
+    class LsLine:
+        job_name: str
+        gcs_path: str
 
-    assert build_id_list == [x.build_id for x in results]
-    return results
+    ls_info: dict[UUID, LsLine] = {}
+
+    for ls_line in ls_output.stdout.splitlines():
+        logger().debug('gsutil ls output: %s', ls_line)
+        match = re.match(
+            fr'(gs://{GCS_BUCKET}/prod/'
+            r'(.*)/'        # Kokoro job name (e.g. ndk/cmake/linux_release)
+            r'\d+/'         # build number (e.g. 17)
+            r'\d+-\d+)'     # timestamp (e.g. 20211109-203945)
+            r'/manifest-([0-9a-f-]+)\.xml$', ls_line)
+        if not match:
+            sys.exit(f'error: could not parse `gsutil ls` line: {ls_line}')
+        gcs_path, job_name, bid_str = match.groups()
+        ls_info[UUID(bid_str)] = LsLine(job_name, gcs_path)
+
+    missing = set(build_id_list) - ls_info.keys()
+    if len(missing) > 0:
+        sys.exit('error: build IDs not found: ' +
+            ', '.join(map(str, sorted(missing))))
+
+    xml_paths = [f'{ls_info[bid].gcs_path}/manifest-{bid}.xml'
+        for bid in build_id_list]
+    check_call(['gsutil', 'cp'] + xml_paths + [str(tmp_dir)])
+
+    result = []
+    for bid in build_id_list:
+        repos = parse_manifest_repos(tmp_dir / f'manifest-{bid}.xml')
+        result.append(BuildStatus(ls_info[bid].job_name, bid,
+                                  ls_info[bid].gcs_path, repos))
+    return result
 
 
 def validate_build_repos(builds: list[BuildStatus]) -> None:
@@ -247,6 +283,7 @@ def validate_build_repos(builds: list[BuildStatus]) -> None:
         sys.exit(1)
 
     # Print out a table of git SHAs and repository names.
+    print()
     print('No conflicting repositories detected:')
     for name, (sha, _) in sorted(repos.items()):
         print(f'{sha} {name}')
@@ -285,23 +322,18 @@ def clean_dest_dir(parent: Path) -> None:
             shutil.rmtree(path)
 
 
-def download_artifacts(builds: list[BuildStatus]) -> list[Path]:
+def download_artifacts(builds: list[BuildStatus], gsutil_cmd: str,
+                       tmp_dir: Path) -> list[Path]:
     """Download each build's artifact.
 
     Return a list of absolute paths."""
     patterns = []
     for build in builds:
         prebuilt = KOKORO_PREBUILTS[build.job_name]
-        patterns.append(build.placer_path + '/' +
+        patterns.append(build.gcs_path + '/' +
             prebuilt.artifact_glob.format(build_id=build.build_id))
 
-    tmp_dir = REPO_ROOT / 'placer_artifacts'
-    if tmp_dir.exists():
-        rmtree(tmp_dir)
-    makedirs(tmp_dir)
-
-    check_call(['fileutil', 'cp', '-parallelism', '4'] + patterns +
-               [str(tmp_dir)])
+    check_call([gsutil_cmd, '-m', 'cp'] + patterns + [str(tmp_dir)])
     artifacts = []
     for pattern in patterns:
         (artifact,) = glob.glob(str(tmp_dir / os.path.basename(pattern)))
@@ -313,8 +345,7 @@ def download_artifacts(builds: list[BuildStatus]) -> list[Path]:
 def update_artifact(build: BuildStatus, archive_path: Path, extra_message: str,
                     bug: str, use_current_branch: bool,
                     branch_name: str) -> None:
-    job_name = build.job_name
-    prebuilt = KOKORO_PREBUILTS[job_name]
+    prebuilt = KOKORO_PREBUILTS[build.job_name]
     dest_path = REPO_ROOT / prebuilt.extract_path
 
     os.chdir(dest_path)
@@ -339,7 +370,7 @@ def update_artifact(build: BuildStatus, archive_path: Path, extra_message: str,
         Update {prebuilt.title} prebuilt
 
         Fusion2: http://fusion2/{build.build_id}
-        Kokoro job: {job_name}
+        GCS path: {build.gcs_path}
         Prebuilt updated using: {Path(__file__).resolve().relative_to(REPO_ROOT)}
 
         {extra_message}
@@ -358,10 +389,24 @@ def main() -> None:
     else:
         logging.basicConfig(level=logging.INFO)
 
-    builds = get_build_status(args.build_id)
+    gsutil_cmd = shutil.which('gsutil')
+    if not gsutil_cmd:
+        sys.exit('error: no "gsutil" in PATH. '
+                 'Try "apt-get install google-cloud-sdk".')
+
+    tmp_dir = REPO_ROOT / 'gcs_artifacts'
+    if tmp_dir.exists():
+        rmtree(tmp_dir)
+    makedirs(tmp_dir)
+
+    for build_id in args.build_id:
+        if args.build_id.count(build_id) != 1:
+            sys.exit(f'error: build ID {build_id} is duplicated')
+
+    builds = get_build_status(args.build_id, gsutil_cmd, tmp_dir)
     validate_build_repos(builds)
     validate_job_names(builds)
-    artifacts = download_artifacts(builds)
+    artifacts = download_artifacts(builds, gsutil_cmd, tmp_dir)
 
     for build, artifact in zip(builds, artifacts):
         update_artifact(build, artifact, args.message, args.bug,
