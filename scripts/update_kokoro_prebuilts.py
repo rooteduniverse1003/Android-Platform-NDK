@@ -83,17 +83,17 @@ KOKORO_PREBUILTS: dict[str, KokoroPrebuilt] = {
     'ndk/ninja/linux_release': KokoroPrebuilt(
         title='Linux Ninja',
         extract_path='prebuilts/ninja/linux-x86',
-        artifact_glob='ninja-{build_id}.zip'
+        artifact_glob='ninja-linux-{build_id}.zip'
     ),
     'ndk/ninja/darwin_release': KokoroPrebuilt(
         title='Darwin Ninja',
         extract_path='prebuilts/ninja/darwin-x86',
-        artifact_glob='ninja-{build_id}.zip'
+        artifact_glob='ninja-darwin-{build_id}.zip'
     ),
     'ndk/ninja/windows_release': KokoroPrebuilt(
         title='Windows Ninja',
         extract_path='prebuilts/ninja/windows-x86',
-        artifact_glob='ninja-{build_id}.zip'
+        artifact_glob='ninja-windows-{build_id}.zip'
     ),
     'ndk/python3/linux_release': KokoroPrebuilt(
         title='Linux Python3',
