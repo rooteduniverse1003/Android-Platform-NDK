@@ -624,14 +624,6 @@ class ShaderTools(ndk.builds.CMakeModule):
             shutil.copy2(self.builder.install_directory / 'bin' / src,
                          self.get_install_path())
 
-        if self.host.is_windows:
-            for src in scripts_to_copy:
-                # Convert line endings on scripts.
-                # Do it in place to preserve executable permissions.
-                subprocess.check_call(
-                    ['unix2dos', '-o',
-                     self.get_install_path() / src])
-
         # Symlink libc++ to install path.
         for lib in self._libcxx:
             symlink_name = self.get_install_path() / lib.name
