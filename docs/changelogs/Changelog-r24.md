@@ -32,7 +32,7 @@ For Android Studio issues, follow the docs on the [Android Studio site].
 
 ## Changes
 
-* Updated LLVM to clang-r433403b, based on LLVM 13 development.
+* Updated LLVM to clang-r437112, based on LLVM 14 development.
   * [Issue 1590]: Fix LLDB help crash.
 * [Issue 1559]: Added `LOCAL_ALLOW_MISSING_PREBUILT` option to
   `PREBUILT_SHARED_LIBRARY` and `PREBUILT_STATIC_LIBRARY` which defers failures

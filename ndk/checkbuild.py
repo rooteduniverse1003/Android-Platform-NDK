@@ -1843,6 +1843,7 @@ class NdkBuild(ndk.builds.PackageModule):
 
         compiler_id_file.write_text(textwrap.dedent(f"""\
             # The file is automatically generated when the NDK is built.
+            set(CMAKE_ASM_COMPILER_VERSION {clang_version})
             set(CMAKE_C_COMPILER_VERSION {clang_version})
             set(CMAKE_CXX_COMPILER_VERSION {clang_version})
             """))
