@@ -125,10 +125,6 @@ $(cleantarget)::
 	$(call host-echo-build-step,$(PRIVATE_ABI),Clean) "$(PRIVATE_MODULE) [$(PRIVATE_ABI)]"
 	$(hide) $(call host-rmdir,$(PRIVATE_CLEAN_FILES))
 
-ifeq ($(NDK_APP_DEBUGGABLE),true)
-$(NDK_APP_GDBSETUP): PRIVATE_SRC_DIRS += $(LOCAL_C_INCLUDES) $(LOCAL_PATH)
-endif
-
 # list of generated object files
 LOCAL_OBJECTS :=
 
