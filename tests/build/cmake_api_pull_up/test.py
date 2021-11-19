@@ -15,6 +15,7 @@
 #
 """Check that pre-LP64 API levels are correctly pulled-up for CMake."""
 from pathlib import Path
+import re
 import subprocess
 
 from ndk.cmake import find_cmake, find_ninja
@@ -31,18 +32,37 @@ def run_test(ndk_path: str, config: BuildConfiguration) -> tuple[bool, str]:
         toolchain_mode = 'ON'
     else:
         toolchain_mode = 'OFF'
-    cmake_cmd = [
-        str(cmake),
-        f'-DCMAKE_TOOLCHAIN_FILE={toolchain_path}',
-        f'-DANDROID_ABI={config.abi}',
+
+    test_inputs = (
+        '-DANDROID_PLATFORM=19',
         '-DANDROID_PLATFORM=android-19',
-        f'-DCMAKE_MAKE_PROGRAM={ninja}',
-        f'-DANDROID_USE_LEGACY_TOOLCHAIN_FILE={toolchain_mode}',
-        '-GNinja',
-    ]
-    result = subprocess.run(cmake_cmd,
-                            check=False,
-                            cwd=project_path,
-                            capture_output=True,
-                            text=True)
-    return result.returncode == 0, result.stdout
+        '-DANDROID_NATIVE_API_LEVEL=19',
+        '-DANDROID_NATIVE_API_LEVEL=android-19',
+    )
+
+    for arg in test_inputs:
+        cmake_cmd = [
+            str(cmake),
+            f'-DCMAKE_TOOLCHAIN_FILE={toolchain_path}',
+            f'-DANDROID_ABI={config.abi}',
+            arg,
+            f'-DCMAKE_MAKE_PROGRAM={ninja}',
+            f'-DANDROID_USE_LEGACY_TOOLCHAIN_FILE={toolchain_mode}',
+            '-GNinja',
+        ]
+        result = subprocess.run(cmake_cmd,
+                                check=False,
+                                cwd=project_path,
+                                capture_output=True,
+                                text=True)
+        if result.returncode != 0:
+            return False, result.stdout
+        if config.toolchain_file is CMakeToolchainFile.Default:
+            expected = re.compile(
+                r'android-19 is not supported.*'
+                r'Using minimum supported LP64 version 21.')
+            if not expected.search(result.stdout):
+                return False, (f'expected pattern "{expected.pattern}" is '
+                               f'missing from cmake output:\n{result.stdout}')
+
+    return True, ''
