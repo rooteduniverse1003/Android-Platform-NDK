@@ -25,21 +25,21 @@ import json
 import os
 
 
-def get_argument_parser():
+def get_argument_parser() -> argparse.ArgumentParser:
     """Parses and returns command line arguments."""
     parser = argparse.ArgumentParser()
 
     parser.add_argument(
         '-o',
         '--output',
-        type=os.path.realpath,
+        type=os.path.realpath,  # type: ignore
         required=True,
         help='Path to output file')
 
     parser.add_argument(
         '-d',
         '--directory',
-        type=os.path.realpath,
+        type=os.path.realpath,  # type: ignore
         help='Working directory for the compile command.')
 
     parser.add_argument('-f', '--file', help='Source file.')
@@ -47,7 +47,7 @@ def get_argument_parser():
 
     parser.add_argument(
         '--command-file',
-        type=os.path.realpath,
+        type=os.path.realpath,  # type: ignore
         help='Compilation command list file.')
 
     parser.add_argument(
@@ -59,7 +59,7 @@ def get_argument_parser():
     return parser
 
 
-def main():
+def main() -> None:
     """Program entry point."""
     parser = get_argument_parser()
     args = parser.parse_args()

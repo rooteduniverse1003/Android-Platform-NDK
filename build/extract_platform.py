@@ -19,20 +19,21 @@ from __future__ import print_function
 import argparse
 import os.path
 import re
+from typing import TextIO
 
 
-def parse_args():
+def parse_args() -> argparse.Namespace:
     """Parse and return command line arguments."""
     parser = argparse.ArgumentParser()
 
     parser.add_argument(
-        'properties_file', metavar='PROPERTIES_FILE', type=os.path.abspath,
+        'properties_file', metavar='PROPERTIES_FILE', type=os.path.abspath,  # type: ignore
         help='Path to the project.properties file.')
 
     return parser.parse_args()
 
 
-def get_platform(properties_file):
+def get_platform(properties_file: TextIO) -> str:
     """Finds and returns the platform version in the properties file.
 
     Returns:
@@ -50,7 +51,7 @@ def get_platform(properties_file):
     return 'unknown'
 
 
-def main():
+def main() -> None:
     args = parse_args()
 
     # Following the comment in the old awk script, we're trying to match:

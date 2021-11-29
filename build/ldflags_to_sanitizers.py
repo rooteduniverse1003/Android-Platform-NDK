@@ -18,9 +18,10 @@
 from __future__ import print_function
 
 import sys
+from typing import TextIO
 
 
-def sanitizers_from_args(args):
+def sanitizers_from_args(args: list[str]) -> list[str]:
     """Returns the sanitizers enabled by a given set of ldflags."""
     sanitizers = set()
     for arg in args:
@@ -33,7 +34,7 @@ def sanitizers_from_args(args):
     return sorted(list(sanitizers))
 
 
-def argv_to_module_arg_lists(args):
+def argv_to_module_arg_lists(args: list[str]) -> tuple[list[str], list[list[str]]]:
     """Converts module ldflags from argv format to per-module lists.
 
     Flags are passed to us in the following format:
@@ -43,7 +44,7 @@ def argv_to_module_arg_lists(args):
     per-module lists, i.e.:
         ['global flag'], [['flag1', 'flag2'], ['flag1', 'flag3']]
     """
-    modules = [[]]
+    modules: list[list[str]] = [[]]
     for arg in args:
         if arg == '--module':
             modules.append([])
@@ -52,7 +53,7 @@ def argv_to_module_arg_lists(args):
     return modules[0], modules[1:]
 
 
-def main(argv, stream=sys.stdout):
+def main(argv: list[str], stream: TextIO = sys.stdout) -> None:
     """Program entry point."""
     # The only args we're guaranteed to see are the program name and at least
     # one --module. GLOBAL_FLAGS might be empty, as might any of the

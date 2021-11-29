@@ -22,12 +22,12 @@ import build.gen_cygpath
 
 
 class GetMountsTest(unittest.TestCase):
-    def testSingleMount(self):
+    def testSingleMount(self) -> None:
         mount_output = 'C:/cygwin on / type ntfs (binary,auto)'
         self.assertEqual(
             [('/', 'C:/cygwin')], build.gen_cygpath.get_mounts(mount_output))
 
-    def testCaseInsensitiveMount(self):
+    def testCaseInsensitiveMount(self) -> None:
         mount_output = 'C: on /cygdrive/c type ntfs'
         expected_output = [
             ('/cygdrive/c', 'C:'),
@@ -37,7 +37,7 @@ class GetMountsTest(unittest.TestCase):
         self.assertEqual(
             expected_output, build.gen_cygpath.get_mounts(mount_output))
 
-    def testManyMounts(self):
+    def testManyMounts(self) -> None:
         mount_output = textwrap.dedent("""\
             C:/cygwin/bin on /usr/bin type ntfs (binary,auto)
             C:/cygwin/lib on /usr/lib type ntfs (binary,auto)
@@ -61,14 +61,14 @@ class GetMountsTest(unittest.TestCase):
 
 
 class MakeCygpathFunctionTest(unittest.TestCase):
-    def testSingleMount(self):
+    def testSingleMount(self) -> None:
         mounts = [('/', 'C:/cygwin')]
         expected_output = '$(patsubst /%,C:/cygwin/%,\n$1)'
 
         self.assertEqual(
             expected_output, build.gen_cygpath.make_cygpath_function(mounts))
 
-    def testManyMounts(self):
+    def testManyMounts(self) -> None:
         mounts = [
             ('/', 'C:/cygwin'),
             ('/usr/bin', 'C:/cygwin/bin'),
