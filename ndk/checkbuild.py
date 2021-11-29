@@ -2260,6 +2260,14 @@ def parse_args() -> Tuple[argparse.Namespace, List[str]]:
         description=inspect.getdoc(sys.modules[__name__]))
 
     parser.add_argument(
+        '-v',
+        '--verbose',
+        action='count',
+        dest='verbosity',
+        default=0,
+        help='Increase logging verbosity.')
+
+    parser.add_argument(
         '-j',
         '--jobs',
         type=int,
@@ -2498,12 +2506,16 @@ def get_directory_size(path: Path) -> int:
 
 
 def main() -> None:
-    logging.basicConfig()
-
     total_timer = ndk.timer.Timer()
     total_timer.start()
 
     args, module_names = parse_args()
+    if args.verbosity >= 2:
+        logging.basicConfig(level=logging.DEBUG)
+    elif args.verbosity == 1:
+        logging.basicConfig(level=logging.INFO)
+    else:
+        logging.basicConfig()
     module_names.extend(args.modules)
     if not module_names:
         module_names = get_all_module_names()
