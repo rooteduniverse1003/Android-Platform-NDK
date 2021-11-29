@@ -52,7 +52,7 @@ def replace_environ(env: MutableMapping[str, str]) -> Iterator[None]:
         os.environ = old_environ # type: ignore
 
 
-def modify_environ(env: MutableMapping[str, str]) -> ContextManager:
+def modify_environ(env: MutableMapping[str, str]) -> ContextManager[None]:
     """Extends os.environ with the values in env, restoring on context exit.
 
     The values in env add to the existign environment rather than completely

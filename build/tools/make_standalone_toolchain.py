@@ -231,11 +231,6 @@ def create_toolchain(install_path, arch, api, toolchain_path, host_tag):
     prebuilt_path = os.path.join(NDK_DIR, 'prebuilt', host_tag)
     copy_tree(prebuilt_path, install_path)
 
-    gdbserver_path = os.path.join(
-        NDK_DIR, 'prebuilt', 'android-' + arch, 'gdbserver')
-    gdbserver_install = os.path.join(install_path, 'share', 'gdbserver')
-    shutil.copytree(gdbserver_path, gdbserver_install)
-
 
 def warn_unnecessary(arch, api, host_tag):
     """Emits a warning that this script is no longer needed."""
