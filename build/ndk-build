@@ -37,8 +37,8 @@
 #    cd ndk
 #    ./ndk-build -C <project-path>
 #
-PROGDIR=`dirname $0`
-PROGDIR=`cd $PROGDIR && pwd -P`
+PROGDIR=$(dirname "$0")
+PROGDIR=$(cd "$PROGDIR" && pwd -P)
 ANDROID_NDK_ROOT=$PROGDIR/..
 
 # Unset PYTHONPATH and PYTHONHOME to prevent the user's environment from
@@ -67,9 +67,8 @@ fi
 
 PROJECT_PATH=
 PROJECT_PATH_NEXT=
-NDK_ANALYZER_OUT=
 for opt; do
-    if [ -z "$PROJECT_PATH" -a "$PROJECT_PATH_NEXT" = "yes" ] ; then
+    if [ -z "$PROJECT_PATH" ] && [ "$PROJECT_PATH_NEXT" = "yes" ] ; then
         PROJECT_PATH=$opt
         PROJECT_PATH_NEXT=
     else
@@ -85,12 +84,6 @@ for opt; do
             ;;
           NDK_ANALYZE=*)
             NDK_ANALYZE=0
-            ;;
-          NDK_ANALYZER_OUT=*)
-            NDK_ANALYZER_OUT=${opt#NDK_ANALYZER_OUT=}
-            ;;
-          APP_ABI=*)
-            APP_ABI=${opt#APP_ABI=}
             ;;
           -C)
             PROJECT_PATH_NEXT="yes"
@@ -151,8 +144,7 @@ log "HOST_TAG=$HOST_TAG"
 
 # If GNUMAKE is defined, check that it points to a valid file
 if [ -n "$GNUMAKE" ] ; then
-    ABS_GNUMAKE=`which $GNUMAKE 2> /dev/null`
-    if [ $? != 0 ] ; then
+    if ! ABS_GNUMAKE=$(which "$GNUMAKE" 2> /dev/null); then
         echo "ERROR: Your GNUMAKE variable is defined to an invalid name: $GNUMAKE"
         echo "Please fix it to point to a valid make executable (e.g. /usr/bin/make)"
         exit 1
@@ -166,8 +158,7 @@ else
     GNUMAKE=$ANDROID_NDK_ROOT/prebuilt/$HOST_TAG/bin/make
     if [ ! -f "$GNUMAKE" ]; then
         # Otherwise, use 'make' and check that it is available
-        GNUMAKE=`which make 2> /dev/null`
-        if [ $? != 0 ] ; then
+        if ! GNUMAKE=$(which make 2> /dev/null); then
             echo "ERROR: Cannot find 'make' program. Please install Cygwin make package"
             echo "or define the GNUMAKE variable to point to it."
             exit 1
@@ -184,12 +175,11 @@ fi
 # 'make' program in their PATH.
 #
 if [ "$OSTYPE" = "cygwin" ] ; then
-    GNUMAKE=`cygpath -u $GNUMAKE`
-    PROGDIR_MIXED=`cygpath -m $PROGDIR`
-    CYGWIN_GNUMAKE=`$GNUMAKE -f "$PROGDIR_MIXED/core/check-cygwin-make.mk" 2>&1`
-    if [ $? != 0 ] ; then
+    GNUMAKE=$(cygpath -u "$GNUMAKE")
+    PROGDIR_MIXED=$(cygpath -m "$PROGDIR")
+    if ! ("$GNUMAKE" -f "$PROGDIR_MIXED/core/check-cygwin-make.mk" >/dev/null 2>&1); then
         echo "ERROR: You are using a non-Cygwin compatible Make program."
-        echo "Currently using: `cygpath -m $GNUMAKE`"
+        echo "Currently using: $(cygpath -m "$GNUMAKE")"
         echo ""
         echo "To solve the issue, follow these steps:"
         echo ""
@@ -214,4 +204,4 @@ if [ "$NDK_ANALYZE" = 1 ]; then
     NDK_ANALYZER_FLAGS=APP_CLANG_TIDY=true
 fi
 
-$GNUMAKE -O -f $PROGDIR/core/build-local.mk $NDK_ANALYZER_FLAGS "$@"
+"$GNUMAKE" -O -f "$PROGDIR/core/build-local.mk" $NDK_ANALYZER_FLAGS "$@"

@@ -103,7 +103,7 @@ def get_instance_info(project, zone, name):
     """Returns the parsed result of gcloud compute instances describe."""
     data = gcloud_compute(
         project, ['instances', 'describe', name, '--zone', zone])
-    return yaml.load(data)
+    return yaml.safe_load(data)
 
 
 def reset_windows_password(project, zone, name):

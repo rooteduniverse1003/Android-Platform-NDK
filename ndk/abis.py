@@ -14,7 +14,7 @@
 # limitations under the License.
 #
 """Constants and helper functions for NDK ABIs."""
-from typing import List, NewType
+from typing import List, NewType, Optional
 
 from .platforms import FIRST_LP64_API_LEVEL, MIN_API_LEVEL
 
@@ -98,7 +98,7 @@ def abi_to_arch(abi: Abi) -> Arch:
     }[abi]
 
 
-def clang_target(arch: Arch, api: int = None) -> str:
+def clang_target(arch: Arch, api: Optional[int] = None) -> str:
     """Returns the Clang target to be used for the given arch/API combo.
 
     Args:

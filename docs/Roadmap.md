@@ -61,59 +61,44 @@ improvements coming for NDK users:
   * More packages
 * Workflow improvements to decrease the costs of regular maintenance.
 
-### Migrate remaining architectures to LLVM's unwinder
+### Apple M1
 
-[Issue 1230]: https://github.com/android/ndk/issues/1230
+https://github.com/android/ndk/issues/1299
 
-Right now only 32-bit Arm uses the LLVM unwinder for exception handling, and the
-remaining architectures rely on libgcc. Using the same unwinder across all
-architectures will give more predictable behavior, and consolidating on a single
-unwinder reduces duplicated upkeep costs so we can work on other improvements.
+Migration of all the tools involved in an NDK build to be fat binaries will land
+over the course of a few releases. LLVM was shipped as universal binaries in
+r23b, and the rest of the tools are expected to move in r24. Further backports
+to r23 are unclear because they may risk destabilizing the release.
 
-### Migrate from libgcc to libclang_rt
+### TSan
 
-[Issue 1231]: https://github.com/android/ndk/issues/1231
+https://github.com/android/ndk/issues/1041
 
-These two libraries provide the runtime support the compiler relies on. While
-similar, LLVM's `libclang_rt.builtins` includes many things that libgcc does
-not. We've been working around inconsistencies for a while by using both, but it
-would be best to just finish the migration.
+Port thread sanitizer for use with NDK apps, especially in unit/integration
+tests.
 
-One blocker here is that most architectures currently rely on libgcc for
-exception handling support. Once we've migrated to LLVM's unwinder for all
-architectures this will be easier.
+### Testing tools
 
-### Remove GNU binutils
+Shipping GTest/GMock prebuilts to Maven as AARs for easy integration into AGP
+projects. Also shipping [GTestJNI] to allow exposing native tests to AGP as
+JUnit tests.
 
-We've switched to LLD and the rest of the LLVM tools by default as of r22. We
-should consolidate on the supported tools after they have been given some soak
-time to discover and fix any remaining issues.
+[GTestJNI]: https://github.com/danalbert/GTestJNI
 
-### CMake
+### More automated libc++ updates
 
-CMake added their own NDK support about the same time we added our
-toolchain file. The two often conflict with each other, and a toolchain
-file is a messy way to implement this support. However, fully switching to
-the integrated support puts NDK policy decisions (default options, NDK layout,
-etc) fully into the hands of CMake, which makes them impossible to update
-without the user also updating their CMake version.
+We still need to update libc++ twice: once for the platform, and once
+for the NDK. We also still have two separate test runners. We're consolidating
+all of these in one place (the toolchain) so that all LLVM updates include
+libc++ updates.
 
-We will reorganize our toolchain file to match the typical implementation of a
-CMake platform integration (like `$CMAKE/Modules/Platform/Android-*.cmake`) and
-CMake will be modified to load the implementation from the NDK rather than its
-own.
+### Jetpack
 
-Preferably, most of this work will actually involve improving Clang's defaults
-so that the toolchain file doesn't need to do anything aside from setting up
-toolchain paths.
-
-See [Issue 463](https://github.com/android-ndk/ndk/issues/463) for discussion.
-
-### Improve automation in ndkports so we can take on more packages
-
-Before we can take on maintenance for additional packages we need to improve the
-tooling for ndkports. Automation for package updates, testing, and the release
-process would make it possible to expand.
+We're working with the Jetpack team to build the infrastructure needed to start
+producing C++ Jetpack libraries. Once that's done we can start using Jetpack to
+ship helper libraries like libnativehelper, or C++ wrappers for the platform's C
+APIs. Wrappers for NDK APIs would also be able to, in some cases, backport
+support for APIs to older releases.
 
 ## Future work
 
@@ -130,6 +115,12 @@ noted here to show where the team's time is being spent.
 
 The following projects are things we intend to do, but have not yet been
 scheduled into the sections above.
+
+### Improve automation in ndkports so we can take on more packages
+
+Before we can take on maintenance for additional packages we need to improve the
+tooling for ndkports. Automation for package updates, testing, and the release
+process would make it possible to expand.
 
 ### Better documentation
 
@@ -165,18 +156,13 @@ The NDK has long included `gtest` and clang supports various sanitiziers,
 but there are things we can do to improve the state of testing/code quality:
 
 * Test coverage support.
-* Add `gmock`.
-* Make [GTestJNI] available to developers via Maven so developers can integrate
-  their C++ tests into Studio.
-
-[GTestJNI]: https://github.com/danalbert/GTestJNI
 
 ### C++ wrappers for NDK APIs
 
 NDK APIs are C-only for ABI stability reasons.
 
 We should offer C++ wrappers as part of an NDK support library (possibly as part
-of JetPack), even if only to offer the benefits of RAII.  Examples include
+of Jetpack), even if only to offer the benefits of RAII.  Examples include
 [Bitmap](https://github.com/android-ndk/ndk/issues/822),
 [ATrace](https://github.com/android-ndk/ndk/issues/821), and
 [ASharedMemory](https://github.com/android-ndk/ndk/issues/820).
@@ -192,17 +178,50 @@ For serious i18n, `icu4c` is too big too bundle, and non-trivial to use
 the platform. We have a C API wrapper prototype, but we need to make it
 easily available for NDK users.
 
-### More automated libc++ updates
-
-We still need to update libc++ twice: once for the platform, and once
-for the NDK. We also still have two separate test runners.
-
 ### Weak symbols for API additions
 
 iOS developers are used to using weak symbols to refer to function that
 may be present in their equivalent of `targetSdkVersion` but not in their
 `minSdkVersion`. We could potentially do something similar. See
 [issue 1003](https://github.com/android-ndk/ndk/issues/1003).
+
+### Make the sysroot a separately installable SDK package
+
+The sysroot in the NDK is currently inherently a part of the NDK because it
+includes libc++ as well as some versioned artifacts like the CRT objects (with
+the ELF note identifying the NDK version that produced them) and
+`android/ndk-version.h`. Moving libc++ to the toolchain solves that coupling,
+and the others are probably tractable.
+
+While we'd always include the latest stable sysroot in the NDK toolchain so that
+it works out of the box, allowing the sysroot to be provided as a separate SDK
+package makes it easier for users to get new APIs without getting a new
+toolchain (via `compileSdkVersion` the same way it works for Java) and also
+easier for us to ship sysroot updates for preview API levels because they would
+no longer require a full NDK release.
+
+### LSan
+
+Leak sanitizer has not been ported for use with Android apps but would be
+helpful to app developers in tracking down memory leaks.
+
+### Portable NDK
+
+The Linux NDK is currently dependent on the version of glibc it was built with.
+To keep the NDK compatible with as many distributions as possible we build
+against a very old version of glibc, but there are still distros that we are
+incompatible with (especially distros that use an alternative libc!). We could
+potentially solve this by statically linking all our dependencies and/or by
+switching from glibc to musl. Not all binaries can be static executables because
+they require dlopen for plugin interfaces (even if our toolchain doesn't
+currently attempt to support user-provided compiler plugins, Polly is
+distributed this way, and we may want to offer such support in the future) so
+there are still some open questions.
+
+### rr debugger
+
+https://rr-project.org/ is a C/C++ debugger that supports replay debugging. We
+should investigate what is required to support that for Android.
 
 ---
 
@@ -212,6 +231,12 @@ Full [history] is available, but this section summarizes major changes
 in recent releases.
 
 [history]: https://developer.android.com/ndk/downloads/revision_history.html
+
+### NDK r23
+
+Migrated all ABIs from libgcc to the LLVM unwinder and libclang_rt. Finished
+migration to LLVM binutils from GNU binutils (with the exception of `as`, which
+remains for one more release). Integrated upstream and NDK CMake support.
 
 ### NDK r22
 

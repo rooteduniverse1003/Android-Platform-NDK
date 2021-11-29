@@ -142,6 +142,14 @@ def purge_unwanted_files(ndk_dir: Path) -> None:
             path.unlink()
 
 
+def make_symlink(src: Path, dest: Path) -> None:
+    src.unlink(missing_ok=True)
+    if dest.is_absolute():
+        src.symlink_to(Path(os.path.relpath(dest, src.parent)))
+    else:
+        src.symlink_to(dest)
+
+
 def create_stub_entry_point(path: Path) -> None:
     """Creates a stub "application" for the app bundle.
 
@@ -407,12 +415,18 @@ class Clang(ndk.builds.Module):
             # consistent behavior across platforms, and we also don't want the
             # extra cost they incur (fork/exec is cheap, but CreateProcess is
             # expensive), so remove them.
+            assert set(bin_dir.glob('*.real')) == {
+                bin_dir / 'clang++.real',
+                bin_dir / 'clang.real',
+                bin_dir / 'clang-tidy.real',
+            }
             (bin_dir / 'clang++.real').unlink()
             (bin_dir / 'clang++').unlink()
             (bin_dir / 'clang-cl').unlink()
-            clang = install_path / 'bin/clang'
-            (bin_dir / 'clang.real').rename(clang)
-            (bin_dir / 'clang++').symlink_to('clang')
+            (bin_dir / 'clang-tidy').unlink()
+            (bin_dir / 'clang.real').rename(bin_dir / 'clang')
+            (bin_dir / 'clang-tidy.real').rename(bin_dir / 'clang-tidy')
+            make_symlink(bin_dir / 'clang++', Path('clang'))
 
         bin_ext = '.exe' if self.host.is_windows else ''
         if self.host.is_windows:
@@ -610,20 +624,10 @@ class ShaderTools(ndk.builds.CMakeModule):
             shutil.copy2(self.builder.install_directory / 'bin' / src,
                          self.get_install_path())
 
-        if self.host.is_windows:
-            for src in scripts_to_copy:
-                # Convert line endings on scripts.
-                # Do it in place to preserve executable permissions.
-                subprocess.check_call(
-                    ['unix2dos', '-o',
-                     self.get_install_path() / src])
-
         # Symlink libc++ to install path.
         for lib in self._libcxx:
             symlink_name = self.get_install_path() / lib.name
-            symlink_name.unlink(missing_ok=True)
-            symlink_name.symlink_to(
-                Path(os.path.relpath(lib, symlink_name.parent)))
+            make_symlink(symlink_name, lib)
 
 
 class Make(ndk.builds.CMakeModule):
@@ -898,7 +902,7 @@ class Platforms(ndk.builds.Module):
         return sorted(apis)
 
     @staticmethod
-    def get_arches(api: int) -> List[ndk.abis.Arch]:
+    def get_arches(api: Union[int, str]) -> list[ndk.abis.Arch]:
         arches = [ndk.abis.Arch('arm'), ndk.abis.Arch('x86')]
         # All codenamed APIs are at 64-bit capable.
         if isinstance(api, str) or api >= 21:
@@ -936,9 +940,7 @@ class Platforms(ndk.builds.Module):
             dst,
         ] + srcs
 
-        if arch == ndk.abis.Arch('arm'):
-            args.append('-mfpu=vfpv3-d16')
-        elif arch == ndk.abis.Arch('arm64'):
+        if arch == ndk.abis.Arch('arm64'):
             args.append('-mbranch-protection=standard')
 
         return args
@@ -1004,7 +1006,21 @@ class Platforms(ndk.builds.Module):
         if os.path.exists(build_dir):
             shutil.rmtree(build_dir)
 
-        for api in self.get_apis():
+        apis = self.get_apis()
+        platforms_meta = json.loads(
+            ndk.file.read_file(ndk.paths.ndk_path('meta/platforms.json')))
+        max_sysroot_api = apis[-1]
+        max_meta_api = platforms_meta['max']
+        if max_sysroot_api != max_meta_api:
+            raise RuntimeError(
+                f'API {max_sysroot_api} is the newest API level in the '
+                'sysroot but does not match meta/platforms.json max of '
+                f'{max_meta_api}')
+        if max_sysroot_api not in platforms_meta['aliases'].values():
+            raise RuntimeError(
+                f'API {max_sysroot_api} is the newest API level in the '
+                'sysroot but has no alias in meta/platforms.json.')
+        for api in apis:
             if api in self.skip_apis:
                 continue
 
@@ -1071,48 +1087,6 @@ class Platforms(ndk.builds.Module):
                 with open(os.path.join(root, '.keep_dir'), 'w') as keep_file:
                     keep_file.write(
                         'This file forces git to keep the directory.')
-
-
-class Gdb(ndk.builds.Module):
-    """Module for multi-arch host GDB.
-
-    This is now a prebuilt. GDB is no longer supported. Next time it breaks
-    we'll be removing it.
-    """
-
-    name = 'gdb'
-    install_path = Path('prebuilt')
-
-    PREBUILTS_BASE = ANDROID_DIR / 'prebuilts/ndk/gdb'
-    notice = ANDROID_DIR / 'prebuilts/ndk/gdb/NOTICE'
-    notice_group = ndk.builds.NoticeGroup.TOOLCHAIN
-
-    def build(self) -> None:
-        pass
-
-    @property
-    def install_dir(self) -> Path:
-        return Path(self.get_install_path())
-
-    def gdbserver_for(self, arch: ndk.abis.Arch) -> Path:
-        return self.PREBUILTS_BASE / f'android-{arch}'
-
-    def install_gdbserver(self, arch: ndk.abis.Arch) -> None:
-        gdbserver_dir = Path(f'android-{arch}/gdbserver')
-        install_dir = self.install_dir / gdbserver_dir
-        if install_dir.exists():
-            shutil.rmtree(install_dir)
-        shutil.copytree(self.PREBUILTS_BASE / gdbserver_dir, install_dir)
-
-    def install_gdb(self) -> None:
-        copy_tree(str(self.PREBUILTS_BASE / self.host.tag),
-                  str(self.install_dir / self.host.tag))
-
-    def install(self) -> None:
-        """Installs GDB."""
-        self.install_gdb()
-        for arch in ndk.abis.ALL_ARCHITECTURES:
-            self.install_gdbserver(arch)
 
 
 class LibShaderc(ndk.builds.Module):
@@ -1276,7 +1250,7 @@ class Sysroot(ndk.builds.Module):
             shutil.rmtree(install_path)
         path = ndk.paths.android_path('prebuilts/ndk/platform/sysroot')
         shutil.copytree(path, install_path)
-        if self.host != 'linux':
+        if self.host is not Host.Linux:
             # linux/netfilter has some headers with names that differ only
             # by case, which can't be extracted to a case-insensitive
             # filesystem, which are the defaults for Darwin and Windows :(
@@ -1693,7 +1667,7 @@ def var_dict_to_cmake(var_dict: Dict[str, Any]) -> str:
     return os.linesep.join(lines)
 
 
-def abis_meta_transform(metadata: Dict) -> Dict[str, Any]:
+def abis_meta_transform(metadata: dict[str, Any]) -> dict[str, Any]:
     default_abis = []
     deprecated_abis = []
     lp32_abis = []
@@ -1738,7 +1712,7 @@ def abis_meta_transform(metadata: Dict) -> Dict[str, Any]:
     return meta_vars
 
 
-def platforms_meta_transform(metadata: Dict) -> Dict[str, Any]:
+def platforms_meta_transform(metadata: dict[str, Any]) -> dict[str, Any]:
     meta_vars = {
         'NDK_MIN_PLATFORM_LEVEL': metadata['min'],
         'NDK_MAX_PLATFORM_LEVEL': metadata['max'],
@@ -1751,7 +1725,7 @@ def platforms_meta_transform(metadata: Dict) -> Dict[str, Any]:
     return meta_vars
 
 
-def system_libs_meta_transform(metadata: Dict) -> Dict[str, Any]:
+def system_libs_meta_transform(metadata: dict[str, Any]) -> dict[str, Any]:
     # This file also contains information about the first supported API level
     # for each library. We could use this to provide better diagnostics in
     # ndk-build, but currently do not.
@@ -1819,12 +1793,14 @@ class NdkBuild(ndk.builds.PackageModule):
 
         compiler_id_file.write_text(textwrap.dedent(f"""\
             # The file is automatically generated when the NDK is built.
+            set(CMAKE_ASM_COMPILER_VERSION {clang_version})
             set(CMAKE_C_COMPILER_VERSION {clang_version})
             set(CMAKE_CXX_COMPILER_VERSION {clang_version})
             """))
 
     def generate_language_specific_metadata(
-            self, name: str, func: Callable[[Dict], Dict[str, Any]]) -> None:
+            self, name: str, func: Callable[[dict[str, Any]],
+                                            dict[str, Any]]) -> None:
         install_path = self.get_install_path()
         json_path = os.path.join(
             self.get_dep('meta').get_install_path(), name + '.json')
@@ -2128,7 +2104,7 @@ def file_logged_context(path: Path) -> Iterator[None]:
 def do_build(worker: ndk.workqueue.Worker, module: ndk.builds.Module,
              log_dir: Path, debuggable: bool) -> bool:
     if debuggable:
-        cm: ContextManager = contextlib.nullcontext()
+        cm: ContextManager[None] = contextlib.nullcontext()
     else:
         cm = file_logged_context(module.log_path(log_dir))
     with cm:
@@ -2230,7 +2206,6 @@ ALL_MODULES = [
     Changelog(),
     Clang(),
     CpuFeatures(),
-    Gdb(),
     Gtest(),
     LibAndroidSupport(),
     LibShaderc(),
@@ -2283,6 +2258,14 @@ def build_number_arg(value: str) -> str:
 def parse_args() -> Tuple[argparse.Namespace, List[str]]:
     parser = argparse.ArgumentParser(
         description=inspect.getdoc(sys.modules[__name__]))
+
+    parser.add_argument(
+        '-v',
+        '--verbose',
+        action='count',
+        dest='verbosity',
+        default=0,
+        help='Increase logging verbosity.')
 
     parser.add_argument(
         '-j',
@@ -2420,6 +2403,38 @@ def wait_for_build(deps: ndk.deps.DependencyManager,
         print('Build finished')
 
 
+def check_ndk_symlink(ndk_dir: Path, src: Path, target: Path) -> None:
+    """Check that the symlink's target is relative, exists, and points within
+    the NDK installation.
+    """
+    if target.is_absolute():
+        raise RuntimeError(f'Symlink {src} points to absolute path {target}')
+    ndk_dir = ndk_dir.resolve()
+    cur = src.parent.resolve()
+    for part in target.parts:
+        # (cur / part) might itself be a symlink. Its validity is checked from
+        # the top-level scan, so it doesn't need to be checked here.
+        cur = (cur / part).resolve()
+        if not cur.exists():
+            raise RuntimeError(f'Symlink {src} targets non-existent {cur}')
+        if not cur.is_relative_to(ndk_dir):
+            raise RuntimeError(
+                f'Symlink {src} targets {cur} outside NDK {ndk_dir}')
+
+
+def check_ndk_symlinks(ndk_dir: Path, host: Host) -> None:
+    for path in ndk.paths.walk(ndk_dir):
+        if not path.is_symlink():
+            continue
+        if host == Host.Windows64:
+            # Symlinks aren't supported well enough on Windows. (e.g. They
+            # require Developer Mode and/or special permissions. Cygwin
+            # tools might create symlinks that non-Cygwin programs don't
+            # recognize.)
+            raise RuntimeError(f'Symlink {path} unexpected in Windows NDK')
+        check_ndk_symlink(ndk_dir, path, path.readlink())
+
+
 def build_ndk(modules: List[ndk.builds.Module],
               deps_only: Set[ndk.builds.Module], out_dir: Path, dist_dir: Path,
               args: argparse.Namespace) -> Path:
@@ -2454,6 +2469,7 @@ def build_ndk(modules: List[ndk.builds.Module],
         create_notice_file(ndk_dir / 'NOTICE', ndk.builds.NoticeGroup.BASE)
         create_notice_file(ndk_dir / 'NOTICE.toolchain',
                            ndk.builds.NoticeGroup.TOOLCHAIN)
+        check_ndk_symlinks(ndk_dir, args.system)
         return ndk_dir
     finally:
         workqueue.terminate()
@@ -2490,12 +2506,16 @@ def get_directory_size(path: Path) -> int:
 
 
 def main() -> None:
-    logging.basicConfig()
-
     total_timer = ndk.timer.Timer()
     total_timer.start()
 
     args, module_names = parse_args()
+    if args.verbosity >= 2:
+        logging.basicConfig(level=logging.DEBUG)
+    elif args.verbosity == 1:
+        logging.basicConfig(level=logging.INFO)
+    else:
+        logging.basicConfig()
     module_names.extend(args.modules)
     if not module_names:
         module_names = get_all_module_names()

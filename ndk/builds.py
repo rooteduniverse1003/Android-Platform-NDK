@@ -297,7 +297,6 @@ class AutoconfModule(Module):
                 self.src / 'configure',
                 self.intermediate_out_dir,
                 self.host,
-                use_clang=True,
                 additional_env=self.env)
         return self._builder
 

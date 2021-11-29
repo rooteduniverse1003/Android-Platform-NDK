@@ -37,7 +37,6 @@ from typing import (
     List,
     Mapping,
     Optional,
-    Tuple,
     TypeVar,
     Union,
 )
@@ -112,7 +111,8 @@ class Worker:
     IDLE_STATUS = 'IDLE'
     EXCEPTION_STATUS = 'EXCEPTION'
 
-    def __init__(self, data: Any, task_queue: Queue, result_queue: Queue,
+    def __init__(self, data: Any, task_queue: Queue[Task],
+                 result_queue: Queue[Any],
                  manager: multiprocessing.managers.SyncManager) -> None:
         """Creates a Worker object.
 
@@ -136,7 +136,7 @@ class Worker:
             # Typeshed has a seemingly incorrect definition of
             # SyncManager.Value that just returns the wrapped type rather than
             # the proxy type.
-            return self._status.value  # type: ignore
+            return self._status.value
 
     @status.setter
     def status(self, value: str) -> None:
@@ -145,7 +145,7 @@ class Worker:
             # Typeshed has a seemingly incorrect definition of
             # SyncManager.Value that just returns the wrapped type rather than
             # the proxy type.
-            self._status.value = value  # type: ignore
+            self._status.value = value
 
     def put_result(self, result: Any, status: str) -> None:
         """Puts a result onto the result queue."""
@@ -153,7 +153,7 @@ class Worker:
             # Typeshed has a seemingly incorrect definition of
             # SyncManager.Value that just returns the wrapped type rather than
             # the proxy type.
-            self._status.value = status  # type: ignore
+            self._status.value = status
         self.result_queue.put(result)
 
     @property
@@ -207,7 +207,7 @@ class Worker:
 class Task:
     """A task to be executed by a worker process."""
 
-    def __init__(self, func: Callable[..., Any], args: Tuple,
+    def __init__(self, func: Callable[..., Any], args: Iterable[Any],
                  kwargs: Mapping[Any, Any]) -> None:
         """Creates a task.
 
@@ -232,8 +232,8 @@ class ProcessPoolWorkQueue:
 
     def __init__(self,
                  num_workers: int = multiprocessing.cpu_count(),
-                 task_queue: Optional[Queue] = None,
-                 result_queue: Optional[Queue] = None,
+                 task_queue: Optional[Queue[Task]] = None,
+                 result_queue: Optional[Queue[Any]] = None,
                  worker_data: Optional[Any] = None) -> None:
         """Creates a WorkQueue.
 
@@ -350,12 +350,12 @@ class BasicWorkQueue:
     """
     # pylint: disable=unused-argument
     def __init__(self,
-                 num_workers: int = None,
-                 task_queue: Optional[Queue] = None,
-                 result_queue: Optional[Queue] = None,
+                 num_workers: Optional[int] = None,
+                 task_queue: Optional[Queue[Task]] = None,
+                 result_queue: Optional[Queue[Any]] = None,
                  worker_data: Optional[Any] = None) -> None:
         """Creates a SerialWorkQueue."""
-        self.task_queue: Deque = collections.deque()
+        self.task_queue: Deque[Task] = collections.deque()
         self.worker_data = worker_data
     # pylint: enable=unused-argument
 
@@ -481,7 +481,7 @@ class ShardingWorkQueue(Generic[ShardingGroupType]):
                  procs_per_device: int) -> None:
         self.manager = multiprocessing.Manager()
         self.result_queue = self.manager.Queue()
-        self.task_queues: Dict[ShardingGroupType, Queue] = {}
+        self.task_queues: Dict[ShardingGroupType, Queue[Task]] = {}
 
         self.work_queues: Dict[ShardingGroupType, Dict[Any, WorkQueue]] = {}
         self.num_tasks = 0
