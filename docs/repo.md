@@ -72,6 +72,11 @@ you want the change to be submitted once it has been reviewed and passed
 presubmit testing. Don't worry, if anyone has review comments those will prevent
 the change from being submitted before you can see them.
 
+To minimize the amount of time you spend waiting on machines, it's best to vote
+Presubmit Ready+1 on your change when you upload it to get treehugger running
+ASAP. By default treehugger won't start testing a change until it has either
+been +2'd or has autosubmit set.
+
 If you have changes that span multiple git projects that need to be submitted
 together (are mutually dependent), give them the same topic name in Gerrit. If
 you used the same branch name when running `repo start` in each project, you can
