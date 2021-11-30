@@ -5,7 +5,6 @@ RUN apt-get update
 RUN apt-get install -y bison
 RUN apt-get install -y build-essential
 RUN apt-get install -y curl
-RUN apt-get install -y dos2unix
 RUN apt-get install -y flex
 RUN apt-get install -y git
 RUN apt-get install -y make

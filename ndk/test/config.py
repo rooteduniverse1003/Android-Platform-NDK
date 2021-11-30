@@ -16,7 +16,7 @@
 import imp
 import os
 from types import ModuleType
-from typing import Any, List, Optional, Tuple, Union
+from typing import Any, Callable, List, Optional, Tuple, Union
 
 from ndk.test.devices import Device
 
@@ -134,28 +134,35 @@ class TestConfig:
         # hasattr either.
         # https://github.com/python/mypy/issues/1424
         try:
-            self.build_broken = self.module.build_broken  # type: ignore
+            self.build_broken: Callable[[Test], Union[tuple[None, None], tuple[
+                str, str]]] = self.module.build_broken  # type: ignore
         except AttributeError:
             self.build_broken = self.NullTestConfig.build_broken
 
         try:
-            self.build_unsupported = self.module.build_unsupported  # type: ignore
+            self.build_unsupported: Callable[
+                [Test],
+                Optional[str]] = self.module.build_unsupported  # type: ignore
         except AttributeError:
             self.build_unsupported = self.NullTestConfig.build_unsupported
 
         try:
-            self.extra_cmake_flags = self.module.extra_cmake_flags  # type: ignore
+            self.extra_cmake_flags: Callable[
+                [], list[str]] = self.module.extra_cmake_flags  # type: ignore
         except AttributeError:
             self.extra_cmake_flags = self.NullTestConfig.extra_cmake_flags
 
         try:
-            self.extra_ndk_build_flags = self.module.extra_ndk_build_flags  # type: ignore
+            self.extra_ndk_build_flags: Callable[
+                [],
+                list[str]] = self.module.extra_ndk_build_flags  # type: ignore
         except AttributeError:
             ntc = self.NullTestConfig
             self.extra_ndk_build_flags = ntc.extra_ndk_build_flags
 
         try:
-            self.is_negative_test = self.module.is_negative_test  # type: ignore
+            self.is_negative_test: Callable[
+                [], bool] = self.module.is_negative_test  # type: ignore
         except AttributeError:
             self.is_negative_test = self.NullTestConfig.is_negative_test
 
@@ -191,12 +198,16 @@ class DeviceTestConfig(TestConfig):
         super().__init__(file_path)
 
         try:
-            self.run_broken = self.module.run_broken  # type: ignore
+            self.run_broken: Callable[[Test, Device], Union[
+                tuple[None, None],
+                tuple[str, str]]] = self.module.run_broken  # type: ignore
         except AttributeError:
             self.run_broken = self.NullTestConfig.run_broken
 
         try:
-            self.run_unsupported = self.module.run_unsupported  # type: ignore
+            self.run_unsupported: Callable[
+                [Test, Device],
+                Optional[str]] = self.module.run_unsupported  # type: ignore
         except AttributeError:
             self.run_unsupported = self.NullTestConfig.run_unsupported
 

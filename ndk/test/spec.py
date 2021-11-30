@@ -36,9 +36,9 @@ class TestOptions:
                  src_dir: str,
                  ndk_path: str,
                  out_dir: str,
-                 test_filter: str = None,
+                 test_filter: Optional[str] = None,
                  clean: bool = True,
-                 build_report: str = None) -> None:
+                 build_report: Optional[str] = None) -> None:
         """Initializes a TestOptions object.
 
         Args:

@@ -111,15 +111,11 @@ class BuildTest(Test):
     @property
     def ndk_build_flags(self) -> List[str]:
         flags = self.config.get_extra_ndk_build_flags()
-        if flags is None:
-            flags = []
         return flags + self.get_extra_ndk_build_flags()
 
     @property
     def cmake_flags(self) -> List[str]:
         flags = self.config.get_extra_cmake_flags()
-        if flags is None:
-            flags = []
         return flags + self.get_extra_cmake_flags()
 
     def run(self, obj_dir: str, dist_dir: str,
@@ -715,6 +711,7 @@ class XunitResult(Test):
     def check_broken(self) -> Union[Tuple[None, None], Tuple[str, str]]:
         config, bug = self.get_test_config().build_broken(self)
         if config is not None:
+            assert bug is not None
             return config, bug
         return None, None
 

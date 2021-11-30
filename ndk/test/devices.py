@@ -45,6 +45,11 @@ def logger() -> logging.Logger:
 
 class Device(adb.AndroidDevice):
     """A device to be used for testing."""
+
+    # We have no type information for the adb module so mypy can't reason about
+    # it. At least let it know that there's a serial property that is a string.
+    serial: str
+
     # pylint: disable=no-member
     def __init__(self, serial: str, precache: bool = False) -> None:
         super().__init__(serial)

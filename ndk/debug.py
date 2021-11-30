@@ -24,7 +24,7 @@ from types import FrameType
 def attach_debugger(_signum: int, frame: FrameType) -> None:
     """Attaches pdb to the frame at the time of signalling."""
     # mypy doesn't know that pdb.Pdb exists.
-    pdb.Pdb().set_trace(frame)  # type: ignore
+    pdb.Pdb().set_trace(frame)
 
 
 def dump_trace(_signum: int, frame: FrameType) -> None:

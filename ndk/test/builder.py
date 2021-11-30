@@ -25,6 +25,7 @@ import shutil
 import sys
 import traceback
 from typing import (
+    Any,
     Dict,
     List,
     Tuple,
@@ -47,7 +48,8 @@ def logger() -> logging.Logger:
     return logging.getLogger(__name__)
 
 
-def test_spec_from_config(test_config: Dict) -> ndk.test.spec.TestSpec:
+def test_spec_from_config(
+        test_config: dict[str, Any]) -> ndk.test.spec.TestSpec:
     """Returns a TestSpec based on the test config file."""
     abis = test_config.get('abis', ndk.abis.ALL_ABIS)
     suites = test_config.get('suites', ndk.test.suites.ALL_SUITES)

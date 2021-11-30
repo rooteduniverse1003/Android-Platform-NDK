@@ -6,6 +6,4 @@ set PYTHONHOME=
 set PYTHONPATH=
 set NDK_ROOT=%~dp0\..
 set PREBUILT_PATH=%NDK_ROOT%\prebuilt\windows-x86_64
-rem TODO: Reenable -O when make.exe's output-sync is fixed.
-rem See https://github.com/android/ndk/issues/1492.
-"%PREBUILT_PATH%\bin\make.exe" -f "%NDK_ROOT%\build\core\build-local.mk" SHELL=cmd %*
+"%PREBUILT_PATH%\bin\make.exe" -O -f "%NDK_ROOT%\build\core\build-local.mk" SHELL=cmd %*
