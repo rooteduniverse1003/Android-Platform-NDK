@@ -28,6 +28,15 @@ For Android Studio issues, follow the docs on the [Android Studio site].
 
 [Clang Migration Notes]: ClangMigration.md
 
+## r23c
+
+ * [Issue 1569]: Fix `-fno-integrated-as` for Linux and Darwin hosts by making
+   GAS symlink relative
+ * [Issue 1610]: Fix `ANDROID_NATIVE_API_LEVEL` CMake variable when using the
+   non-legacy toolchain file.
+
+[Issue 1610]: https://github.com/android/ndk/issues/1610
+
 ## r23b
 
 * Update LLVM to clang-r416183c1, based on LLVM 12 development.

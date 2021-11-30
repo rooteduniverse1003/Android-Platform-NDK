@@ -32,15 +32,44 @@ For Android Studio issues, follow the docs on the [Android Studio site].
 
 ## Changes
 
-* Includes Android 12.1 APIs.
-* Updated LLVM to clang-r433403, based on LLVM 13 development.
+* Includes Android 12L APIs.
+* Updated LLVM to clang-r437112, based on LLVM 14 development.
   * [Issue 1590]: Fix LLDB help crash.
+* [Issue 1108]: Removed `mbstowcs` and `wcstombs` from the pre-API 21 stubs and
+  moved the implementation to `libandroid_support` to fix those APIs on old
+  devices.
+* [Issue 1299]: Additional Apple M1 support:
+  * [Issue 1410]: Fixed incorrect host tool directory identification in
+    ndk-build on M1 macs.
+  * [Issue 1544]: LLVM tools are now universal binaries.
+  * [Issue 1546]: Make is now a universal binary.
+* [Issue 1492]: Windows Make now works with `-O`, and ndk-build now uses it by
+  default.
+* [Issue 1497]: Added `LOCAL_BRANCH_PROTECTION` option to ndk-build for using
+  `-mbranch-protection` with aarch64 without breaking other ABIs. Example use:
+  `LOCAL_BRANCH_PROTECTION := standard`.
 * [Issue 1559]: Added `LOCAL_ALLOW_MISSING_PREBUILT` option to
   `PREBUILT_SHARED_LIBRARY` and `PREBUILT_STATIC_LIBRARY` which defers failures
   for missing prebuilts to build time. This enables use cases within AGP where
   one module provides "pre" built libraries to another module.
+* [Issue 1587]: ndk-stack is now tolerant of unsorted zip infos.
+* [Issue 1589]: Fixed broken stack traces on API 29 devices when using a
+  minSdkVersion of 29.
+* Removed `make-standalone-toolchain.sh`. This was broken in a previous release
+  and it was unnoticed, so it seems unused. `make_standalone_toolchain.py`
+  remains, but neither has been needed since NDK r19 since the toolchain can be
+  invoked directly.
 
+[Issue 1108]: https://github.com/android/ndk/issues/1108
+[Issue 1299]: https://github.com/android/ndk/issues/1299
+[Issue 1410]: https://github.com/android/ndk/issues/1410
+[Issue 1492]: https://github.com/android/ndk/issues/1492
+[Issue 1497]: https://github.com/android/ndk/issues/1497
+[Issue 1544]: https://github.com/android/ndk/issues/1544
+[Issue 1546]: https://github.com/android/ndk/issues/1546
 [Issue 1559]: https://github.com/android/ndk/issues/1559
+[Issue 1587]: https://github.com/android/ndk/issues/1587
+[Issue 1589]: https://github.com/android/ndk/issues/1589
 [Issue 1590]: https://github.com/android/ndk/issues/1590
 
 ## Known Issues

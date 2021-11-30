@@ -103,8 +103,6 @@ ifeq ($(NDK_APP.$(_app).cleaned_binaries),)
 
 clean-installed-binaries::
 	$(hide) $(call host-rm,$(NDK_APP_ABI:%=$(NDK_APP_LIBS_OUT)/%/*))
-	$(hide) $(call host-rm,$(NDK_APP_ABI:%=$(NDK_APP_LIBS_OUT)/%/gdbserver))
-	$(hide) $(call host-rm,$(NDK_APP_ABI:%=$(NDK_APP_LIBS_OUT)/%/gdb.setup))
 endif
 
 COMPILE_COMMANDS_JSON := $(call host-path,compile_commands.json)

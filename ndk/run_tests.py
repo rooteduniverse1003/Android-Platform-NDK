@@ -215,6 +215,7 @@ class LibcxxTestCase(TestCase):
             self, device: Device) -> Union[Tuple[None, None], Tuple[str, str]]:
         config, bug = self.get_test_config().run_broken(self, device)
         if config is not None:
+            assert bug is not None
             return config, bug
         return None, None
 
@@ -570,7 +571,8 @@ def pair_test_runs(
     return test_runs
 
 
-def wait_for_results(report: Report, workqueue: ShardingWorkQueue,
+def wait_for_results(report: Report,
+                     workqueue: ShardingWorkQueue[DeviceShardingGroup],
                      printer: Printer) -> None:
     console = ndk.ansi.get_console()
     ui = ndk.test.ui.get_test_progress_ui(console, workqueue)
@@ -610,7 +612,9 @@ def flake_filter(result: TestResult) -> bool:
     return False
 
 
-def restart_flaky_tests(report: Report, workqueue: ShardingWorkQueue) -> None:
+def restart_flaky_tests(
+        report: Report,
+        workqueue: ShardingWorkQueue[DeviceShardingGroup]) -> None:
     """Finds and restarts any failing flaky tests."""
     rerun_tests = report.remove_all_failing_flaky(flake_filter)
     if rerun_tests:
@@ -628,7 +632,7 @@ def restart_flaky_tests(report: Report, workqueue: ShardingWorkQueue) -> None:
 
 def get_config_dict(config: str, abis: Iterable[Abi]) -> Dict[str, Any]:
     with open(config) as test_config_file:
-        test_config = json.load(test_config_file)
+        test_config: dict[str, Any] = json.load(test_config_file)
     if abis is not None:
         test_config['abis'] = abis
     return test_config
@@ -731,7 +735,7 @@ class Results:
             raise ValueError
         self.success = True
 
-    def failed(self, message: str = None) -> None:
+    def failed(self, message: Optional[str] = None) -> None:
         if self.success is not None:
             raise ValueError
         self.success = False

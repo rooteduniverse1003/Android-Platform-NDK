@@ -39,6 +39,8 @@ android_support_sources := \
     $(BIONIC_PATH)/libc/bionic/mbrtoc32.cpp \
     $(BIONIC_PATH)/libc/bionic/wchar.cpp \
     $(BIONIC_PATH)/libc/upstream-openbsd/lib/libc/locale/mbtowc.c \
+    $(BIONIC_PATH)/libc/upstream-openbsd/lib/libc/locale/wcstombs.c \
+    $(BIONIC_PATH)/libc/upstream-openbsd/lib/libc/locale/mbstowcs.c \
     src/locale_support.cpp \
     src/swprintf.cpp \
     src/wcstox.cpp \

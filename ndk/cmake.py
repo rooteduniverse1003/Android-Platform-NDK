@@ -120,7 +120,7 @@ class CMakeBuilder:
             subproc_env.update(self.additional_env)
 
         pp_cmd = shlex.join(cmd)
-        if subproc_env != os.environ:
+        if subproc_env != dict(os.environ):
             pp_env = pprint.pformat(self.additional_env, indent=4)
             print('Running: {} with env:\n{}'.format(pp_cmd, pp_env))
         else:
