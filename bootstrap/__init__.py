@@ -21,12 +21,12 @@ import sys
 THIS_DIR = os.path.realpath(os.path.dirname(__file__))
 
 
-def android_path(*args):
+def android_path(*args: str) -> str:
     """Returns the absolute path rooted within the top level source tree."""
     return os.path.normpath(os.path.join(THIS_DIR, '../..', *args))
 
 
-def python_path():
+def python_path() -> str:
     """Returns the absolute path to python executable."""
     if sys.platform.startswith('linux'):
         host_name = 'linux-x86'
@@ -37,7 +37,7 @@ def python_path():
     return android_path('prebuilts', 'python', host_name, 'bin')
 
 
-def bootstrap():
+def bootstrap() -> None:
     """Creates a bootstrap Python 3 environment.
 
     Adds the directory containing the python3 binary to the first element in

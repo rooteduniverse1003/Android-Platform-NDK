@@ -26,7 +26,7 @@ import re
 import sys
 
 
-def get_mounts(mount_output):
+def get_mounts(mount_output: str) -> list[tuple[str, str]]:
     """Parses the output of mount and returns a dict of mounts.
 
     Args:
@@ -39,7 +39,7 @@ def get_mounts(mount_output):
 
     # We use a list of tuples rather than a dict because we want to recurse on
     # the list later anyway.
-    mounts = []
+    mounts: list[tuple[str, str]] = []
     for line in mount_output.splitlines():
         # Cygwin's mount doesn't use backslashes even in Windows paths, so no
         # need to replace here.
@@ -65,7 +65,7 @@ def get_mounts(mount_output):
     return mounts
 
 
-def make_cygpath_function(mounts):
+def make_cygpath_function(mounts: list[tuple[str, str]]) -> str:
     """Creates a make function that can be used in place of cygpath.
 
     Args:
@@ -90,7 +90,7 @@ def make_cygpath_function(mounts):
         cyg_path, win_path, make_cygpath_function(other_mounts))
 
 
-def main():
+def main() -> None:
     # We're invoked from make and piped the output of `mount` so we can
     # determine what mappings to make.
     mount_output = sys.stdin.read()

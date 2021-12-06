@@ -1,3 +1,6 @@
+[MASTER]
+jobs = 0
+
 [MESSAGES CONTROL]
 # Some of these should be cleaned up, but disable them for now so I can check
 # this in. The too-many-* refactoring warnings will probably remain on for all
@@ -11,6 +14,9 @@ disable=
     no-else-return,
     no-self-use,
     too-many-lines,
+    duplicate-code,
+
+ignore=ndk-gdb.py
 
 [BASIC]
 good-names=i,j,k,ex,Run,_
@@ -20,3 +26,8 @@ dummy-variables-rgx=_
 
 [SIMILARITIES]
 ignore-imports=yes
+
+[FORMAT]
+ignore-long-lines=(?x)(
+  ^\s*(\#\ )?<?https?://\S+>?$|
+  ^\s*\#\ \S+$)

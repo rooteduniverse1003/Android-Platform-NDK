@@ -28,6 +28,8 @@ g4 mail
 import argparse
 import logging
 import os
+import shutil
+import subprocess
 
 
 THIS_DIR = os.path.realpath(os.path.dirname(__file__))
@@ -41,14 +43,12 @@ def logger():
 
 def copy2(src, dst):
     """shutil.copy2 with logging."""
-    import shutil
     logger().info('copy2: %s %s', src, dst)
     shutil.copy2(src, dst)
 
 
 def rmtree(path):
     """shutil.rmtree with logging."""
-    import shutil
     logger().info('rmtree: %s', path)
     shutil.rmtree(path)
 
@@ -61,7 +61,6 @@ def makedirs(path):
 
 def call(cmd, *args, **kwargs):
     """subprocess.call with logging."""
-    import subprocess
     logger().info('call: %s', ' '.join(cmd))
     subprocess.call(cmd, *args, **kwargs)
 

@@ -19,7 +19,7 @@ from __future__ import absolute_import
 import unittest
 
 try:
-    from StringIO import StringIO
+    from StringIO import StringIO  # type: ignore
 except ImportError:
     from io import StringIO
 
@@ -29,12 +29,12 @@ from build.ldflags_to_sanitizers import sanitizers_from_args
 
 
 class LdflagsToSanitizersTest(unittest.TestCase):
-    def test_sanitizers_from_args_no_sanitize_args(self):
+    def test_sanitizers_from_args_no_sanitize_args(self) -> None:
         """Tests that we don't identify sanitizers when there are none."""
         self.assertListEqual([], sanitizers_from_args([]))
         self.assertListEqual([], sanitizers_from_args(['foo', 'bar']))
 
-    def test_sanitizers_from_args_enabled_sanitizers(self):
+    def test_sanitizers_from_args_enabled_sanitizers(self) -> None:
         """Tests that we find enabled sanitizers."""
         self.assertListEqual(
             ['address'], sanitizers_from_args(['-fsanitize=address']))
@@ -51,7 +51,7 @@ class LdflagsToSanitizersTest(unittest.TestCase):
             ['address', 'undefined'],
             sanitizers_from_args(['-fsanitize=address,undefined', 'foo']))
 
-    def test_sanitizers_from_args_disabled_sanitizers(self):
+    def test_sanitizers_from_args_disabled_sanitizers(self) -> None:
         """Tests that we don't find disabled sanitizers."""
         self.assertListEqual([], sanitizers_from_args(
             ['-fno-sanitize=address']))
@@ -64,7 +64,7 @@ class LdflagsToSanitizersTest(unittest.TestCase):
         self.assertListEqual([], sanitizers_from_args(
             ['-fno-sanitize=address,undefined', 'foo']))
 
-    def test_sanitizers_from_args_enabled_disabled_sanitizers(self):
+    def test_sanitizers_from_args_enabled_disabled_sanitizers(self) -> None:
         """Tests that we correctly identify only enabled sanitizers."""
         self.assertListEqual([], sanitizers_from_args(
             ['-fsanitize=address', '-fno-sanitize=address']))
@@ -80,7 +80,7 @@ class LdflagsToSanitizersTest(unittest.TestCase):
             ['-fsanitize=address', '-fsanitize=undefined',
              '-fno-sanitize=address']))
 
-    def test_argv_to_module_arg_lists(self):
+    def test_argv_to_module_arg_lists(self) -> None:
         """Tests that modules' arguments are properly identified."""
         self.assertTupleEqual(([], []), argv_to_module_arg_lists([]))
         self.assertTupleEqual((['foo'], []), argv_to_module_arg_lists(['foo']))
@@ -94,7 +94,7 @@ class LdflagsToSanitizersTest(unittest.TestCase):
             (['foo', 'bar'], [['baz']]),
             argv_to_module_arg_lists(['foo', 'bar', '--module', 'baz']))
 
-    def test_main(self):
+    def test_main(self) -> None:
         """Test that the program itself works."""
         sio = StringIO()
         ldflags_main(

@@ -688,6 +688,37 @@ class Python(ndk.builds.Module):
                   str(self.get_install_path()))
 
 
+class PythonLint(ndk.builds.Module):
+    name = 'pythonlint'
+
+    def build(self) -> None:
+        self.run_pylint()
+        self.run_mypy()
+
+    def run_pylint(self) -> None:
+        if not shutil.which('pylint'):
+            logging.warning(
+                'Skipping linting. pylint was not found on your path.')
+            return
+        pylint = ['pylint', '--rcfile=' +
+                  str(ANDROID_DIR / 'ndk/pylintrc'), '--score=n']
+        for root, _, files in os.walk(ANDROID_DIR / 'ndk'):
+            pylint.extend([os.path.join(root, name)
+                           for name in files if name.endswith('.py')])
+        subprocess.check_call(pylint)
+
+    def run_mypy(self) -> None:
+        if not shutil.which('mypy'):
+            logging.warning(
+                'Skipping type-checking. mypy was not found on your path.')
+            return
+        subprocess.check_call(
+            ['mypy', '--config-file', str(ANDROID_DIR / 'ndk/mypy.ini'), str(ANDROID_DIR / 'ndk')])
+
+
+    def install(self) -> None:
+        pass
+
 class Toolbox(ndk.builds.Module):
     name = 'toolbox'
     install_path = Path('prebuilt/{host}/bin')
@@ -2226,6 +2257,7 @@ ALL_MODULES = [
     NdkWhichShortcut(),
     Platforms(),
     Python(),
+    PythonLint(),
     PythonPackages(),
     Readme(),
     ShaderTools(),
@@ -2536,7 +2568,7 @@ def main() -> None:
         sys.exit(textwrap.dedent("""\
             Error: ANDROID_BUILD_TOP is already set in your environment.
 
-            This typically means you are running in a shell that has lunched a
+            This typically means you are running in a shell that has launched a
             target in a platform build. The platform environment interferes
             with the NDK build environment, so the build cannot continue.
 
