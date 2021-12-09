@@ -92,6 +92,12 @@ class Device(adb.AndroidDevice):
                 if value is not None:
                     abis.update(value.split(','))
 
+            if 'x86_64' in abis:
+                # Don't allow ndk_translation to count as an arm test device.
+                # We need to verify that things work on actual Arm, not that
+                # they work when binary translated for x86.
+                abis.difference_update({'arm64-v8a', 'armeabi-v7a'})
+
             self._cached_abis = sorted(list(abis))
 
     @property
