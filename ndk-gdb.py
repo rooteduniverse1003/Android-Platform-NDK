@@ -223,7 +223,7 @@ def find_project(args):
             error(msg.format(args.project))
     else:
         # Walk upwards until we find AndroidManifest.xml, or run out of path.
-        current_dir = os.getcwdu()
+        current_dir = os.getcwd()
         while not os.path.exists(os.path.join(current_dir, manifest_name)):
             parent_dir = os.path.dirname(current_dir)
             if parent_dir == current_dir:
@@ -308,7 +308,7 @@ def dump_var(args, variable, abi=None):
             make_output = subprocess.check_output(make_args, cwd=args.project)
         except subprocess.CalledProcessError:
             error("Failed to retrieve application ABI from Android.mk.")
-    return make_output.splitlines()[-1]
+    return make_output.splitlines()[-1].decode()
 
 
 def get_api_level(device):
@@ -723,7 +723,7 @@ def main():
         print("    can be lifted by writing 0 to /proc/sys/kernel/yama/ptrace_scope. Consider")
         print("    upgrading your Pixel C to MXC89L or newer, where Yama is disabled.")
 
-    adb_version = subprocess.check_output(device.adb_cmd + ["version"])
+    adb_version = subprocess.check_output(device.adb_cmd + ["version"]).decode()
     log("ADB command used: '{}'".format(" ".join(device.adb_cmd)))
     log("ADB version: {}".format(" ".join(adb_version.splitlines())))
 
