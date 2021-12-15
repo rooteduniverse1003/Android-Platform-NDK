@@ -340,7 +340,7 @@ class CMakeModule(Module):
 
     @property
     def env(self) -> Dict[str, str]:
-        return dict()
+        return {}
 
     @property
     def flags(self) -> List[str]:
@@ -352,7 +352,7 @@ class CMakeModule(Module):
 
     @property
     def defines(self) -> Dict[str, str]:
-        return dict()
+        return {}
 
     def build(self) -> None:
         self.builder.build(self.defines)
