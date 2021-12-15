@@ -13,8 +13,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-import imp
+from importlib.abc import Loader
+import importlib.util
 import os
+from pathlib import Path
 from types import ModuleType
 from typing import Any, Callable, List, Optional, Tuple, Union
 
@@ -123,11 +125,7 @@ class TestConfig:
         dirname = os.path.dirname(file_path)
         namespace = '.'.join([dirname, 'test_config'])
 
-        try:
-            self.module: Optional[ModuleType] = imp.load_source(
-                namespace, file_path)
-        except IOError:
-            self.module = None
+        self.module = self.load_module(namespace, Path(file_path))
 
         # mypy doesn't understand that the type doesn't matter because we're
         # checking for errors with AttributeError. It doesn't understand
@@ -170,6 +168,21 @@ class TestConfig:
     def from_test_dir(cls, test_dir: str) -> 'TestConfig':
         path = os.path.join(test_dir, 'test_config.py')
         return cls(path)
+
+    @staticmethod
+    def load_module(namespace: str, path: Path) -> Optional[ModuleType]:
+        if not path.exists():
+            return None
+
+        # https://stackoverflow.com/a/67692/632035
+        spec = importlib.util.spec_from_file_location(namespace, path)
+        if spec is None or spec.loader is None:
+            raise RuntimeError(f'Could not import {path}')
+        module = importlib.util.module_from_spec(spec)
+        # https://github.com/python/typeshed/issues/2793
+        assert isinstance(spec.loader, Loader)
+        spec.loader.exec_module(module)
+        return module
 
 
 class DeviceTestConfig(TestConfig):

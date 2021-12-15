@@ -14,7 +14,8 @@
 # limitations under the License.
 #
 import fnmatch
-import imp
+from importlib.abc import Loader
+import importlib.util
 import logging
 import multiprocessing
 import os
@@ -180,7 +181,14 @@ class PythonBuildTest(BuildTest):
         logger().info('Building test: %s', self.name)
         _prep_build_dir(self.test_dir, build_dir)
         with ndk.ext.os.cd(build_dir):
-            module = imp.load_source('test', 'test.py')
+            spec = importlib.util.spec_from_file_location('test', 'test.py')
+            if spec is None or spec.loader is None:
+                path = os.path.join(build_dir, 'test.py')
+                raise RuntimeError(f'Could not import {path}')
+            module = importlib.util.module_from_spec(spec)
+            # https://github.com/python/typeshed/issues/2793
+            assert isinstance(spec.loader, Loader)
+            spec.loader.exec_module(module)
             success, failure_message = module.run_test(  # type: ignore
                 self.ndk_path, self.config)
             if success:
