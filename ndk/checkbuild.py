@@ -700,11 +700,10 @@ class PythonLint(ndk.builds.Module):
             logging.warning(
                 'Skipping linting. pylint was not found on your path.')
             return
-        pylint = ['pylint', '--rcfile=' +
-                  str(ANDROID_DIR / 'ndk/pylintrc'), '--score=n']
-        for root, _, files in os.walk(ANDROID_DIR / 'ndk'):
-            pylint.extend([os.path.join(root, name)
-                           for name in files if name.endswith('.py')])
+        pylint = [
+            'pylint', '--rcfile=' + str(ANDROID_DIR / 'ndk/pylintrc'),
+            '--score=n', 'build', 'ndk', 'tests'
+        ]
         subprocess.check_call(pylint)
 
     def run_mypy(self) -> None:
@@ -713,7 +712,8 @@ class PythonLint(ndk.builds.Module):
                 'Skipping type-checking. mypy was not found on your path.')
             return
         subprocess.check_call(
-            ['mypy', '--config-file', str(ANDROID_DIR / 'ndk/mypy.ini'), str(ANDROID_DIR / 'ndk')])
+            ['mypy', '--config-file',
+             str(ANDROID_DIR / 'ndk/mypy.ini'), 'ndk'])
 
 
     def install(self) -> None:
