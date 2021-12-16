@@ -712,15 +712,22 @@ class Python(ndk.builds.Module):
         )
 
 
-class PythonLint(ndk.builds.Module):
-    name = "pythonlint"
+class Black(ndk.builds.LintModule):
+    name = "black"
 
-    def build(self) -> None:
-        self.run_pylint()
-        self.run_mypy()
-        self.run_black()
+    def run(self) -> None:
+        if not shutil.which("black"):
+            logging.warning(
+                "Skipping format-checking. black was not found on your path."
+            )
+            return
+        subprocess.check_call(["black", "--check", "."])
 
-    def run_pylint(self) -> None:
+
+class Pylint(ndk.builds.LintModule):
+    name = "pylint"
+
+    def run(self) -> None:
         if not shutil.which("pylint"):
             logging.warning("Skipping linting. pylint was not found on your path.")
             return
@@ -734,7 +741,11 @@ class PythonLint(ndk.builds.Module):
         ]
         subprocess.check_call(pylint)
 
-    def run_mypy(self) -> None:
+
+class Mypy(ndk.builds.LintModule):
+    name = "mypy"
+
+    def run(self) -> None:
         if not shutil.which("mypy"):
             logging.warning("Skipping type-checking. mypy was not found on your path.")
             return
@@ -742,16 +753,10 @@ class PythonLint(ndk.builds.Module):
             ["mypy", "--config-file", str(ANDROID_DIR / "ndk/mypy.ini"), "ndk"]
         )
 
-    def run_black(self) -> None:
-        if not shutil.which("black"):
-            logging.warning(
-                "Skipping format-checking. black was not found on your path."
-            )
-            return
-        subprocess.check_call(["black", "--check", "."])
 
-    def install(self) -> None:
-        pass
+class PythonLint(ndk.builds.MetaModule):
+    name = "pythonlint"
+    deps = {"black", "mypy", "pylint"}
 
 
 class Toolbox(ndk.builds.Module):
@@ -2324,6 +2329,7 @@ def get_modules_to_build(
 
 ALL_MODULES = [
     BaseToolchain(),
+    Black(),
     CanaryReadme(),
     Changelog(),
     Clang(),
@@ -2335,6 +2341,7 @@ ALL_MODULES = [
     Libcxxabi(),
     Make(),
     Meta(),
+    Mypy(),
     NativeAppGlue(),
     NdkBuild(),
     NdkBuildShortcut(),
@@ -2347,6 +2354,7 @@ ALL_MODULES = [
     NdkWhich(),
     NdkWhichShortcut(),
     Platforms(),
+    Pylint(),
     Python(),
     PythonLint(),
     PythonPackages(),

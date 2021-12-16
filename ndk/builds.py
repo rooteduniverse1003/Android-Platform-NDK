@@ -523,6 +523,25 @@ class PythonPackage(Module):
         pass
 
 
+class LintModule(Module):
+    def build(self) -> None:
+        self.run()
+
+    def install(self) -> None:
+        pass
+
+    def run(self) -> None:
+        raise NotImplementedError
+
+
+class MetaModule(Module):
+    def build(self) -> None:
+        pass
+
+    def install(self) -> None:
+        pass
+
+
 def install_directory(src: Path, dst: Path) -> None:
     """Copies a directory to an install location, ignoring some file types.
 
