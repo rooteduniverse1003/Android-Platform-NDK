@@ -1174,7 +1174,7 @@ class LibShaderc(ndk.builds.Module):
                 'files': [
                     'include/spirv/1.0/spirv.py',
                     'include/spirv/1.1/spirv.py',
-                    'include/spirv/1.2/spirv.py'
+                    'include/spirv/1.2/spirv.py',
                     'include/spirv/uinified1/spirv.py'
                 ],
             },
