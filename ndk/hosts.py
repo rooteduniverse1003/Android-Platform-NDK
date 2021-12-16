@@ -24,10 +24,10 @@ import sys
 class Host(enum.Enum):
     """Enumeration of supported hosts."""
 
-    Darwin = 'darwin'
-    Linux = 'linux'
+    Darwin = "darwin"
+    Linux = "linux"
     # TODO: Just Windows now that we only have the one.
-    Windows64 = 'windows64'
+    Windows64 = "windows64"
 
     # TODO: Remove.
     @property
@@ -50,47 +50,47 @@ class Host(enum.Enum):
             # The value for this is still "windows64" since we historically
             # supported 32-bit Windows. Can clean this up if we ever fix the
             # value of the enum.
-            return 'windows-x86'
-        return f'{self.value}-x86'
+            return "windows-x86"
+        return f"{self.value}-x86"
 
     @property
     def exe_suffix(self) -> str:
         if self is Host.Windows64:
-            return '.exe'
-        return ''
+            return ".exe"
+        return ""
 
     @classmethod
     def current(cls) -> Host:
         """Returns the Host matching the current machine."""
-        if sys.platform in ('linux', 'linux2'):
+        if sys.platform in ("linux", "linux2"):
             return Host.Linux
-        elif sys.platform == 'darwin':
+        elif sys.platform == "darwin":
             return Host.Darwin
-        elif sys.platform == 'win32':
+        elif sys.platform == "win32":
             return Host.Windows64
         else:
-            raise RuntimeError(f'Unsupported host: {sys.platform}')
+            raise RuntimeError(f"Unsupported host: {sys.platform}")
 
     @classmethod
     def from_tag(cls, tag: str) -> Host:
-        if tag == 'darwin-x86_64':
+        if tag == "darwin-x86_64":
             return Host.Darwin
-        if tag == 'linux-x86_64':
+        if tag == "linux-x86_64":
             return Host.Linux
-        if tag == 'windows-x86_64':
+        if tag == "windows-x86_64":
             return Host.Windows64
-        raise ValueError(f'Unrecognized host tag: {tag}')
+        raise ValueError(f"Unrecognized host tag: {tag}")
 
 
 def get_host_tag() -> str:
     """Returns the host tag used for testing on the current host."""
-    if sys.platform.startswith('linux'):
-        return 'linux-x86_64'
-    elif sys.platform == 'darwin':
-        return 'darwin-x86_64'
-    elif sys.platform == 'win32':
-        return 'windows-x86_64'
-    raise ValueError('Unknown host: {}'.format(sys.platform))
+    if sys.platform.startswith("linux"):
+        return "linux-x86_64"
+    elif sys.platform == "darwin":
+        return "darwin-x86_64"
+    elif sys.platform == "win32":
+        return "windows-x86_64"
+    raise ValueError("Unknown host: {}".format(sys.platform))
 
 
 def host_to_tag(host: Host) -> str:
@@ -106,9 +106,9 @@ def host_to_tag(host: Host) -> str:
     # TODO: Clean up since this can all be + -x86_64 once we rename the windows
     # value.
     if not host.is_windows:
-        return host.value + '-x86_64'
+        return host.value + "-x86_64"
     elif host == Host.Windows64:
-        return 'windows-x86_64'
+        return "windows-x86_64"
     raise NotImplementedError
 
 

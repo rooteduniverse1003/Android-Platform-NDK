@@ -43,25 +43,25 @@ def logger():
 
 def copy2(src, dst):
     """shutil.copy2 with logging."""
-    logger().info('copy2: %s %s', src, dst)
+    logger().info("copy2: %s %s", src, dst)
     shutil.copy2(src, dst)
 
 
 def rmtree(path):
     """shutil.rmtree with logging."""
-    logger().info('rmtree: %s', path)
+    logger().info("rmtree: %s", path)
     shutil.rmtree(path)
 
 
 def makedirs(path):
     """os.makedirs with logging."""
-    logger().info('makedirs: %s', path)
+    logger().info("makedirs: %s", path)
     os.makedirs(path)
 
 
 def call(cmd, *args, **kwargs):
     """subprocess.call with logging."""
-    logger().info('call: %s', ' '.join(cmd))
+    logger().info("call: %s", " ".join(cmd))
     subprocess.call(cmd, *args, **kwargs)
 
 
@@ -71,31 +71,31 @@ def build_docs():
     * Rewrite "[TOC]" (gitiles spelling) to "[[TOC]]" (devsite spelling).
     * Add devsite metadata for navigation support.
     """
-    docs_dir = os.path.join(NDK_DIR, 'docs/user')
-    out_dir = os.path.join(NDK_DIR, 'docs/out')
+    docs_dir = os.path.join(NDK_DIR, "docs/user")
+    out_dir = os.path.join(NDK_DIR, "docs/out")
     if os.path.exists(out_dir):
         rmtree(out_dir)
     makedirs(out_dir)
     for doc in os.listdir(docs_dir):
-        with open(os.path.join(out_dir, doc), 'w') as out_file:
+        with open(os.path.join(out_dir, doc), "w") as out_file:
             out_file.write(
-                'Project: /ndk/_project.yaml\n'
-                'Book: /ndk/guides/_book.yaml\n'
-                'Subcategory: guide\n'
-                '\n')
+                "Project: /ndk/_project.yaml\n"
+                "Book: /ndk/guides/_book.yaml\n"
+                "Subcategory: guide\n"
+                "\n"
+            )
 
             path = os.path.join(docs_dir, doc)
             with open(path) as in_file:
                 contents = in_file.read()
-                contents = contents.replace('[TOC]', '[[TOC]]')
+                contents = contents.replace("[TOC]", "[[TOC]]")
                 out_file.write(contents)
     return out_dir
 
 
 def copy_docs(docs_tree, docs_out):
     """Copy the docs to the devsite directory."""
-    dest_dir = os.path.join(
-        docs_tree, 'googledata/devsite/site-android/en/ndk/guides')
+    dest_dir = os.path.join(docs_tree, "googledata/devsite/site-android/en/ndk/guides")
 
     cwd = os.getcwd()
     for root, _, files in os.walk(docs_out):
@@ -108,7 +108,7 @@ def copy_docs(docs_tree, docs_out):
                 try:
                     # Might fail if the file is new (will only happen if the
                     # script is re-run), but that's not a problem.
-                    call(['g4', 'edit', file_name])
+                    call(["g4", "edit", file_name])
                 finally:
                     os.chdir(cwd)
             copy2(os.path.join(root, file_name), dest_dir)
@@ -119,8 +119,8 @@ def parse_args():
     parser = argparse.ArgumentParser()
 
     parser.add_argument(
-        'docs_tree', type=os.path.realpath, metavar='DOCS_TREE',
-        help='Path to DAC tree')
+        "docs_tree", type=os.path.realpath, metavar="DOCS_TREE", help="Path to DAC tree"
+    )
 
     return parser.parse_args()
 
@@ -133,5 +133,5 @@ def main():
     copy_docs(args.docs_tree, docs_out)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

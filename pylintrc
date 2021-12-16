@@ -12,6 +12,7 @@ disable=
     duplicate-code,
     fixme,design,
     invalid-name,
+    line-too-long,
     locally-disabled,
     missing-docstring,
     no-else-return,

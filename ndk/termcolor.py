@@ -21,11 +21,11 @@
 def color_string(string: str, color: str) -> str:
     """Returns a string that will be colored when printed to a terminal."""
     colors = {
-        'green': '\033[92m',
-        'red': '\033[91m',
-        'yellow': '\033[93m',
+        "green": "\033[92m",
+        "red": "\033[91m",
+        "yellow": "\033[93m",
     }
-    end_color = '\033[0m'
+    end_color = "\033[0m"
     return colors[color] + string + end_color
 
 

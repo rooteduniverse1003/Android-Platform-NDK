@@ -56,8 +56,7 @@ class TestConfig:
     class NullTestConfig:
         # pylint: disable=unused-argument
         @staticmethod
-        def build_broken(
-                test: Test) -> Union[Tuple[None, None], Tuple[str, str]]:
+        def build_broken(test: Test) -> Union[Tuple[None, None], Tuple[str, str]]:
             """Tests if a given configuration is known broken.
 
             A broken test is a known failing test that should be fixed.
@@ -117,13 +116,14 @@ class TestConfig:
                     return None, None
             """
             return False
+
         # pylint: enable=unused-argument
 
     def __init__(self, file_path: str) -> None:
         # Note that this namespace isn't actually meaningful from our side;
         # it's only what the loaded module's __name__ gets set to.
         dirname = os.path.dirname(file_path)
-        namespace = '.'.join([dirname, 'test_config'])
+        namespace = ".".join([dirname, "test_config"])
 
         self.module = self.load_module(namespace, Path(file_path))
 
@@ -132,41 +132,44 @@ class TestConfig:
         # hasattr either.
         # https://github.com/python/mypy/issues/1424
         try:
-            self.build_broken: Callable[[Test], Union[tuple[None, None], tuple[
-                str, str]]] = self.module.build_broken  # type: ignore
+            self.build_broken: Callable[
+                [Test], Union[tuple[None, None], tuple[str, str]]
+            ] = self.module.build_broken  # type: ignore
         except AttributeError:
             self.build_broken = self.NullTestConfig.build_broken
 
         try:
             self.build_unsupported: Callable[
-                [Test],
-                Optional[str]] = self.module.build_unsupported  # type: ignore
+                [Test], Optional[str]
+            ] = self.module.build_unsupported  # type: ignore
         except AttributeError:
             self.build_unsupported = self.NullTestConfig.build_unsupported
 
         try:
             self.extra_cmake_flags: Callable[
-                [], list[str]] = self.module.extra_cmake_flags  # type: ignore
+                [], list[str]
+            ] = self.module.extra_cmake_flags  # type: ignore
         except AttributeError:
             self.extra_cmake_flags = self.NullTestConfig.extra_cmake_flags
 
         try:
             self.extra_ndk_build_flags: Callable[
-                [],
-                list[str]] = self.module.extra_ndk_build_flags  # type: ignore
+                [], list[str]
+            ] = self.module.extra_ndk_build_flags  # type: ignore
         except AttributeError:
             ntc = self.NullTestConfig
             self.extra_ndk_build_flags = ntc.extra_ndk_build_flags
 
         try:
             self.is_negative_test: Callable[
-                [], bool] = self.module.is_negative_test  # type: ignore
+                [], bool
+            ] = self.module.is_negative_test  # type: ignore
         except AttributeError:
             self.is_negative_test = self.NullTestConfig.is_negative_test
 
     @classmethod
-    def from_test_dir(cls, test_dir: str) -> 'TestConfig':
-        path = os.path.join(test_dir, 'test_config.py')
+    def from_test_dir(cls, test_dir: str) -> "TestConfig":
+        path = os.path.join(test_dir, "test_config.py")
         return cls(path)
 
     @staticmethod
@@ -177,7 +180,7 @@ class TestConfig:
         # https://stackoverflow.com/a/67692/632035
         spec = importlib.util.spec_from_file_location(namespace, path)
         if spec is None or spec.loader is None:
-            raise RuntimeError(f'Could not import {path}')
+            raise RuntimeError(f"Could not import {path}")
         module = importlib.util.module_from_spec(spec)
         # https://github.com/python/typeshed/issues/2793
         assert isinstance(spec.loader, Loader)
@@ -191,11 +194,13 @@ class DeviceTestConfig(TestConfig):
     We need to mark some tests as broken or unsupported based on what device
     they are running on, as opposed to just what they were built for.
     """
+
     class NullTestConfig(TestConfig.NullTestConfig):
         # pylint: disable=unused-argument
         @staticmethod
-        def run_broken(test: Test, device: Device
-                       ) -> Union[Tuple[None, None], Tuple[str, str]]:
+        def run_broken(
+            test: Test, device: Device
+        ) -> Union[Tuple[None, None], Tuple[str, str]]:
             return None, None
 
         @staticmethod
@@ -205,37 +210,38 @@ class DeviceTestConfig(TestConfig):
         @staticmethod
         def extra_cmake_flags() -> List[str]:
             return []
+
         # pylint: enable=unused-argument
 
     def __init__(self, file_path: str) -> None:
         super().__init__(file_path)
 
         try:
-            self.run_broken: Callable[[Test, Device], Union[
-                tuple[None, None],
-                tuple[str, str]]] = self.module.run_broken  # type: ignore
+            self.run_broken: Callable[
+                [Test, Device], Union[tuple[None, None], tuple[str, str]]
+            ] = self.module.run_broken  # type: ignore
         except AttributeError:
             self.run_broken = self.NullTestConfig.run_broken
 
         try:
             self.run_unsupported: Callable[
-                [Test, Device],
-                Optional[str]] = self.module.run_unsupported  # type: ignore
+                [Test, Device], Optional[str]
+            ] = self.module.run_unsupported  # type: ignore
         except AttributeError:
             self.run_unsupported = self.NullTestConfig.run_unsupported
 
-        if hasattr(self.module, 'is_negative_test'):
+        if hasattr(self.module, "is_negative_test"):
             # If the build is expected to fail, then it should just be a build
             # test since the test should never be run.
             #
             # If the run is expected to fail, just fix the test to pass for
             # thatr case. Gtest death tests can handle the more complicated
             # cases.
-            raise RuntimeError('is_negative_test is invalid for device tests')
+            raise RuntimeError("is_negative_test is invalid for device tests")
 
     @classmethod
-    def from_test_dir(cls, test_dir: str) -> 'DeviceTestConfig':
-        path = os.path.join(test_dir, 'test_config.py')
+    def from_test_dir(cls, test_dir: str) -> "DeviceTestConfig":
+        path = os.path.join(test_dir, "test_config.py")
         return cls(path)
 
 
@@ -245,6 +251,7 @@ class LibcxxTestConfig(DeviceTestConfig):
     The libc++ tests have multiple tests in a single directory, so we need to
     pass the test name for build_broken too.
     """
+
     class NullTestConfig(TestConfig.NullTestConfig):
         # pylint: disable=unused-argument,arguments-differ
         @staticmethod
@@ -252,8 +259,7 @@ class LibcxxTestConfig(DeviceTestConfig):
             return None
 
         @staticmethod
-        def build_broken(
-                test: Test) -> Union[Tuple[None, None], Tuple[str, str]]:
+        def build_broken(test: Test) -> Union[Tuple[None, None], Tuple[str, str]]:
             return None, None
 
         @staticmethod
@@ -261,7 +267,9 @@ class LibcxxTestConfig(DeviceTestConfig):
             return None
 
         @staticmethod
-        def run_broken(test: Test, device: Device
-                       ) -> Union[Tuple[None, None], Tuple[str, str]]:
+        def run_broken(
+            test: Test, device: Device
+        ) -> Union[Tuple[None, None], Tuple[str, str]]:
             return None, None
+
         # pylint: enable=unused-argument,arguments-differ

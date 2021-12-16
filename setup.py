@@ -23,22 +23,19 @@ import setuptools  # type: ignore
 THIS_DIR = os.path.dirname(os.path.realpath(__file__))
 
 
-with open(os.path.join(THIS_DIR, 'README.md')) as readme_file:
+with open(os.path.join(THIS_DIR, "README.md")) as readme_file:
     LONG_DESCRIPTION = readme_file.read()
 
 
 setuptools.setup(
-    name='ndk',
-    version='1.0.0',
-
-    description='Build and test tools for working on the NDK.',
+    name="ndk",
+    version="1.0.0",
+    description="Build and test tools for working on the NDK.",
     long_description=LONG_DESCRIPTION,
-
     packages=setuptools.find_packages(),
-
     entry_points={
-        'console_scripts': [
-            'run_tests.py = ndk.run_tests:main',
+        "console_scripts": [
+            "run_tests.py = ndk.run_tests:main",
         ],
     },
 )

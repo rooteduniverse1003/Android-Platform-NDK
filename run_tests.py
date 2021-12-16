@@ -36,12 +36,13 @@ def parse_args():
     # Don't add help because it inhibits the real run_tests.py's --help.
     parser = argparse.ArgumentParser(add_help=False)
     parser.add_argument(
-        '-v',
-        '--verbose',
-        action='count',
-        dest='verbosity',
+        "-v",
+        "--verbose",
+        action="count",
+        dest="verbosity",
         default=0,
-        help='Increase logging verbosity.')
+        help="Increase logging verbosity.",
+    )
     return parser.parse_known_args()
 
 
@@ -59,8 +60,9 @@ def main():
 
     bootstrap()
     subprocess.check_call(
-        ['python3', os.path.join(THIS_DIR, 'do_runtests.py')] + sys.argv[1:])
+        ["python3", os.path.join(THIS_DIR, "do_runtests.py")] + sys.argv[1:]
+    )
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

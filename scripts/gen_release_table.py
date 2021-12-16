@@ -34,7 +34,7 @@ def get_lines():
     lines = []
     while True:
         line = input()
-        if line.strip() == '':
+        if line.strip() == "":
             return lines
         lines.append(line)
 
@@ -46,12 +46,12 @@ def parse_args():
     release_type_group = parser.add_mutually_exclusive_group()
 
     release_type_group.add_argument(
-        '--beta', action='store_true',
-        help='Generate content for a beta release.')
+        "--beta", action="store_true", help="Generate content for a beta release."
+    )
 
     release_type_group.add_argument(
-        '--lts', action='store_true',
-        help='Generate content for an LTS release.')
+        "--lts", action="store_true", help="Generate content for an LTS release."
+    )
 
     return parser.parse_args()
 
@@ -67,9 +67,9 @@ class Artifact:
     @property
     def pretty_host(self) -> str:
         return {
-            'darwin': 'macOS',
-            'linux': 'Linux',
-            'windows': 'Windows',
+            "darwin": "macOS",
+            "linux": "Linux",
+            "windows": "Windows",
         }[self.host]
 
     @classmethod
@@ -77,21 +77,20 @@ class Artifact:
         # Some lines are updates to the repository.xml files used by the SDK
         # manager. We don't care about these.
         # <sha>        12,345  path/to/repository.xml
-        if line.endswith('.xml') or 'android-ndk' not in line:
+        if line.endswith(".xml") or "android-ndk" not in line:
             return None
 
         # Real entries look like this (the leading hex number is optional):
         # 0x1234 <sha>   123,456,789  path/to/android-ndk-r23-beta5-linux.zip
-        match = re.match(
-            r'^(?:0x[0-9a-f]+)?\s*(\w+)\s+([0-9,]+)\s+(.+)$', line)
+        match = re.match(r"^(?:0x[0-9a-f]+)?\s*(\w+)\s+([0-9,]+)\s+(.+)$", line)
         if match is None:
-            logging.error('Skipping unrecognized line: %s', line)
+            logging.error("Skipping unrecognized line: %s", line)
             return None
 
         sha = match.group(1)
 
         size_str = match.group(2)
-        size = int(size_str.replace(',', ''))
+        size = int(size_str.replace(",", ""))
 
         path = Path(match.group(3))
         if path.suffix == ".zip" and "darwin" in path.name:
@@ -111,15 +110,17 @@ class Artifact:
 def main():
     """Program entry point."""
     args = parse_args()
-    print('Paste the contents of the "New files" section of the SDK update '
-          'email here. Terminate with an empty line.')
+    print(
+        'Paste the contents of the "New files" section of the SDK update '
+        "email here. Terminate with an empty line."
+    )
     lines = get_lines()
     if not lines:
-        sys.exit('No input.')
+        sys.exit("No input.")
 
     # The user may have pasted the following header line:
     # SHA1                                              size  file
-    if lines[0].startswith('SHA1') or lines[0].lstrip().startswith('Link'):
+    if lines[0].startswith("SHA1") or lines[0].lstrip().startswith("Link"):
         lines = lines[1:]
 
     artifacts = []
@@ -130,50 +131,59 @@ def main():
     # Sort the artifacts by the host name.
     artifacts = sorted(artifacts)
 
-    print('For GitHub:')
-    print('<table>')
-    print('  <tr>')
-    print('    <th>Platform</th>')
-    print('    <th>Package</th>')
-    print('    <th>Size (bytes)</th>')
-    print('    <th>SHA1 Checksum</th>')
-    print('  </tr>')
+    print("For GitHub:")
+    print("<table>")
+    print("  <tr>")
+    print("    <th>Platform</th>")
+    print("    <th>Package</th>")
+    print("    <th>Size (bytes)</th>")
+    print("    <th>SHA1 Checksum</th>")
+    print("  </tr>")
     for artifact in artifacts:
-        url_base = 'https://dl.google.com/android/repository/'
+        url_base = "https://dl.google.com/android/repository/"
         package_url = url_base + artifact.package
         link = '<a href="{}">{}</a>'.format(package_url, artifact.package)
 
-        print('  <tr>')
-        print('    <td>{}</td>'.format(artifact.pretty_host))
-        print('    <td>{}</td>'.format(link))
-        print('    <td>{}</td>'.format(artifact.size))
-        print('    <td>{}</td>'.format(artifact.sha))
-        print('  </tr>')
-    print('</table>')
+        print("  <tr>")
+        print("    <td>{}</td>".format(artifact.pretty_host))
+        print("    <td>{}</td>".format(link))
+        print("    <td>{}</td>".format(artifact.size))
+        print("    <td>{}</td>".format(artifact.sha))
+        print("  </tr>")
+    print("</table>")
     print()
-    print('For DAC:')
+    print("For DAC:")
 
     if args.beta:
-        var_prefix = 'ndk_beta'
+        var_prefix = "ndk_beta"
     elif args.lts:
-        var_prefix = 'ndk_lts'
+        var_prefix = "ndk_lts"
     else:
-        var_prefix = 'ndk'
+        var_prefix = "ndk"
     for artifact in artifacts:
         dac_host = {
-            'darwin': 'mac64_dmg',
-            'linux': 'linux64',
-            'windows': 'win64',
+            "darwin": "mac64_dmg",
+            "linux": "linux64",
+            "windows": "win64",
         }[artifact.host]
         print()
-        print('{{# {} #}}'.format(artifact.pretty_host))
-        print('{{% setvar {}_{}_download %}}{}{{% endsetvar %}}'.format(
-            var_prefix, dac_host, artifact.package))
-        print('{{% setvar {}_{}_bytes %}}{}{{% endsetvar %}}'.format(
-            var_prefix, dac_host, artifact.size))
-        print('{{% setvar {}_{}_checksum %}}{}{{% endsetvar %}}'.format(
-            var_prefix, dac_host, artifact.sha))
+        print("{{# {} #}}".format(artifact.pretty_host))
+        print(
+            "{{% setvar {}_{}_download %}}{}{{% endsetvar %}}".format(
+                var_prefix, dac_host, artifact.package
+            )
+        )
+        print(
+            "{{% setvar {}_{}_bytes %}}{}{{% endsetvar %}}".format(
+                var_prefix, dac_host, artifact.size
+            )
+        )
+        print(
+            "{{% setvar {}_{}_checksum %}}{}{{% endsetvar %}}".format(
+                var_prefix, dac_host, artifact.sha
+            )
+        )
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

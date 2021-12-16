@@ -16,7 +16,7 @@
 
 
 ALL_SUITES = (
-    'build',
-    'device',
-    'libc++',
+    "build",
+    "device",
+    "libc++",
 )

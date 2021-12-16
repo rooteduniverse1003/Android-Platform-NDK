@@ -22,7 +22,7 @@ from typing import Iterable, List, Optional, Set
 class Node:
     """A node in a directed graph."""
 
-    def __init__(self, name: str, outs: Iterable['Node']) -> None:
+    def __init__(self, name: str, outs: Iterable["Node"]) -> None:
         """Initializes a Node.
 
         Args:
@@ -73,10 +73,8 @@ class Graph:
         return None
 
     def find_cycle_from_node(
-            self,
-            node: Node,
-            visited: Set[Node],
-            path: Optional[List[Node]] = None) -> Optional[List[Node]]:
+        self, node: Node, visited: Set[Node], path: Optional[List[Node]] = None
+    ) -> Optional[List[Node]]:
         """Finds a cycle from a given node if there is one.
 
         Performs a recursive depth-first search to see if there are any cycles
@@ -104,7 +102,7 @@ class Graph:
 
         path.append(node)
         if node in path[:-1]:
-            return path[path.index(node):]
+            return path[path.index(node) :]
 
         if node in visited:
             path.pop()

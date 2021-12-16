@@ -30,28 +30,30 @@ import ndk.toolchains
 
 
 HOST_TRIPLE_MAP = {
-    Host.Darwin: 'x86_64-apple-darwin',
-    Host.Linux: 'x86_64-linux-gnu',
-    Host.Windows64: 'x86_64-w64-mingw32',
+    Host.Darwin: "x86_64-apple-darwin",
+    Host.Linux: "x86_64-linux-gnu",
+    Host.Windows64: "x86_64-w64-mingw32",
 }
 
 
 class AutoconfBuilder:
     """Builder for an autoconf project."""
 
-    jobs_arg = f'-j{multiprocessing.cpu_count()}'
+    jobs_arg = f"-j{multiprocessing.cpu_count()}"
 
     toolchain: ndk.toolchains.Toolchain
 
-    def __init__(self,
-                 configure_script: Path,
-                 build_dir: Path,
-                 host: Host,
-                 add_toolchain_to_path: bool = False,
-                 no_build_or_host: bool = False,
-                 no_strip: bool = False,
-                 additional_flags: Optional[list[str]] = None,
-                 additional_env: Optional[Dict[str, str]] = None) -> None:
+    def __init__(
+        self,
+        configure_script: Path,
+        build_dir: Path,
+        host: Host,
+        add_toolchain_to_path: bool = False,
+        no_build_or_host: bool = False,
+        no_strip: bool = False,
+        additional_flags: Optional[list[str]] = None,
+        additional_env: Optional[Dict[str, str]] = None,
+    ) -> None:
         """Initializes an autoconf builder.
 
         Args:
@@ -78,8 +80,8 @@ class AutoconfBuilder:
         self.additional_flags = additional_flags
         self.additional_env = additional_env
 
-        self.working_directory = self.build_directory / 'build'
-        self.install_directory = self.build_directory / 'install'
+        self.working_directory = self.build_directory / "build"
+        self.install_directory = self.build_directory / "install"
 
         self.toolchain = ndk.toolchains.ClangToolchain(self.host)
 
@@ -89,21 +91,20 @@ class AutoconfBuilder:
         # TODO: Are these the flags we want? These are what we've used
         # historically.
         flags = [
-            '-Os',
-            '-fomit-frame-pointer',
-
+            "-Os",
+            "-fomit-frame-pointer",
             # AC_CHECK_HEADERS fails if the compiler emits any warnings. We're
             # guaranteed to hit -Wunused-command-line-argument since autoconf
             # does a bad job with cflags/ldflags, so we need to pass all of the
             # flags all the time, but use -w since we won't be fixing any GDB
             # warnings anyway and failures caused by this don't actually appear
             # until much later in the build.
-            '-w',
+            "-w",
         ]
         if not self.host == Host.Darwin:
-            flags.append('-fuse-ld=lld')
+            flags.append("-fuse-ld=lld")
         if not self.no_strip:
-            flags.append('-s')
+            flags.append("-s")
         if self.additional_flags:
             flags.extend(self.additional_flags)
         return flags
@@ -112,16 +113,15 @@ class AutoconfBuilder:
         """Context manager that moves into the working directory."""
         return ndk.ext.os.cd(str(self.working_directory))
 
-    def _run(self, cmd: List[str],
-             extra_env: Optional[Dict[str, str]] = None) -> None:
+    def _run(self, cmd: List[str], extra_env: Optional[Dict[str, str]] = None) -> None:
         """Runs and logs execution of a subprocess."""
         env = dict(extra_env) if extra_env is not None else {}
         if self.add_toolchain_to_path:
             paths = [str(p) for p in self.toolchain.bin_paths]
-            paths.append(os.environ['PATH'])
-            env['PATH'] = os.pathsep.join(paths)
+            paths.append(os.environ["PATH"])
+            env["PATH"] = os.pathsep.join(paths)
 
-        pp_cmd = ' '.join([pipes.quote(arg) for arg in cmd])
+        pp_cmd = " ".join([pipes.quote(arg) for arg in cmd])
         subproc_env = dict(os.environ)
         if env:
             subproc_env.update(env)
@@ -130,9 +130,9 @@ class AutoconfBuilder:
 
         if subproc_env != dict(os.environ):
             pp_env = pprint.pformat(env, indent=4)
-            print('Running: {} with env:\n{}'.format(pp_cmd, pp_env))
+            print("Running: {} with env:\n{}".format(pp_cmd, pp_env))
         else:
-            print('Running: {}'.format(pp_cmd))
+            print("Running: {}".format(pp_cmd))
 
         subprocess.run(cmd, env=subproc_env, check=True)
 
@@ -165,45 +165,49 @@ class AutoconfBuilder:
                 build_triple = HOST_TRIPLE_MAP[get_default_host()]
                 host_triple = HOST_TRIPLE_MAP[self.host]
                 build_host_args = [
-                    f'--build={build_triple}',
-                    f'--host={host_triple}',
+                    f"--build={build_triple}",
+                    f"--host={host_triple}",
                 ]
 
-            configure_args = [
-                str(self.configure_script),
-                f'--prefix={self.install_directory}',
-            ] + build_host_args + args
+            configure_args = (
+                [
+                    str(self.configure_script),
+                    f"--prefix={self.install_directory}",
+                ]
+                + build_host_args
+                + args
+            )
 
-            flags_str = ' '.join(self.toolchain.flags + self.flags)
-            cc = f'{self.toolchain.cc} {flags_str}'
-            cxx = f'{self.toolchain.cxx} -stdlib=libc++ {flags_str}'
+            flags_str = " ".join(self.toolchain.flags + self.flags)
+            cc = f"{self.toolchain.cc} {flags_str}"
+            cxx = f"{self.toolchain.cxx} -stdlib=libc++ {flags_str}"
 
             configure_env: Dict[str, str] = {
-                'CC': cc,
-                'CXX': cxx,
-                'LD': str(self.toolchain.ld),
-                'AR': str(self.toolchain.ar),
-                'AS': str(self.toolchain.asm),
-                'RANLIB': str(self.toolchain.ranlib),
-                'NM': str(self.toolchain.nm),
-                'STRIP': str(self.toolchain.strip),
-                'STRINGS': str(self.toolchain.strings),
+                "CC": cc,
+                "CXX": cxx,
+                "LD": str(self.toolchain.ld),
+                "AR": str(self.toolchain.ar),
+                "AS": str(self.toolchain.asm),
+                "RANLIB": str(self.toolchain.ranlib),
+                "NM": str(self.toolchain.nm),
+                "STRIP": str(self.toolchain.strip),
+                "STRINGS": str(self.toolchain.strings),
             }
             if self.host.is_windows:
-                configure_env['WINDRES'] = str(self.toolchain.rescomp)
-                configure_env['RESCOMP'] = str(self.toolchain.rescomp)
+                configure_env["WINDRES"] = str(self.toolchain.rescomp)
+                configure_env["RESCOMP"] = str(self.toolchain.rescomp)
 
             self._run(configure_args, configure_env)
 
     def make(self) -> None:
         """Builds the project."""
         with self.cd():
-            self._run(['make', self.jobs_arg])
+            self._run(["make", self.jobs_arg])
 
     def install(self) -> None:
         """Installs the project."""
         with self.cd():
-            self._run(['make', self.jobs_arg, 'install'])
+            self._run(["make", self.jobs_arg, "install"])
 
     def build(self, configure_args: Optional[List[str]] = None) -> None:
         """Configures and builds an autoconf project.

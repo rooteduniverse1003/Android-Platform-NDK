@@ -29,9 +29,13 @@ from ndk.workqueue import LoadRestrictingWorkQueue, ShardingWorkQueue, Worker
 class TestProgressUi(Ui):
     NUM_TESTS_DIGITS = 6
 
-    def __init__(self, ui_renderer: UiRenderer, show_worker_status: bool,
-                 show_device_groups: bool,
-                 workqueue: ShardingWorkQueue[DeviceShardingGroup]) -> None:
+    def __init__(
+        self,
+        ui_renderer: UiRenderer,
+        show_worker_status: bool,
+        show_device_groups: bool,
+        workqueue: ShardingWorkQueue[DeviceShardingGroup],
+    ) -> None:
         super().__init__(ui_renderer)
         self.show_worker_status = show_worker_status
         self.show_device_groups = show_device_groups
@@ -44,41 +48,45 @@ class TestProgressUi(Ui):
             for group, group_queues in self.workqueue.work_queues.items():
                 for device, work_queue in group_queues.items():
                     style = font_bold()
-                    if all(
-                            w.status == Worker.IDLE_STATUS
-                            for w in work_queue.workers
-                    ):
+                    if all(w.status == Worker.IDLE_STATUS for w in work_queue.workers):
                         style = font_faint()
-                    lines.append(f'{style}{device}{font_reset()}')
+                    lines.append(f"{style}{device}{font_reset()}")
                     for worker in work_queue.workers:
-                        style = ''
+                        style = ""
                         if worker.status == Worker.IDLE_STATUS:
                             style = font_faint()
-                        lines.append(f'  {style}{worker.status}{font_reset()}')
+                        lines.append(f"  {style}{worker.status}{font_reset()}")
 
-        lines.append('{: >{width}} tests remaining'.format(
-            self.workqueue.num_tasks, width=self.NUM_TESTS_DIGITS))
+        lines.append(
+            "{: >{width}} tests remaining".format(
+                self.workqueue.num_tasks, width=self.NUM_TESTS_DIGITS
+            )
+        )
 
         if self.show_device_groups:
             for group in sorted(self.workqueue.task_queues.keys()):
                 assert isinstance(group, DeviceShardingGroup)
-                group_id = f'{len(group.devices)} devices {group}'
-                lines.append('{: >{width}} {}'.format(
-                    self.workqueue.task_queues[group].qsize(), group_id,
-                    width=self.NUM_TESTS_DIGITS))
+                group_id = f"{len(group.devices)} devices {group}"
+                lines.append(
+                    "{: >{width}} {}".format(
+                        self.workqueue.task_queues[group].qsize(),
+                        group_id,
+                        width=self.NUM_TESTS_DIGITS,
+                    )
+                )
 
         return lines
 
 
 def get_test_progress_ui(
-        console: Console,
-        workqueue: ShardingWorkQueue[DeviceShardingGroup]) -> TestProgressUi:
+    console: Console, workqueue: ShardingWorkQueue[DeviceShardingGroup]
+) -> TestProgressUi:
     ui_renderer: UiRenderer
     if console.smart_console:
         ui_renderer = AnsiUiRenderer(console)
         show_worker_status = True
         show_device_groups = True
-    elif os.name == 'nt':
+    elif os.name == "nt":
         ui_renderer = NonAnsiUiRenderer(console)
         show_worker_status = False
         show_device_groups = False
@@ -87,14 +95,19 @@ def get_test_progress_ui(
         show_worker_status = False
         show_device_groups = True
     return TestProgressUi(
-        ui_renderer, show_worker_status, show_device_groups, workqueue)
+        ui_renderer, show_worker_status, show_device_groups, workqueue
+    )
 
 
 class TestBuildProgressUi(Ui):
     NUM_TESTS_DIGITS = 6
 
-    def __init__(self, ui_renderer: UiRenderer, show_worker_status: bool,
-                 workqueue: LoadRestrictingWorkQueue):
+    def __init__(
+        self,
+        ui_renderer: UiRenderer,
+        show_worker_status: bool,
+        workqueue: LoadRestrictingWorkQueue,
+    ):
         super().__init__(ui_renderer)
         self.show_worker_status = show_worker_status
         self.workqueue = workqueue
@@ -113,17 +126,19 @@ class TestBuildProgressUi(Ui):
             # Keep some space at the top of the UI so we can see messages.
             ui_height = self.ui_renderer.console.height - 10
             if ui_height > 0:
-                lines = columnate(lines, self.ui_renderer.console.width,
-                                  ui_height)
+                lines = columnate(lines, self.ui_renderer.console.width, ui_height)
 
-        lines.append('{: >{width}} tests remaining'.format(
-            self.workqueue.num_tasks, width=self.NUM_TESTS_DIGITS))
+        lines.append(
+            "{: >{width}} tests remaining".format(
+                self.workqueue.num_tasks, width=self.NUM_TESTS_DIGITS
+            )
+        )
         return lines
 
 
 def get_test_build_progress_ui(
-        console: Console,
-        workqueue: LoadRestrictingWorkQueue) -> TestBuildProgressUi:
+    console: Console, workqueue: LoadRestrictingWorkQueue
+) -> TestBuildProgressUi:
     ui_renderer: UiRenderer
     if console.smart_console:
         ui_renderer = AnsiUiRenderer(console)

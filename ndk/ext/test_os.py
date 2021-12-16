@@ -24,30 +24,30 @@ import ndk.ext.os
 
 class OsTest(unittest.TestCase):
     def test_replace_environ(self) -> None:
-        self.assertIn('PATH', os.environ)
-        old_path = os.environ['PATH']
-        self.assertNotIn('FOO', os.environ)
+        self.assertIn("PATH", os.environ)
+        old_path = os.environ["PATH"]
+        self.assertNotIn("FOO", os.environ)
 
-        with ndk.ext.os.replace_environ({'FOO': 'bar'}):
-            self.assertNotIn('PATH', os.environ)
-            self.assertIn('FOO', os.environ)
-            self.assertEqual(os.environ['FOO'], 'bar')
+        with ndk.ext.os.replace_environ({"FOO": "bar"}):
+            self.assertNotIn("PATH", os.environ)
+            self.assertIn("FOO", os.environ)
+            self.assertEqual(os.environ["FOO"], "bar")
 
-        self.assertIn('PATH', os.environ)
-        self.assertEqual(os.environ['PATH'], old_path)
-        self.assertNotIn('FOO', os.environ)
+        self.assertIn("PATH", os.environ)
+        self.assertEqual(os.environ["PATH"], old_path)
+        self.assertNotIn("FOO", os.environ)
 
     def test_modify_environ(self) -> None:
-        self.assertIn('PATH', os.environ)
-        old_path = os.environ['PATH']
-        self.assertNotIn('FOO', os.environ)
+        self.assertIn("PATH", os.environ)
+        old_path = os.environ["PATH"]
+        self.assertNotIn("FOO", os.environ)
 
-        with ndk.ext.os.modify_environ({'FOO': 'bar'}):
-            self.assertIn('PATH', os.environ)
-            self.assertEqual(os.environ['PATH'], old_path)
-            self.assertIn('FOO', os.environ)
-            self.assertEqual(os.environ['FOO'], 'bar')
+        with ndk.ext.os.modify_environ({"FOO": "bar"}):
+            self.assertIn("PATH", os.environ)
+            self.assertEqual(os.environ["PATH"], old_path)
+            self.assertIn("FOO", os.environ)
+            self.assertEqual(os.environ["FOO"], "bar")
 
-        self.assertIn('PATH', os.environ)
-        self.assertEqual(os.environ['PATH'], old_path)
-        self.assertNotIn('FOO', os.environ)
+        self.assertIn("PATH", os.environ)
+        self.assertEqual(os.environ["PATH"], old_path)
+        self.assertNotIn("FOO", os.environ)

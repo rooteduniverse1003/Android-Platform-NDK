@@ -22,5 +22,5 @@ the source directory since the buildbots expect it to be here.
 import ndk.run_tests
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     ndk.run_tests.main()

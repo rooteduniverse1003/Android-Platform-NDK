@@ -24,7 +24,7 @@ import ndk.hosts
 
 
 ANDROID_DIR = Path(__file__).resolve().parents[2]
-NDK_DIR = ANDROID_DIR / 'ndk'
+NDK_DIR = ANDROID_DIR / "ndk"
 
 
 def android_path(*args: str) -> str:
@@ -34,12 +34,12 @@ def android_path(*args: str) -> str:
 
 def ndk_path(*args: str) -> str:
     """Returns the absolute path rooted within the NDK source tree."""
-    return android_path('ndk', *args)
+    return android_path("ndk", *args)
 
 
 def toolchain_path(*args: str) -> str:
     """Returns a path within the toolchain subdirectory."""
-    return android_path('toolchain', *args)
+    return android_path("toolchain", *args)
 
 
 def expand_path(path: Path, host: ndk.hosts.Host) -> Path:
@@ -76,7 +76,7 @@ def _get_dir_from_env(default: str, env_var: str) -> str:
 
 def get_out_dir() -> str:
     """Returns the out directory."""
-    return _get_dir_from_env(android_path('out'), 'OUT_DIR')
+    return _get_dir_from_env(android_path("out"), "OUT_DIR")
 
 
 def get_dist_dir(out_dir: str) -> str:
@@ -85,7 +85,7 @@ def get_dist_dir(out_dir: str) -> str:
     The contents of the distribution directory are archived on the build
     servers. Suitable for build logs and final artifacts.
     """
-    return _get_dir_from_env(os.path.join(out_dir, 'dist'), 'DIST_DIR')
+    return _get_dir_from_env(os.path.join(out_dir, "dist"), "DIST_DIR")
 
 
 def path_in_out(dirname: str, out_dir: Optional[str] = None) -> str:
@@ -105,8 +105,9 @@ def path_in_out(dirname: str, out_dir: Optional[str] = None) -> str:
     return os.path.join(out_dir, dirname)
 
 
-def get_install_path(out_dir: Optional[str] = None,
-                     host: Optional[ndk.hosts.Host] = None) -> str:
+def get_install_path(
+    out_dir: Optional[str] = None, host: Optional[ndk.hosts.Host] = None
+) -> str:
     """Returns the built NDK install path.
 
     Note that the path returned might not actually contain the NDK. The NDK may
@@ -126,23 +127,25 @@ def get_install_path(out_dir: Optional[str] = None,
     """
     if host is None:
         host = ndk.hosts.get_default_host()
-    release_name = f'android-ndk-{ndk.config.release}'
+    release_name = f"android-ndk-{ndk.config.release}"
     return path_in_out(os.path.join(host.value, release_name), out_dir)
 
 
 def to_posix_path(path: str) -> str:
     """Replaces backslashes with forward slashes on Windows."""
-    if sys.platform == 'win32':
-        return path.replace('\\', '/')
+    if sys.platform == "win32":
+        return path.replace("\\", "/")
     else:
         return path
 
 
-def walk(path: Path,
-         top_down: bool = True,
-         on_error: Optional[Callable[[OSError], None]] = None,
-         follow_links: bool = False,
-         directories: bool = True) -> Iterator[Path]:
+def walk(
+    path: Path,
+    top_down: bool = True,
+    on_error: Optional[Callable[[OSError], None]] = None,
+    follow_links: bool = False,
+    directories: bool = True,
+) -> Iterator[Path]:
     """Recursively iterates through files in a directory.
 
     This is a pathlib equivalent of os.walk, which Python inexplicably still
@@ -161,10 +164,9 @@ def walk(path: Path,
         A Path for each file (and optionally each directory) in the same manner
         as os.walk.
     """
-    for root, dirs, files in os.walk(str(path),
-                                     topdown=top_down,
-                                     onerror=on_error,
-                                     followlinks=follow_links):
+    for root, dirs, files in os.walk(
+        str(path), topdown=top_down, onerror=on_error, followlinks=follow_links
+    ):
         root_path = Path(root)
         if directories:
             for dir_name in dirs:

@@ -49,6 +49,7 @@ class NoticeGroup(Enum):
     The NDK ships two NOTICE files: one for the toolchain, and one for
     everything else.
     """
+
     BASE = auto()
     TOOLCHAIN = auto()
 
@@ -56,8 +57,14 @@ class NoticeGroup(Enum):
 class BuildContext:
     """Class containing build context information."""
 
-    def __init__(self, out_dir: Path, dist_dir: Path, modules: List[Module],
-                 host: Host, build_number: str) -> None:
+    def __init__(
+        self,
+        out_dir: Path,
+        dist_dir: Path,
+        modules: List[Module],
+        host: Host,
+        build_number: str,
+    ) -> None:
         self.out_dir = out_dir
         self.dist_dir = dist_dir
         self.modules = {m.name: m for m in modules}
@@ -73,14 +80,14 @@ class Module:
     #
     # We override __getattribute__ to catch any uses of this value
     # uninitialized and raise an error.
-    name: str = ''
+    name: str = ""
     install_path: Path = Path()
     deps: Set[str] = set()
 
     def __getattribute__(self, name: str) -> Any:
         attr = super().__getattribute__(name)
-        if name in ('name', 'install_path') and attr == '':
-            raise RuntimeError(f'Uninitialized use of {name}')
+        if name in ("name", "install_path") and attr == "":
+            raise RuntimeError(f"Uninitialized use of {name}")
         return attr
 
     # Used to exclude a module from the build. If explicitly named it will
@@ -136,7 +143,7 @@ class Module:
         Args:
             msg: Detailed error message.
         """
-        return ModuleValidateError(f'{self.name}: {msg}')
+        return ModuleValidateError(f"{self.name}: {msg}")
 
     def validate(self) -> None:
         """Validates module config.
@@ -145,11 +152,11 @@ class Module:
             ModuleValidateError: The module configuration is not valid.
         """
         if self.name is None:
-            raise ModuleValidateError(f'{self.__class__} has no name')
+            raise ModuleValidateError(f"{self.__class__} has no name")
         if self.install_path is None:
-            raise self.validate_error('install_path property not set')
+            raise self.validate_error("install_path property not set")
         if self.notice_group not in NoticeGroup:
-            raise self.validate_error('invalid notice group')
+            raise self.validate_error("invalid notice group")
         self.validate_notice()
 
     def validate_notice(self) -> None:
@@ -162,11 +169,10 @@ class Module:
             return
 
         if not self.notices:
-            raise self.validate_error('notice property not set')
+            raise self.validate_error("notice property not set")
         for notice in self.notices:
             if not notice.exists():
-                raise self.validate_error(
-                    f'notice file {notice} does not exist')
+                raise self.validate_error(f"notice file {notice} does not exist")
 
     def get_dep(self, name: str) -> Module:
         """Returns the module object for the given dependency.
@@ -249,10 +255,9 @@ class Module:
             host = self.host
 
         install_subdir = ndk.paths.expand_path(self.install_path, host)
-        install_base = Path(ndk.paths.get_install_path(str(self.out_dir),
-                                                       host))
+        install_base = Path(ndk.paths.get_install_path(str(self.out_dir), host))
         if self.intermediate_module:
-            install_base = self.intermediate_out_dir / 'install'
+            install_base = self.intermediate_out_dir / "install"
         return install_base / install_subdir
 
     @property
@@ -275,7 +280,7 @@ class Module:
     @property
     def log_file(self) -> str:
         """Returns the basename of the log file for this module."""
-        return f'{self.name}.log'
+        return f"{self.name}.log"
 
     def log_path(self, log_dir: Path) -> Path:
         """Returns the path to the log file for this module."""
@@ -294,10 +299,11 @@ class AutoconfModule(Module):
         """Returns the lazily initialized builder for this module."""
         if self._builder is None:
             self._builder = AutoconfBuilder(
-                self.src / 'configure',
+                self.src / "configure",
                 self.intermediate_out_dir,
                 self.host,
-                additional_env=self.env)
+                additional_env=self.env,
+            )
         return self._builder
 
     @property
@@ -313,9 +319,7 @@ class AutoconfModule(Module):
     def install(self) -> None:
         install_dir = self.get_install_path()
         install_dir.mkdir(parents=True, exist_ok=True)
-        copy_tree(
-            str(self.builder.install_directory),
-            str(install_dir))
+        copy_tree(str(self.builder.install_directory), str(install_dir))
 
 
 class CMakeModule(Module):
@@ -335,7 +339,8 @@ class CMakeModule(Module):
                 additional_flags=self.flags,
                 additional_ldflags=self.ldflags,
                 additional_env=self.env,
-                run_ctest=self.run_ctest)
+                run_ctest=self.run_ctest,
+            )
         return self._builder
 
     @property
@@ -360,9 +365,7 @@ class CMakeModule(Module):
     def install(self) -> None:
         install_dir = self.get_install_path()
         install_dir.mkdir(parents=True, exist_ok=True)
-        copy_tree(
-            str(self.builder.install_directory),
-            str(install_dir))
+        copy_tree(str(self.builder.install_directory), str(install_dir))
 
 
 class PackageModule(Module):
@@ -375,7 +378,7 @@ class PackageModule(Module):
     src: Path
 
     def default_notice_path(self) -> Path:
-        return self.src / 'NOTICE'
+        return self.src / "NOTICE"
 
     def build(self) -> None:
         pass
@@ -447,8 +450,7 @@ class ScriptShortcutModule(Module):
         super().validate()
 
         if self.windows_ext is None:
-            raise self.validate_error(
-                'ScriptShortcutModule requires windows_ext')
+            raise self.validate_error("ScriptShortcutModule requires windows_ext")
 
     def build(self) -> None:
         pass
@@ -462,27 +464,33 @@ class ScriptShortcutModule(Module):
     def make_cmd_helper(self) -> None:
         """Makes a .cmd helper script for Windows."""
         script = self.get_script_path().with_suffix(self.windows_ext)
-        full_path = PureWindowsPath('%~dp0') / script
+        full_path = PureWindowsPath("%~dp0") / script
 
-        install_path = self.get_install_path().with_suffix('.cmd')
+        install_path = self.get_install_path().with_suffix(".cmd")
         install_path.write_text(
-            textwrap.dedent(f"""\
+            textwrap.dedent(
+                f"""\
                 @echo off
                 {full_path} %*
-                """))
+                """
+            )
+        )
 
     def make_sh_helper(self) -> None:
         """Makes a bash helper script for POSIX systems."""
         script = self.get_script_path()
-        full_path = Path('$DIR') / script
+        full_path = Path("$DIR") / script
 
         install_path = self.get_install_path()
         install_path.write_text(
-            textwrap.dedent(f"""\
+            textwrap.dedent(
+                f"""\
                 #!/bin/sh
                 DIR="$(cd "$(dirname "$0")" && pwd)"
                 {full_path} "$@"
-                """))
+                """
+            )
+        )
         mode = install_path.stat().st_mode
         install_path.chmod(mode | stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH)
 
@@ -503,12 +511,13 @@ class PythonPackage(Module):
 
     def default_notice_path(self) -> Path:
         # Assume there's a NOTICE file in the same directory as the setup.py.
-        return self.install_path.parent / 'NOTICE'
+        return self.install_path.parent / "NOTICE"
 
     def build(self) -> None:
         subprocess.check_call(
-            ['python3', str(self.install_path), 'sdist', '-d', self.out_dir],
-            cwd=self.install_path.parent)
+            ["python3", str(self.install_path), "sdist", "-d", self.out_dir],
+            cwd=self.install_path.parent,
+        )
 
     def install(self) -> None:
         pass
@@ -538,8 +547,7 @@ def install_directory(src: Path, dst: Path) -> None:
     # could potentially be wrong for local testing).
     if dst.exists():
         shutil.rmtree(dst)
-    ignore_patterns = shutil.ignore_patterns('*.pyc', '*.pyo', '*.swp',
-                                             '*.git*')
+    ignore_patterns = shutil.ignore_patterns("*.pyc", "*.pyo", "*.swp", "*.git*")
     shutil.copytree(src, dst, ignore=ignore_patterns)
 
 
@@ -563,17 +571,19 @@ def make_repo_prop(out_dir: Path) -> None:
     """
     # TODO: Finish removing users of this in favor of installing a single
     # manifest.xml file in the root of the NDK.
-    file_name = 'repo.prop'
+    file_name = "repo.prop"
 
-    dist_dir = os.environ.get('DIST_DIR')
+    dist_dir = os.environ.get("DIST_DIR")
     if dist_dir is not None:
         dist_repo_prop = Path(dist_dir) / file_name
         shutil.copy(dist_repo_prop, out_dir)
     else:
         out_file = out_dir / file_name
-        with out_file.open('w') as prop_file:
+        with out_file.open("w") as prop_file:
             cmd = [
-                'repo', 'forall', '-c',
-                'echo $REPO_PROJECT $(git rev-parse HEAD)',
+                "repo",
+                "forall",
+                "-c",
+                "echo $REPO_PROJECT $(git rev-parse HEAD)",
             ]
             subprocess.check_call(cmd, stdout=prop_file)

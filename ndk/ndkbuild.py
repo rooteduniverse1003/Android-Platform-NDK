@@ -24,8 +24,8 @@ import ndk.ext.subprocess
 
 def build(ndk_path: str, build_flags: List[str]) -> Tuple[int, str]:
     """Invokes ndk-build with the given arguments."""
-    ndk_build_path = os.path.join(ndk_path, 'ndk-build')
+    ndk_build_path = os.path.join(ndk_path, "ndk-build")
     cmd = [ndk_build_path] + build_flags
-    if os.name == 'nt':
-        cmd = ['cmd', '/c'] + cmd
-    return ndk.ext.subprocess.call_output(cmd, encoding='utf-8')
+    if os.name == "nt":
+        cmd = ["cmd", "/c"] + cmd
+    return ndk.ext.subprocess.call_output(cmd, encoding="utf-8")

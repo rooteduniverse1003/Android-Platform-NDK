@@ -24,5 +24,5 @@ def read_file(path: str) -> str:
 
 def write_file(path: str, contents: str) -> None:
     """Writes the given string to the path specified, closing the file."""
-    with open(path, 'w') as the_file:
+    with open(path, "w") as the_file:
         the_file.write(contents)
