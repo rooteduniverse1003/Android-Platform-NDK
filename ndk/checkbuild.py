@@ -718,6 +718,7 @@ class PythonLint(ndk.builds.Module):
     def build(self) -> None:
         self.run_pylint()
         self.run_mypy()
+        self.run_black()
 
     def run_pylint(self) -> None:
         if not shutil.which("pylint"):
@@ -740,6 +741,14 @@ class PythonLint(ndk.builds.Module):
         subprocess.check_call(
             ["mypy", "--config-file", str(ANDROID_DIR / "ndk/mypy.ini"), "ndk"]
         )
+
+    def run_black(self) -> None:
+        if not shutil.which("black"):
+            logging.warning(
+                "Skipping format-checking. black was not found on your path."
+            )
+            return
+        subprocess.check_call(["black", "--check", "."])
 
     def install(self) -> None:
         pass
