@@ -1,0 +1,18 @@
+[tool.poetry]
+name = "ndk"
+version = "0.1.0"
+description = "Android NDK build and test environment."
+authors = ["The Android Open Source Project"]
+license = "Apache-2.0"
+
+[tool.poetry.dependencies]
+python = "^3.9"
+
+[tool.poetry.dev-dependencies]
+mypy = "^0.910"
+pylint = "^2.12.2"
+pytest = "^6.2.5"
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
