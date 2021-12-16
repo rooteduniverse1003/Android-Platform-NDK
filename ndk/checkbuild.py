@@ -380,6 +380,15 @@ def _install_file(src_file: str, dst_file: str) -> None:
     shutil.copy2(src_file, dst_file)
 
 
+ALL_MODULE_TYPES: list[type[ndk.builds.Module]] = []
+
+
+def register(module_class: type[ndk.builds.Module]) -> type[ndk.builds.Module]:
+    ALL_MODULE_TYPES.append(module_class)
+    return module_class
+
+
+@register
 class Clang(ndk.builds.Module):
     name = "clang"
     install_path = Path("toolchains/llvm/prebuilt/{host}")
@@ -547,6 +556,7 @@ def versioned_so(host: Host, lib: str, version: str) -> str:
     raise ValueError(f"Unsupported host: {host}")
 
 
+@register
 class ShaderTools(ndk.builds.CMakeModule):
     name = "shader-tools"
     src = ANDROID_DIR / "external" / "shaderc" / "shaderc"
@@ -653,6 +663,7 @@ class ShaderTools(ndk.builds.CMakeModule):
             make_symlink(symlink_name, lib)
 
 
+@register
 class Make(ndk.builds.CMakeModule):
     name = "make"
     install_path = Path("prebuilt/{host}")
@@ -665,6 +676,7 @@ class Make(ndk.builds.CMakeModule):
         yield self.src / "COPYING"
 
 
+@register
 class Yasm(ndk.builds.AutoconfModule):
     name = "yasm"
     install_path = Path("prebuilt/{host}")
@@ -684,12 +696,14 @@ class Yasm(ndk.builds.AutoconfModule):
             yield self.src / name
 
 
+@register
 class NdkWhich(ndk.builds.FileModule):
     name = "ndk-which"
     install_path = Path("prebuilt/{host}/bin/ndk-which")
     src = NDK_DIR / "ndk-which"
 
 
+@register
 class Python(ndk.builds.Module):
     """Module for host Python 2 to support GDB.
 
@@ -712,6 +726,7 @@ class Python(ndk.builds.Module):
         )
 
 
+@register
 class Black(ndk.builds.LintModule):
     name = "black"
 
@@ -724,6 +739,7 @@ class Black(ndk.builds.LintModule):
         subprocess.check_call(["black", "--check", "."])
 
 
+@register
 class Pylint(ndk.builds.LintModule):
     name = "pylint"
 
@@ -742,6 +758,7 @@ class Pylint(ndk.builds.LintModule):
         subprocess.check_call(pylint)
 
 
+@register
 class Mypy(ndk.builds.LintModule):
     name = "mypy"
 
@@ -754,11 +771,13 @@ class Mypy(ndk.builds.LintModule):
         )
 
 
+@register
 class PythonLint(ndk.builds.MetaModule):
     name = "pythonlint"
     deps = {"black", "mypy", "pylint"}
 
 
+@register
 class Toolbox(ndk.builds.Module):
     name = "toolbox"
     install_path = Path("prebuilt/{host}/bin")
@@ -813,6 +832,7 @@ def make_linker_script(path: str, libs: List[str]) -> None:
     ndk.file.write_file(path, "INPUT({})\n".format(" ".join(libs)))
 
 
+@register
 class Libcxx(ndk.builds.Module):
     name = "libc++"
     src = ANDROID_DIR / "toolchain/llvm-project/libcxx"
@@ -907,6 +927,7 @@ class Libcxx(ndk.builds.Module):
             shutil.copy2(os.path.join(static_lib_dir, "libandroid_support.a"), lib_dir)
 
 
+@register
 class Platforms(ndk.builds.Module):
     name = "platforms"
     install_path = Path("platforms")
@@ -1173,6 +1194,7 @@ class Platforms(ndk.builds.Module):
                     keep_file.write("This file forces git to keep the directory.")
 
 
+@register
 class LibShaderc(ndk.builds.Module):
     name = "libshaderc"
     install_path = Path("sources/third_party/shaderc")
@@ -1290,24 +1312,28 @@ class LibShaderc(ndk.builds.Module):
                     print(source_dir, ":", dest_dir, ":", f, "SKIPPED")
 
 
+@register
 class CpuFeatures(ndk.builds.PackageModule):
     name = "cpufeatures"
     install_path = Path("sources/android/cpufeatures")
     src = NDK_DIR / "sources/android/cpufeatures"
 
 
+@register
 class NativeAppGlue(ndk.builds.PackageModule):
     name = "native_app_glue"
     install_path = Path("sources/android/native_app_glue")
     src = NDK_DIR / "sources/android/native_app_glue"
 
 
+@register
 class NdkHelper(ndk.builds.PackageModule):
     name = "ndk_helper"
     install_path = Path("sources/android/ndk_helper")
     src = NDK_DIR / "sources/android/ndk_helper"
 
 
+@register
 class Gtest(ndk.builds.PackageModule):
     name = "gtest"
     install_path = Path("sources/third_party/googletest")
@@ -1319,6 +1345,7 @@ class Gtest(ndk.builds.PackageModule):
         shutil.rmtree(self.get_install_path() / "docs")
 
 
+@register
 class Sysroot(ndk.builds.Module):
     name = "sysroot"
     install_path = Path("sysroot")
@@ -1510,6 +1537,7 @@ def write_clang_wrapper(
         write_clang_batch_script(wrapperxx_path + ".cmd", "clang++" + exe_suffix, flags)
 
 
+@register
 class BaseToolchain(ndk.builds.Module):
     """The subset of the toolchain needed to build other toolchain components.
 
@@ -1615,6 +1643,7 @@ class BaseToolchain(ndk.builds.Module):
         shutil.copytree(support_inc_src, support_inc_dst)
 
 
+@register
 class Vulkan(ndk.builds.Module):
     name = "vulkan"
     install_path = Path("sources/third_party/vulkan")
@@ -1649,6 +1678,7 @@ class Vulkan(ndk.builds.Module):
         )
 
 
+@register
 class Toolchain(ndk.builds.Module):
     """The complete toolchain.
 
@@ -1835,6 +1865,7 @@ def system_libs_meta_transform(metadata: dict[str, Any]) -> dict[str, Any]:
     return {"NDK_SYSTEM_LIBS": sorted(metadata.keys())}
 
 
+@register
 class NdkBuild(ndk.builds.PackageModule):
     name = "ndk-build"
     install_path = Path("build")
@@ -1925,30 +1956,35 @@ class NdkBuild(ndk.builds.PackageModule):
         )
 
 
+@register
 class PythonPackages(ndk.builds.PackageModule):
     name = "python-packages"
     install_path = Path("python-packages")
     src = ANDROID_DIR / "development/python-packages"
 
 
+@register
 class SystemStl(ndk.builds.PackageModule):
     name = "system-stl"
     install_path = Path("sources/cxx-stl/system")
     src = NDK_DIR / "sources/cxx-stl/system"
 
 
+@register
 class LibAndroidSupport(ndk.builds.PackageModule):
     name = "libandroid_support"
     install_path = Path("sources/android/support")
     src = NDK_DIR / "sources/android/support"
 
 
+@register
 class Libcxxabi(ndk.builds.PackageModule):
     name = "libc++abi"
     install_path = Path("sources/cxx-stl/llvm-libc++abi")
     src = ANDROID_DIR / "toolchain/llvm-project/libcxxabi"
 
 
+@register
 class SimplePerf(ndk.builds.Module):
     name = "simpleperf"
     install_path = Path("simpleperf")
@@ -1993,6 +2029,7 @@ class SimplePerf(ndk.builds.Module):
         shutil.copy2(os.path.join(simpleperf_path, "ChangeLog"), install_dir)
 
 
+@register
 class Changelog(ndk.builds.FileModule):
     name = "changelog"
     install_path = Path("CHANGELOG.md")
@@ -2000,6 +2037,7 @@ class Changelog(ndk.builds.FileModule):
     no_notice = True
 
 
+@register
 class NdkGdb(ndk.builds.MultiFileModule):
     name = "ndk-gdb"
     install_path = Path("prebuilt/{host}/bin")
@@ -2014,6 +2052,7 @@ class NdkGdb(ndk.builds.MultiFileModule):
             yield NDK_DIR / "ndk-gdb.cmd"
 
 
+@register
 class NdkGdbShortcut(ndk.builds.ScriptShortcutModule):
     name = "ndk-gdb-shortcut"
     install_path = Path("ndk-gdb")
@@ -2021,6 +2060,7 @@ class NdkGdbShortcut(ndk.builds.ScriptShortcutModule):
     windows_ext = ".cmd"
 
 
+@register
 class NdkLldbShortcut(ndk.builds.ScriptShortcutModule):
     name = "ndk-lldb-shortcut"
     install_path = Path("ndk-lldb")
@@ -2028,6 +2068,7 @@ class NdkLldbShortcut(ndk.builds.ScriptShortcutModule):
     windows_ext = ".cmd"
 
 
+@register
 class NdkStack(ndk.builds.MultiFileModule):
     name = "ndk-stack"
     install_path = Path("prebuilt/{host}/bin")
@@ -2042,6 +2083,7 @@ class NdkStack(ndk.builds.MultiFileModule):
             yield NDK_DIR / "ndk-stack.cmd"
 
 
+@register
 class NdkStackShortcut(ndk.builds.ScriptShortcutModule):
     name = "ndk-stack-shortcut"
     install_path = Path("ndk-stack")
@@ -2049,6 +2091,7 @@ class NdkStackShortcut(ndk.builds.ScriptShortcutModule):
     windows_ext = ".cmd"
 
 
+@register
 class NdkWhichShortcut(ndk.builds.ScriptShortcutModule):
     name = "ndk-which-shortcut"
     install_path = Path("ndk-which")
@@ -2056,6 +2099,7 @@ class NdkWhichShortcut(ndk.builds.ScriptShortcutModule):
     windows_ext = ""  # There isn't really a Windows ndk-which.
 
 
+@register
 class NdkBuildShortcut(ndk.builds.ScriptShortcutModule):
     name = "ndk-build-shortcut"
     install_path = Path("ndk-build")
@@ -2063,6 +2107,7 @@ class NdkBuildShortcut(ndk.builds.ScriptShortcutModule):
     windows_ext = ".cmd"
 
 
+@register
 class Readme(ndk.builds.FileModule):
     name = "readme"
     install_path = Path("README.md")
@@ -2081,6 +2126,7 @@ CANARY_TEXT = textwrap.dedent(
 )
 
 
+@register
 class CanaryReadme(ndk.builds.Module):
     name = "canary-readme"
     install_path = Path("README.canary")
@@ -2094,6 +2140,7 @@ class CanaryReadme(ndk.builds.Module):
             self.get_install_path().write_text(CANARY_TEXT)
 
 
+@register
 class Meta(ndk.builds.PackageModule):
     name = "meta"
     install_path = Path("meta")
@@ -2154,6 +2201,7 @@ class Meta(ndk.builds.PackageModule):
             json.dump(system_libs, json_file, indent=2, separators=(",", ": "))
 
 
+@register
 class WrapSh(ndk.builds.PackageModule):
     name = "wrap.sh"
     install_path = Path("wrap.sh")
@@ -2161,6 +2209,7 @@ class WrapSh(ndk.builds.PackageModule):
     no_notice = True
 
 
+@register
 class SourceProperties(ndk.builds.Module):
     name = "source.properties"
     install_path = Path("source.properties")
@@ -2327,51 +2376,7 @@ def get_modules_to_build(
     return sorted(list(build_modules), key=str), deps_only
 
 
-ALL_MODULES = [
-    BaseToolchain(),
-    Black(),
-    CanaryReadme(),
-    Changelog(),
-    Clang(),
-    CpuFeatures(),
-    Gtest(),
-    LibAndroidSupport(),
-    LibShaderc(),
-    Libcxx(),
-    Libcxxabi(),
-    Make(),
-    Meta(),
-    Mypy(),
-    NativeAppGlue(),
-    NdkBuild(),
-    NdkBuildShortcut(),
-    NdkGdb(),
-    NdkGdbShortcut(),
-    NdkLldbShortcut(),
-    NdkHelper(),
-    NdkStack(),
-    NdkStackShortcut(),
-    NdkWhich(),
-    NdkWhichShortcut(),
-    Platforms(),
-    Pylint(),
-    Python(),
-    PythonLint(),
-    PythonPackages(),
-    Readme(),
-    ShaderTools(),
-    SimplePerf(),
-    SourceProperties(),
-    Sysroot(),
-    SystemStl(),
-    Toolbox(),
-    Toolchain(),
-    Vulkan(),
-    WrapSh(),
-    Yasm(),
-]
-
-
+ALL_MODULES = [t() for t in ALL_MODULE_TYPES]
 NAMES_TO_MODULES = {m.name: m for m in ALL_MODULES}
 
 
