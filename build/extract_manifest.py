@@ -21,7 +21,7 @@ import os.path
 import xml.etree.ElementTree
 
 
-def parse_args():
+def parse_args() -> argparse.Namespace:
     """Parse and return command line arguments."""
     parser = argparse.ArgumentParser()
 
@@ -31,13 +31,14 @@ def parse_args():
         help='Property to extract from the manifest file.')
 
     parser.add_argument(
-        'manifest_file', metavar='MANIFEST_FILE', type=os.path.abspath,
+        'manifest_file', metavar='MANIFEST_FILE', type=os.path.abspath,  # type: ignore
         help='Path to the AndroidManifest.xml file.')
 
     return parser.parse_args()
 
 
-def get_rpath_attribute(root, element_path, attribute, default=None):
+def get_rpath_attribute(root: xml.etree.ElementTree.Element, element_path: str,
+                        attribute: str, default: str = '') -> str:
     """Returns the value of an attribute at an rpath.
 
     If more than one element exists with the same name, only the first is
@@ -63,10 +64,10 @@ def get_rpath_attribute(root, element_path, attribute, default=None):
     # ElementTree elements don't have the same helpful namespace parameter that
     # the find family does :(
     attrib_name = attribute.replace('android:', '{' + ns_url + '}')
-    return elem.get(attrib_name, default)
+    return str(elem.get(attrib_name, default))
 
 
-def get_minsdkversion(root):
+def get_minsdkversion(root: xml.etree.ElementTree.Element) -> str:
     """Finds and returns the value of android:minSdkVersion in the manifest.
 
     Returns:
@@ -75,7 +76,7 @@ def get_minsdkversion(root):
     return get_rpath_attribute(root, './uses-sdk', 'android:minSdkVersion', '')
 
 
-def get_debuggable(root):
+def get_debuggable(root: xml.etree.ElementTree.Element) -> str:
     """Finds and returns the value of android:debuggable in the manifest.
 
     Returns:
@@ -92,7 +93,7 @@ def get_debuggable(root):
     return debuggable
 
 
-def main():
+def main() -> None:
     args = parse_args()
 
     tree = xml.etree.ElementTree.parse(args.manifest_file)

@@ -14,6 +14,7 @@
 # limitations under the License.
 #
 from __future__ import print_function
+from io import StringIO
 
 import textwrap
 import unittest
@@ -22,41 +23,41 @@ import build.extract_platform
 
 
 class ExtractPlatformTest(unittest.TestCase):
-    def testNumericVersion(self):
-        props_file = textwrap.dedent("""\
+    def testNumericVersion(self) -> None:
+        props_file = StringIO(textwrap.dedent("""\
             some
             # other
             junk
             target=android-9
             foo
-            """).splitlines()
+            """))
 
         self.assertEqual(
             'android-9', build.extract_platform.get_platform(props_file))
 
-    def testNamedVersion(self):
-        props_file = textwrap.dedent("""\
+    def testNamedVersion(self) -> None:
+        props_file = StringIO(textwrap.dedent("""\
             some
             # other
             junk
             target=android-nougat
             foo
-            """).splitlines()
+            """))
 
         self.assertEqual(
             'android-nougat', build.extract_platform.get_platform(props_file))
 
-    def testVendorVersion(self):
-        props_file = textwrap.dedent("""\
+    def testVendorVersion(self) -> None:
+        props_file = StringIO(textwrap.dedent("""\
             some
             # other
             junk
             target=vendor:something:21
             foo
-            """).splitlines()
+            """))
 
         self.assertEqual(
             'android-21', build.extract_platform.get_platform(props_file))
 
-    def testNoVersion(self):
-        self.assertEqual('unknown', build.extract_platform.get_platform([]))
+    def testNoVersion(self) -> None:
+        self.assertEqual('unknown', build.extract_platform.get_platform(StringIO('')))

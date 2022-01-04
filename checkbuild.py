@@ -58,8 +58,13 @@ def main():
         logging.basicConfig(level=logging.INFO)
 
     bootstrap()
+    new_env = os.environ.copy()
+    new_env['PYTHONNOUSERSITE'] = '1'
+    if 'PYTHONPATH' in new_env:
+        del new_env['PYTHONPATH']
     subprocess.check_call(
-        ['python3', os.path.join(THIS_DIR, 'do_checkbuild.py')] + sys.argv[1:])
+        ['python3', os.path.join(THIS_DIR, 'do_checkbuild.py')] + sys.argv[1:],
+        env=new_env)
 
 
 if __name__ == '__main__':

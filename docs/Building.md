@@ -10,19 +10,21 @@ Building the NDK for Mac OS X requires at least 10.13.
 
 ## Prerequisites
 
-* [AOSP NDK Repository](http://source.android.com/source/downloading.html)
-    * Check out the branch `master-ndk`. Do this in a new directory.
+The first thing you need is the AOSP NDK repository. If you're new to using repo
+and gerrit, see [repo.md](repo.md) for tips. If you're already familiar with how
+to use repo and gerrit from other Android projects, you already know plenty :)
 
-        ```bash
-        repo init -u https://android.googlesource.com/platform/manifest \
-            -b master-ndk
+Check out the branch `master-ndk`. Do this in a new directory.
 
-        # Googlers, follow http://go/repo-init/master-ndk (select AOSP in the Host
-        # menu, and uncheck the box for the git superproject). At time of writing,
-        # the correct invocation is:
-        repo init -u \
-            sso://android.git.corp.google.com/platform/manifest -b master-ndk
-        ```
+```bash
+repo init -u https://android.googlesource.com/platform/manifest -b master-ndk
+
+# Googlers, follow http://go/repo-init/master-ndk (select AOSP in the Host menu,
+# and uncheck the box for the git superproject). At time of writing, the correct
+# invocation is:
+repo init -u \
+    sso://android.git.corp.google.com/platform/manifest -b master-ndk
+```
 
 If you wish to rebuild a given release of the NDK, the release branches can also
 be checked out. They're named `ndk-release-r${RELEASE}` for newer releases, but

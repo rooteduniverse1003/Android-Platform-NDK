@@ -83,7 +83,6 @@ cmd-strip = $(PRIVATE_STRIP) $(PRIVATE_STRIP_MODE) $(call host-path,$1)
 TARGET_LIBATOMIC = -latomic
 TARGET_LDLIBS := -lc -lm
 
-TOOLCHAIN_ROOT := $(NDK_ROOT)/toolchains/llvm/prebuilt/$(HOST_TAG64)
 LLVM_TOOLCHAIN_PREFIX := $(TOOLCHAIN_ROOT)/bin/
 
 # IMPORTANT: The following definitions must use lazy assignment because

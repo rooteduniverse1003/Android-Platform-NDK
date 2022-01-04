@@ -25,14 +25,14 @@ import json
 import os
 
 
-def parse_args():
+def parse_args() -> argparse.Namespace:
     """Parses and returns command line arguments."""
     parser = argparse.ArgumentParser()
 
     parser.add_argument(
-        '-o', '--output', type=os.path.realpath, help='Path to output file')
+        '-o', '--output', type=os.path.realpath, help='Path to output file')  # type: ignore
 
-    def maybe_list_file(arg):
+    def maybe_list_file(arg: str) -> str:
         if arg.startswith('@'):
             return '@' + os.path.realpath(arg[1:])
         return os.path.realpath(arg)
@@ -49,7 +49,7 @@ def parse_args():
     return parser.parse_args()
 
 
-def main():
+def main() -> None:
     """Program entry point."""
     args = parse_args()
 

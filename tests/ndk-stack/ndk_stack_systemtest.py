@@ -78,13 +78,13 @@ class SystemTests(unittest.TestCase):
         self.assertEqual(expected, mock_stdout.getvalue())
 
     def test_all_stacks(self):
-        self.system_test('backtrace.txt', 'expected.txt')
+        self.system_test('backtrace.txt', 'expected.txt')  # pylint:disable=no-value-for-parameter
 
     def test_multiple_crashes(self):
-        self.system_test('multiple.txt', 'expected_multiple.txt')
+        self.system_test('multiple.txt', 'expected_multiple.txt')  # pylint:disable=no-value-for-parameter
 
     def test_hwasan(self):
-        self.system_test('hwasan.txt', 'expected_hwasan.txt')
+        self.system_test('hwasan.txt', 'expected_hwasan.txt')  # pylint:disable=no-value-for-parameter
 
 
 if __name__ == '__main__':
