@@ -23,7 +23,7 @@ import build.extract_manifest
 
 
 class ExtractMinSdkVersionTest(unittest.TestCase):
-    def testMinSdkVersion(self):
+    def testMinSdkVersion(self) -> None:
         xml_str = textwrap.dedent("""\
             <?xml version="1.0" encoding="utf-8"?>
             <manifest
@@ -47,7 +47,7 @@ class ExtractMinSdkVersionTest(unittest.TestCase):
         self.assertEqual(
             '9', build.extract_manifest.get_minsdkversion(root))
 
-    def testUsesSdkMissingMinSdkVersion(self):
+    def testUsesSdkMissingMinSdkVersion(self) -> None:
         xml_str = textwrap.dedent("""\
             <?xml version="1.0" encoding="utf-8"?>
             <manifest
@@ -71,7 +71,7 @@ class ExtractMinSdkVersionTest(unittest.TestCase):
         self.assertEqual(
             '', build.extract_manifest.get_minsdkversion(root))
 
-    def testNoUsesSdk(self):
+    def testNoUsesSdk(self) -> None:
         xml_str = textwrap.dedent("""\
             <?xml version="1.0" encoding="utf-8"?>
             <manifest
@@ -96,7 +96,7 @@ class ExtractMinSdkVersionTest(unittest.TestCase):
 
 
 class ExtractDebuggableTest(unittest.TestCase):
-    def testIsDebuggable(self):
+    def testIsDebuggable(self) -> None:
         xml_str = textwrap.dedent("""\
             <?xml version="1.0" encoding="utf-8"?>
             <manifest
@@ -115,7 +115,7 @@ class ExtractDebuggableTest(unittest.TestCase):
         self.assertEqual(
             'true', build.extract_manifest.get_debuggable(root))
 
-    def testIsNotDebuggable(self):
+    def testIsNotDebuggable(self) -> None:
         xml_str = textwrap.dedent("""\
             <?xml version="1.0" encoding="utf-8"?>
             <manifest
@@ -134,7 +134,7 @@ class ExtractDebuggableTest(unittest.TestCase):
         self.assertEqual(
             'false', build.extract_manifest.get_debuggable(root))
 
-    def testBogusValue(self):
+    def testBogusValue(self) -> None:
         xml_str = textwrap.dedent("""\
             <?xml version="1.0" encoding="utf-8"?>
             <manifest
@@ -153,7 +153,7 @@ class ExtractDebuggableTest(unittest.TestCase):
         self.assertEqual(
             'false', build.extract_manifest.get_debuggable(root))
 
-    def testNotSet(self):
+    def testNotSet(self) -> None:
         xml_str = textwrap.dedent("""\
             <?xml version="1.0" encoding="utf-8"?>
             <manifest

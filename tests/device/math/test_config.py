@@ -4,7 +4,7 @@ def build_unsupported(test):
     return None
 
 
-def run_unsupported(test, device):
+def run_unsupported(_test, device):
     if device.version < 18:
         return device.version
     return None

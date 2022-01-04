@@ -21,7 +21,7 @@ import os
 import subprocess
 import textwrap
 import time
-import winrm
+import winrm  # pylint:disable=import-error
 import yaml
 
 
@@ -206,7 +206,7 @@ def main():
             GCE_USER = {}
             GCE_PASS = {}
         """.format(repr(host), repr(user), repr(password))))
-    os.chmod(secrets_py, 0600)
+    os.chmod(secrets_py, 0o600)
     logger().info('Setup completed successfully.')
     logger().info('Host: %s', host)
     logger().info('Username: %s', user)

@@ -32,7 +32,7 @@ import zipfile
 EXE_SUFFIX = '.exe' if os.name == 'nt' else ''
 
 
-class TmpDir(object):
+class TmpDir:
     """Manage temporary directory creation."""
 
     def __init__(self):
@@ -99,7 +99,6 @@ def find_readelf(ndk_root, ndk_bin, ndk_host_tag):
     m = re.match('^[^-]+-(.*)', ndk_host_tag)
     if m:
         # Try as if this is not a standalone install.
-        arch = m.group(1)
         path = os.path.join(ndk_root, 'toolchains', 'llvm', 'prebuilt',
                             ndk_host_tag, 'bin', readelf)
         if os.path.exists(path):
@@ -149,7 +148,7 @@ def get_zip_info_from_offset(zip_file, offset):
     for i in range(1, len(infos)):
         prev_info = infos[i - 1]
         cur_offset = infos[i].header_offset
-        if offset >= prev_info.header_offset and offset < cur_offset:
+        if prev_info.header_offset <= offset < cur_offset:
             zip_info = prev_info
             return zip_info
     zip_info = infos[len(infos) - 1]
@@ -158,7 +157,7 @@ def get_zip_info_from_offset(zip_file, offset):
     return zip_info
 
 
-class FrameInfo(object):
+class FrameInfo:
     """A class to represent the data in a single backtrace frame.
 
     Attributes:
@@ -190,10 +189,10 @@ class FrameInfo(object):
     def from_line(cls, line):
         m = FrameInfo._line_re.match(line)
         if m:
-          return cls(*m.group(1, 2, 3, 4))
+            return cls(*m.group(1, 2, 3, 4))
         m = FrameInfo._sanitizer_line_re.match(line)
         if m:
-          return cls(*m.group(1, 3, 2, 2), sanitizer=True)
+            return cls(*m.group(1, 3, 2, 2), sanitizer=True)
         return None
 
     def __init__(self, num, pc, tail, elf_file, sanitizer=False):
@@ -377,7 +376,7 @@ def main(argv):
             # and the actual backtrace. Do not end the crash dump until we've
             # seen the actual backtrace.
             if not frame_info.sanitizer:
-              saw_frame = True
+                saw_frame = True
 
             try:
                 elf_file = frame_info.get_elf_file(args.symbol_dir,
