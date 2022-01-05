@@ -760,7 +760,7 @@ def main():
         server_local_path = server_local_path.format(NDK_PATH, arch)
         server_name = "gdbserver"
     if not os.path.exists(server_local_path):
-        error("Can not find {}: {}", server_name, server_local_path)
+        error("Can not find {}: {}".format(server_name, server_local_path))
     log("Using {}: {}".format(server_name, server_local_path))
     debugger_server_path = get_debugger_server_path(args, pkg_name, app_data_dir, arch,
                                                     server_name, server_local_path)
