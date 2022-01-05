@@ -25,20 +25,22 @@ from ndk.abis import Abi, LP32_ABIS, LP64_ABIS
 
 @enum.unique
 class CMakeToolchainFile(enum.Enum):
-    Legacy = 'legacy'
-    Default = 'new'
+    Legacy = "legacy"
+    Default = "new"
 
 
 class TestOptions:
     """Configuration for how tests should be run."""
 
-    def __init__(self,
-                 src_dir: str,
-                 ndk_path: str,
-                 out_dir: str,
-                 test_filter: Optional[str] = None,
-                 clean: bool = True,
-                 build_report: Optional[str] = None) -> None:
+    def __init__(
+        self,
+        src_dir: str,
+        ndk_path: str,
+        out_dir: str,
+        test_filter: Optional[str] = None,
+        clean: bool = True,
+        build_report: Optional[str] = None,
+    ) -> None:
         """Initializes a TestOptions object.
 
         Args:
@@ -86,16 +88,18 @@ class BuildConfiguration:
         Returns:
             A copy of this BuildConfiguration with the new API level.
         """
-        return BuildConfiguration(abi=self.abi,
-                                  api=api,
-                                  toolchain_file=self.toolchain_file)
+        return BuildConfiguration(
+            abi=self.abi, api=api, toolchain_file=self.toolchain_file
+        )
 
     def __str__(self) -> str:
-        return '-'.join([
-            self.abi,
-            str(self.api),
-            self.toolchain_file.value,
-        ])
+        return "-".join(
+            [
+                self.abi,
+                str(self.api),
+                self.toolchain_file.value,
+            ]
+        )
 
     @property
     def is_lp32(self) -> bool:
@@ -118,15 +122,15 @@ class BuildConfiguration:
         Raises:
             ValueError: The given string could not be matched to a TestSpec.
         """
-        abi, _, rest = config_string.partition('-')
-        if abi == 'armeabi' and rest.startswith('v7a-'):
-            abi += '-v7a'
-            _, _, rest = rest.partition('-')
-        elif abi == 'arm64' and rest.startswith('v8a-'):
-            abi += '-v8a'
-            _, _, rest = rest.partition('-')
+        abi, _, rest = config_string.partition("-")
+        if abi == "armeabi" and rest.startswith("v7a-"):
+            abi += "-v7a"
+            _, _, rest = rest.partition("-")
+        elif abi == "arm64" and rest.startswith("v8a-"):
+            abi += "-v8a"
+            _, _, rest = rest.partition("-")
 
-        api_str, toolchain_file_str = rest.split('-')
+        api_str, toolchain_file_str = rest.split("-")
         api = int(api_str)
         toolchain_file = CMakeToolchainFile(toolchain_file_str)
 
@@ -134,10 +138,10 @@ class BuildConfiguration:
 
     def get_extra_ndk_build_flags(self) -> List[str]:
         extra_flags = []
-        extra_flags.append('V=1')
+        extra_flags.append("V=1")
         return extra_flags
 
     def get_extra_cmake_flags(self) -> List[str]:
         extra_flags = []
-        extra_flags.append('-DCMAKE_VERBOSE_MAKEFILE=ON')
+        extra_flags.append("-DCMAKE_VERBOSE_MAKEFILE=ON")
         return extra_flags

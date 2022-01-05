@@ -28,29 +28,29 @@ import ndk.paths
 
 class GetInstallPathTest(unittest.TestCase):
     def setUp(self) -> None:
-        self.release = 'bar'
+        self.release = "bar"
         self.saved_release = ndk.config.release
         ndk.config.release = self.release
 
     def tearDown(self) -> None:
         ndk.config.release = self.saved_release
 
-    @mock.patch('ndk.paths.get_out_dir')
+    @mock.patch("ndk.paths.get_out_dir")
     def test_inferred_out_dir(self, mock_get_out_dir: mock.Mock) -> None:
         """Tests that the correct path is returned for an inferred out_dir"""
-        out_dir = 'foo'
+        out_dir = "foo"
         mock_get_out_dir.return_value = out_dir
-        release = 'android-ndk-' + self.release
+        release = "android-ndk-" + self.release
         self.assertEqual(
             ndk.paths.get_install_path(),
-            os.path.join(out_dir,
-                         ndk.hosts.get_default_host().value, release))
+            os.path.join(out_dir, ndk.hosts.get_default_host().value, release),
+        )
 
     def test_supplied_out_dir(self) -> None:
         """Tests that the correct path is returned for a supplied out_dir"""
-        out_dir = 'foo'
-        release = 'android-ndk-' + self.release
+        out_dir = "foo"
+        release = "android-ndk-" + self.release
         self.assertEqual(
-            ndk.paths.get_install_path('foo'),
-            os.path.join(out_dir,
-                         ndk.hosts.get_default_host().value, release))
+            ndk.paths.get_install_path("foo"),
+            os.path.join(out_dir, ndk.hosts.get_default_host().value, release),
+        )

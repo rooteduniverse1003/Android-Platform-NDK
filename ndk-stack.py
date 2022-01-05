@@ -29,7 +29,7 @@ import sys
 import tempfile
 import zipfile
 
-EXE_SUFFIX = '.exe' if os.name == 'nt' else ''
+EXE_SUFFIX = ".exe" if os.name == "nt" else ""
 
 
 class TmpDir:
@@ -61,10 +61,9 @@ def get_ndk_paths():
     # `android-ndk-r18/prebuilt/linux-x86_64/bin/ndk-stack`...
     # ...get `android-ndk-r18/`:
     ndk_bin = os.path.dirname(os.path.realpath(__file__))
-    ndk_root = os.path.abspath(os.path.join(ndk_bin, '../../..'))
+    ndk_root = os.path.abspath(os.path.join(ndk_bin, "../../.."))
     # ...get `linux-x86_64`:
-    ndk_host_tag = os.path.basename(
-        os.path.abspath(os.path.join(ndk_bin, '../')))
+    ndk_host_tag = os.path.basename(os.path.abspath(os.path.join(ndk_bin, "../")))
     return (ndk_root, ndk_bin, ndk_host_tag)
 
 
@@ -74,9 +73,10 @@ def find_llvm_symbolizer(ndk_root, ndk_bin, ndk_host_tag):
     Returns: An absolute path to llvm-symbolizer(1).
     """
 
-    llvm_symbolizer = 'llvm-symbolizer' + EXE_SUFFIX
-    path = os.path.join(ndk_root, 'toolchains', 'llvm', 'prebuilt',
-                        ndk_host_tag, 'bin', llvm_symbolizer)
+    llvm_symbolizer = "llvm-symbolizer" + EXE_SUFFIX
+    path = os.path.join(
+        ndk_root, "toolchains", "llvm", "prebuilt", ndk_host_tag, "bin", llvm_symbolizer
+    )
     if os.path.exists(path):
         return path
 
@@ -86,7 +86,7 @@ def find_llvm_symbolizer(ndk_root, ndk_bin, ndk_host_tag):
     path = os.path.abspath(os.path.join(ndk_bin, llvm_symbolizer))
     if os.path.exists(path):
         return path
-    raise OSError('Unable to find llvm-symbolizer')
+    raise OSError("Unable to find llvm-symbolizer")
 
 
 def find_readelf(ndk_root, ndk_bin, ndk_host_tag):
@@ -95,12 +95,13 @@ def find_readelf(ndk_root, ndk_bin, ndk_host_tag):
     Returns: An absolute path to readelf(1).
     """
 
-    readelf = 'llvm-readelf' + EXE_SUFFIX
-    m = re.match('^[^-]+-(.*)', ndk_host_tag)
+    readelf = "llvm-readelf" + EXE_SUFFIX
+    m = re.match("^[^-]+-(.*)", ndk_host_tag)
     if m:
         # Try as if this is not a standalone install.
-        path = os.path.join(ndk_root, 'toolchains', 'llvm', 'prebuilt',
-                            ndk_host_tag, 'bin', readelf)
+        path = os.path.join(
+            ndk_root, "toolchains", "llvm", "prebuilt", ndk_host_tag, "bin", readelf
+        )
         if os.path.exists(path):
             return path
 
@@ -119,8 +120,8 @@ def get_build_id(readelf_path, elf_file):
     """
 
     try:
-        output = subprocess.check_output([readelf_path, '-n', elf_file])
-        m = re.search(r'Build ID:\s+([0-9a-f]+)', output.decode())
+        output = subprocess.check_output([readelf_path, "-n", elf_file])
+        m = re.search(r"Build ID:\s+([0-9a-f]+)", output.decode())
         if not m:
             return None
         return m.group(1)
@@ -179,11 +180,13 @@ class FrameInfo:
     # We're deliberately very loose because NDK users are likely to be
     # looking at crashes on ancient OS releases.
     # TODO: support asan stacks too?
-    _line_re = re.compile(r'.* +(#[0-9]+) +pc ([0-9a-f]+) +(([^ ]+).*)')
-    _sanitizer_line_re = re.compile(r'.* +(#[0-9]+) +0x[0-9a-f]* +\(([^ ]+)\+0x([0-9a-f]+)\)')
-    _lib_re = re.compile(r'([^\!]+)\!(.+)')
-    _offset_re = re.compile(r'\(offset\s+(0x[0-9a-f]+)\)')
-    _build_id_re = re.compile(r'\(BuildId:\s+([0-9a-f]+)\)')
+    _line_re = re.compile(r".* +(#[0-9]+) +pc ([0-9a-f]+) +(([^ ]+).*)")
+    _sanitizer_line_re = re.compile(
+        r".* +(#[0-9]+) +0x[0-9a-f]* +\(([^ ]+)\+0x([0-9a-f]+)\)"
+    )
+    _lib_re = re.compile(r"([^\!]+)\!(.+)")
+    _offset_re = re.compile(r"\(offset\s+(0x[0-9a-f]+)\)")
+    _build_id_re = re.compile(r"\(BuildId:\s+([0-9a-f]+)\)")
 
     @classmethod
     def from_line(cls, line):
@@ -208,8 +211,7 @@ class FrameInfo:
             # Sometimes an entry like this will occur:
             #   #01 pc 0000abcd  /system/lib/lib/libc.so!libc.so (offset 0x1000)
             # In this case, no container file should be set.
-            if os.path.basename(self.container_file) == os.path.basename(
-                    self.elf_file):
+            if os.path.basename(self.container_file) == os.path.basename(self.elf_file):
                 self.elf_file = self.container_file
                 self.container_file = None
         else:
@@ -236,10 +238,9 @@ class FrameInfo:
         if readelf_path and self.build_id:
             build_id = get_build_id(readelf_path, elf_file_path)
             if self.build_id != build_id:
-                print(
-                    'WARNING: Mismatched build id for %s' % (display_elf_path))
-                print('WARNING:   Expected %s' % (self.build_id))
-                print('WARNING:   Found    %s' % (build_id))
+                print("WARNING: Mismatched build id for %s" % (display_elf_path))
+                print("WARNING:   Expected %s" % (self.build_id))
+                print("WARNING:   Found    %s" % (build_id))
                 return False
         return True
 
@@ -257,24 +258,24 @@ class FrameInfo:
             # This matches a file format such as Base.apk!libsomething.so
             # so see if we can find libsomething.so in the symbol directory.
             elf_file_path = os.path.join(symbol_dir, elf_file)
-            if self.verify_elf_file(readelf_path, elf_file_path,
-                                    elf_file_path):
+            if self.verify_elf_file(readelf_path, elf_file_path, elf_file_path):
                 return elf_file_path
 
-            apk_file_path = os.path.join(symbol_dir,
-                                         os.path.basename(self.container_file))
+            apk_file_path = os.path.join(
+                symbol_dir, os.path.basename(self.container_file)
+            )
             with zipfile.ZipFile(apk_file_path) as zip_file:
                 zip_info = get_zip_info_from_offset(zip_file, self.offset)
                 if not zip_info:
                     return None
-                elf_file_path = zip_file.extract(zip_info,
-                                                 tmp_dir.get_directory())
-                display_elf_file = '%s!%s' % (apk_file_path, elf_file)
-                if not self.verify_elf_file(readelf_path, elf_file_path,
-                                            display_elf_file):
+                elf_file_path = zip_file.extract(zip_info, tmp_dir.get_directory())
+                display_elf_file = "%s!%s" % (apk_file_path, elf_file)
+                if not self.verify_elf_file(
+                    readelf_path, elf_file_path, display_elf_file
+                ):
                     return None
                 return elf_file_path
-        elif elf_file[-4:] == '.apk':
+        elif elf_file[-4:] == ".apk":
             # This matches a stack line such as:
             #   #08 pc 00cbed9c  GoogleCamera.apk (offset 0x6e32000)
             apk_file_path = os.path.join(symbol_dir, elf_file)
@@ -290,19 +291,22 @@ class FrameInfo:
                 index = self.tail.find(elf_file)
                 if index != -1:
                     index += len(elf_file)
-                    self.tail = (self.tail[0:index] + '!' + os.path.basename(
-                        zip_info.filename) + self.tail[index:])
+                    self.tail = (
+                        self.tail[0:index]
+                        + "!"
+                        + os.path.basename(zip_info.filename)
+                        + self.tail[index:]
+                    )
                 elf_file = os.path.basename(zip_info.filename)
                 elf_file_path = os.path.join(symbol_dir, elf_file)
-                if self.verify_elf_file(readelf_path, elf_file_path,
-                                        elf_file_path):
+                if self.verify_elf_file(readelf_path, elf_file_path, elf_file_path):
                     return elf_file_path
 
-                elf_file_path = zip_file.extract(zip_info,
-                                                 tmp_dir.get_directory())
-                display_elf_path = '%s!%s' % (apk_file_path, elf_file)
-                if not self.verify_elf_file(readelf_path, elf_file_path,
-                                            display_elf_path):
+                elf_file_path = zip_file.extract(zip_info, tmp_dir.get_directory())
+                display_elf_path = "%s!%s" % (apk_file_path, elf_file)
+                if not self.verify_elf_file(
+                    readelf_path, elf_file_path, display_elf_path
+                ):
                     return None
                 return elf_file_path
         elf_file_path = os.path.join(symbol_dir, elf_file)
@@ -312,33 +316,38 @@ class FrameInfo:
 
 
 def main(argv):
-    """"Program entry point."""
+    """ "Program entry point."""
     parser = argparse.ArgumentParser(
-        description='Symbolizes Android crashes.',
-        epilog='See <https://developer.android.com/ndk/guides/ndk-stack>.')
+        description="Symbolizes Android crashes.",
+        epilog="See <https://developer.android.com/ndk/guides/ndk-stack>.",
+    )
     parser.add_argument(
-        '-sym',
-        '--sym',
-        dest='symbol_dir',
+        "-sym",
+        "--sym",
+        dest="symbol_dir",
         required=True,  # TODO: default to '.'?
-        help='directory containing unstripped .so files')
+        help="directory containing unstripped .so files",
+    )
     parser.add_argument(
-        '-i',
-        '-dump',
-        '--dump',
-        dest='input',
+        "-i",
+        "-dump",
+        "--dump",
+        dest="input",
         default=sys.stdin,
-        type=argparse.FileType('r'),
-        help='input filename')
+        type=argparse.FileType("r"),
+        help="input filename",
+    )
     args = parser.parse_args(argv)
 
     if not os.path.exists(args.symbol_dir):
-        sys.exit('{} does not exist!\n'.format(args.symbol_dir))
+        sys.exit("{} does not exist!\n".format(args.symbol_dir))
 
     ndk_paths = get_ndk_paths()
     symbolize_cmd = [
-        find_llvm_symbolizer(*ndk_paths), '--demangle', '--functions=linkage',
-        '--inlines'
+        find_llvm_symbolizer(*ndk_paths),
+        "--demangle",
+        "--functions=linkage",
+        "--inlines",
     ]
     readelf_path = find_readelf(*ndk_paths)
 
@@ -346,8 +355,9 @@ def main(argv):
     try:
         tmp_dir = TmpDir()
         symbolize_proc = subprocess.Popen(
-            symbolize_cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE)
-        banner = '*** *** *** *** *** *** *** *** *** *** *** *** *** *** *** ***'
+            symbolize_cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE
+        )
+        banner = "*** *** *** *** *** *** *** *** *** *** *** *** *** *** *** ***"
         in_crash = False
         saw_frame = False
         for line in args.input:
@@ -357,19 +367,19 @@ def main(argv):
                 if banner in line:
                     in_crash = True
                     saw_frame = False
-                    print('********** Crash dump: **********')
+                    print("********** Crash dump: **********")
                 continue
 
-            for tag in ['Build fingerprint:', 'Abort message:']:
+            for tag in ["Build fingerprint:", "Abort message:"]:
                 if tag in line:
-                    print(line[line.find(tag):])
+                    print(line[line.find(tag) :])
                     continue
 
             frame_info = FrameInfo.from_line(line)
             if not frame_info:
                 if saw_frame:
                     in_crash = False
-                    print('Crash dump is completed\n')
+                    print("Crash dump is completed\n")
                 continue
 
             # There can be a gap between sanitizer frames in the abort message
@@ -379,8 +389,9 @@ def main(argv):
                 saw_frame = True
 
             try:
-                elf_file = frame_info.get_elf_file(args.symbol_dir,
-                                                   readelf_path, tmp_dir)
+                elf_file = frame_info.get_elf_file(
+                    args.symbol_dir, readelf_path, tmp_dir
+                )
             except IOError:
                 elf_file = None
 
@@ -389,10 +400,9 @@ def main(argv):
             #      #00 pc 0007b350  /lib/bionic/libc.so (__strchr_chk+4)
             # becomes:
             #      #00 0x0007b350 /lib/bionic/libc.so (__strchr_chk+4)
-            out_line = '%s 0x%s %s' % (frame_info.num, frame_info.pc,
-                                       frame_info.tail)
+            out_line = "%s 0x%s %s" % (frame_info.num, frame_info.pc, frame_info.tail)
             print(out_line)
-            indent = (out_line.find('(') + 1) * ' '
+            indent = (out_line.find("(") + 1) * " "
             if not elf_file:
                 continue
             value = '"%s" 0x%s\n' % (elf_file, frame_info.pc)
@@ -403,7 +413,7 @@ def main(argv):
                 if not symbolizer_output:
                     break
                 # TODO: rewrite file names base on a source path?
-                print('%s%s' % (indent, symbolizer_output.decode()))
+                print("%s%s" % (indent, symbolizer_output.decode()))
     finally:
         args.input.close()
         tmp_dir.delete()
@@ -414,5 +424,5 @@ def main(argv):
             symbolize_proc.wait()
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main(sys.argv[1:])

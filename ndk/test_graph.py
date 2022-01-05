@@ -63,18 +63,18 @@ class GraphTest(unittest.TestCase):
 
     def test_self_cyclic(self) -> None:
         """Test that a cycle is found in a self-cyclic module."""
-        self.cycle_test(['AA'], 'AA')
+        self.cycle_test(["AA"], "AA")
 
     def test_no_source_raises(self) -> None:
         """Test that a cycle is found in a graph with no source."""
-        self.cycle_test(['ABCA'], 'ABCA')
+        self.cycle_test(["ABCA"], "ABCA")
 
     def test_find_cycle(self) -> None:
         """Test that cycles can be found."""
-        self.cycle_test(['ABCDB'], 'BCDB')
-        self.cycle_test(['ABCB', 'BD'], 'BCB')
-        self.cycle_test(['CBA', 'CDC'], 'CDC')
+        self.cycle_test(["ABCDB"], "BCDB")
+        self.cycle_test(["ABCB", "BD"], "BCB")
+        self.cycle_test(["CBA", "CDC"], "CDC")
 
     def test_no_cycle(self) -> None:
         """Test that None is returned when there is no cycle."""
-        self.assertIsNone(cycle_test(['ABCD', 'CEF']))
+        self.assertIsNone(cycle_test(["ABCD", "CEF"]))

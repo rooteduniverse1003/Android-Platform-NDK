@@ -7,14 +7,18 @@ jobs = 0
 # time, but naming and docstrings can and should be fixed.
 disable=
     assignment-from-none,
+    consider-using-f-string,
+    consider-using-with,
+    duplicate-code,
     fixme,design,
     invalid-name,
+    line-too-long,
     locally-disabled,
     missing-docstring,
     no-else-return,
     no-self-use,
     too-many-lines,
-    duplicate-code,
+    unspecified-encoding,
 
 ignore=ndk-gdb.py
 

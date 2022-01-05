@@ -19,20 +19,20 @@ from typing import List, NewType, Optional
 from .platforms import FIRST_LP64_API_LEVEL, MIN_API_LEVEL
 
 
-Arch = NewType('Arch', str)
-Abi = NewType('Abi', str)
-Toolchain = NewType('Toolchain', str)
+Arch = NewType("Arch", str)
+Abi = NewType("Abi", str)
+Toolchain = NewType("Toolchain", str)
 
 
 LP32_ABIS = (
-    Abi('armeabi-v7a'),
-    Abi('x86'),
+    Abi("armeabi-v7a"),
+    Abi("x86"),
 )
 
 
 LP64_ABIS = (
-    Abi('arm64-v8a'),
-    Abi('x86_64'),
+    Abi("arm64-v8a"),
+    Abi("x86_64"),
 )
 
 
@@ -40,26 +40,26 @@ ALL_ABIS = sorted(LP32_ABIS + LP64_ABIS)
 
 
 ALL_ARCHITECTURES = (
-    Arch('arm'),
-    Arch('arm64'),
-    Arch('x86'),
-    Arch('x86_64'),
+    Arch("arm"),
+    Arch("arm64"),
+    Arch("x86"),
+    Arch("x86_64"),
 )
 
 
 ALL_TOOLCHAINS = (
-    Toolchain('arm-linux-androideabi'),
-    Toolchain('aarch64-linux-android'),
-    Toolchain('x86'),
-    Toolchain('x86_64'),
+    Toolchain("arm-linux-androideabi"),
+    Toolchain("aarch64-linux-android"),
+    Toolchain("x86"),
+    Toolchain("x86_64"),
 )
 
 
 ALL_TRIPLES = (
-    'arm-linux-androideabi',
-    'aarch64-linux-android',
-    'i686-linux-android',
-    'x86_64-linux-android',
+    "arm-linux-androideabi",
+    "aarch64-linux-android",
+    "i686-linux-android",
+    "x86_64-linux-android",
 )
 
 
@@ -81,20 +81,20 @@ def toolchain_to_arch(toolchain: Toolchain) -> Arch:
 def arch_to_abis(arch: Arch) -> List[Abi]:
     """Returns the ABIs for the given architecture."""
     return {
-        Arch('arm'): [Abi('armeabi-v7a')],
-        Arch('arm64'): [Abi('arm64-v8a')],
-        Arch('x86'): [Abi('x86')],
-        Arch('x86_64'): [Abi('x86_64')],
+        Arch("arm"): [Abi("armeabi-v7a")],
+        Arch("arm64"): [Abi("arm64-v8a")],
+        Arch("x86"): [Abi("x86")],
+        Arch("x86_64"): [Abi("x86_64")],
     }[arch]
 
 
 def abi_to_arch(abi: Abi) -> Arch:
     """Returns the architecture for the given ABI."""
     return {
-        Abi('armeabi-v7a'): Arch('arm'),
-        Abi('arm64-v8a'): Arch('arm64'),
-        Abi('x86'): Arch('x86'),
-        Abi('x86_64'): Arch('x86_64'),
+        Abi("armeabi-v7a"): Arch("arm"),
+        Abi("arm64-v8a"): Arch("arm64"),
+        Abi("x86"): Arch("x86"),
+        Abi("x86_64"): Arch("x86_64"),
     }[abi]
 
 
@@ -113,9 +113,9 @@ def clang_target(arch: Arch, api: Optional[int] = None) -> str:
         abi = abis[0]
         api = min_api_for_abi(abi)
     triple = arch_to_triple(arch)
-    if arch == 'arm':
-        triple = 'armv7a-linux-androideabi'
-    return f'{triple}{api}'
+    if arch == "arm":
+        triple = "armv7a-linux-androideabi"
+    return f"{triple}{api}"
 
 
 def min_api_for_abi(abi: Abi) -> int:
@@ -137,4 +137,4 @@ def min_api_for_abi(abi: Abi) -> int:
     elif abi in LP32_ABIS:
         return MIN_API_LEVEL
     else:
-        raise ValueError('Invalid ABI: {}'.format(abi))
+        raise ValueError("Invalid ABI: {}".format(abi))

@@ -34,7 +34,7 @@ class TestFilter:
 
     def filter(self, test_name: str) -> bool:
         filter_set = self.early_filters
-        if '.' in test_name:
+        if "." in test_name:
             filter_set = self.late_filters
         if not filter_set:
             return True
@@ -72,10 +72,10 @@ class TestFilter:
         # Note that the way we split the patterns does allow more than one '.'
         # to appear in the full test name. The early pattern will never contain
         # a '.', i.e. the early filter pattern for 'foo.bar.*' is 'foo'.
-        early_pattern = pattern.split('.')[0]
+        early_pattern = pattern.split(".")[0]
         late_pattern = pattern
-        if '.' not in pattern:
-            late_pattern = pattern + '.*'
+        if "." not in pattern:
+            late_pattern = pattern + ".*"
 
         self._add_early_filter(early_pattern)
         self._add_late_filter(late_pattern)
@@ -87,5 +87,5 @@ class TestFilter:
         self.late_filters.append(FilterFunc(pattern))
 
     @classmethod
-    def from_string(cls, filter_string: Optional[str]) -> 'TestFilter':
-        return cls(filter_string.split(',') if filter_string else [])
+    def from_string(cls, filter_string: Optional[str]) -> "TestFilter":
+        return cls(filter_string.split(",") if filter_string else [])

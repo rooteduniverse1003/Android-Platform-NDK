@@ -22,10 +22,14 @@ import ndk.graph
 
 class CyclicDependencyError(RuntimeError):
     """An error indicating a cyclic dependency in the module graph."""
+
     def __init__(self, modules: Iterable[ndk.graph.Node]) -> None:
         """Initializes a CyclicDependencyError."""
-        super().__init__('Detected cyclic dependency: {}'.format(' -> '.join(
-            [m.name for m in modules])))
+        super().__init__(
+            "Detected cyclic dependency: {}".format(
+                " -> ".join([m.name for m in modules])
+            )
+        )
 
 
 def prove_acyclic(modules: Iterable[Module]) -> None:
@@ -56,6 +60,7 @@ class DependencyManager:
     the DependencyManager is informated of a module build being completed via
     DependencyManager.complete().
     """
+
     def __init__(self, all_modules: Iterable[Module]) -> None:
         """Initializes a DependencyManager."""
         if not all_modules:
@@ -72,8 +77,7 @@ class DependencyManager:
         # Reverse map from a module to all of its dependents used to speed up
         # lookups.
         self.deps_to_modules: Dict[str, List[Module]] = {
-            m.name: []
-            for m in all_modules
+            m.name: [] for m in all_modules
         }
         for module in all_modules:
             for dep in module.deps:

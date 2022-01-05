@@ -49,8 +49,7 @@ class AnsiUiRenderer(UiRenderer):
     # Number of seconds to delay between each draw command when debugging.
     debug_draw_delay = 0.1
 
-    def __init__(self, console: ndk.ansi.Console,
-                 debug_draw: bool = False) -> None:
+    def __init__(self, console: ndk.ansi.Console, debug_draw: bool = False) -> None:
         super().__init__(console)
         self.last_rendered_lines: List[str] = []
         self.debug_draw = debug_draw
@@ -79,14 +78,14 @@ class AnsiUiRenderer(UiRenderer):
         """
         if self.debug_draw:
             for cmd in commands:
-                self.console.print(cmd, end='')
+                self.console.print(cmd, end="")
                 time.sleep(self.debug_draw_delay)
         else:
-            self.console.print(''.join(commands), end='')
+            self.console.print("".join(commands), end="")
 
     def render(self, lines: List[str]) -> None:
         if not self.last_rendered_lines:
-            self.console.print(os.linesep.join(lines), end='')
+            self.console.print(os.linesep.join(lines), end="")
         elif len(lines) != len(self.last_rendered_lines):
             self.clear_last_render()
             self.render(lines)
@@ -112,8 +111,7 @@ class AnsiUiRenderer(UiRenderer):
 class NonAnsiUiRenderer(UiRenderer):
     """Renders a UI to a non-ANSI console."""
 
-    def __init__(self, console: ndk.ansi.Console,
-                 redraw_rate: int = 30) -> None:
+    def __init__(self, console: ndk.ansi.Console, redraw_rate: int = 30) -> None:
         super().__init__(console)
         self.redraw_rate = redraw_rate
         self.last_draw: Optional[float] = None
@@ -163,8 +161,7 @@ class Ui:
 class BuildProgressUi(Ui):
     """A UI for displaying build status."""
 
-    def __init__(self, ui_renderer: UiRenderer,
-                 workqueue: AnyWorkQueue) -> None:
+    def __init__(self, ui_renderer: UiRenderer, workqueue: AnyWorkQueue) -> None:
         super().__init__(ui_renderer)
         self.workqueue = workqueue
 
@@ -177,8 +174,7 @@ class BuildProgressUi(Ui):
         return lines
 
 
-def get_build_progress_ui(console: ndk.ansi.Console,
-                          workqueue: AnyWorkQueue) -> Ui:
+def get_build_progress_ui(console: ndk.ansi.Console, workqueue: AnyWorkQueue) -> Ui:
     """Returns the appropriate build console UI for the given console."""
     ui_renderer: UiRenderer
     if console.smart_console:
@@ -205,8 +201,7 @@ class NonAnsiBuildProgressUi(Ui):
         pass
 
 
-def get_work_queue_ui(console: ndk.ansi.Console,
-                      workqueue: AnyWorkQueue) -> Ui:
+def get_work_queue_ui(console: ndk.ansi.Console, workqueue: AnyWorkQueue) -> Ui:
     """Returns the appropriate work queue console UI for the given console."""
     ui_renderer: UiRenderer
     if console.smart_console:
@@ -220,7 +215,7 @@ def get_work_queue_ui(console: ndk.ansi.Console,
 
 def columnate(lines: List[str], max_width: int, max_height: int) -> List[str]:
     """Distributes lines of text into height limited columns."""
-    if os.name == 'nt':
+    if os.name == "nt":
         # Not yet implemented.
         return lines
 
@@ -233,7 +228,7 @@ def columnate(lines: List[str], max_width: int, max_height: int) -> List[str]:
     rows = [lines[r::num_rows] for r in range(num_rows)]
 
     column_width = max_width // num_columns
-    return [''.join(s.ljust(column_width) for s in row) for row in rows]
+    return ["".join(s.ljust(column_width) for s in row) for row in rows]
 
 
 class WorkQueueUi(Ui):
@@ -241,8 +236,9 @@ class WorkQueueUi(Ui):
 
     NUM_TESTS_DIGITS = 6
 
-    def __init__(self, ui_renderer: UiRenderer, show_worker_status: bool,
-                 workqueue: AnyWorkQueue) -> None:
+    def __init__(
+        self, ui_renderer: UiRenderer, show_worker_status: bool, workqueue: AnyWorkQueue
+    ) -> None:
         super().__init__(ui_renderer)
         self.show_worker_status = show_worker_status
         self.workqueue = workqueue
@@ -261,6 +257,9 @@ class WorkQueueUi(Ui):
             if ui_height > 0:
                 lines = columnate(lines, ansi_console.width, ui_height)
 
-        lines.append('{: >{width}} jobs remaining'.format(
-            self.workqueue.num_tasks, width=self.NUM_TESTS_DIGITS))
+        lines.append(
+            "{: >{width}} jobs remaining".format(
+                self.workqueue.num_tasks, width=self.NUM_TESTS_DIGITS
+            )
+        )
         return lines

@@ -34,6 +34,7 @@ def put(_worker: Worker, i: int) -> int:
 
 class Functor:
     """Functor that returns the argument passed to the constructor."""
+
     def __init__(self, value: int) -> None:
         self.value = value
 
@@ -46,8 +47,9 @@ def block_on_event(_worker: Worker, event: Event) -> None:
     event.wait()
 
 
-def update_status(worker: Worker, ready_event: Event, finish_event: Event,
-                  new_status: str) -> None:
+def update_status(
+    worker: Worker, ready_event: Event, finish_event: Event, new_status: str
+) -> None:
     """Updates the worker's status and waits for an event before finishing."""
     worker.status = new_status
     ready_event.set()
@@ -84,11 +86,12 @@ def spawn_child(_worker: Worker, pid_queue: Queue[int]) -> None:
 
 def raise_error() -> None:
     """Raises a RuntimeError to be re-raised in the caller."""
-    raise RuntimeError('Error in child')
+    raise RuntimeError("Error in child")
 
 
 class WorkQueueTest(unittest.TestCase):
     """Tests for WorkQueue."""
+
     def test_put_func(self) -> None:
         """Test that we can pass a function to the queue and get results."""
         workqueue = WorkQueue(4)
@@ -146,9 +149,9 @@ class WorkQueueTest(unittest.TestCase):
         ready_event = manager.Event()
         finish_event = manager.Event()
         self.assertEqual(Worker.IDLE_STATUS, workqueue.workers[0].status)
-        workqueue.add_task(update_status, ready_event, finish_event, 'working')
+        workqueue.add_task(update_status, ready_event, finish_event, "working")
         ready_event.wait()
-        self.assertEqual('working', workqueue.workers[0].status)
+        self.assertEqual("working", workqueue.workers[0].status)
         finish_event.set()
         workqueue.get_result()
         self.assertEqual(Worker.IDLE_STATUS, workqueue.workers[0].status)
@@ -193,6 +196,7 @@ class WorkQueueTest(unittest.TestCase):
 
 class BasicWorkQueueTest(unittest.TestCase):
     """Tests for BasicWorkQueue."""
+
     def test_put_func(self) -> None:
         """Test that we can pass a function to the queue and get results."""
         workqueue = BasicWorkQueue()

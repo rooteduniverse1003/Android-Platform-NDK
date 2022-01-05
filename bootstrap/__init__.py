@@ -23,18 +23,18 @@ THIS_DIR = os.path.realpath(os.path.dirname(__file__))
 
 def android_path(*args: str) -> str:
     """Returns the absolute path rooted within the top level source tree."""
-    return os.path.normpath(os.path.join(THIS_DIR, '../..', *args))
+    return os.path.normpath(os.path.join(THIS_DIR, "../..", *args))
 
 
 def python_path() -> str:
     """Returns the absolute path to python executable."""
-    if sys.platform.startswith('linux'):
-        host_name = 'linux-x86'
-    elif sys.platform.startswith('darwin'):
-        host_name = 'darwin-x86'
+    if sys.platform.startswith("linux"):
+        host_name = "linux-x86"
+    elif sys.platform.startswith("darwin"):
+        host_name = "darwin-x86"
     else:
-        raise RuntimeError('Unsupported host: {}'.format(sys.platform))
-    return android_path('prebuilts', 'python', host_name, 'bin')
+        raise RuntimeError("Unsupported host: {}".format(sys.platform))
+    return android_path("prebuilts", "python", host_name, "bin")
 
 
 def bootstrap() -> None:
@@ -43,4 +43,4 @@ def bootstrap() -> None:
     Adds the directory containing the python3 binary to the first element in
     the PATH.
     """
-    os.environ['PATH'] = os.pathsep.join([python_path(), os.environ['PATH']])
+    os.environ["PATH"] = os.pathsep.join([python_path(), os.environ["PATH"]])

@@ -22,5 +22,5 @@ current Python interpreter.
 import ndk.checkbuild
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     ndk.checkbuild.main()
