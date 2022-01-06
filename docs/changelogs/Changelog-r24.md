@@ -33,7 +33,7 @@ For Android Studio issues, follow the docs on the [Android Studio site].
 ## Changes
 
 * Includes Android 12L APIs.
-* Updated LLVM to clang-r437112, based on LLVM 14 development.
+* Updated LLVM to clang-r437112b, based on LLVM 14 development.
   * [Issue 1590]: Fix LLDB help crash.
 * [Issue 1108]: Removed `mbstowcs` and `wcstombs` from the pre-API 21 stubs and
   moved the implementation to `libandroid_support` to fix those APIs on old
