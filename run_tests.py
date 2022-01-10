@@ -25,7 +25,7 @@ import os
 import subprocess
 import sys
 
-from bootstrap import bootstrap
+from bootstrap import bootstrap, python_cmd
 
 
 THIS_DIR = os.path.realpath(os.path.dirname(__file__))
@@ -60,7 +60,7 @@ def main():
 
     bootstrap()
     subprocess.check_call(
-        ["python3", os.path.join(THIS_DIR, "do_runtests.py")] + sys.argv[1:]
+        [python_cmd(), os.path.join(THIS_DIR, "do_runtests.py")] + sys.argv[1:]
     )
 
 
