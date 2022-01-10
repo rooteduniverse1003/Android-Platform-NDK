@@ -716,6 +716,15 @@ def parse_args() -> argparse.Namespace:
     doc = "https://android.googlesource.com/platform/ndk/+/master/docs/Testing.md"
     parser = argparse.ArgumentParser(epilog="See {} for more information.".format(doc))
 
+    def DirectoryArg(path: str) -> str:
+        if not os.path.isdir(path):
+            raise argparse.ArgumentTypeError("{} is not a directory".format(path))
+        return os.path.realpath(path)
+    def FileArg(path: str) -> str:
+        if not os.path.isfile(path):
+            raise argparse.ArgumentTypeError("{} is not a file".format(path))
+        return os.path.realpath(path)
+
     config_options = parser.add_argument_group("Test Configuration Options")
     config_options.add_argument(
         "--filter", help="Only run tests that match the given pattern."
@@ -731,7 +740,7 @@ def parse_args() -> argparse.Namespace:
     # mypy is bad at those (it doesn't satisfy Callable[[str], AnyStr]).
     config_options.add_argument(
         "--config",
-        type=os.path.realpath,  # type: ignore
+        type=FileArg,
         default="qa_config.json",
         help="Path to the config file describing the test run.",
     )
@@ -787,20 +796,20 @@ def parse_args() -> argparse.Namespace:
 
     parser.add_argument(
         "--ndk",
-        type=os.path.realpath,  # type: ignore
+        type=DirectoryArg,
         default=ndk.paths.get_install_path(),
         help="NDK to validate. Defaults to ../out/android-ndk-$RELEASE.",
     )
     parser.add_argument(
         "--test-src",
-        type=os.path.realpath,  # type: ignore
+        type=DirectoryArg,
         help="Path to test source directory. Defaults to ./tests.",
     )
 
     parser.add_argument(
         "test_dir",
         metavar="TEST_DIR",
-        type=os.path.realpath,  # type: ignore
+        type=DirectoryArg,
         nargs="?",
         default=ndk.paths.path_in_out("tests"),
         help="Directory containing built tests.",
