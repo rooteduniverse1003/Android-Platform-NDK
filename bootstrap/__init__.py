@@ -26,15 +26,23 @@ def android_path(*args: str) -> str:
     return os.path.normpath(os.path.join(THIS_DIR, "../..", *args))
 
 
+def python_cmd() -> str:
+    """Returns the name of the Python executable."""
+    if sys.platform.startswith("win32"):
+        return "python.exe"
+    return "python3"
+
+
 def python_path() -> str:
-    """Returns the absolute path to python executable."""
+    """Returns the absolute path to the directory containing the Python executable."""
     if sys.platform.startswith("linux"):
-        host_name = "linux-x86"
+        return android_path("prebuilts", "python", "linux-x86", "bin")
     elif sys.platform.startswith("darwin"):
-        host_name = "darwin-x86"
+        return android_path("prebuilts", "python", "darwin-x86", "bin")
+    elif sys.platform.startswith("win32"):
+        return android_path("prebuilts", "python", "windows-x86")
     else:
         raise RuntimeError("Unsupported host: {}".format(sys.platform))
-    return android_path("prebuilts", "python", host_name, "bin")
 
 
 def bootstrap() -> None:

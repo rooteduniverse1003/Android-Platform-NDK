@@ -25,7 +25,7 @@ import os
 import subprocess
 import sys
 
-from bootstrap import bootstrap
+from bootstrap import bootstrap, python_cmd
 
 
 THIS_DIR = os.path.realpath(os.path.dirname(__file__))
@@ -64,7 +64,7 @@ def main():
     if "PYTHONPATH" in new_env:
         del new_env["PYTHONPATH"]
     subprocess.check_call(
-        ["python3", os.path.join(THIS_DIR, "do_checkbuild.py")] + sys.argv[1:],
+        [python_cmd(), os.path.join(THIS_DIR, "do_checkbuild.py")] + sys.argv[1:],
         env=new_env,
     )
 
