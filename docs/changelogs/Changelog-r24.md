@@ -55,6 +55,9 @@ For Android Studio issues, follow the docs on the [Android Studio site].
 * [Issue 1587]: ndk-stack is now tolerant of unsorted zip infos.
 * [Issue 1589]: Fixed broken stack traces on API 29 devices when using a
   minSdkVersion of 29.
+* [Issue 1593]: Improved ndk-which to fall back to LLVM tools when the GNU names
+  are used. For example, `ndk-which strip` will now return the path to
+  `llvm-strip` instead of nothing.
 * [Issue 1610]: Fixed handling of `ANDROID_NATIVE_API_LEVEL` in the new CMake
   toolchain file.
 * [Issue 1618]: Corrected `CMAKE_ANDROID_EXCEPTIONS` behavior for the new CMake
@@ -77,6 +80,7 @@ For Android Studio issues, follow the docs on the [Android Studio site].
 [Issue 1587]: https://github.com/android/ndk/issues/1587
 [Issue 1589]: https://github.com/android/ndk/issues/1589
 [Issue 1590]: https://github.com/android/ndk/issues/1590
+[Issue 1593]: https://github.com/android/ndk/issues/1593
 [Issue 1610]: https://github.com/android/ndk/issues/1610
 [Issue 1618]: https://github.com/android/ndk/issues/1618
 [Issue 1623]: https://github.com/android/ndk/issues/1623
