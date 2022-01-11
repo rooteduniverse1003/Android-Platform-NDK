@@ -18,6 +18,7 @@ import os
 import shutil
 import subprocess
 import tempfile
+import time
 from typing import Any
 
 import ndk.abis
@@ -111,4 +112,8 @@ def run_test(
             return success, out
         return test_standalone_toolchain(install_dir, test_source, flags)
     finally:
+        # Sophisticated synchronization algorithm to prevent Windows complaining
+        # about ld.exe still being in use.
+        if os.name == "nt":
+            time.sleep(1)
         shutil.rmtree(install_dir)
