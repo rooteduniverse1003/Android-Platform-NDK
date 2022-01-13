@@ -720,6 +720,7 @@ def parse_args() -> argparse.Namespace:
         if not os.path.isdir(path):
             raise argparse.ArgumentTypeError("{} is not a directory".format(path))
         return os.path.realpath(path)
+
     def FileArg(path: str) -> str:
         if not os.path.isfile(path):
             raise argparse.ArgumentTypeError("{} is not a file".format(path))
