@@ -19,9 +19,8 @@ from __future__ import print_function
 
 import contextlib
 import os
-import subprocess
 import sys
-from typing import Any, Iterator, Optional, NamedTuple, TextIO
+from typing import Any, Iterator, TextIO
 
 try:
     import termios
@@ -98,27 +97,6 @@ def disable_terminal_echo(fd: TextIO) -> Iterator[None]:
         yield
 
 
-class ConsoleRect(NamedTuple):
-    """A pair of width and height for a console."""
-
-    #: Console width.
-    width: int
-
-    #: Console height.
-    height: int
-
-
-def get_console_size_linux() -> ConsoleRect:
-    """Returns a pair of height, width for the TTY."""
-    height_str, width_str = subprocess.check_output(["stty", "size"]).split()
-    return ConsoleRect(width=int(width_str), height=int(height_str))
-
-
-def get_console_size_windows() -> ConsoleRect:
-    """Returns a pair of height, width for the TTY."""
-    raise NotImplementedError
-
-
 class Console:
     """Manages the state of a console for a stream."""
 
@@ -174,11 +152,11 @@ class AnsiConsole(Console):
     HIDE_CURSOR = "\033[?25l"
     SHOW_CURSOR = "\033[?25h"
 
-    _size: Optional[ConsoleRect]
+    _size: os.terminal_size
 
     def __init__(self, stream: TextIO) -> None:
         super().__init__(stream, smart_console=True)
-        self._size = None
+        self._size = os.get_terminal_size()
 
     def _do(self, cmd: str) -> None:
         """Performs the given command."""
@@ -200,28 +178,15 @@ class AnsiConsole(Console):
     def show_cursor(self) -> None:
         self._do(self.SHOW_CURSOR)
 
-    def init_window_size(self) -> None:
-        """Initializes the console size."""
-        if os.name == "nt":
-            self._size = get_console_size_windows()
-        else:
-            self._size = get_console_size_linux()
-
     @property
     def height(self) -> int:
         """The height of the console in characters."""
-        if self._size is None:
-            self.init_window_size()
-        assert self._size is not None
-        return self._size.height
+        return self._size.lines
 
     @property
     def width(self) -> int:
         """The width of the console in characters."""
-        if self._size is None:
-            self.init_window_size()
-        assert self._size is not None
-        return self._size.width
+        return self._size.columns
 
 
 class NonAnsiConsole(Console):
