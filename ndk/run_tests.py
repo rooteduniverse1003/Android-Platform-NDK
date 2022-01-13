@@ -24,6 +24,7 @@ import datetime
 import json
 import logging
 import os
+from pathlib import Path
 import posixpath
 import random
 import shlex
@@ -294,25 +295,6 @@ class TestRun:
         if config is not None:
             return Skipped(self, f"test unsupported for {config}")
         return self.make_result(self.test_case.run(device), device)
-
-
-def build_tests(
-    test_src_dir: str,
-    ndk_dir: str,
-    out_dir: str,
-    clean: bool,
-    printer: Printer,
-    config: Dict[Any, Any],
-    test_filter: str,
-) -> Report:
-    test_options = ndk.test.spec.TestOptions(
-        test_src_dir, ndk_dir, out_dir, test_filter=test_filter, clean=clean
-    )
-
-    test_spec = ndk.test.builder.test_spec_from_config(config)
-    builder = ndk.test.builder.TestBuilder(test_spec, test_options, printer)
-
-    return builder.build()
 
 
 def enumerate_basic_tests(
@@ -720,6 +702,7 @@ def parse_args() -> argparse.Namespace:
         if not os.path.isdir(path):
             raise argparse.ArgumentTypeError("{} is not a directory".format(path))
         return os.path.realpath(path)
+
     def FileArg(path: str) -> str:
         if not os.path.isfile(path):
             raise argparse.ArgumentTypeError("{} is not a file".format(path))
@@ -761,6 +744,11 @@ def parse_args() -> argparse.Namespace:
     )
     build_options.add_argument(
         "--clean", action="store_true", help="Remove the out directory before building."
+    )
+    build_options.add_argument(
+        "--package",
+        action="store_true",
+        help="Package the built tests. Requires --rebuild or --build-only.",
     )
 
     run_options = parser.add_argument_group("Test Run Options")
@@ -809,7 +797,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "test_dir",
         metavar="TEST_DIR",
-        type=DirectoryArg,
+        type=os.path.realpath,  # type: ignore
         nargs="?",
         default=ndk.paths.path_in_out("tests"),
         help="Directory containing built tests.",
@@ -860,18 +848,25 @@ def run_tests(args: argparse.Namespace) -> Results:
         if not os.path.exists(args.test_src):
             sys.exit("Test source directory does not exist: {}".format(args.test_src))
 
+    test_dist_dir = os.path.join(args.test_dir, "dist")
     if args.build_only or args.rebuild:
         build_timer = Timer()
         with build_timer:
-            report = build_tests(
+            test_options = ndk.test.spec.TestOptions(
                 args.test_src,
                 args.ndk,
                 args.test_dir,
-                args.clean,
-                printer,
-                test_config,
-                args.filter,
+                test_filter=args.filter,
+                clean=args.clean,
+                package_path=Path(ndk.paths.path_in_out("dist/ndk-tests"))
+                if args.package
+                else None,
             )
+
+            test_spec = ndk.test.builder.test_spec_from_config(test_config)
+            builder = ndk.test.builder.TestBuilder(test_spec, test_options, printer)
+
+            report = builder.build()
 
         results.add_timing_report("Build", build_timer)
 
@@ -888,7 +883,6 @@ def run_tests(args: argparse.Namespace) -> Results:
         results.passed()
         return results
 
-    test_dist_dir = os.path.join(args.test_dir, "dist")
     test_filter = TestFilter.from_string(args.filter)
     # dict of {BuildConfiguration: [Test]}
     config_filter = ConfigFilter(test_config)

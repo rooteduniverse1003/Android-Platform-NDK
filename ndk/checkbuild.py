@@ -86,27 +86,6 @@ def get_version_string(build_number: str) -> str:
     return f"{ndk.config.major}.{ndk.config.hotfix}.{build_number}"
 
 
-def _make_tar_package(package_path: str, base_dir: str, path: str) -> str:
-    """Creates a tarball package for distribution.
-
-    Args:
-        package_path (string): Path (without extention) to the output archive.
-        base_dir (string): Path to the directory from which to perform the
-                           packaging (identical to tar's -C).
-        path (string): Path to the directory to package.
-    """
-    has_pbzip2 = shutil.which("pbzip2") is not None
-    if has_pbzip2:
-        compress_arg = "--use-compress-prog=pbzip2"
-    else:
-        compress_arg = "-j"
-
-    package_path = package_path + ".tar.bz2"
-    cmd = ["tar", compress_arg, "-cf", package_path, "-C", base_dir, path]
-    subprocess.check_call(cmd)
-    return package_path
-
-
 def _make_zip_package(
     package_path: Path, base_dir: Path, paths: List[str], host: Host
 ) -> Path:
@@ -316,7 +295,11 @@ def build_ndk_tests(out_dir: str, dist_dir: str, args: argparse.Namespace) -> bo
     site.addsitedir(os.path.join(ndk_dir, "python-packages"))
 
     test_options = ndk.test.spec.TestOptions(
-        test_src_dir, ndk_dir, test_out_dir, clean=True
+        test_src_dir,
+        ndk_dir,
+        test_out_dir,
+        clean=True,
+        package_path=Path(dist_dir).joinpath("ndk-tests") if args.package else None,
     )
 
     printer = ndk.test.printers.StdoutPrinter()
@@ -329,11 +312,7 @@ def build_ndk_tests(out_dir: str, dist_dir: str, args: argparse.Namespace) -> bo
     report = builder.build()
     printer.print_summary(report)
 
-    if report.successful and args.package:
-        print("Packaging tests...")
-        package_path = os.path.join(dist_dir, "ndk-tests")
-        _make_tar_package(package_path, out_dir, "tests/dist")
-    else:
+    if not report.successful:
         # Write out the result to logs/build_error.log so we can find the
         # failure easily on the build server.
         log_path = os.path.join(dist_dir, "logs/build_error.log")
