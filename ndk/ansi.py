@@ -159,7 +159,10 @@ class Console:
 
 def get_console(stream: TextIO = sys.stdout) -> Console:
     """Returns a Console bound to the given stream."""
-    if stream.isatty() and os.name != "nt":
+    if stream.isatty():
+        if os.name == "nt":
+            # Hack to make ANSI work. See https://bugs.python.org/issue30075.
+            os.system("")
         return AnsiConsole(stream)
     else:
         return NonAnsiConsole(stream)
