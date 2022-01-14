@@ -33,7 +33,7 @@ For Android Studio issues, follow the docs on the [Android Studio site].
 ## Changes
 
 * Includes Android 12L APIs.
-* Updated LLVM to clang-r437112, based on LLVM 14 development.
+* Updated LLVM to clang-r437112b, based on LLVM 14 development.
   * [Issue 1590]: Fix LLDB help crash.
 * [Issue 1108]: Removed `mbstowcs` and `wcstombs` from the pre-API 21 stubs and
   moved the implementation to `libandroid_support` to fix those APIs on old
@@ -43,11 +43,11 @@ For Android Studio issues, follow the docs on the [Android Studio site].
     ndk-build on M1 macs.
   * [Issue 1544]: LLVM tools are now universal binaries.
   * [Issue 1546]: Make is now a universal binary.
-* [Issue 1492]: Windows Make now works with `-O`, and ndk-build now uses it by
-  default.
-* [Issue 1497]: Added `LOCAL_BRANCH_PROTECTION` option to ndk-build for using
+* [Issue 1479]: Added `LOCAL_BRANCH_PROTECTION` option to ndk-build for using
   `-mbranch-protection` with aarch64 without breaking other ABIs. Example use:
   `LOCAL_BRANCH_PROTECTION := standard`.
+* [Issue 1492]: Windows Make now works with `-O`, and ndk-build now uses it by
+  default.
 * [Issue 1559]: Added `LOCAL_ALLOW_MISSING_PREBUILT` option to
   `PREBUILT_SHARED_LIBRARY` and `PREBUILT_STATIC_LIBRARY` which defers failures
   for missing prebuilts to build time. This enables use cases within AGP where
@@ -55,6 +55,15 @@ For Android Studio issues, follow the docs on the [Android Studio site].
 * [Issue 1587]: ndk-stack is now tolerant of unsorted zip infos.
 * [Issue 1589]: Fixed broken stack traces on API 29 devices when using a
   minSdkVersion of 29.
+* [Issue 1593]: Improved ndk-which to fall back to LLVM tools when the GNU names
+  are used. For example, `ndk-which strip` will now return the path to
+  `llvm-strip` instead of nothing.
+* [Issue 1610]: Fixed handling of `ANDROID_NATIVE_API_LEVEL` in the new CMake
+  toolchain file.
+* [Issue 1618]: Corrected `CMAKE_ANDROID_EXCEPTIONS` behavior for the new CMake
+  toolchain file.
+* [Issue 1623]: Fixed behavior of the legacy CMake toolchain file when used with
+  new versions of CMake (incompatible `-gcc-toolchain` argument).
 * Removed `make-standalone-toolchain.sh`. This was broken in a previous release
   and it was unnoticed, so it seems unused. `make_standalone_toolchain.py`
   remains, but neither has been needed since NDK r19 since the toolchain can be
@@ -63,14 +72,18 @@ For Android Studio issues, follow the docs on the [Android Studio site].
 [Issue 1108]: https://github.com/android/ndk/issues/1108
 [Issue 1299]: https://github.com/android/ndk/issues/1299
 [Issue 1410]: https://github.com/android/ndk/issues/1410
+[Issue 1479]: https://github.com/android/ndk/issues/1479
 [Issue 1492]: https://github.com/android/ndk/issues/1492
-[Issue 1497]: https://github.com/android/ndk/issues/1497
 [Issue 1544]: https://github.com/android/ndk/issues/1544
 [Issue 1546]: https://github.com/android/ndk/issues/1546
 [Issue 1559]: https://github.com/android/ndk/issues/1559
 [Issue 1587]: https://github.com/android/ndk/issues/1587
 [Issue 1589]: https://github.com/android/ndk/issues/1589
 [Issue 1590]: https://github.com/android/ndk/issues/1590
+[Issue 1593]: https://github.com/android/ndk/issues/1593
+[Issue 1610]: https://github.com/android/ndk/issues/1610
+[Issue 1618]: https://github.com/android/ndk/issues/1618
+[Issue 1623]: https://github.com/android/ndk/issues/1623
 
 ## Known Issues
 

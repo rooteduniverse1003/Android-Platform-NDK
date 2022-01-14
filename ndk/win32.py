@@ -28,58 +28,59 @@ JobObjectExtendedLimitInformation = 9
 
 class IO_COUNTERS(ctypes.Structure):
     _fields_ = [
-        ('ReadOperationCount', ctypes.c_ulonglong),
-        ('WriteOperationCount', ctypes.c_ulonglong),
-        ('OtherOperationCount', ctypes.c_ulonglong),
-        ('ReadTransferCount', ctypes.c_ulonglong),
-        ('WriteTransferCount', ctypes.c_ulonglong),
-        ('OtherTransferCount', ctypes.c_ulonglong),
+        ("ReadOperationCount", ctypes.c_ulonglong),
+        ("WriteOperationCount", ctypes.c_ulonglong),
+        ("OtherOperationCount", ctypes.c_ulonglong),
+        ("ReadTransferCount", ctypes.c_ulonglong),
+        ("WriteTransferCount", ctypes.c_ulonglong),
+        ("OtherTransferCount", ctypes.c_ulonglong),
     ]
 
 
 class JOBOBJECT_BASIC_LIMIT_INFORMATION(ctypes.Structure):
     _fields_ = [
-        ('PerProcessUserTimeLimit', ctypes.wintypes.LARGE_INTEGER),
-        ('PerJobUserTimeLimit', ctypes.wintypes.LARGE_INTEGER),
-        ('LimitFlags', ctypes.wintypes.DWORD),
-        ('MinimumWorkingSetSize', ctypes.c_size_t),
-        ('MaximumWorkingSetSize', ctypes.c_size_t),
-        ('ActiveProcessLimit', ctypes.wintypes.DWORD),
-        ('Affinity', ctypes.POINTER(ctypes.c_ulong)),
-        ('PriorityClass', ctypes.wintypes.DWORD),
-        ('SchedulingClass', ctypes.wintypes.DWORD),
+        ("PerProcessUserTimeLimit", ctypes.wintypes.LARGE_INTEGER),
+        ("PerJobUserTimeLimit", ctypes.wintypes.LARGE_INTEGER),
+        ("LimitFlags", ctypes.wintypes.DWORD),
+        ("MinimumWorkingSetSize", ctypes.c_size_t),
+        ("MaximumWorkingSetSize", ctypes.c_size_t),
+        ("ActiveProcessLimit", ctypes.wintypes.DWORD),
+        ("Affinity", ctypes.POINTER(ctypes.c_ulong)),
+        ("PriorityClass", ctypes.wintypes.DWORD),
+        ("SchedulingClass", ctypes.wintypes.DWORD),
     ]
+
 
 class JOBOBJECT_EXTENDED_LIMIT_INFORMATION(ctypes.Structure):
     _fields_ = [
-        ('BasicLimitInformation', JOBOBJECT_BASIC_LIMIT_INFORMATION),
-        ('IoInfo', IO_COUNTERS),
-        ('ProcessMemoryLimit', ctypes.c_size_t),
-        ('JobMemoryLimit', ctypes.c_size_t),
-        ('PeakProcessMemoryUsed', ctypes.c_size_t),
-        ('PeakJobMemoryUsed', ctypes.c_size_t),
+        ("BasicLimitInformation", JOBOBJECT_BASIC_LIMIT_INFORMATION),
+        ("IoInfo", IO_COUNTERS),
+        ("ProcessMemoryLimit", ctypes.c_size_t),
+        ("JobMemoryLimit", ctypes.c_size_t),
+        ("PeakProcessMemoryUsed", ctypes.c_size_t),
+        ("PeakJobMemoryUsed", ctypes.c_size_t),
     ]
 
 
 # mypy needs to ignore this line because this only typechecks successfully for
 # Windows.
 class UseLastErrorWinDLL(ctypes.WinDLL):  # type: ignore
-    def __init__(self,
-                 name: str,
-                 mode: int = ctypes.DEFAULT_MODE,
-                 handle: Optional[int] = None) -> None:
+    def __init__(
+        self, name: str, mode: int = ctypes.DEFAULT_MODE, handle: Optional[int] = None
+    ) -> None:
         super().__init__(name, mode, handle, use_last_error=True)
+
 
 _LOADER = ctypes.LibraryLoader(UseLastErrorWinDLL)
 
 
-def CreateJobObject(attributes: Optional[ctypes.Structure] = None,
-                    name: Optional[str] = None) -> ctypes.wintypes.HANDLE:
+def CreateJobObject(
+    attributes: Optional[ctypes.Structure] = None, name: Optional[str] = None
+) -> ctypes.wintypes.HANDLE:
     fn_CreateJobObjectW = _LOADER.kernel32.CreateJobObjectW
     fn_CreateJobObjectW.restype = ctypes.wintypes.HANDLE
     fn_CreateJobObjectW.argtypes = [ctypes.c_void_p, ctypes.c_wchar_p]
-    job: Optional[ctypes.wintypes.HANDLE] = fn_CreateJobObjectW(
-        attributes, name)
+    job: Optional[ctypes.wintypes.HANDLE] = fn_CreateJobObjectW(attributes, name)
     if job is None:
         # Automatically calls GetLastError and FormatError for us to create the
         # WindowsError exception.
@@ -87,27 +88,33 @@ def CreateJobObject(attributes: Optional[ctypes.Structure] = None,
     return job
 
 
-def SetInformationJobObject(job: ctypes.wintypes.HANDLE, info_class: int,
-                            info: ctypes.Structure) -> None:
+def SetInformationJobObject(
+    job: ctypes.wintypes.HANDLE, info_class: int, info: ctypes.Structure
+) -> None:
     fn_SetInformationJobObject = _LOADER.kernel32.SetInformationJobObject
     fn_SetInformationJobObject.restype = ctypes.wintypes.BOOL
     fn_SetInformationJobObject.argtypes = [
         ctypes.wintypes.HANDLE,
         ctypes.c_int,
         ctypes.c_void_p,
-        ctypes.wintypes.DWORD
+        ctypes.wintypes.DWORD,
     ]
-    result = fn_SetInformationJobObject(job, info_class, ctypes.pointer(info),
-                                        ctypes.sizeof(info))
+    result = fn_SetInformationJobObject(
+        job, info_class, ctypes.pointer(info), ctypes.sizeof(info)
+    )
     if not result:
         raise ctypes.WinError(ctypes.get_last_error())  # type: ignore
 
 
-def AssignProcessToJobObject(job: ctypes.wintypes.HANDLE,
-                             process: ctypes.wintypes.HANDLE) -> None:
+def AssignProcessToJobObject(
+    job: ctypes.wintypes.HANDLE, process: ctypes.wintypes.HANDLE
+) -> None:
     fn_AssignProcessToJobObject = _LOADER.kernel32.AssignProcessToJobObject
     fn_AssignProcessToJobObject.restype = ctypes.wintypes.BOOL
-    fn_AssignProcessToJobObject.argtypes = [ctypes.wintypes.HANDLE, ctypes.wintypes.HANDLE]
+    fn_AssignProcessToJobObject.argtypes = [
+        ctypes.wintypes.HANDLE,
+        ctypes.wintypes.HANDLE,
+    ]
     if not fn_AssignProcessToJobObject(job, process):
         raise ctypes.WinError(ctypes.get_last_error())  # type: ignore
 

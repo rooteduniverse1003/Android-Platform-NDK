@@ -32,6 +32,7 @@ class Timer:
     ...         do_something()
     ...     print(f'do_something() took {timer.duration}.')
     """
+
     def __init__(self) -> None:
         self.start_time: Optional[float] = None
         self.end_time: Optional[float] = None
@@ -53,7 +54,10 @@ class Timer:
     def __enter__(self) -> None:
         self.start()
 
-    def __exit__(self, _exc_type: Optional[Type[BaseException]],
-                 _exc_value: Optional[BaseException],
-                 _traceback: Optional[TracebackType]) -> None:
+    def __exit__(
+        self,
+        _exc_type: Optional[Type[BaseException]],
+        _exc_value: Optional[BaseException],
+        _traceback: Optional[TracebackType],
+    ) -> None:
         self.finish()

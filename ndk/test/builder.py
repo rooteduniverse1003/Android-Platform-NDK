@@ -48,16 +48,15 @@ def logger() -> logging.Logger:
     return logging.getLogger(__name__)
 
 
-def test_spec_from_config(
-        test_config: dict[str, Any]) -> ndk.test.spec.TestSpec:
+def test_spec_from_config(test_config: dict[str, Any]) -> ndk.test.spec.TestSpec:
     """Returns a TestSpec based on the test config file."""
-    abis = test_config.get('abis', ndk.abis.ALL_ABIS)
-    suites = test_config.get('suites', ndk.test.suites.ALL_SUITES)
+    abis = test_config.get("abis", ndk.abis.ALL_ABIS)
+    suites = test_config.get("suites", ndk.test.suites.ALL_SUITES)
     return ndk.test.spec.TestSpec(abis, suites)
 
 
 def write_build_report(build_report: str, results: Report) -> None:
-    with open(build_report, 'wb') as build_report_file:
+    with open(build_report, "wb") as build_report_file:
         pickle.dump(results, build_report_file)
 
 
@@ -71,11 +70,11 @@ def scan_test_suite(suite_dir: str, test_scanner: TestScanner) -> List[Test]:
     return tests
 
 
-def _fixup_expected_failure(result: ndk.test.result.TestResult, config: str,
-                            bug: str) -> ndk.test.result.TestResult:
+def _fixup_expected_failure(
+    result: ndk.test.result.TestResult, config: str, bug: str
+) -> ndk.test.result.TestResult:
     if isinstance(result, ndk.test.result.Failure):
-        return ndk.test.result.ExpectedFailure(result.test, result.message,
-                                               config, bug)
+        return ndk.test.result.ExpectedFailure(result.test, result.message, config, bug)
     elif isinstance(result, ndk.test.result.Success):
         return ndk.test.result.UnexpectedSuccess(result.test, config, bug)
     else:  # Skipped, UnexpectedSuccess, or ExpectedFailure.
@@ -83,19 +82,24 @@ def _fixup_expected_failure(result: ndk.test.result.TestResult, config: str,
 
 
 def _fixup_negative_test(
-        result: ndk.test.result.TestResult) -> ndk.test.result.TestResult:
+    result: ndk.test.result.TestResult,
+) -> ndk.test.result.TestResult:
     if isinstance(result, ndk.test.result.Failure):
         return ndk.test.result.Success(result.test)
     elif isinstance(result, ndk.test.result.Success):
-        return ndk.test.result.Failure(
-            result.test, 'negative test case succeeded')
+        return ndk.test.result.Failure(result.test, "negative test case succeeded")
     else:  # Skipped, UnexpectedSuccess, or ExpectedFailure.
         return result
 
 
-def _run_test(worker: Worker, suite: str, test: Test,
-              obj_dir: str, dist_dir: str, test_filters: TestFilter
-              ) -> Tuple[str, ndk.test.result.TestResult, List[Test]]:
+def _run_test(
+    worker: Worker,
+    suite: str,
+    test: Test,
+    obj_dir: str,
+    dist_dir: str,
+    test_filters: TestFilter,
+) -> Tuple[str, ndk.test.result.TestResult, List[Test]]:
     """Runs a given test according to the given filters.
 
     Args:
@@ -109,11 +113,11 @@ def _run_test(worker: Worker, suite: str, test: Test,
     Returns: Tuple of (suite, TestResult, [Test]). The [Test] element is a list
              of additional tests to be run.
     """
-    worker.status = 'Building {}'.format(test)
+    worker.status = "Building {}".format(test)
 
     config = test.check_unsupported()
     if config is not None:
-        message = 'test unsupported for {}'.format(config)
+        message = "test unsupported for {}".format(config)
         return suite, ndk.test.result.Skipped(test, message), []
 
     try:
@@ -133,71 +137,77 @@ def _run_test(worker: Worker, suite: str, test: Test,
 
 
 class TestBuilder:
-    def __init__(self, test_spec: ndk.test.spec.TestSpec,
-                 test_options: ndk.test.spec.TestOptions,
-                 printer: Printer) -> None:
+    def __init__(
+        self,
+        test_spec: ndk.test.spec.TestSpec,
+        test_options: ndk.test.spec.TestOptions,
+        printer: Printer,
+    ) -> None:
         self.printer = printer
         self.tests: Dict[str, List[Test]] = {}
         self.build_dirs: Dict[str, Tuple[str, Test]] = {}
 
         self.test_options = test_options
 
-        self.obj_dir = os.path.join(self.test_options.out_dir, 'obj')
-        self.dist_dir = os.path.join(self.test_options.out_dir, 'dist')
+        self.obj_dir = os.path.join(self.test_options.out_dir, "obj")
+        self.dist_dir = os.path.join(self.test_options.out_dir, "dist")
 
         self.find_tests(test_spec)
 
     def find_tests(self, test_spec: ndk.test.spec.TestSpec) -> None:
         scanner = ndk.test.scanner.BuildTestScanner(self.test_options.ndk_path)
         nodist_scanner = ndk.test.scanner.BuildTestScanner(
-            self.test_options.ndk_path, dist=False)
-        libcxx_scanner = ndk.test.scanner.LibcxxTestScanner(
-            self.test_options.ndk_path)
+            self.test_options.ndk_path, dist=False
+        )
+        libcxx_scanner = ndk.test.scanner.LibcxxTestScanner(self.test_options.ndk_path)
         build_api_level = None  # Always use the default.
         for abi in test_spec.abis:
             for toolchain_file in ndk.test.spec.CMakeToolchainFile:
                 config = ndk.test.spec.BuildConfiguration(
-                    abi, build_api_level, toolchain_file)
+                    abi, build_api_level, toolchain_file
+                )
                 scanner.add_build_configuration(config)
                 nodist_scanner.add_build_configuration(config)
                 libcxx_scanner.add_build_configuration(config)
 
-        if 'build' in test_spec.suites:
-            test_src = os.path.join(self.test_options.src_dir, 'build')
-            self.add_suite('build', test_src, nodist_scanner)
-        if 'device' in test_spec.suites:
-            test_src = os.path.join(self.test_options.src_dir, 'device')
-            self.add_suite('device', test_src, scanner)
-        if 'libc++' in test_spec.suites:
-            test_src = os.path.join(self.test_options.src_dir, 'libc++')
-            self.add_suite('libc++', test_src, libcxx_scanner)
+        if "build" in test_spec.suites:
+            test_src = os.path.join(self.test_options.src_dir, "build")
+            self.add_suite("build", test_src, nodist_scanner)
+        if "device" in test_spec.suites:
+            test_src = os.path.join(self.test_options.src_dir, "device")
+            self.add_suite("device", test_src, scanner)
+        if "libc++" in test_spec.suites:
+            test_src = os.path.join(self.test_options.src_dir, "libc++")
+            self.add_suite("libc++", test_src, libcxx_scanner)
 
     @classmethod
-    def from_config_file(cls, config_path: str,
-                         test_options: ndk.test.spec.TestOptions,
-                         printer: Printer) -> 'TestBuilder':
+    def from_config_file(
+        cls, config_path: str, test_options: ndk.test.spec.TestOptions, printer: Printer
+    ) -> "TestBuilder":
         with open(config_path) as test_config_file:
             test_config = json.load(test_config_file)
         spec = test_spec_from_config(test_config)
         return cls(spec, test_options, printer)
 
-    def add_suite(self, name: str, path: str,
-                  test_scanner: TestScanner) -> None:
+    def add_suite(self, name: str, path: str, test_scanner: TestScanner) -> None:
         if name in self.tests:
-            raise KeyError('suite {} already exists'.format(name))
+            raise KeyError("suite {} already exists".format(name))
         new_tests = scan_test_suite(path, test_scanner)
         self.check_no_overlapping_build_dirs(name, new_tests)
         self.tests[name] = new_tests
 
-    def check_no_overlapping_build_dirs(self, suite: str,
-                                        new_tests: List[Test]) -> None:
+    def check_no_overlapping_build_dirs(
+        self, suite: str, new_tests: List[Test]
+    ) -> None:
         for test in new_tests:
-            build_dir = test.get_build_dir('')
+            build_dir = test.get_build_dir("")
             if build_dir in self.build_dirs:
                 dup_suite, dup_test = self.build_dirs[build_dir]
                 raise RuntimeError(
-                    'Found duplicate build directory:\n{} {}\n{} {}'.format(
-                        dup_suite, dup_test, suite, test))
+                    "Found duplicate build directory:\n{} {}\n{} {}".format(
+                        dup_suite, dup_test, suite, test
+                    )
+                )
             self.build_dirs[build_dir] = (suite, test)
 
     def make_out_dirs(self) -> None:
@@ -234,14 +244,24 @@ class TestBuilder:
                     if not test_filters.filter(test.name):
                         continue
 
-                    if test.name == 'libc++':
+                    if test.name == "libc++":
                         workqueue.add_load_restricted_task(
-                            _run_test, suite, test, self.obj_dir,
-                            self.dist_dir, test_filters)
+                            _run_test,
+                            suite,
+                            test,
+                            self.obj_dir,
+                            self.dist_dir,
+                            test_filters,
+                        )
                     else:
                         workqueue.add_task(
-                            _run_test, suite, test, self.obj_dir,
-                            self.dist_dir, test_filters)
+                            _run_test,
+                            suite,
+                            test,
+                            self.obj_dir,
+                            self.dist_dir,
+                            test_filters,
+                        )
 
             report = Report()
             self.wait_for_results(report, workqueue, test_filters)
@@ -251,9 +271,12 @@ class TestBuilder:
             workqueue.terminate()
             workqueue.join()
 
-    def wait_for_results(self, report: Report,
-                         workqueue: LoadRestrictingWorkQueue,
-                         test_filters: TestFilter) -> None:
+    def wait_for_results(
+        self,
+        report: Report,
+        workqueue: LoadRestrictingWorkQueue,
+        test_filters: TestFilter,
+    ) -> None:
         console = ndk.ansi.get_console()
         ui = ndk.test.ui.get_test_build_progress_ui(console, workqueue)
         with ndk.ansi.disable_terminal_echo(sys.stdin):
@@ -270,8 +293,13 @@ class TestBuilder:
                     assert result.passed() or not additional_tests
                     for test in additional_tests:
                         workqueue.add_task(
-                            _run_test, suite, test, self.obj_dir,
-                            self.dist_dir, test_filters)
+                            _run_test,
+                            suite,
+                            test,
+                            self.obj_dir,
+                            self.dist_dir,
+                            test_filters,
+                        )
                     if logger().isEnabledFor(logging.INFO):
                         ui.clear()
                         self.printer.print_result(result)

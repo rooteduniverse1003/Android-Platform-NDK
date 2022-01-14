@@ -79,9 +79,7 @@ tests.
 
 ### Testing tools
 
-Shipping GTest/GMock prebuilts to Maven as AARs for easy integration into AGP
-projects. Also shipping [GTestJNI] to allow exposing native tests to AGP as
-JUnit tests.
+Add [GTestJNI] to Jetpack to allow exposing native tests to AGP as JUnit tests.
 
 [GTestJNI]: https://github.com/danalbert/GTestJNI
 
@@ -251,8 +249,8 @@ We shipped [Prefab] and the accompanying support for the Android Gradle Plugin
 to support native dependencies. AGP 4.0 includes the support for importing these
 packages, and 4.1 includes the support for creating AARs that support them.
 
-We also maintain a few packages as part of [ndkports]. Currently just curl,
-OpenSSL, and JsonCpp.
+We also maintain a few packages as part of [ndkports]. Currently curl, OpenSSL,
+JsonCpp, and GoogleTest (includes GoogleMock).
 
 [Prefab]: https://github.com/google/prefab
 [ndkports]: https://android.googlesource.com/platform/tools/ndkports/

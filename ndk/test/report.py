@@ -21,6 +21,7 @@ from ndk.test.result import TestResult
 
 class SingleResultReport:
     """Stores the result of a single test with its config info."""
+
     def __init__(self, suite: str, result: TestResult) -> None:
         self.suite = suite
         self.result = result
@@ -32,14 +33,15 @@ class Report:
     A "test run" means any number of tests run in any number of (unique)
     configurations.
     """
+
     def __init__(self) -> None:
         self.reports: List[SingleResultReport] = []
 
     def add_result(self, suite: str, result: TestResult) -> None:
         self.reports.append(SingleResultReport(suite, result))
 
-    def by_suite(self) -> Dict[str, 'Report']:
-        suite_reports: Dict[str, 'Report'] = {}
+    def by_suite(self) -> Dict[str, "Report"]:
+        suite_reports: Dict[str, "Report"] = {}
         for report in self.reports:
             if report.suite not in suite_reports:
                 suite_reports[report.suite] = Report()
@@ -90,9 +92,9 @@ class Report:
                 skips.append(report)
         return skips
 
-    def remove_all_failing_flaky(self,
-                                 flake_filter: Callable[[TestResult], bool]
-                                 ) -> List[SingleResultReport]:
+    def remove_all_failing_flaky(
+        self, flake_filter: Callable[[TestResult], bool]
+    ) -> List[SingleResultReport]:
         """Splits out the flaky tests that failed so they can be rerun.
 
         Any failing tests that are known flaky are removed from the list of

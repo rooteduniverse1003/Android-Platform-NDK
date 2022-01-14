@@ -22,71 +22,81 @@ from ndk.hosts import Host, get_default_host
 import ndk.paths
 
 
-CLANG_VERSION = 'clang-r437112'
+CLANG_VERSION = "clang-r437112b"
 
 
 HOST_TRIPLE_MAP = {
-    Host.Darwin: 'x86_64-apple-darwin',
-    Host.Linux: 'x86_64-linux-gnu',
-    Host.Windows64: 'x86_64-w64-mingw32',
+    Host.Darwin: "x86_64-apple-darwin",
+    Host.Linux: "x86_64-linux-gnu",
+    Host.Windows64: "x86_64-w64-mingw32",
 }
 
 
 class DarwinSdk:
     """The Darwin SDK."""
-    MACOSX_TARGET = '10.9'
+
+    MACOSX_TARGET = "10.9"
 
     def __init__(self) -> None:
         self.mac_sdk_path = self._get_sdk_path()
         self.linker_version = self._get_ld_version()
 
-        self.ar = self.sdk_tool('ar')
-        self.asm = self.sdk_tool('as')
-        self.ld = self.sdk_tool('ld')
-        self.nm = self.sdk_tool('nm')
-        self.ranlib = self.sdk_tool('ranlib')
-        self.strings = self.sdk_tool('strings')
-        self.strip = self.sdk_tool('strip')
+        self.ar = self.sdk_tool("ar")
+        self.asm = self.sdk_tool("as")
+        self.ld = self.sdk_tool("ld")
+        self.nm = self.sdk_tool("nm")
+        self.ranlib = self.sdk_tool("ranlib")
+        self.strings = self.sdk_tool("strings")
+        self.strip = self.sdk_tool("strip")
 
     @property
     def flags(self) -> List[str]:
         """The default flags to be used with the SDK."""
         return [
-            f'-mmacosx-version-min={self.MACOSX_TARGET}',
-            f'-DMACOSX_DEPLOYMENT_TARGET={self.MACOSX_TARGET}',
-            f'-isysroot{self.mac_sdk_path}',
-            f'-Wl,-syslibroot,{self.mac_sdk_path}',
+            f"-mmacosx-version-min={self.MACOSX_TARGET}",
+            f"-DMACOSX_DEPLOYMENT_TARGET={self.MACOSX_TARGET}",
+            f"-isysroot{self.mac_sdk_path}",
+            f"-Wl,-syslibroot,{self.mac_sdk_path}",
             # https://stackoverflow.com/a/60958449/632035
             # Our Clang is not built to handle old linkers by default, so if we
             # do not configure this explicitly it may attempt to use flags that
             # are not supported by the version of the Darwin linker installed on
             # the build machine.
-            f'-mlinker-version={self.linker_version}',
+            f"-mlinker-version={self.linker_version}",
         ]
 
     def sdk_tool(self, name: str) -> Path:
         """Returns the path to the given SDK tool."""
-        proc_result = subprocess.run(['xcrun', '--find', name],
-                                     stdout=subprocess.PIPE,
-                                     check=True, encoding='utf-8')
+        proc_result = subprocess.run(
+            ["xcrun", "--find", name],
+            stdout=subprocess.PIPE,
+            check=True,
+            encoding="utf-8",
+        )
         return Path(proc_result.stdout.strip())
 
     def _get_sdk_path(self) -> Path:
         """Gets the path to the Mac SDK."""
-        proc_result = subprocess.run(['xcrun', '--show-sdk-path'],
-                                     stdout=subprocess.PIPE,
-                                     check=True, encoding='utf-8')
+        proc_result = subprocess.run(
+            ["xcrun", "--show-sdk-path"],
+            stdout=subprocess.PIPE,
+            check=True,
+            encoding="utf-8",
+        )
         return Path(proc_result.stdout.strip())
 
     def _get_ld_version(self) -> str:
         """Gets the version of the system linker."""
-        proc_result = subprocess.run(['ld', '-v'],
-                                     stdout=subprocess.PIPE,
-                                     stderr=subprocess.PIPE,
-                                     check=True, encoding='utf-8')
+        proc_result = subprocess.run(
+            ["ld", "-v"],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            check=True,
+            encoding="utf-8",
+        )
         output = proc_result.stderr.strip().splitlines()[0]
         # Example first line: @(#)PROGRAM:ld  PROJECT:ld64-409.12
-        return output.rsplit('-', 1)[-1]
+        return output.rsplit("-", 1)[-1]
 
 
 class Toolchain:
@@ -180,7 +190,7 @@ class Sysroot:
     @property
     def bin_paths(self) -> List[Path]:
         """The path to the toolchain binary directories for use with PATH."""
-        return [self.path / 'bin']
+        return [self.path / "bin"]
 
     @property
     def lib_dirs(self) -> List[Path]:
@@ -189,42 +199,51 @@ class Sysroot:
         The GCC library directory contains libgcc and other compiler runtime
         libraries. These may be split across multiple directories.
         """
-        lib_dirs = [self.path / {
-            Host.Darwin: 'lib/gcc/i686-apple-darwin11/4.2.1',
-            Host.Linux: 'lib/gcc/x86_64-linux/4.8.3',
-            Host.Windows64: 'lib/gcc/x86_64-w64-mingw32/4.8.3',
-        }[self.target]]
+        lib_dirs = [
+            self.path
+            / {
+                Host.Darwin: "lib/gcc/i686-apple-darwin11/4.2.1",
+                Host.Linux: "lib/gcc/x86_64-linux/4.8.3",
+                Host.Windows64: "lib/gcc/x86_64-w64-mingw32/4.8.3",
+            }[self.target]
+        ]
         if self.target != Host.Darwin:
-            lib_dirs.append(self.path / self.triple / 'lib64')
+            lib_dirs.append(self.path / self.triple / "lib64")
         return lib_dirs
 
     @property
     def path(self) -> Path:
         """Returns the path to the top level toolchain directory."""
         if self.target == Host.Darwin:
-            return (ndk.paths.ANDROID_DIR /
-                    'prebuilts/gcc/darwin-x86/host/i686-apple-darwin-4.2.1')
+            return (
+                ndk.paths.ANDROID_DIR
+                / "prebuilts/gcc/darwin-x86/host/i686-apple-darwin-4.2.1"
+            )
         elif self.target == Host.Linux:
-            return (ndk.paths.ANDROID_DIR /
-                    'prebuilts/gcc/linux-x86/host/x86_64-linux-glibc2.17-4.8')
+            return (
+                ndk.paths.ANDROID_DIR
+                / "prebuilts/gcc/linux-x86/host/x86_64-linux-glibc2.17-4.8"
+            )
         else:
-            return (ndk.paths.ANDROID_DIR /
-                    'prebuilts/gcc/linux-x86/host/x86_64-w64-mingw32-4.8')
+            return (
+                ndk.paths.ANDROID_DIR
+                / "prebuilts/gcc/linux-x86/host/x86_64-w64-mingw32-4.8"
+            )
 
     @property
     def sysroot(self) -> Path:
         """The path to the GCC sysroot."""
         if self.target == Host.Linux:
-            return self.path / 'sysroot'
+            return self.path / "sysroot"
         return self.path / self.triple
 
     @property
     def triple(self) -> str:
         """Returns the GCC triple for the host toolchain."""
         return {
-            Host.Darwin: 'x86_64-apple-darwin11',
-            Host.Linux: 'x86_64-linux',
-            Host.Windows64: 'x86_64-w64-mingw32',
+            Host.Darwin: "x86_64-apple-darwin11",
+            Host.Linux: "x86_64-linux",
+            Host.Windows64: "x86_64-w64-mingw32",
         }[self.target]
 
 
@@ -239,12 +258,11 @@ class ClangToolchain(Toolchain):
     def path_for_host(host: Host) -> Path:
         """Returns the path to the Clang directory for the given host."""
         host_tag = {
-            Host.Darwin: 'darwin-x86',
-            Host.Linux: 'linux-x86',
-            Host.Windows64: 'windows-x86',
+            Host.Darwin: "darwin-x86",
+            Host.Linux: "linux-x86",
+            Host.Windows64: "windows-x86",
         }[host]
-        return (ndk.paths.ANDROID_DIR / 'prebuilts/clang/host' / host_tag /
-                CLANG_VERSION)
+        return ndk.paths.ANDROID_DIR / "prebuilts/clang/host" / host_tag / CLANG_VERSION
 
     @property
     def path(self) -> Path:
@@ -253,14 +271,14 @@ class ClangToolchain(Toolchain):
 
     def clang_tool(self, tool_name: str) -> Path:
         """Returns the path to the Clang tool for the build host."""
-        return self.path / 'bin' / tool_name
+        return self.path / "bin" / tool_name
 
     @property
     def ar(self) -> Path:
         """The path to the archiver."""
         if self.target == Host.Darwin:
             return self.darwin_sdk.ar
-        return self.clang_tool('llvm-ar')
+        return self.clang_tool("llvm-ar")
 
     @property
     def asm(self) -> Path:
@@ -272,48 +290,50 @@ class ClangToolchain(Toolchain):
     @property
     def bin_paths(self) -> List[Path]:
         """The path to the toolchain binary directories for use with PATH."""
-        return [self.path / 'bin']
+        return [self.path / "bin"]
 
     @property
     def cc(self) -> Path:
-        return self.clang_tool('clang')
+        return self.clang_tool("clang")
 
     @property
     def cxx(self) -> Path:
-        return self.clang_tool('clang++')
+        return self.clang_tool("clang++")
 
     @property
     def lib_dirs(self) -> List[Path]:
         lib_dirs = self.sysroot.lib_dirs
         # libc++ library path. Static only for Windows.
         if self.target.is_windows:
-            lib_dirs.append(self.path_for_host(self.target) / 'lib64')
+            lib_dirs.append(self.path_for_host(self.target) / "lib64")
         else:
-            lib_dirs.append(self.path / 'lib64')
+            lib_dirs.append(self.path / "lib64")
         return lib_dirs
 
     @property
     def flags(self) -> List[str]:
         host_triple = HOST_TRIPLE_MAP[self.target]
         flags = [
-            f'--target={host_triple}',
+            f"--target={host_triple}",
         ]
 
         if self.target.is_windows:
-            flags.append('-I' + str(self.path_for_host(self.target) / 'include/c++/v1'))
+            flags.append("-I" + str(self.path_for_host(self.target) / "include/c++/v1"))
 
         if self.target == Host.Darwin:
             flags.extend(self.darwin_sdk.flags)
         else:
-            flags.append(f'--sysroot={self.sysroot.sysroot}')
+            flags.append(f"--sysroot={self.sysroot.sysroot}")
 
             for lib_dir in self.lib_dirs:
                 # Both -L and -B because Clang only searches for CRT
                 # objects in -B directories.
-                flags.extend([
-                    f'-L{lib_dir}',
-                    f'-B{lib_dir}',
-                ])
+                flags.extend(
+                    [
+                        f"-L{lib_dir}",
+                        f"-B{lib_dir}",
+                    ]
+                )
 
         return flags
 
@@ -322,39 +342,39 @@ class ClangToolchain(Toolchain):
         """The path to the linker."""
         if self.target == Host.Darwin:
             return self.darwin_sdk.ld
-        return self.clang_tool('ld.lld')
+        return self.clang_tool("ld.lld")
 
     @property
     def nm(self) -> Path:
         """The path to nm."""
         if self.target == Host.Darwin:
             return self.darwin_sdk.nm
-        return self.clang_tool('llvm-nm')
+        return self.clang_tool("llvm-nm")
 
     @property
     def ranlib(self) -> Path:
         """The path to ranlib."""
         if self.target == Host.Darwin:
             return self.darwin_sdk.ranlib
-        return self.clang_tool('llvm-ranlib')
+        return self.clang_tool("llvm-ranlib")
 
     @property
     def rescomp(self) -> Path:
         """The path to the resource compiler."""
         if not self.target.is_windows:
             raise NotImplementedError
-        return self.clang_tool('llvm-windres')
+        return self.clang_tool("llvm-windres")
 
     @property
     def strip(self) -> Path:
         """The path to strip."""
         if self.target == Host.Darwin:
             return self.darwin_sdk.strip
-        return self.clang_tool('llvm-strip')
+        return self.clang_tool("llvm-strip")
 
     @property
     def strings(self) -> Path:
         """The path to strings."""
         if self.target == Host.Darwin:
             return self.darwin_sdk.strings
-        return self.clang_tool('llvm-strings')
+        return self.clang_tool("llvm-strings")

@@ -25,7 +25,7 @@ import os
 import subprocess
 import sys
 
-from bootstrap import bootstrap
+from bootstrap import bootstrap, python_cmd
 
 
 THIS_DIR = os.path.realpath(os.path.dirname(__file__))
@@ -36,12 +36,13 @@ def parse_args():
     # Don't add help because it inhibits the real checkbuild.py's --help.
     parser = argparse.ArgumentParser(add_help=False)
     parser.add_argument(
-        '-v',
-        '--verbose',
-        action='count',
-        dest='verbosity',
+        "-v",
+        "--verbose",
+        action="count",
+        dest="verbosity",
         default=0,
-        help='Increase logging verbosity.')
+        help="Increase logging verbosity.",
+    )
     return parser.parse_known_args()
 
 
@@ -59,13 +60,14 @@ def main():
 
     bootstrap()
     new_env = os.environ.copy()
-    new_env['PYTHONNOUSERSITE'] = '1'
-    if 'PYTHONPATH' in new_env:
-        del new_env['PYTHONPATH']
+    new_env["PYTHONNOUSERSITE"] = "1"
+    if "PYTHONPATH" in new_env:
+        del new_env["PYTHONPATH"]
     subprocess.check_call(
-        ['python3', os.path.join(THIS_DIR, 'do_checkbuild.py')] + sys.argv[1:],
-        env=new_env)
+        [python_cmd(), os.path.join(THIS_DIR, "do_checkbuild.py")] + sys.argv[1:],
+        env=new_env,
+    )
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()
