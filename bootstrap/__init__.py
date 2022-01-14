@@ -21,19 +21,19 @@ import sys
 THIS_DIR = os.path.realpath(os.path.dirname(__file__))
 
 
-def android_path(*args: str) -> str:
+def android_path(*args):
     """Returns the absolute path rooted within the top level source tree."""
     return os.path.normpath(os.path.join(THIS_DIR, "../..", *args))
 
 
-def python_cmd() -> str:
+def python_cmd():
     """Returns the name of the Python executable."""
     if sys.platform.startswith("win32"):
         return "python.exe"
     return "python3"
 
 
-def python_path() -> str:
+def python_path():
     """Returns the absolute path to the directory containing the Python executable."""
     if sys.platform.startswith("linux"):
         return android_path("prebuilts", "python", "linux-x86", "bin")
@@ -45,7 +45,7 @@ def python_path() -> str:
         raise RuntimeError("Unsupported host: {}".format(sys.platform))
 
 
-def bootstrap() -> None:
+def bootstrap():
     """Creates a bootstrap Python 3 environment.
 
     Adds the directory containing the python3 binary to the first element in
