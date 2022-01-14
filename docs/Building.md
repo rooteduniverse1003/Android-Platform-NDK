@@ -47,6 +47,36 @@ the [Android SDK].
 [Dockerfile]: ../infra/docker/Dockerfile
 [Android SDK]: https://developer.android.com/studio/index.html#downloads
 
+## Python environment setup
+
+To set up your environment to use the correct versions of Python and Python
+packages, install [Poetry](https://python-poetry.org/) and then do the
+following.
+
+Whenever you set up a new NDK tree (after a fresh `repo init`, for example),
+configure the project to use our prebuilt Python instead of your system's. If on
+Mac, be sure to use the darwin-x86 version instead.
+
+```bash
+poetry env use ../prebuilts/python/linux-x86/bin/python3
+```
+
+The first time, and also anytime you sync because there might be new or updated
+dependencies, install the NDK dependencies to the virtualenv managed by poetry.
+
+```bash
+poetry install
+```
+
+Spawn a new shell using the virtualenv that Poetry created. You could instead
+run NDK commands with the `poetry run` prefix (e.g. `poetry run
+./checkbuild.py`), but it's simpler to just spawn a new shell. Plus, if it's in
+your environment your editor can use it.
+
+```bash
+poetry shell
+```
+
 ## Build
 
 ### For Linux or Darwin

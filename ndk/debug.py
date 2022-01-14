@@ -29,8 +29,8 @@ def attach_debugger(_signum: int, frame: FrameType) -> None:
 
 def dump_trace(_signum: int, frame: FrameType) -> None:
     """Dumps a stack trace of the frame at the time of signalling."""
-    msg = 'Traceback:\n'
-    msg += ''.join(traceback.format_stack(frame))
+    msg = "Traceback:\n"
+    msg += "".join(traceback.format_stack(frame))
     sys.stderr.write(msg)
 
 

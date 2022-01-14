@@ -32,7 +32,7 @@ def toast(subject: str, body: Optional[str] = None) -> None:
         body: Optional additional text to display.
     """
     try:
-        args = ['notify-send', subject]
+        args = ["notify-send", subject]
         if body is not None:
             args.append(body)
         subprocess.call(args)

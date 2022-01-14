@@ -34,7 +34,8 @@ try:
     import adb  # pylint: disable=import-error
 except ImportError:
     import site
-    site.addsitedir(ndk.paths.android_path('development/python-packages'))
+
+    site.addsitedir(ndk.paths.android_path("development/python-packages"))
     import adb  # pylint: disable=import-error,ungrouped-imports
 
 
@@ -68,35 +69,33 @@ class Device(adb.AndroidDevice):
     def cache_properties(self) -> None:
         """Caches the device's system properties."""
         if not self._did_cache:
-            self._ro_build_characteristics = self.get_prop(
-                'ro.build.characteristics')
-            self._ro_build_id = self.get_prop('ro.build.id')
-            self._ro_build_version_sdk = self.get_prop('ro.build.version.sdk')
-            self._ro_build_version_codename = self.get_prop(
-                'ro.build.version.codename')
-            self._ro_debuggable = self.get_prop('ro.debuggable')
-            self._ro_product_name = self.get_prop('ro.product.name')
+            self._ro_build_characteristics = self.get_prop("ro.build.characteristics")
+            self._ro_build_id = self.get_prop("ro.build.id")
+            self._ro_build_version_sdk = self.get_prop("ro.build.version.sdk")
+            self._ro_build_version_codename = self.get_prop("ro.build.version.codename")
+            self._ro_debuggable = self.get_prop("ro.debuggable")
+            self._ro_product_name = self.get_prop("ro.product.name")
             self._did_cache = True
 
             # 64-bit devices list their ABIs differently than 32-bit devices.
             # Check all the possible places for stashing ABI info and merge
             # them.
             abi_properties = [
-                'ro.product.cpu.abi',
-                'ro.product.cpu.abi2',
-                'ro.product.cpu.abilist',
+                "ro.product.cpu.abi",
+                "ro.product.cpu.abi2",
+                "ro.product.cpu.abilist",
             ]
             abis: Set[Abi] = set()
             for abi_prop in abi_properties:
                 value = self.get_prop(abi_prop)
                 if value is not None:
-                    abis.update(value.split(','))
+                    abis.update(value.split(","))
 
-            if 'x86_64' in abis:
+            if "x86_64" in abis:
                 # Don't allow ndk_translation to count as an arm test device.
                 # We need to verify that things work on actual Arm, not that
                 # they work when binary translated for x86.
-                abis.difference_update({'arm64-v8a', 'armeabi-v7a'})
+                abis.difference_update({"arm64-v8a", "armeabi-v7a"})
 
             self._cached_abis = sorted(list(abis))
 
@@ -129,13 +128,13 @@ class Device(adb.AndroidDevice):
     def is_release(self) -> bool:
         self.cache_properties()
         codename = self._ro_build_version_codename
-        return codename == 'REL'
+        return codename == "REL"
 
     @property
     def is_emulator(self) -> bool:
         self.cache_properties()
         chars = self._ro_build_characteristics
-        return chars == 'emulator'
+        return chars == "emulator"
 
     @property
     def is_debuggable(self) -> bool:
@@ -159,9 +158,7 @@ class Device(adb.AndroidDevice):
         return self.version >= 16
 
     def __str__(self) -> str:
-        return (
-            f'android-{self.version} {self.name} {self.serial} {self.build_id}'
-        )
+        return f"android-{self.version} {self.name} {self.serial} {self.build_id}"
 
     def __eq__(self, other: object) -> bool:
         assert isinstance(other, Device)
@@ -177,6 +174,7 @@ class DeviceShardingGroup(ShardingGroup):
     For the moment, devices are only identical for testing purposes if they are
     the same hardware running the same build.
     """
+
     def __init__(self, first_device: Device) -> None:
         self.devices = [first_device]
         self.abis = sorted(first_device.abis)
@@ -194,7 +192,7 @@ class DeviceShardingGroup(ShardingGroup):
 
     def add_device(self, device: Device) -> None:
         if not self.device_matches(device):
-            raise ValueError(f'{device} does not match this device group.')
+            raise ValueError(f"{device} does not match this device group.")
 
         self.devices.append(device)
 
@@ -224,8 +222,7 @@ class DeviceShardingGroup(ShardingGroup):
         if self.is_debuggable != other.is_debuggable:
             return False
         if self.devices != other.devices:
-            print('devices not equal: {}, {}'.format(
-                self.devices, other.devices))
+            print("devices not equal: {}, {}".format(self.devices, other.devices))
             return False
         return True
 
@@ -234,13 +231,21 @@ class DeviceShardingGroup(ShardingGroup):
         return (self.version, self.abis) < (other.version, other.abis)
 
     def __hash__(self) -> int:
-        return hash((
-            self.version, self.is_emulator, self.is_release,
-            self.is_debuggable, tuple(self.abis), tuple(self.devices)))
+        return hash(
+            (
+                self.version,
+                self.is_emulator,
+                self.is_release,
+                self.is_debuggable,
+                tuple(self.abis),
+                tuple(self.devices),
+            )
+        )
 
 
 class DeviceFleet:
     """A collection of devices that can be used for testing."""
+
     def __init__(self, test_configurations: Dict[int, List[Abi]]) -> None:
         """Initializes a device fleet.
 
@@ -260,7 +265,7 @@ class DeviceFleet:
     def add_device(self, device: Device) -> None:
         """Fills a fleet device slot with a device, if appropriate."""
         if device.version not in self.devices:
-            logger().info('Ignoring device for unwanted API level: %s', device)
+            logger().info("Ignoring device for unwanted API level: %s", device)
             return
 
         same_version = self.devices[device.version]
@@ -270,7 +275,7 @@ class DeviceFleet:
                 continue
 
             # Never houdini.
-            if abi.startswith('armeabi') and 'x86' in device.abis:
+            if abi.startswith("armeabi") and "x86" in device.abis:
                 continue
 
             # Anything is better than nothing.
@@ -301,8 +306,7 @@ class DeviceFleet:
                     groups.add(group)
         return groups
 
-    def get_device_group(self, version: int,
-                         abi: Abi) -> Optional[DeviceShardingGroup]:
+    def get_device_group(self, version: int, abi: Abi) -> Optional[DeviceShardingGroup]:
         """Returns the device group associated with the given API and ABI."""
         if version not in self.devices:
             return None
@@ -316,7 +320,7 @@ class DeviceFleet:
         for version, abis in self.devices.items():
             for abi, group in abis.items():
                 if group is None:
-                    missing.append(f'android-{version} {abi}')
+                    missing.append(f"android-{version} {abi}")
         return missing
 
     def get_versions(self) -> List[int]:
@@ -334,32 +338,31 @@ def create_device(_worker: Worker, serial: str, precache: bool) -> Device:
 
 def get_all_attached_devices(workqueue: WorkQueue) -> List[Device]:
     """Returns a list of all connected devices."""
-    if shutil.which('adb') is None:
-        raise RuntimeError('Could not find adb.')
+    if shutil.which("adb") is None:
+        raise RuntimeError("Could not find adb.")
 
     # We could get the device name from `adb devices -l`, but we need to
     # getprop to find other details anyway, and older devices don't report
     # their names properly (nakasi on android-16, for example).
-    p = subprocess.run(['adb', 'devices'],
-                       check=True,
-                       stdout=subprocess.PIPE,
-                       encoding='utf-8')
+    p = subprocess.run(
+        ["adb", "devices"], check=True, stdout=subprocess.PIPE, encoding="utf-8"
+    )
     if p.returncode != 0:
-        raise RuntimeError('Failed to get list of devices from adb.')
+        raise RuntimeError("Failed to get list of devices from adb.")
 
     # The first line of `adb devices` just says "List of attached devices", so
     # skip that.
-    for line in p.stdout.split('\n')[1:]:
+    for line in p.stdout.split("\n")[1:]:
         if not line.strip():
             continue
 
-        serial, _ = re.split(r'\s+', line, maxsplit=1)
+        serial, _ = re.split(r"\s+", line, maxsplit=1)
 
-        if 'offline' in line:
-            logger().info('Ignoring offline device: %s', serial)
+        if "offline" in line:
+            logger().info("Ignoring offline device: %s", serial)
             continue
-        if 'unauthorized' in line:
-            logger().info('Ignoring unauthorized device: %s', serial)
+        if "unauthorized" in line:
+            logger().info("Ignoring unauthorized device: %s", serial)
             continue
 
         # Caching all the device details via getprop can actually take quite a
@@ -369,7 +372,7 @@ def get_all_attached_devices(workqueue: WorkQueue) -> List[Device]:
     devices = []
     while not workqueue.finished():
         device = workqueue.get_result()
-        logger().info('Found device %s', device)
+        logger().info("Found device %s", device)
         devices.append(device)
 
     return devices
@@ -377,15 +380,16 @@ def get_all_attached_devices(workqueue: WorkQueue) -> List[Device]:
 
 def exclude_device(device: Device) -> bool:
     """Returns True if a device should be excluded from the fleet."""
-    exclusion_list_env = os.getenv('NDK_DEVICE_EXCLUSION_LIST')
+    exclusion_list_env = os.getenv("NDK_DEVICE_EXCLUSION_LIST")
     if exclusion_list_env is None:
         return False
     exclusion_list = Path(exclusion_list_env).read_text().splitlines()
     return device.serial in exclusion_list
 
 
-def find_devices(sought_devices: Dict[int, List[Abi]],
-                 workqueue: WorkQueue) -> DeviceFleet:
+def find_devices(
+    sought_devices: Dict[int, List[Abi]], workqueue: WorkQueue
+) -> DeviceFleet:
     """Detects connected devices and returns a set for testing.
 
     We get a list of devices by scanning the output of `adb devices` and

@@ -42,11 +42,12 @@ from typing import (
 )
 
 
-IS_WINDOWS = sys.platform == 'win32'
+IS_WINDOWS = sys.platform == "win32"
 
 
 if IS_WINDOWS:
     import ctypes.wintypes
+
     ProcessGroup = Optional[ctypes.wintypes.HANDLE]
 
 
@@ -75,21 +76,25 @@ class TaskError(Exception):
 def create_windows_process_group() -> ProcessGroup:
     """Creates a Windows process group for this process."""
     import ndk.win32  # pylint: disable=import-outside-toplevel
+
     job = ndk.win32.CreateJobObject()
 
     limit_info = ndk.win32.JOBOBJECT_EXTENDED_LIMIT_INFORMATION(
         BasicLimitInformation=ndk.win32.JOBOBJECT_BASIC_LIMIT_INFORMATION(
-            LimitFlags=ndk.win32.JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE))
+            LimitFlags=ndk.win32.JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE
+        )
+    )
 
     ndk.win32.SetInformationJobObject(
-        job, ndk.win32.JobObjectExtendedLimitInformation, limit_info)
+        job, ndk.win32.JobObjectExtendedLimitInformation, limit_info
+    )
     ndk.win32.AssignProcessToJobObject(job, ndk.win32.GetCurrentProcess())
     return job
 
 
 def assign_self_to_new_process_group() -> ProcessGroup:
     """Assigns this process to a new process group."""
-    if sys.platform == 'win32':
+    if sys.platform == "win32":
         return create_windows_process_group()
     else:
         os.setpgrp()
@@ -98,8 +103,9 @@ def assign_self_to_new_process_group() -> ProcessGroup:
 
 def kill_process_group(group: ProcessGroup) -> None:
     """Kills the process group."""
-    if sys.platform == 'win32':
+    if sys.platform == "win32":
         import ndk.win32  # pylint: disable=import-outside-toplevel
+
         ndk.win32.CloseHandle(group)
     else:
         os.kill(0, signal.SIGTERM)
@@ -108,12 +114,16 @@ def kill_process_group(group: ProcessGroup) -> None:
 class Worker:
     """A workqueue task executor."""
 
-    IDLE_STATUS = 'IDLE'
-    EXCEPTION_STATUS = 'EXCEPTION'
+    IDLE_STATUS = "IDLE"
+    EXCEPTION_STATUS = "EXCEPTION"
 
-    def __init__(self, data: Any, task_queue: Queue[Task],
-                 result_queue: Queue[Any],
-                 manager: multiprocessing.managers.SyncManager) -> None:
+    def __init__(
+        self,
+        data: Any,
+        task_queue: Queue[Task],
+        result_queue: Queue[Any],
+        manager: multiprocessing.managers.SyncManager,
+    ) -> None:
         """Creates a Worker object.
 
         Args:
@@ -125,7 +135,7 @@ class Worker:
         self.result_queue = result_queue
         # For multiprocess.Manager.Value, the type is actually ignored.
         # https://stackoverflow.com/a/21290961/632035
-        self._status = manager.Value('', self.IDLE_STATUS)
+        self._status = manager.Value("", self.IDLE_STATUS)
         self._status_lock = manager.Lock()
         self.process = multiprocessing.Process(target=self.main)
 
@@ -183,32 +193,33 @@ class Worker:
         signal.signal(signal.SIGTERM, worker_sigterm_handler)
         try:
             while True:
-                logger().debug('worker %d waiting for work', os.getpid())
+                logger().debug("worker %d waiting for work", os.getpid())
                 task = self.task_queue.get()
-                logger().debug('worker %d running task', os.getpid())
+                logger().debug("worker %d running task", os.getpid())
                 result = task.run(self)
-                logger().debug('worker %d putting result', os.getpid())
+                logger().debug("worker %d putting result", os.getpid())
                 self.put_result(result, self.IDLE_STATUS)
         except SystemExit:
             pass
         except:  # pylint: disable=bare-except
-            logger().debug('worker %d raised exception', os.getpid())
-            trace = ''.join(traceback.format_exception(*sys.exc_info()))
+            logger().debug("worker %d raised exception", os.getpid())
+            trace = "".join(traceback.format_exception(*sys.exc_info()))
             self.put_result(TaskError(trace), self.EXCEPTION_STATUS)
         finally:
             # multiprocessing.Process.terminate() doesn't kill our descendents.
             signal.signal(signal.SIGTERM, signal.SIG_IGN)
-            logger().debug('worker %d killing process group', os.getpid())
+            logger().debug("worker %d killing process group", os.getpid())
             kill_process_group(group)
             signal.signal(signal.SIGTERM, signal.SIG_DFL)
-        logger().debug('worker %d exiting', os.getpid())
+        logger().debug("worker %d exiting", os.getpid())
 
 
 class Task:
     """A task to be executed by a worker process."""
 
-    def __init__(self, func: Callable[..., Any], args: Iterable[Any],
-                 kwargs: Mapping[Any, Any]) -> None:
+    def __init__(
+        self, func: Callable[..., Any], args: Iterable[Any], kwargs: Mapping[Any, Any]
+    ) -> None:
         """Creates a task.
 
         Args:
@@ -230,11 +241,13 @@ class ProcessPoolWorkQueue:
 
     join_timeout = 8  # Timeout for join before trying SIGKILL.
 
-    def __init__(self,
-                 num_workers: int = multiprocessing.cpu_count(),
-                 task_queue: Optional[Queue[Task]] = None,
-                 result_queue: Optional[Queue[Any]] = None,
-                 worker_data: Optional[Any] = None) -> None:
+    def __init__(
+        self,
+        num_workers: int = multiprocessing.cpu_count(),
+        task_queue: Optional[Queue[Task]] = None,
+        result_queue: Optional[Queue[Any]] = None,
+        worker_data: Optional[Any] = None,
+    ) -> None:
         """Creates a WorkQueue.
 
         Worker threads are spawned immediately and remain live until both
@@ -275,8 +288,7 @@ class ProcessPoolWorkQueue:
         self.num_tasks = 0
         self._spawn_workers(num_workers)
 
-    def add_task(self, func: Callable[..., Any], *args: Any,
-                 **kwargs: Any) -> None:
+    def add_task(self, func: Callable[..., Any], *args: Any, **kwargs: Any) -> None:
         """Queues up a new task for execution.
 
         Tasks are executed in order of insertion as worker processes become
@@ -301,17 +313,16 @@ class ProcessPoolWorkQueue:
     def terminate(self) -> None:
         """Terminates all worker processes."""
         for worker in self.workers:
-            logger().debug('terminating %d', worker.pid)
+            logger().debug("terminating %d", worker.pid)
             worker.terminate()
 
     def join(self) -> None:
         """Waits for all worker processes to exit."""
         for worker in self.workers:
-            logger().debug('joining %d', worker.pid)
+            logger().debug("joining %d", worker.pid)
             worker.join(self.join_timeout)
             if worker.is_alive():
-                logger().error(
-                    'worker %d will not die; sending SIGKILL', worker.pid)
+                logger().error("worker %d will not die; sending SIGKILL", worker.pid)
                 if worker.pid is not None:
                     os.killpg(worker.pid, signal.SIGKILL)
                 worker.join()
@@ -329,14 +340,15 @@ class ProcessPoolWorkQueue:
         """
         for _ in range(num_workers):
             worker = Worker(
-                self.worker_data, self.task_queue, self.result_queue,
-                self.manager)
+                self.worker_data, self.task_queue, self.result_queue, self.manager
+            )
             worker.start()
             self.workers.append(worker)
 
 
 class BasicWorker:
     """A worker for a BasicWorkQueue."""
+
     def __init__(self, data: Any) -> None:
         self.data = data
 
@@ -348,19 +360,22 @@ class BasicWorkQueue:
     the work on the same thread. Useful for debugging when trying to determine
     if an issue is being caused by synchronization or IPC issues.
     """
+
     # pylint: disable=unused-argument
-    def __init__(self,
-                 num_workers: Optional[int] = None,
-                 task_queue: Optional[Queue[Task]] = None,
-                 result_queue: Optional[Queue[Any]] = None,
-                 worker_data: Optional[Any] = None) -> None:
+    def __init__(
+        self,
+        num_workers: Optional[int] = None,
+        task_queue: Optional[Queue[Task]] = None,
+        result_queue: Optional[Queue[Any]] = None,
+        worker_data: Optional[Any] = None,
+    ) -> None:
         """Creates a SerialWorkQueue."""
         self.task_queue: Deque[Task] = collections.deque()
         self.worker_data = worker_data
+
     # pylint: enable=unused-argument
 
-    def add_task(self, func: Callable[..., Any], *args: Any,
-                 **kwargs: Any) -> None:
+    def add_task(self, func: Callable[..., Any], *args: Any, **kwargs: Any) -> None:
         """Queues up a new task for execution.
 
         Tasks are executed when get_result is called.
@@ -378,7 +393,7 @@ class BasicWorkQueue:
         try:
             return task.run(BasicWorker(self.worker_data))
         except Exception as ex:
-            trace = ''.join(traceback.format_exception(*sys.exc_info()))
+            trace = "".join(traceback.format_exception(*sys.exc_info()))
             raise TaskError(trace) from ex
 
     def terminate(self) -> None:
@@ -420,22 +435,24 @@ class LoadRestrictingWorkQueue:
         self.restricted_task_queue = self.manager.Queue()
 
         self.main_work_queue = WorkQueue(
-            num_workers - 1, task_queue=self.main_task_queue,
-            result_queue=self.result_queue)
+            num_workers - 1,
+            task_queue=self.main_task_queue,
+            result_queue=self.result_queue,
+        )
 
         self.restricted_work_queue = WorkQueue(
-            1, task_queue=self.restricted_task_queue,
-            result_queue=self.result_queue)
+            1, task_queue=self.restricted_task_queue, result_queue=self.result_queue
+        )
 
         self.num_tasks = 0
 
-    def add_task(self, func: Callable[..., Any], *args: Any,
-                 **kwargs: Any) -> None:
+    def add_task(self, func: Callable[..., Any], *args: Any, **kwargs: Any) -> None:
         self.main_task_queue.put(Task(func, args, kwargs))
         self.num_tasks += 1
 
-    def add_load_restricted_task(self, func: Callable[..., Any], *args: Any,
-                                 **kwargs: Any) -> None:
+    def add_load_restricted_task(
+        self, func: Callable[..., Any], *args: Any, **kwargs: Any
+    ) -> None:
         self.restricted_task_queue.put(Task(func, args, kwargs))
         self.num_tasks += 1
 
@@ -459,8 +476,10 @@ class LoadRestrictingWorkQueue:
     def workers(self) -> List[Worker]:
         """List of workers."""
         return list(
-            itertools.chain(self.main_work_queue.workers,
-                            self.restricted_work_queue.workers))
+            itertools.chain(
+                self.main_work_queue.workers, self.restricted_work_queue.workers
+            )
+        )
 
     def finished(self) -> bool:
         """Returns True if all tasks have completed execution."""
@@ -473,12 +492,13 @@ class ShardingGroup:
         raise NotImplementedError
 
 
-ShardingGroupType = TypeVar('ShardingGroupType', bound=ShardingGroup)
+ShardingGroupType = TypeVar("ShardingGroupType", bound=ShardingGroup)
 
 
 class ShardingWorkQueue(Generic[ShardingGroupType]):
-    def __init__(self, device_groups: Iterable[ShardingGroupType],
-                 procs_per_device: int) -> None:
+    def __init__(
+        self, device_groups: Iterable[ShardingGroupType], procs_per_device: int
+    ) -> None:
         self.manager = multiprocessing.Manager()
         self.result_queue = self.manager.Queue()
         self.task_queues: Dict[ShardingGroupType, Queue[Task]] = {}
@@ -493,12 +513,17 @@ class ShardingWorkQueue(Generic[ShardingGroupType]):
                     procs_per_device,
                     task_queue=self.task_queues[group],
                     result_queue=self.result_queue,
-                    worker_data=[shard])
+                    worker_data=[shard],
+                )
 
-    def add_task(self, group: ShardingGroupType, func: Callable[..., Any],
-                 *args: Any, **kwargs: Any) -> None:
-        self.task_queues[group].put(
-            Task(func, args, kwargs))
+    def add_task(
+        self,
+        group: ShardingGroupType,
+        func: Callable[..., Any],
+        *args: Any,
+        **kwargs: Any
+    ) -> None:
+        self.task_queues[group].put(Task(func, args, kwargs))
         self.num_tasks += 1
 
     def get_result(self) -> Any:

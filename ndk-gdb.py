@@ -32,7 +32,7 @@ import logging
 
 # Shared functions across gdbclient.py and ndk-gdb.py.
 # ndk-gdb is installed to $NDK/prebuilt/<platform>/bin
-NDK_PATH = os.path.abspath(os.path.join(os.path.dirname(__file__), '../../..'))
+NDK_PATH = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../.."))
 sys.path.append(os.path.join(NDK_PATH, "python-packages"))
 import adb
 import gdbrunner
@@ -63,58 +63,85 @@ class ArgumentParser(gdbrunner.ArgumentParser):
     def __init__(self):
         super(ArgumentParser, self).__init__()
         self.add_argument(
-            "--verbose", "-v", action="store_true",
-            help="enable verbose mode")
+            "--verbose", "-v", action="store_true", help="enable verbose mode"
+        )
 
         self.add_argument(
-            "--force", "-f", action="store_true",
-            help="kill existing debug session if it exists")
+            "--force",
+            "-f",
+            action="store_true",
+            help="kill existing debug session if it exists",
+        )
 
         self.add_argument(
-            "--port", type=int, nargs="?", default="5039",
-            help="override the port used on the host.")
+            "--port",
+            type=int,
+            nargs="?",
+            default="5039",
+            help="override the port used on the host.",
+        )
 
         self.add_argument(
-            "--delay", type=float, default=0.25,
+            "--delay",
+            type=float,
+            default=0.25,
             help="delay in seconds to wait after starting activity.\n"
-                 "defaults to 0.25, higher values may be needed on slower devices.")
+            "defaults to 0.25, higher values may be needed on slower devices.",
+        )
 
         self.add_argument(
-            "-p", "--project", dest="project",
-            help="specify application project path")
+            "-p", "--project", dest="project", help="specify application project path"
+        )
 
         lldb_group = self.add_mutually_exclusive_group()
         lldb_group.add_argument("--lldb", action="store_true", help="Use lldb.")
-        lldb_group.add_argument("--no-lldb", action="store_true", help="Do not use lldb.")
+        lldb_group.add_argument(
+            "--no-lldb", action="store_true", help="Do not use lldb."
+        )
 
         app_group = self.add_argument_group("target selection")
         start_group = app_group.add_mutually_exclusive_group()
 
         start_group.add_argument(
-            "--attach", nargs='?', dest="package_name", metavar="PKG_NAME",
+            "--attach",
+            nargs="?",
+            dest="package_name",
+            metavar="PKG_NAME",
             help="attach to application (default)\n"
-                 "autodetects PKG_NAME if not specified")
+            "autodetects PKG_NAME if not specified",
+        )
 
         # NB: args.launch can be False (--attach), None (--launch), or a string
         start_group.add_argument(
-            "--launch", nargs='?', dest="launch", default=False,
+            "--launch",
+            nargs="?",
+            dest="launch",
+            default=False,
             metavar="ACTIVITY",
             help="launch application activity\n"
-                 "launches main activity if ACTIVITY not specified")
+            "launches main activity if ACTIVITY not specified",
+        )
 
         start_group.add_argument(
-            "--launch-list", action="store_true",
-            help="list all launchable activity names from manifest")
+            "--launch-list",
+            action="store_true",
+            help="list all launchable activity names from manifest",
+        )
 
         debug_group = self.add_argument_group("debugging options")
         debug_group.add_argument(
-            "-x", "--exec", dest="exec_file",
-            help="execute gdb commands in EXEC_FILE after connection")
+            "-x",
+            "--exec",
+            dest="exec_file",
+            help="execute gdb commands in EXEC_FILE after connection",
+        )
 
         debug_group.add_argument(
-            "--nowait", action="store_true",
+            "--nowait",
+            action="store_true",
             help="do not wait for debugger to attach (may miss early JNI "
-                 "breakpoints)")
+            "breakpoints)",
+        )
 
         if sys.platform.startswith("win"):
             tui_help = argparse.SUPPRESS
@@ -122,8 +149,8 @@ class ArgumentParser(gdbrunner.ArgumentParser):
             tui_help = "use GDB's tui mode"
 
         debug_group.add_argument(
-            "-t", "--tui", action="store_true", dest="tui",
-            help=tui_help)
+            "-t", "--tui", action="store_true", dest="tui", help=tui_help
+        )
 
 
 def extract_package_name(xmlroot):
@@ -133,8 +160,10 @@ def extract_package_name(xmlroot):
 
 
 ANDROID_XMLNS = "{http://schemas.android.com/apk/res/android}"
+
+
 def extract_launchable(xmlroot):
-    '''
+    """
     A given application can have several activities, and each activity
     can have several intent filters. We want to only list, in the final
     output, the activities which have a intent-filter that contains the
@@ -142,7 +171,7 @@ def extract_launchable(xmlroot):
 
       <action android:name="android.intent.action.MAIN" />
       <category android:name="android.intent.category.LAUNCHER" />
-    '''
+    """
     launchable_activities = []
     application = xmlroot.findall("application")[0]
 
@@ -177,7 +206,7 @@ def ndk_bin_path():
 
 def handle_args():
     def find_program(program, paths):
-        '''Find a binary in paths'''
+        """Find a binary in paths"""
         exts = [""]
         if sys.platform.startswith("win"):
             exts += [".exe", ".bat", ".cmd"]
@@ -190,7 +219,7 @@ def handle_args():
         return None
 
     # FIXME: This is broken for PATH that contains quoted colons.
-    paths = os.environ["PATH"].replace('"', '').split(os.pathsep)
+    paths = os.environ["PATH"].replace('"', "").split(os.pathsep)
 
     args = ArgumentParser().parse_args()
 
@@ -203,8 +232,7 @@ def handle_args():
     if args.make_cmd is None:
         error("Failed to find make in '{}'".format(ndk_bin))
     if args.jdb_cmd is None:
-        print("WARNING: Failed to find jdb on your path, defaulting to "
-              "--nowait")
+        print("WARNING: Failed to find jdb on your path, defaulting to " "--nowait")
         args.nowait = True
 
     if args.verbose:
@@ -223,14 +251,16 @@ def find_project(args):
             error(msg.format(args.project))
     else:
         # Walk upwards until we find AndroidManifest.xml, or run out of path.
-        current_dir = os.getcwdu()
+        current_dir = os.getcwd()
         while not os.path.exists(os.path.join(current_dir, manifest_name)):
             parent_dir = os.path.dirname(current_dir)
             if parent_dir == current_dir:
-                error("Could not find AndroidManifest.xml in current"
-                      " directory or a parent directory.\n"
-                      "       Launch this script from inside a project, or"
-                      " use --project=<path>.")
+                error(
+                    "Could not find AndroidManifest.xml in current"
+                    " directory or a parent directory.\n"
+                    "       Launch this script from inside a project, or"
+                    " use --project=<path>."
+                )
             current_dir = parent_dir
         args.project = current_dir
         log("Using project directory: {} ".format(args.project))
@@ -271,8 +301,10 @@ def select_target(args):
         target = args.activities[0]
 
         if len(args.activities) > 1:
-            print("WARNING: Multiple launchable activities found, choosing"
-                  " '{}'.".format(args.activities[0]))
+            print(
+                "WARNING: Multiple launchable activities found, choosing"
+                " '{}'.".format(args.activities[0])
+            )
     else:
         activity_name = canonicalize_activity(args.package_name, args.launch)
 
@@ -296,9 +328,15 @@ def cd(path):
 
 
 def dump_var(args, variable, abi=None):
-    make_args = [args.make_cmd, "--no-print-dir", "-f",
-                 os.path.join(NDK_PATH, "build/core/build-local.mk"),
-                 "-C", args.project, "DUMP_{}".format(variable)]
+    make_args = [
+        args.make_cmd,
+        "--no-print-dir",
+        "-f",
+        os.path.join(NDK_PATH, "build/core/build-local.mk"),
+        "-C",
+        args.project,
+        "DUMP_{}".format(variable),
+    ]
 
     if abi is not None:
         make_args.append("APP_ABI={}".format(abi))
@@ -308,7 +346,7 @@ def dump_var(args, variable, abi=None):
             make_output = subprocess.check_output(make_args, cwd=args.project)
         except subprocess.CalledProcessError:
             error("Failed to retrieve application ABI from Android.mk.")
-    return make_output.splitlines()[-1]
+    return make_output.splitlines()[-1].decode()
 
 
 def get_api_level(device):
@@ -316,21 +354,25 @@ def get_api_level(device):
     try:
         api_level = int(device.get_prop("ro.build.version.sdk"))
     except (TypeError, ValueError):
-        error("Failed to find target device's supported API level.\n"
-              "ndk-gdb only supports devices running Android 2.2 or higher.")
+        error(
+            "Failed to find target device's supported API level.\n"
+            "ndk-gdb only supports devices running Android 2.2 or higher."
+        )
     if api_level < 8:
-        error("ndk-gdb only supports devices running Android 2.2 or higher.\n"
-              "(expected API level 8, actual: {})".format(api_level))
+        error(
+            "ndk-gdb only supports devices running Android 2.2 or higher.\n"
+            "(expected API level 8, actual: {})".format(api_level)
+        )
 
     return api_level
 
 
 def fetch_abi(args):
-    '''
+    """
     Figure out the intersection of which ABIs the application is built for and
     which ones the device supports, then pick the one preferred by the device,
     so that we know which gdbserver to push and run on the device.
-    '''
+    """
 
     app_abis = dump_var(args, "APP_ABI").split(" ")
     if "all" in app_abis:
@@ -377,8 +419,10 @@ def get_app_data_dir(args, package_name):
     cmd = get_run_as_cmd(package_name, cmd)
     (rc, stdout, _) = args.device.shell_nocheck(cmd)
     if rc != 0:
-        error("Could not find application's data directory. Are you sure that "
-              "the application is installed and debuggable?")
+        error(
+            "Could not find application's data directory. Are you sure that "
+            "the application is installed and debuggable?"
+        )
     data_dir = stdout.strip()
 
     # Applications with minSdkVersion >= 24 will have their data directories
@@ -428,13 +472,13 @@ def get_llvm_host_name():
 
 def get_python_executable(toolchain_path):
     if sys.platform.startswith("win"):
-        return os.path.join(toolchain_path, 'python3', 'python.exe')
+        return os.path.join(toolchain_path, "python3", "python.exe")
     else:
-        return os.path.join(toolchain_path, 'python3', 'bin', 'python3')
+        return os.path.join(toolchain_path, "python3", "bin", "python3")
 
 
 def get_lldb_path(toolchain_path):
-    for lldb_name in ['lldb.sh', 'lldb.cmd', 'lldb', 'lldb.exe']:
+    for lldb_name in ["lldb.sh", "lldb.cmd", "lldb", "lldb.exe"]:
         debugger_path = os.path.join(toolchain_path, "bin", lldb_name)
         if os.path.isfile(debugger_path):
             return debugger_path
@@ -446,13 +490,17 @@ def get_llvm_package_version(llvm_toolchain_dir):
     try:
         version_file = open(version_file_path, "r")
     except IOError:
-        error("Failed to open llvm package version file: '{}'.".format(version_file_path))
+        error(
+            "Failed to open llvm package version file: '{}'.".format(version_file_path)
+        )
 
     with version_file:
         return version_file.readline().strip()
 
 
-def get_debugger_server_path(args, package_name, app_data_dir, arch, server_name, local_path):
+def get_debugger_server_path(
+    args, package_name, app_data_dir, arch, server_name, local_path
+):
     app_debugger_server_path = "{}/lib/{}".format(app_data_dir, server_name)
     cmd = ["ls", app_debugger_server_path, "2>/dev/null"]
     cmd = get_run_as_cmd(package_name, cmd)
@@ -462,7 +510,11 @@ def get_debugger_server_path(args, package_name, app_data_dir, arch, server_name
         return app_debugger_server_path
 
     # We need to upload our debugger server
-    log("App {} not found at {}, uploading.".format(server_name, app_debugger_server_path))
+    log(
+        "App {} not found at {}, uploading.".format(
+            server_name, app_debugger_server_path
+        )
+    )
     remote_path = "/data/local/tmp/{}-{}".format(arch, server_name)
     args.device.push(local_path, remote_path)
 
@@ -471,13 +523,22 @@ def get_debugger_server_path(args, package_name, app_data_dir, arch, server_name
     if get_api_level(args.device) >= 23:
         destination = "{}/{}-{}".format(app_data_dir, arch, server_name)
         log("Copying {} to {}.".format(server_name, destination))
-        cmd = ["cat", remote_path, "|", "run-as", package_name,
-               "sh", "-c", "'cat > {}'".format(destination)]
+        cmd = [
+            "cat",
+            remote_path,
+            "|",
+            "run-as",
+            package_name,
+            "sh",
+            "-c",
+            "'cat > {}'".format(destination),
+        ]
         (rc, _, _) = args.device.shell_nocheck(cmd)
         if rc != 0:
             error("Failed to copy {} to {}.".format(server_name, destination))
-        (rc, _, _) = args.device.shell_nocheck(["run-as", package_name,
-                                                "chmod", "700", destination])
+        (rc, _, _) = args.device.shell_nocheck(
+            ["run-as", package_name, "chmod", "700", destination]
+        )
         if rc != 0:
             error("Failed to chmod {} at {}.".format(server_name, destination))
 
@@ -520,23 +581,30 @@ def pull_binaries(device, out_dir, app_64bit):
         except:
             device.pull("/system/bin/app_process", destination)
 
-def generate_lldb_script(args, sysroot, binary_path, app_64bit, jdb_pid, llvm_toolchain_dir):
+
+def generate_lldb_script(
+    args, sysroot, binary_path, app_64bit, jdb_pid, llvm_toolchain_dir
+):
     lldb_commands = []
     solib_search_paths = [
         "{}/system/bin".format(sysroot),
         "{}/system/lib{}".format(sysroot, "64" if app_64bit else ""),
     ]
     lldb_commands.append(
-        'settings append target.exec-search-paths {}'.format(' '.join(solib_search_paths)))
+        "settings append target.exec-search-paths {}".format(
+            " ".join(solib_search_paths)
+        )
+    )
 
     lldb_commands.append("target create '{}'".format(binary_path))
-    lldb_commands.append('target modules search-paths add / {}/'.format(sysroot))
+    lldb_commands.append("target modules search-paths add / {}/".format(sysroot))
 
-    lldb_commands.append('gdb-remote {}'.format(args.port))
+    lldb_commands.append("gdb-remote {}".format(args.port))
     if jdb_pid is not None:
         # After we've interrupted the app, reinvoke ndk-gdb.py to start jdb and
         # wake up the app.
-        lldb_commands.append("""
+        lldb_commands.append(
+            """
 script
 def start_jdb_to_unblock_app():
   import subprocess
@@ -544,19 +612,23 @@ def start_jdb_to_unblock_app():
 
 start_jdb_to_unblock_app()
 exit()
-    """.format(repr(
-            [
-                # We can't use sys.executable because it is the python2.
-                # lldb wrapper will set PYTHONHOME to point to python3.
-                get_python_executable(llvm_toolchain_dir),
-                os.path.realpath(__file__),
-                "--internal-wakeup-pid-with-jdb",
-                args.device.adb_path,
-                args.device.serial,
-                args.jdb_cmd,
-                str(jdb_pid),
-                str(bool(args.verbose)),
-            ])))
+    """.format(
+                repr(
+                    [
+                        # We can't use sys.executable because it is the python2.
+                        # lldb wrapper will set PYTHONHOME to point to python3.
+                        get_python_executable(llvm_toolchain_dir),
+                        os.path.realpath(__file__),
+                        "--internal-wakeup-pid-with-jdb",
+                        args.device.adb_path,
+                        args.device.serial,
+                        args.jdb_cmd,
+                        str(jdb_pid),
+                        str(bool(args.verbose)),
+                    ]
+                )
+            )
+        )
 
     if args.tui:
         lldb_commands.append("gui")
@@ -573,7 +645,9 @@ exit()
     return "\n".join(lldb_commands)
 
 
-def generate_gdb_script(args, sysroot, binary_path, app_64bit, jdb_pid, connect_timeout=5):
+def generate_gdb_script(
+    args, sysroot, binary_path, app_64bit, jdb_pid, connect_timeout=5
+):
     if sys.platform.startswith("win"):
         # GDB expects paths to use forward slashes.
         sysroot = sysroot.replace("\\", "/")
@@ -614,7 +688,9 @@ def target_remote_with_retry(target, timeout_seconds):
 target_remote_with_retry(':{}', {})
 
 end
-""".format(args.port, connect_timeout)
+""".format(
+        args.port, connect_timeout
+    )
 
     if jdb_pid is not None:
         # After we've interrupted the app, reinvoke ndk-gdb.py to start jdb and
@@ -626,17 +702,20 @@ def start_jdb_to_unblock_app():
   subprocess.Popen({})
 start_jdb_to_unblock_app()
 end
-    """.format(repr(
-            [
-                sys.executable,
-                os.path.realpath(__file__),
-                "--internal-wakeup-pid-with-jdb",
-                args.device.adb_path,
-                args.device.serial,
-                args.jdb_cmd,
-                str(jdb_pid),
-                str(bool(args.verbose)),
-            ]))
+    """.format(
+            repr(
+                [
+                    sys.executable,
+                    os.path.realpath(__file__),
+                    "--internal-wakeup-pid-with-jdb",
+                    args.device.adb_path,
+                    args.device.serial,
+                    args.jdb_cmd,
+                    str(jdb_pid),
+                    str(bool(args.verbose)),
+                ]
+            )
+        )
 
     if args.exec_file is not None:
         try:
@@ -666,21 +745,26 @@ def start_jdb(adb_path, serial, jdb_cmd, pid, verbose):
 
     jdb_port = 65534
     device.forward("tcp:{}".format(jdb_port), "jdwp:{}".format(pid))
-    jdb_cmd = [jdb_cmd, "-connect",
-               "com.sun.jdi.SocketAttach:hostname=localhost,port={}".format(jdb_port)]
+    jdb_cmd = [
+        jdb_cmd,
+        "-connect",
+        "com.sun.jdi.SocketAttach:hostname=localhost,port={}".format(jdb_port),
+    ]
 
     flags = subprocess.CREATE_NEW_PROCESS_GROUP if windows else 0
-    jdb = subprocess.Popen(jdb_cmd,
-                           stdin=subprocess.PIPE,
-                           stdout=subprocess.PIPE,
-                           stderr=subprocess.STDOUT,
-                           creationflags=flags)
+    jdb = subprocess.Popen(
+        jdb_cmd,
+        stdin=subprocess.PIPE,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+        creationflags=flags,
+    )
 
     # Wait until jdb can communicate with the app. Once it can, the app will
     # start polling for a Java debugger (e.g. every 200ms). We need to wait
     # a while longer then so that the app notices jdb.
     jdb_magic = "__verify_jdb_has_started__"
-    jdb.stdin.write('print "{}"\n'.format(jdb_magic).encode('utf-8'))
+    jdb.stdin.write('print "{}"\n'.format(jdb_magic).encode("utf-8"))
     saw_magic_str = False
     while True:
         line = jdb.stdout.readline()
@@ -715,15 +799,27 @@ def main():
 
     # Warn on old Pixel C firmware (b/29381985). Newer devices may have Yama
     # enabled but still work with ndk-gdb (b/19277529).
-    yama_check = device.shell_nocheck(["cat", "/proc/sys/kernel/yama/ptrace_scope", "2>/dev/null"])
-    if (yama_check[0] == 0 and yama_check[1].rstrip() not in ["", "0"] and
-            (device.get_prop("ro.build.product"), device.get_prop("ro.product.name")) == ("dragon", "ryu")):
-        print("WARNING: The device uses Yama ptrace_scope to restrict debugging. ndk-gdb will")
-        print("    likely be unable to attach to a process. With root access, the restriction")
-        print("    can be lifted by writing 0 to /proc/sys/kernel/yama/ptrace_scope. Consider")
+    yama_check = device.shell_nocheck(
+        ["cat", "/proc/sys/kernel/yama/ptrace_scope", "2>/dev/null"]
+    )
+    if (
+        yama_check[0] == 0
+        and yama_check[1].rstrip() not in ["", "0"]
+        and (device.get_prop("ro.build.product"), device.get_prop("ro.product.name"))
+        == ("dragon", "ryu")
+    ):
+        print(
+            "WARNING: The device uses Yama ptrace_scope to restrict debugging. ndk-gdb will"
+        )
+        print(
+            "    likely be unable to attach to a process. With root access, the restriction"
+        )
+        print(
+            "    can be lifted by writing 0 to /proc/sys/kernel/yama/ptrace_scope. Consider"
+        )
         print("    upgrading your Pixel C to MXC89L or newer, where Yama is disabled.")
 
-    adb_version = subprocess.check_output(device.adb_cmd + ["version"])
+    adb_version = subprocess.check_output(device.adb_cmd + ["version"]).decode()
     log("ADB command used: '{}'".format(" ".join(device.adb_cmd)))
     log("ADB version: {}".format(" ".join(adb_version.splitlines())))
 
@@ -749,21 +845,31 @@ def main():
 
     app_data_dir = get_app_data_dir(args, pkg_name)
 
-    llvm_toolchain_dir = os.path.join(NDK_PATH, "toolchains", "llvm", "prebuilt", get_llvm_host_name())
+    llvm_toolchain_dir = os.path.join(
+        NDK_PATH, "toolchains", "llvm", "prebuilt", get_llvm_host_name()
+    )
     if use_lldb:
-        server_local_path = os.path.join(llvm_toolchain_dir, "lib64", "clang",
-                                         get_llvm_package_version(llvm_toolchain_dir),
-                                         "lib", "linux", abi_to_llvm_arch(abi), "lldb-server")
+        server_local_path = os.path.join(
+            llvm_toolchain_dir,
+            "lib64",
+            "clang",
+            get_llvm_package_version(llvm_toolchain_dir),
+            "lib",
+            "linux",
+            abi_to_llvm_arch(abi),
+            "lldb-server",
+        )
         server_name = "lldb-server"
     else:
         server_local_path = "{}/prebuilt/android-{}/gdbserver/gdbserver"
         server_local_path = server_local_path.format(NDK_PATH, arch)
         server_name = "gdbserver"
     if not os.path.exists(server_local_path):
-        error("Can not find {}: {}", server_name, server_local_path)
+        error("Can not find {}: {}".format(server_name, server_local_path))
     log("Using {}: {}".format(server_name, server_local_path))
-    debugger_server_path = get_debugger_server_path(args, pkg_name, app_data_dir, arch,
-                                                    server_name, server_local_path)
+    debugger_server_path = get_debugger_server_path(
+        args, pkg_name, app_data_dir, arch, server_name, server_local_path
+    )
 
     # Kill the process and gdbserver if requested.
     if args.force:
@@ -810,24 +916,36 @@ def main():
     debug_socket = posixpath.join(app_data_dir, "debug_socket")
     log("Starting {}...".format(server_name))
     gdbrunner.start_gdbserver(
-        device, None, debugger_server_path,
-        target_pid=pid, run_cmd=None, debug_socket=debug_socket,
-        port=args.port, run_as_cmd=["run-as", pkg_name], lldb=use_lldb)
+        device,
+        None,
+        debugger_server_path,
+        target_pid=pid,
+        run_cmd=None,
+        debug_socket=debug_socket,
+        port=args.port,
+        run_as_cmd=["run-as", pkg_name],
+        lldb=use_lldb,
+    )
 
     # Start jdb to unblock the application if necessary.
     jdb_pid = pid if (args.launch and not args.nowait) else None
 
     # Start gdb.
     if use_lldb:
-        script_commands = generate_lldb_script(args, out_dir, zygote_path, app_64bit, jdb_pid, llvm_toolchain_dir)
+        script_commands = generate_lldb_script(
+            args, out_dir, zygote_path, app_64bit, jdb_pid, llvm_toolchain_dir
+        )
         debugger_path = get_lldb_path(llvm_toolchain_dir)
         flags = []
     else:
-        script_commands = generate_gdb_script(args, out_dir, zygote_path, app_64bit, jdb_pid)
+        script_commands = generate_gdb_script(
+            args, out_dir, zygote_path, app_64bit, jdb_pid
+        )
         debugger_path = os.path.join(ndk_bin_path(), "gdb")
         flags = ["--tui"] if args.tui else []
     print(debugger_path)
     gdbrunner.start_gdb(debugger_path, script_commands, flags, lldb=use_lldb)
+
 
 if __name__ == "__main__":
     main()

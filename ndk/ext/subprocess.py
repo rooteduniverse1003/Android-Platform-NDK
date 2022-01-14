@@ -30,26 +30,28 @@ def logger() -> logging.Logger:
     return logging.getLogger(__name__)
 
 
-def _call_output_inner(cmd: Sequence[str], *args: Any,
-                       **kwargs: Any) -> Tuple[int, Any]:
+def _call_output_inner(
+    cmd: Sequence[str], *args: Any, **kwargs: Any
+) -> Tuple[int, Any]:
     """Does the real work of call_output.
 
     This inner function does the real work and the outer function handles the
     OS specific stuff (Windows needs to handle WindowsError, but that isn't
     defined on non-Windows systems).
     """
-    logger().info('Popen: %s', ' '.join(cmd))
-    kwargs.update({
-        'stdout': subprocess.PIPE,
-        'stderr': subprocess.STDOUT,
-    })
+    logger().info("Popen: %s", " ".join(cmd))
+    kwargs.update(
+        {
+            "stdout": subprocess.PIPE,
+            "stderr": subprocess.STDOUT,
+        }
+    )
     with subprocess.Popen(cmd, *args, **kwargs) as proc:
         out, _ = proc.communicate()
         return proc.returncode, out
 
 
-def call_output(cmd: Sequence[str], *args: Any,
-                **kwargs: Any) -> Tuple[int, Any]:
+def call_output(cmd: Sequence[str], *args: Any, **kwargs: Any) -> Tuple[int, Any]:
     """Invoke the specified command and return exit code and output.
 
     This is the missing subprocess.call_output, which is the combination of
@@ -60,7 +62,7 @@ def call_output(cmd: Sequence[str], *args: Any,
 
     Returns: Tuple of (exit_code, output).
     """
-    if sys.platform == 'win32':
+    if sys.platform == "win32":
         try:
             return _call_output_inner(cmd, *args, **kwargs)
         except WindowsError as error:  # pylint: disable=undefined-variable

@@ -49,7 +49,7 @@ def replace_environ(env: MutableMapping[str, str]) -> Iterator[None]:
         os.environ = env  # type: ignore
         yield
     finally:
-        os.environ = old_environ # type: ignore
+        os.environ = old_environ  # type: ignore
 
 
 def modify_environ(env: MutableMapping[str, str]) -> ContextManager[None]:

@@ -24,6 +24,7 @@ from ndk.builds import Module
 
 class MockModule(Module):
     """A no-op module base."""
+
     def validate(self) -> None:
         pass
 
@@ -37,64 +38,64 @@ class MockModule(Module):
 # A basic cycle. The cycle logic is tested more thoroughly in test_graph.py,
 # but we want to ensure that CyclicDependencyError is formatted nicely.
 class CycleA(MockModule):
-    name = 'cycleA'
-    deps = {'cycleB'}
+    name = "cycleA"
+    deps = {"cycleB"}
 
 
 class CycleB(MockModule):
-    name = 'cycleB'
-    deps = {'cycleA'}
+    name = "cycleB"
+    deps = {"cycleA"}
 
 
 # A module with no dependents or dependencies. Should be immediately buildable.
 class Isolated(MockModule):
-    name = 'isolated'
+    name = "isolated"
     deps: Set[str] = set()
 
 
 # A module that is not present in the build graph.
 class Unknown(MockModule):
-    name = 'unknown'
+    name = "unknown"
     deps: Set[str] = set()
 
 
 # A simple chain of two modules. The first should be immediately buildable, and
 # the second should become buildable after it completes.
 class SimpleA(MockModule):
-    name = 'simpleA'
+    name = "simpleA"
     deps: Set[str] = set()
 
 
 class SimpleB(MockModule):
-    name = 'simpleB'
-    deps = {'simpleA'}
+    name = "simpleB"
+    deps = {"simpleA"}
 
 
 # Slightly more complex module graph.
 class ComplexA(MockModule):
-    name = 'complexA'
+    name = "complexA"
     deps: Set[str] = set()
 
 
 class ComplexB(MockModule):
-    name = 'complexB'
-    deps = {'complexA'}
+    name = "complexB"
+    deps = {"complexA"}
 
 
 class ComplexC(MockModule):
-    name = 'complexC'
-    deps = {'complexA'}
+    name = "complexC"
+    deps = {"complexA"}
 
 
 class ComplexD(MockModule):
-    name = 'complexD'
-    deps = {'complexA', 'complexB'}
+    name = "complexD"
+    deps = {"complexA", "complexB"}
 
 
 class DependencyManagerTest(unittest.TestCase):
     def test_cyclic_dependency_message(self) -> None:
         """Test that a cycle raises the proper exception."""
-        pattern = '^Detected cyclic dependency: cycleA -> cycleB -> cycleA$'
+        pattern = "^Detected cyclic dependency: cycleA -> cycleB -> cycleA$"
         with self.assertRaisesRegex(CyclicDependencyError, pattern):
             DependencyManager([CycleA(), CycleB()])
 
@@ -144,7 +145,8 @@ class DependencyManagerTest(unittest.TestCase):
         complexD = ComplexD()
         deps = DependencyManager([complexA, complexB, complexC, complexD])
         self.assertSetEqual(
-            {complexB, complexC, complexD}, set(deps.blocked_modules.keys()))
+            {complexB, complexC, complexD}, set(deps.blocked_modules.keys())
+        )
         self.assertSetEqual({complexA}, deps.buildable_modules)
         self.assertSetEqual({complexA}, deps.get_buildable())
         self.assertSetEqual(set(), deps.buildable_modules)

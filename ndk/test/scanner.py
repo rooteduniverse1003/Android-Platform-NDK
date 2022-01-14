@@ -37,6 +37,7 @@ class TestScanner:
     A test scanner is used to turn a test directory into a list of Tests for
     any of the test types found in the directory.
     """
+
     def find_tests(self, path: str, name: str) -> List[Test]:
         """Searches a directory for tests.
 
@@ -60,12 +61,12 @@ class BuildTestScanner(TestScanner):
 
     def find_tests(self, path: str, name: str) -> List[Test]:
         # If we have a build.sh, that takes precedence over the Android.mk.
-        build_sh_path = os.path.join(path, 'build.sh')
+        build_sh_path = os.path.join(path, "build.sh")
         if os.path.exists(build_sh_path):
             return self.make_build_sh_tests(path, name)
 
         # Same for test.py
-        build_sh_path = os.path.join(path, 'test.py')
+        build_sh_path = os.path.join(path, "test.py")
         if os.path.exists(build_sh_path):
             return self.make_test_py_tests(path, name)
 
@@ -75,11 +76,11 @@ class BuildTestScanner(TestScanner):
         # that would mostly be a better test) because we have a test that
         # verifies that ndk-build still works when APP_BUILD_SCRIPT is set to
         # something _other_ than a file named Android.mk.
-        mk_glob = glob.glob(os.path.join(path, 'jni/*.mk'))
+        mk_glob = glob.glob(os.path.join(path, "jni/*.mk"))
         if mk_glob:
             tests.extend(self.make_ndk_build_tests(path, name))
 
-        cmake_lists_path = os.path.join(path, 'CMakeLists.txt')
+        cmake_lists_path = os.path.join(path, "CMakeLists.txt")
         if os.path.exists(cmake_lists_path):
             tests.extend(self.make_cmake_tests(path, name))
         return tests
@@ -113,7 +114,7 @@ class BuildTestScanner(TestScanner):
 
 class LibcxxTestScanner(TestScanner):
     ALL_TESTS: List[str] = []
-    LIBCXX_SRC = ndk.paths.ANDROID_DIR / 'toolchain/llvm-project/libcxx'
+    LIBCXX_SRC = ndk.paths.ANDROID_DIR / "toolchain/llvm-project/libcxx"
 
     def __init__(self, ndk_path: str) -> None:
         self.ndk_path = ndk_path
@@ -125,7 +126,7 @@ class LibcxxTestScanner(TestScanner):
 
     def find_tests(self, path: str, name: str) -> List[Test]:
         return [
-            LibcxxTest('libc++', path, config, self.ndk_path)
+            LibcxxTest("libc++", path, config, self.ndk_path)
             for config in self.build_configurations
             if config.toolchain_file == CMakeToolchainFile.Default
         ]
@@ -138,11 +139,12 @@ class LibcxxTestScanner(TestScanner):
         if cls.ALL_TESTS:
             return
 
-        test_base_dir = os.path.join(cls.LIBCXX_SRC, 'test')
+        test_base_dir = os.path.join(cls.LIBCXX_SRC, "test")
 
         for root, _dirs, files in os.walk(test_base_dir, followlinks=True):
             for test_file in files:
-                if test_file.endswith('.cpp') or test_file.endswith('.mm'):
-                    test_path = ndk.paths.to_posix_path(os.path.relpath(
-                        os.path.join(root, test_file), test_base_dir))
+                if test_file.endswith(".cpp") or test_file.endswith(".mm"):
+                    test_path = ndk.paths.to_posix_path(
+                        os.path.relpath(os.path.join(root, test_file), test_base_dir)
+                    )
                     cls.ALL_TESTS.append(test_path)

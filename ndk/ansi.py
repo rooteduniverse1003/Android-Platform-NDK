@@ -19,12 +19,12 @@ from __future__ import print_function
 
 import contextlib
 import os
-import subprocess
 import sys
-from typing import Any, Iterator, Optional, NamedTuple, TextIO
+from typing import Any, Iterator, TextIO
 
 try:
     import termios
+
     HAVE_TERMIOS = True
 except ImportError:
     HAVE_TERMIOS = False
@@ -34,48 +34,47 @@ def cursor_up(num_lines: int) -> str:
     """Returns the command to move the cursor up a given number of lines."""
     # \033[0A still goes up one line. Emit nothing.
     if num_lines == 0:
-        return ''
-    return f'\033[{num_lines}A'
+        return ""
+    return f"\033[{num_lines}A"
 
 
 def cursor_down(num_lines: int) -> str:
     """Returns the command to move the cursor down a given number of lines."""
     # \033[0B still goes down one line. Emit nothing.
     if num_lines == 0:
-        return ''
-    return f'\033[{num_lines}B'
+        return ""
+    return f"\033[{num_lines}B"
 
 
 def goto_first_column() -> str:
     """Returns the command to move the cursor to the first column."""
-    return '\033[1G'
+    return "\033[1G"
 
 
 def clear_line() -> str:
     """Returns the command to clear the current line."""
-    return '\033[K'
+    return "\033[K"
 
 
 def font_bold() -> str:
     """Returns the command to set the font to bold."""
-    return '\033[1m'
+    return "\033[1m"
 
 
 def font_faint() -> str:
     """Returns the command to set the font to faint."""
-    return '\033[2m'
+    return "\033[2m"
 
 
 def font_reset() -> str:
     """Returns the command to reset the font style."""
-    return '\033[0m'
+    return "\033[0m"
 
 
 def is_self_in_tty_foreground_group(fd: TextIO) -> bool:
     """Is this process in the foreground process group of a tty identified
     by fd?"""
-    return HAVE_TERMIOS and fd.isatty() and \
-        os.getpgrp() == os.tcgetpgrp(fd.fileno())
+    return HAVE_TERMIOS and fd.isatty() and os.getpgrp() == os.tcgetpgrp(fd.fileno())
 
 
 @contextlib.contextmanager
@@ -96,27 +95,6 @@ def disable_terminal_echo(fd: TextIO) -> Iterator[None]:
             termios.tcsetattr(fd, termios.TCSANOW, original)
     else:
         yield
-
-
-class ConsoleRect(NamedTuple):
-    """A pair of width and height for a console."""
-
-    #: Console width.
-    width: int
-
-    #: Console height.
-    height: int
-
-
-def get_console_size_linux() -> ConsoleRect:
-    """Returns a pair of height, width for the TTY."""
-    height_str, width_str = subprocess.check_output(['stty', 'size']).split()
-    return ConsoleRect(width=int(width_str), height=int(height_str))
-
-
-def get_console_size_windows() -> ConsoleRect:
-    """Returns a pair of height, width for the TTY."""
-    raise NotImplementedError
 
 
 class Console:
@@ -159,7 +137,10 @@ class Console:
 
 def get_console(stream: TextIO = sys.stdout) -> Console:
     """Returns a Console bound to the given stream."""
-    if stream.isatty() and os.name != 'nt':
+    if stream.isatty():
+        if os.name == "nt":
+            # Hack to make ANSI work. See https://bugs.python.org/issue30075.
+            os.system("")
         return AnsiConsole(stream)
     else:
         return NonAnsiConsole(stream)
@@ -168,21 +149,21 @@ def get_console(stream: TextIO = sys.stdout) -> Console:
 class AnsiConsole(Console):
     """A console that supports ANSI control."""
 
-    GOTO_HOME = '\r'
-    CURSOR_UP = '\033[1A'
-    CLEAR_LINE = '\033[K'
-    HIDE_CURSOR = '\033[?25l'
-    SHOW_CURSOR = '\033[?25h'
+    GOTO_HOME = "\r"
+    CURSOR_UP = "\033[1A"
+    CLEAR_LINE = "\033[K"
+    HIDE_CURSOR = "\033[?25l"
+    SHOW_CURSOR = "\033[?25h"
 
-    _size: Optional[ConsoleRect]
+    _size: os.terminal_size
 
     def __init__(self, stream: TextIO) -> None:
         super().__init__(stream, smart_console=True)
-        self._size = None
+        self._size = os.get_terminal_size()
 
     def _do(self, cmd: str) -> None:
         """Performs the given command."""
-        print(cmd, end='', file=self.stream)
+        print(cmd, end="", file=self.stream)
         self.stream.flush()
 
     def clear_lines(self, num_lines: int) -> None:
@@ -192,7 +173,7 @@ class AnsiConsole(Console):
             if idx != 0:
                 cmds.append(self.CURSOR_UP)
             cmds.append(self.CLEAR_LINE)
-        self._do(''.join(cmds))
+        self._do("".join(cmds))
 
     def hide_cursor(self) -> None:
         self._do(self.HIDE_CURSOR)
@@ -200,28 +181,15 @@ class AnsiConsole(Console):
     def show_cursor(self) -> None:
         self._do(self.SHOW_CURSOR)
 
-    def init_window_size(self) -> None:
-        """Initializes the console size."""
-        if os.name == 'nt':
-            self._size = get_console_size_windows()
-        else:
-            self._size = get_console_size_linux()
-
     @property
     def height(self) -> int:
         """The height of the console in characters."""
-        if self._size is None:
-            self.init_window_size()
-        assert self._size is not None
-        return self._size.height
+        return self._size.lines
 
     @property
     def width(self) -> int:
         """The width of the console in characters."""
-        if self._size is None:
-            self.init_window_size()
-        assert self._size is not None
-        return self._size.width
+        return self._size.columns
 
 
 class NonAnsiConsole(Console):
