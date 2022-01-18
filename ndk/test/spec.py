@@ -18,6 +18,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 import enum
+from pathlib import Path
 from typing import Iterable, List, Optional
 
 from ndk.abis import Abi, LP32_ABIS, LP64_ABIS
@@ -40,6 +41,7 @@ class TestOptions:
         test_filter: Optional[str] = None,
         clean: bool = True,
         build_report: Optional[str] = None,
+        package_path: Optional[Path] = None,
     ) -> None:
         """Initializes a TestOptions object.
 
@@ -50,6 +52,7 @@ class TestOptions:
             test_filter: Test filter string.
             clean: True if the out directory should be cleaned before building.
             build_report: Path to write a build report to, if any.
+            package_path: Path (without extension) to package the tests.
         """
         self.src_dir = src_dir
         self.ndk_path = ndk_path
@@ -57,6 +60,7 @@ class TestOptions:
         self.test_filter = test_filter
         self.clean = clean
         self.build_report = build_report
+        self.package_path = package_path
 
 
 class TestSpec:
