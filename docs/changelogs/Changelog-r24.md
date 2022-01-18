@@ -64,6 +64,11 @@ For Android Studio issues, follow the docs on the [Android Studio site].
   toolchain file.
 * [Issue 1623]: Fixed behavior of the legacy CMake toolchain file when used with
   new versions of CMake (incompatible `-gcc-toolchain` argument).
+* [Issue 1656]: The new CMake toolchain file now ignores `ANDROID_ARM_MODE` when
+  it is passed for ABIs other than armeabi-v7a like the legacy toolchain file
+  did. With CMake 3.22 it is an error to set `CMAKE_ANDROID_ARM_MODE` for other
+  ABIs, so this fixes a potential incompatibility between the legacy and new
+  toolchains when using CMake 3.22+.
 * Removed `make-standalone-toolchain.sh`. This was broken in a previous release
   and it was unnoticed, so it seems unused. `make_standalone_toolchain.py`
   remains, but neither has been needed since NDK r19 since the toolchain can be
@@ -84,6 +89,7 @@ For Android Studio issues, follow the docs on the [Android Studio site].
 [Issue 1610]: https://github.com/android/ndk/issues/1610
 [Issue 1618]: https://github.com/android/ndk/issues/1618
 [Issue 1623]: https://github.com/android/ndk/issues/1623
+[Issue 1656]: https://github.com/android/ndk/issues/1656
 
 ## Known Issues
 
