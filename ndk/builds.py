@@ -485,8 +485,8 @@ class ScriptShortcutModule(Module):
             textwrap.dedent(
                 f"""\
                 #!/bin/sh
-                DIR="$(cd "$(dirname "$0")" && pwd)"
-                {full_path} "$@"
+                DIR=$(cd "$(dirname "$0")" && pwd)
+                "{full_path}" "$@"
                 """
             )
         )
