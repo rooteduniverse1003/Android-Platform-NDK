@@ -18,11 +18,12 @@ from __future__ import absolute_import
 
 import contextlib
 import os
+from pathlib import Path
 from typing import ContextManager, MutableMapping, Iterator
 
 
 @contextlib.contextmanager
-def cd(path: str) -> Iterator[None]:
+def cd(path: Path) -> Iterator[None]:
     # For some reason pylint can't detect that getcwd/chdir are in os because
     # we're ndk.ext.os, despite the fact that os.environ is fine.
     # pylint: disable=no-member

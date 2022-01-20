@@ -17,6 +17,7 @@ from __future__ import absolute_import
 
 import glob
 import os
+from pathlib import Path, PurePosixPath
 from typing import List, Set
 
 import ndk.paths
@@ -38,7 +39,7 @@ class TestScanner:
     any of the test types found in the directory.
     """
 
-    def find_tests(self, path: str, name: str) -> List[Test]:
+    def find_tests(self, path: Path, name: str) -> List[Test]:
         """Searches a directory for tests.
 
         Args:
@@ -51,7 +52,7 @@ class TestScanner:
 
 
 class BuildTestScanner(TestScanner):
-    def __init__(self, ndk_path: str, dist: bool = True) -> None:
+    def __init__(self, ndk_path: Path, dist: bool = True) -> None:
         self.ndk_path = ndk_path
         self.dist = dist
         self.build_configurations: Set[BuildConfiguration] = set()
@@ -59,15 +60,15 @@ class BuildTestScanner(TestScanner):
     def add_build_configuration(self, spec: BuildConfiguration) -> None:
         self.build_configurations.add(spec)
 
-    def find_tests(self, path: str, name: str) -> List[Test]:
+    def find_tests(self, path: Path, name: str) -> List[Test]:
         # If we have a build.sh, that takes precedence over the Android.mk.
-        build_sh_path = os.path.join(path, "build.sh")
-        if os.path.exists(build_sh_path):
+        build_sh_path = path / "build.sh"
+        if build_sh_path.exists():
             return self.make_build_sh_tests(path, name)
 
         # Same for test.py
-        build_sh_path = os.path.join(path, "test.py")
-        if os.path.exists(build_sh_path):
+        test_py_path = path / "test.py"
+        if test_py_path.exists():
             return self.make_test_py_tests(path, name)
 
         # But we can have both ndk-build and cmake tests in the same directory.
@@ -76,36 +77,36 @@ class BuildTestScanner(TestScanner):
         # that would mostly be a better test) because we have a test that
         # verifies that ndk-build still works when APP_BUILD_SCRIPT is set to
         # something _other_ than a file named Android.mk.
-        mk_glob = glob.glob(os.path.join(path, "jni/*.mk"))
+        mk_glob = glob.glob(str(path / "jni/*.mk"))
         if mk_glob:
             tests.extend(self.make_ndk_build_tests(path, name))
 
-        cmake_lists_path = os.path.join(path, "CMakeLists.txt")
-        if os.path.exists(cmake_lists_path):
+        cmake_lists_path = path / "CMakeLists.txt"
+        if cmake_lists_path.exists():
             tests.extend(self.make_cmake_tests(path, name))
         return tests
 
-    def make_build_sh_tests(self, path: str, name: str) -> List[Test]:
+    def make_build_sh_tests(self, path: Path, name: str) -> List[Test]:
         return [
             ShellBuildTest(name, path, config, self.ndk_path)
             for config in self.build_configurations
             if config.toolchain_file == CMakeToolchainFile.Default
         ]
 
-    def make_test_py_tests(self, path: str, name: str) -> List[Test]:
+    def make_test_py_tests(self, path: Path, name: str) -> List[Test]:
         return [
             PythonBuildTest(name, path, config, self.ndk_path)
             for config in self.build_configurations
         ]
 
-    def make_ndk_build_tests(self, path: str, name: str) -> List[Test]:
+    def make_ndk_build_tests(self, path: Path, name: str) -> List[Test]:
         return [
             NdkBuildTest(name, path, config, self.ndk_path, self.dist)
             for config in self.build_configurations
             if config.toolchain_file == CMakeToolchainFile.Default
         ]
 
-    def make_cmake_tests(self, path: str, name: str) -> List[Test]:
+    def make_cmake_tests(self, path: Path, name: str) -> List[Test]:
         return [
             CMakeBuildTest(name, path, config, self.ndk_path, self.dist)
             for config in self.build_configurations
@@ -116,7 +117,7 @@ class LibcxxTestScanner(TestScanner):
     ALL_TESTS: List[str] = []
     LIBCXX_SRC = ndk.paths.ANDROID_DIR / "toolchain/llvm-project/libcxx"
 
-    def __init__(self, ndk_path: str) -> None:
+    def __init__(self, ndk_path: Path) -> None:
         self.ndk_path = ndk_path
         self.build_configurations: Set[BuildConfiguration] = set()
         LibcxxTestScanner.find_all_libcxx_tests()
@@ -124,7 +125,7 @@ class LibcxxTestScanner(TestScanner):
     def add_build_configuration(self, spec: BuildConfiguration) -> None:
         self.build_configurations.add(spec)
 
-    def find_tests(self, path: str, name: str) -> List[Test]:
+    def find_tests(self, path: Path, name: str) -> List[Test]:
         return [
             LibcxxTest("libc++", path, config, self.ndk_path)
             for config in self.build_configurations
@@ -139,12 +140,14 @@ class LibcxxTestScanner(TestScanner):
         if cls.ALL_TESTS:
             return
 
-        test_base_dir = os.path.join(cls.LIBCXX_SRC, "test")
+        test_base_dir = cls.LIBCXX_SRC / "test"
 
         for root, _dirs, files in os.walk(test_base_dir, followlinks=True):
             for test_file in files:
                 if test_file.endswith(".cpp") or test_file.endswith(".mm"):
-                    test_path = ndk.paths.to_posix_path(
-                        os.path.relpath(os.path.join(root, test_file), test_base_dir)
+                    test_path = str(
+                        PurePosixPath(
+                            os.path.relpath(Path(root) / test_file, test_base_dir)
+                        )
                     )
                     cls.ALL_TESTS.append(test_path)

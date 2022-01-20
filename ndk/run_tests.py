@@ -24,8 +24,7 @@ import datetime
 import json
 import logging
 import os
-from pathlib import Path
-import posixpath
+from pathlib import Path, PurePosixPath
 import random
 import shlex
 import site
@@ -77,7 +76,7 @@ import ndk.ui
 from ndk.workqueue import ShardingWorkQueue, Worker, WorkQueue
 
 
-DEVICE_TEST_BASE_DIR = "/data/local/tmp/tests"
+DEVICE_TEST_BASE_DIR = PurePosixPath("/data/local/tmp/tests")
 
 
 AdbResult = tuple[int, str, str, str]
@@ -112,10 +111,10 @@ class TestCase:
     def __init__(
         self,
         name: str,
-        test_src_dir: str,
+        test_src_dir: Path,
         config: BuildConfiguration,
         build_system: str,
-        device_dir: str,
+        device_dir: PurePosixPath,
     ) -> None:
         self.name = name
         self.test_src_dir = test_src_dir
@@ -150,10 +149,10 @@ class BasicTestCase(TestCase):
         self,
         suite: str,
         executable: str,
-        test_src_dir: str,
+        test_src_dir: Path,
         config: BuildConfiguration,
         build_system: str,
-        device_dir: str,
+        device_dir: PurePosixPath,
     ) -> None:
         name = ".".join([suite, executable])
         super().__init__(name, test_src_dir, config, build_system, device_dir)
@@ -165,7 +164,7 @@ class BasicTestCase(TestCase):
         # We don't run anything in tests/build, and the libc++ tests are
         # handled by a different LibcxxTest. We can safely assume that anything
         # here is in tests/device.
-        test_dir = os.path.join(self.test_src_dir, "device", self.suite)
+        test_dir = self.test_src_dir / "device" / self.suite
         return DeviceTestConfig.from_test_dir(test_dir)
 
     def check_unsupported(self, device: Device) -> Optional[str]:
@@ -197,9 +196,9 @@ class LibcxxTestCase(TestCase):
         self,
         suite: str,
         executable: str,
-        test_src_dir: str,
+        test_src_dir: Path,
         config: BuildConfiguration,
-        device_dir: str,
+        device_dir: PurePosixPath,
     ) -> None:
         # Tests in the top level don't need any mangling to match the filters.
         if suite == "libc++":
@@ -221,7 +220,7 @@ class LibcxxTestCase(TestCase):
 
     def get_test_config(self) -> DeviceTestConfig:
         _, _, test_subdir = self.suite.partition("/")
-        test_dir = os.path.join(self.test_src_dir, "libc++/test", test_subdir)
+        test_dir = self.test_src_dir / "libc++/test" / test_subdir
         return LibcxxTestConfig.from_test_dir(test_dir)
 
     def check_unsupported(self, device: Device) -> Optional[str]:
@@ -238,9 +237,7 @@ class LibcxxTestCase(TestCase):
         return None, None
 
     def run(self, device: Device) -> AdbResult:
-        libcxx_so_dir = posixpath.join(
-            DEVICE_TEST_BASE_DIR, str(self.config), "libcxx/libc++"
-        )
+        libcxx_so_dir = DEVICE_TEST_BASE_DIR / str(self.config) / "libcxx" / "libc++"
         return self.run_cmd(
             device,
             "cd {} && LD_LIBRARY_PATH={} ./{} 2>&1".format(
@@ -298,31 +295,29 @@ class TestRun:
 
 
 def enumerate_basic_tests(
-    out_dir_base: str,
-    test_src_dir: str,
+    out_dir_base: Path,
+    test_src_dir: Path,
     build_cfg: BuildConfiguration,
     build_system: str,
     test_filter: TestFilter,
 ) -> List[TestCase]:
     tests: List[TestCase] = []
-    tests_dir = os.path.join(out_dir_base, str(build_cfg), build_system)
-    if not os.path.exists(tests_dir):
+    tests_dir = out_dir_base / str(build_cfg) / build_system
+    if not tests_dir.exists():
         return tests
 
     for test_subdir in os.listdir(tests_dir):
-        test_dir = os.path.join(tests_dir, test_subdir)
-        out_dir = os.path.join(test_dir, build_cfg.abi)
-        test_relpath = os.path.relpath(out_dir, out_dir_base)
-        device_dir = posixpath.join(
-            DEVICE_TEST_BASE_DIR, ndk.paths.to_posix_path(test_relpath)
-        )
+        test_dir = tests_dir / test_subdir
+        out_dir = test_dir / build_cfg.abi
+        test_relpath = out_dir.relative_to(out_dir_base)
+        device_dir = DEVICE_TEST_BASE_DIR / test_relpath
         for test_file in os.listdir(out_dir):
             if test_file.endswith(".so"):
                 continue
             if test_file.endswith(".sh"):
                 continue
             if test_file.endswith(".a"):
-                test_path = os.path.join(out_dir, test_file)
+                test_path = out_dir / test_file
                 logger().error(
                     "Found static library in app install directory. Static "
                     "libraries should never be installed. This is a bug in "
@@ -347,26 +342,24 @@ def enumerate_basic_tests(
 
 
 def enumerate_libcxx_tests(
-    out_dir_base: str,
-    test_src_dir: str,
+    out_dir_base: Path,
+    test_src_dir: Path,
     build_cfg: BuildConfiguration,
     build_system: str,
     test_filter: TestFilter,
 ) -> List[TestCase]:
     tests: List[TestCase] = []
-    tests_dir = os.path.join(out_dir_base, str(build_cfg), build_system)
-    if not os.path.exists(tests_dir):
+    tests_dir = out_dir_base / str(build_cfg) / build_system
+    if tests_dir.exists():
         return tests
 
     for root, _, files in os.walk(tests_dir):
         for test_file in files:
             if not test_file.endswith(".exe"):
                 continue
-            test_relpath = os.path.relpath(root, out_dir_base)
-            device_dir = posixpath.join(
-                DEVICE_TEST_BASE_DIR, ndk.paths.to_posix_path(test_relpath)
-            )
-            suite_name = ndk.paths.to_posix_path(os.path.relpath(root, tests_dir))
+            test_relpath = Path(root).relative_to(out_dir_base)
+            device_dir = DEVICE_TEST_BASE_DIR / test_relpath
+            suite_name = str(PurePosixPath(os.path.relpath(root, tests_dir)))
 
             # Our file has a .exe extension, but the name should match the
             # source file for the filters to work.
@@ -407,8 +400,8 @@ class ConfigFilter:
 
 
 def enumerate_tests(
-    test_dir: str,
-    test_src_dir: str,
+    test_dir: Path,
+    test_src_dir: Path,
     test_filter: TestFilter,
     config_filter: ConfigFilter,
 ) -> Dict[BuildConfiguration, List[TestCase]]:
@@ -427,7 +420,7 @@ def enumerate_tests(
     # are built by a test runner we don't control, so its output doesn't quite
     # match what we expect.
     test_subdir_class_map: Dict[
-        str, Callable[[str, str, BuildConfiguration, str, TestFilter], List[TestCase]]
+        str, Callable[[Path, Path, BuildConfiguration, str, TestFilter], List[TestCase]]
     ] = {
         "cmake": enumerate_basic_tests,
         "libcxx": enumerate_libcxx_tests,
@@ -454,7 +447,7 @@ def enumerate_tests(
 
 def clear_test_directory(_worker: Worker, device: Device) -> None:
     print(f"Clearing test directory on {device}")
-    cmd = ["rm", "-r", DEVICE_TEST_BASE_DIR]
+    cmd = ["rm", "-r", str(DEVICE_TEST_BASE_DIR)]
     logger().info('%s: shell_nocheck "%s"', device.name, cmd)
     device.shell_nocheck(cmd)
 
@@ -479,8 +472,8 @@ def adb_has_feature(feature: str) -> bool:
 
 def push_tests_to_device(
     worker: Worker,
-    src_dir: str,
-    dest_dir: str,
+    src_dir: Path,
+    dest_dir: Path,
     config: BuildConfiguration,
     device: Device,
     use_sync: bool,
@@ -528,13 +521,13 @@ def finish_workqueue_with_ui(workqueue: WorkQueue) -> None:
 
 def push_tests_to_devices(
     workqueue: WorkQueue,
-    test_dir: str,
+    test_dir: Path,
     groups_for_config: Mapping[BuildConfiguration, Iterable[DeviceShardingGroup]],
     use_sync: bool,
 ) -> None:
     dest_dir = DEVICE_TEST_BASE_DIR
     for config, groups in groups_for_config.items():
-        src_dir = os.path.join(test_dir, str(config))
+        src_dir = test_dir / str(config)
         for group in groups:
             for device in group.devices:
                 workqueue.add_task(
@@ -698,15 +691,21 @@ def parse_args() -> argparse.Namespace:
     doc = "https://android.googlesource.com/platform/ndk/+/master/docs/Testing.md"
     parser = argparse.ArgumentParser(epilog="See {} for more information.".format(doc))
 
-    def DirectoryArg(path: str) -> str:
-        if not os.path.isdir(path):
-            raise argparse.ArgumentTypeError("{} is not a directory".format(path))
-        return os.path.realpath(path)
+    def PathArg(path: str) -> Path:
+        # Path.resolve() fails if the path doesn't exist. We want to resolve
+        # symlinks when possible, but not require that the path necessarily
+        # exist, because we will create it later.
+        return Path(path).resolve(strict=False)
 
-    def FileArg(path: str) -> str:
-        if not os.path.isfile(path):
+    def ExistingDirectoryArg(path: str) -> Path:
+        if not Path(path).is_dir():
+            raise argparse.ArgumentTypeError("{} is not a directory".format(path))
+        return Path(path).resolve(strict=True)
+
+    def ExistingFileArg(path: str) -> Path:
+        if not Path(path).is_file():
             raise argparse.ArgumentTypeError("{} is not a file".format(path))
-        return os.path.realpath(path)
+        return Path(path).resolve(strict=True)
 
     config_options = parser.add_argument_group("Test Configuration Options")
     config_options.add_argument(
@@ -723,7 +722,7 @@ def parse_args() -> argparse.Namespace:
     # mypy is bad at those (it doesn't satisfy Callable[[str], AnyStr]).
     config_options.add_argument(
         "--config",
-        type=FileArg,
+        type=ExistingFileArg,
         default="qa_config.json",
         help="Path to the config file describing the test run.",
     )
@@ -731,7 +730,7 @@ def parse_args() -> argparse.Namespace:
     build_options = parser.add_argument_group("Build Options")
     build_options.add_argument(
         "--build-report",
-        type=os.path.realpath,  # type: ignore
+        type=PathArg,
         help="Write the build report to the given path.",
     )
 
@@ -784,22 +783,22 @@ def parse_args() -> argparse.Namespace:
 
     parser.add_argument(
         "--ndk",
-        type=DirectoryArg,
+        type=ExistingDirectoryArg,
         default=ndk.paths.get_install_path(),
         help="NDK to validate. Defaults to ../out/android-ndk-$RELEASE.",
     )
     parser.add_argument(
         "--test-src",
-        type=DirectoryArg,
+        type=ExistingDirectoryArg,
         help="Path to test source directory. Defaults to ./tests.",
     )
 
     parser.add_argument(
         "test_dir",
         metavar="TEST_DIR",
-        type=os.path.realpath,  # type: ignore
+        type=PathArg,
         nargs="?",
-        default=ndk.paths.path_in_out("tests"),
+        default=ndk.paths.path_in_out(Path("tests")),
         help="Directory containing built tests.",
     )
 
@@ -833,9 +832,9 @@ class Results:
 def run_tests(args: argparse.Namespace) -> Results:
     results = Results()
 
-    if not os.path.exists(args.test_dir):
+    if not args.test_dir.exists():
         if args.rebuild or args.build_only:
-            os.makedirs(args.test_dir)
+            args.test_dir.mkdir(parents=True)
         else:
             sys.exit("Test output directory does not exist: {}".format(args.test_dir))
 
@@ -844,11 +843,11 @@ def run_tests(args: argparse.Namespace) -> Results:
     printer = StdoutPrinter(show_all=args.show_all)
 
     if args.test_src is None:
-        args.test_src = os.path.realpath("tests")
-        if not os.path.exists(args.test_src):
+        args.test_src = Path("tests").resolve(strict=False)
+        if not args.test_src.exists():
             sys.exit("Test source directory does not exist: {}".format(args.test_src))
 
-    test_dist_dir = os.path.join(args.test_dir, "dist")
+    test_dist_dir = args.test_dir / "dist"
     if args.build_only or args.rebuild:
         build_timer = Timer()
         with build_timer:
@@ -858,7 +857,7 @@ def run_tests(args: argparse.Namespace) -> Results:
                 args.test_dir,
                 test_filter=args.filter,
                 clean=args.clean,
-                package_path=Path(ndk.paths.path_in_out("dist/ndk-tests"))
+                package_path=ndk.paths.path_in_out(Path("dist/ndk-tests"))
                 if args.package
                 else None,
             )
@@ -1000,7 +999,7 @@ def main() -> None:
     log_level = log_levels[verbosity]
     logging.basicConfig(level=log_level)
 
-    python_packages = os.path.join(args.ndk, "python-packages")
+    python_packages = args.ndk / "python-packages"
     site.addsitedir(python_packages)
 
     total_timer = Timer()

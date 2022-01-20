@@ -19,7 +19,7 @@ from __future__ import absolute_import
 import json
 import logging
 import os
-import pathlib
+from pathlib import Path
 import pickle
 import random
 import shutil
@@ -62,12 +62,12 @@ def write_build_report(build_report: str, results: Report) -> None:
         pickle.dump(results, build_report_file)
 
 
-def scan_test_suite(suite_dir: str, test_scanner: TestScanner) -> List[Test]:
+def scan_test_suite(suite_dir: Path, test_scanner: TestScanner) -> List[Test]:
     tests: List[Test] = []
     for dentry in os.listdir(suite_dir):
-        path = os.path.join(suite_dir, dentry)
-        if os.path.isdir(path):
-            test_name = os.path.basename(path)
+        path = suite_dir / dentry
+        if path.is_dir():
+            test_name = path.name
             tests.extend(test_scanner.find_tests(path, test_name))
     return tests
 
@@ -98,8 +98,8 @@ def _run_test(
     worker: Worker,
     suite: str,
     test: Test,
-    obj_dir: str,
-    dist_dir: str,
+    obj_dir: Path,
+    dist_dir: Path,
     test_filters: TestFilter,
 ) -> Tuple[str, ndk.test.result.TestResult, List[Test]]:
     """Runs a given test according to the given filters.
@@ -147,12 +147,12 @@ class TestBuilder:
     ) -> None:
         self.printer = printer
         self.tests: Dict[str, List[Test]] = {}
-        self.build_dirs: Dict[str, Tuple[str, Test]] = {}
+        self.build_dirs: Dict[Path, Tuple[str, Test]] = {}
 
         self.test_options = test_options
 
-        self.obj_dir = os.path.join(self.test_options.out_dir, "obj")
-        self.dist_dir = os.path.join(self.test_options.out_dir, "dist")
+        self.obj_dir = self.test_options.out_dir / "obj"
+        self.dist_dir = self.test_options.out_dir / "dist"
 
         self.find_tests(test_spec)
 
@@ -173,25 +173,28 @@ class TestBuilder:
                 libcxx_scanner.add_build_configuration(config)
 
         if "build" in test_spec.suites:
-            test_src = os.path.join(self.test_options.src_dir, "build")
+            test_src = self.test_options.src_dir / "build"
             self.add_suite("build", test_src, nodist_scanner)
         if "device" in test_spec.suites:
-            test_src = os.path.join(self.test_options.src_dir, "device")
+            test_src = self.test_options.src_dir / "device"
             self.add_suite("device", test_src, scanner)
         if "libc++" in test_spec.suites:
-            test_src = os.path.join(self.test_options.src_dir, "libc++")
+            test_src = self.test_options.src_dir / "libc++"
             self.add_suite("libc++", test_src, libcxx_scanner)
 
     @classmethod
     def from_config_file(
-        cls, config_path: str, test_options: ndk.test.spec.TestOptions, printer: Printer
+        cls,
+        config_path: Path,
+        test_options: ndk.test.spec.TestOptions,
+        printer: Printer,
     ) -> "TestBuilder":
         with open(config_path) as test_config_file:
             test_config = json.load(test_config_file)
         spec = test_spec_from_config(test_config)
         return cls(spec, test_options, printer)
 
-    def add_suite(self, name: str, path: str, test_scanner: TestScanner) -> None:
+    def add_suite(self, name: str, path: Path, test_scanner: TestScanner) -> None:
         if name in self.tests:
             raise KeyError("suite {} already exists".format(name))
         new_tests = scan_test_suite(path, test_scanner)
@@ -202,7 +205,7 @@ class TestBuilder:
         self, suite: str, new_tests: List[Test]
     ) -> None:
         for test in new_tests:
-            build_dir = test.get_build_dir("")
+            build_dir = test.get_build_dir(Path(""))
             if build_dir in self.build_dirs:
                 dup_suite, dup_test = self.build_dirs[build_dir]
                 raise RuntimeError(
@@ -213,13 +216,13 @@ class TestBuilder:
             self.build_dirs[build_dir] = (suite, test)
 
     def make_out_dirs(self) -> None:
-        if not os.path.exists(self.obj_dir):
-            os.makedirs(self.obj_dir)
-        if not os.path.exists(self.dist_dir):
-            os.makedirs(self.dist_dir)
+        if not self.obj_dir.exists():
+            self.obj_dir.mkdir(parents=True)
+        if not self.dist_dir.exists():
+            self.dist_dir.mkdir(parents=True)
 
     def clean_out_dir(self) -> None:
-        if os.path.exists(self.test_options.out_dir):
+        if self.test_options.out_dir.exists():
             shutil.rmtree(self.test_options.out_dir)
 
     def build(self) -> Report:
@@ -321,7 +324,7 @@ class TestBuilder:
             shutil.make_archive(
                 str(self.test_options.package_path),
                 "bztar",
-                str(pathlib.Path(self.test_options.out_dir).parent),
+                str(Path(self.test_options.out_dir).parent),
                 "tests/dist",
             )
         else:
@@ -338,7 +341,7 @@ class TestBuilder:
                 "-cf",
                 str(package_path),
                 "-C",
-                str(pathlib.Path(self.test_options.out_dir).parent),
+                str(Path(self.test_options.out_dir).parent),
                 "tests/dist",
             ]
             subprocess.check_call(cmd)

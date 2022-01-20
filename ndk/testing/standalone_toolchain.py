@@ -15,6 +15,7 @@
 #
 import logging
 import os
+from pathlib import Path
 import shutil
 import subprocess
 import tempfile
@@ -43,17 +44,17 @@ def call_output(cmd: list[str], *args: Any, **kwargs: Any) -> tuple[int, Any]:
 
 
 def make_standalone_toolchain(
-    ndk_path: str, config: BuildConfiguration, extra_args: list[str], install_dir: str
+    ndk_path: Path, config: BuildConfiguration, extra_args: list[str], install_dir: Path
 ) -> tuple[bool, str]:
-    make_standalone_toolchain_path = os.path.join(
-        ndk_path, "build/tools/make_standalone_toolchain.py"
+    make_standalone_toolchain_path = (
+        ndk_path / "build/tools/make_standalone_toolchain.py"
     )
 
     arch = ndk.abis.abi_to_arch(config.abi)
     cmd = [
-        make_standalone_toolchain_path,
+        str(make_standalone_toolchain_path),
         "--force",
-        "--install-dir=" + install_dir,
+        "--install-dir=" + str(install_dir),
         "--arch=" + arch,
         "--api={}".format(config.api),
     ] + extra_args
@@ -62,30 +63,28 @@ def make_standalone_toolchain(
         # Windows doesn't process shebang lines, and we wouldn't be pointing at
         # the right Python if it did. Explicitly invoke the NDK's Python for on
         # Windows.
-        prebuilt_dir = os.path.join(ndk_path, "prebuilt/windows-x86_64")
-        if not os.path.exists(prebuilt_dir):
-            prebuilt_dir = os.path.join(ndk_path, "prebuilt/windows")
-        if not os.path.exists(prebuilt_dir):
+        prebuilt_dir = ndk_path / "prebuilt" / "windows-x86_64"
+        if not prebuilt_dir.exists():
+            prebuilt_dir = ndk_path / "prebuilt" / "windows"
+        if not prebuilt_dir.exists():
             raise RuntimeError(
-                "Could not find prebuilts in {}".format(
-                    os.path.join(ndk_path, "prebuilt")
-                )
+                "Could not find prebuilts in {}".format(ndk_path / "prebuilt")
             )
 
-        python_path = os.path.join(prebuilt_dir, "bin/python.exe")
-        cmd = [python_path] + cmd
+        python_path = prebuilt_dir / "bin" / "python.exe"
+        cmd = [str(python_path)] + cmd
 
     rc, out = call_output(cmd)
     return rc == 0, out.decode("utf-8")
 
 
 def test_standalone_toolchain(
-    install_dir: str, test_source: str, flags: list[str]
+    install_dir: Path, test_source: str, flags: list[str]
 ) -> tuple[bool, str]:
     compiler_name = "clang++"
 
-    compiler = os.path.join(install_dir, "bin", compiler_name)
-    cmd = [compiler, test_source, "-Wl,--no-undefined", "-Wl,--fatal-warnings"]
+    compiler = install_dir / "bin" / compiler_name
+    cmd = [str(compiler), test_source, "-Wl,--no-undefined", "-Wl,--fatal-warnings"]
     cmd += flags
     if os.name == "nt":
         # The Windows equivalent of exec doesn't know file associations so it
@@ -96,14 +95,14 @@ def test_standalone_toolchain(
 
 
 def run_test(
-    ndk_path: str,
+    ndk_path: Path,
     config: BuildConfiguration,
     test_source: str,
     extra_args: list[str],
     flags: list[str],
 ) -> tuple[bool, str]:
 
-    install_dir = tempfile.mkdtemp()
+    install_dir = Path(tempfile.mkdtemp())
     try:
         success, out = make_standalone_toolchain(
             ndk_path, config, extra_args, install_dir

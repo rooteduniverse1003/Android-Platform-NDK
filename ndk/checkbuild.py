@@ -65,7 +65,6 @@ import ndk.builds
 import ndk.cmake
 import ndk.config
 import ndk.deps
-import ndk.ext.shutil
 import ndk.file
 from ndk.hosts import Host
 import ndk.notify
@@ -274,7 +273,7 @@ def package_ndk(
     return _make_zip_package(package_path, ndk_dir.parent, [ndk_dir.name], host)
 
 
-def build_ndk_tests(out_dir: str, dist_dir: str, args: argparse.Namespace) -> bool:
+def build_ndk_tests(out_dir: Path, dist_dir: Path, args: argparse.Namespace) -> bool:
     """Builds the NDK tests.
 
     Args:
@@ -290,9 +289,9 @@ def build_ndk_tests(out_dir: str, dist_dir: str, args: argparse.Namespace) -> bo
     # reuse that for testing.
     ndk_dir = ndk.paths.get_install_path(out_dir)
     test_src_dir = ndk.paths.ndk_path("tests")
-    test_out_dir = os.path.join(out_dir, "tests")
+    test_out_dir = out_dir / "tests"
 
-    site.addsitedir(os.path.join(ndk_dir, "python-packages"))
+    site.addsitedir(str(ndk_dir / "python-packages"))
 
     test_options = ndk.test.spec.TestOptions(
         test_src_dir,
@@ -315,7 +314,7 @@ def build_ndk_tests(out_dir: str, dist_dir: str, args: argparse.Namespace) -> bo
     if not report.successful:
         # Write out the result to logs/build_error.log so we can find the
         # failure easily on the build server.
-        log_path = os.path.join(dist_dir, "logs/build_error.log")
+        log_path = dist_dir / "logs" / "build_error.log"
         with open(log_path, "a") as error_log:
             error_log_printer = ndk.test.printers.FilePrinter(error_log)
             error_log_printer.print_summary(report)
@@ -323,38 +322,38 @@ def build_ndk_tests(out_dir: str, dist_dir: str, args: argparse.Namespace) -> bo
     return report.successful
 
 
-def install_file(file_name: str, src_dir: str, dst_dir: str) -> None:
-    src_file = os.path.join(src_dir, file_name)
-    dst_file = os.path.join(dst_dir, file_name)
+def install_file(file_name: str, src_dir: Path, dst_dir: Path) -> None:
+    src_file = src_dir / file_name
+    dst_file = dst_dir / file_name
 
     print("Copying {} to {}...".format(src_file, dst_file))
-    if os.path.isdir(src_file):
+    if src_file.is_dir():
         _install_dir(src_file, dst_file)
-    elif os.path.islink(src_file):
+    elif src_file.is_symlink():
         _install_symlink(src_file, dst_file)
     else:
         _install_file(src_file, dst_file)
 
 
-def _install_dir(src_dir: str, dst_dir: str) -> None:
-    parent_dir = os.path.normpath(os.path.join(dst_dir, ".."))
-    if not os.path.exists(parent_dir):
-        os.makedirs(parent_dir)
+def _install_dir(src_dir: Path, dst_dir: Path) -> None:
+    parent_dir = dst_dir.parent
+    if not parent_dir.exists():
+        parent_dir.mkdir(parents=True)
     shutil.copytree(src_dir, dst_dir, symlinks=True)
 
 
-def _install_symlink(src_file: str, dst_file: str) -> None:
-    dirname = os.path.dirname(dst_file)
-    if not os.path.exists(dirname):
-        os.makedirs(dirname)
+def _install_symlink(src_file: Path, dst_file: Path) -> None:
+    dirname = dst_file.parent
+    if not dirname.exists():
+        dirname.mkdir(parents=True)
     link_target = os.readlink(src_file)
     os.symlink(link_target, dst_file)
 
 
-def _install_file(src_file: str, dst_file: str) -> None:
-    dirname = os.path.dirname(dst_file)
-    if not os.path.exists(dirname):
-        os.makedirs(dirname)
+def _install_file(src_file: Path, dst_file: Path) -> None:
+    dirname = dst_file.parent
+    if not dirname.exists():
+        dirname.mkdir(parents=True)
     # copy2 is just copy followed by copystat (preserves file metadata).
     shutil.copy2(src_file, dst_file)
 
@@ -797,17 +796,17 @@ class Toolbox(ndk.builds.Module):
         shutil.copy2(self.intermediate_out_dir / "cmp.exe", install_dir)
 
 
-def install_exe(out_dir: str, install_dir: str, name: str, host: Host) -> None:
+def install_exe(out_dir: Path, install_dir: Path, name: str, host: Host) -> None:
     ext = ".exe" if host.is_windows else ""
     exe_name = name + ext
-    src = os.path.join(out_dir, exe_name)
-    dst = os.path.join(install_dir, exe_name)
+    src = out_dir / exe_name
+    dst = install_dir / exe_name
 
-    ndk.ext.shutil.create_directory(install_dir)
+    install_dir.mkdir(parents=True, exist_ok=True)
     shutil.copy2(src, dst)
 
 
-def make_linker_script(path: str, libs: List[str]) -> None:
+def make_linker_script(path: Path, libs: List[str]) -> None:
     ndk.file.write_file(path, "INPUT({})\n".format(" ".join(libs)))
 
 
@@ -826,17 +825,15 @@ class Libcxx(ndk.builds.Module):
     }
 
     @property
-    def obj_out(self) -> str:
-        return os.path.join(self.out_dir, "libcxx/obj")
+    def obj_out(self) -> Path:
+        return self.out_dir / "libcxx" / "obj"
 
     @property
-    def lib_out(self) -> str:
-        return os.path.join(self.out_dir, "libcxx/libs")
+    def lib_out(self) -> Path:
+        return self.out_dir / "libcxx" / "libs"
 
     def build(self) -> None:
-        ndk_build = os.path.join(
-            self.get_dep("ndk-build").get_build_host_install(), "ndk-build"
-        )
+        ndk_build = self.get_dep("ndk-build").get_build_host_install() / "ndk-build"
         bionic_path = ndk.paths.android_path("bionic")
 
         android_mk = self.src / "Android.mk"
@@ -844,21 +841,21 @@ class Libcxx(ndk.builds.Module):
 
         build_cmd = [
             "bash",
-            ndk_build,
+            str(ndk_build),
             f"-j{multiprocessing.cpu_count()}",
             "V=1",
             # Since nothing in this build depends on libc++_static, we need to
             # name it to force it to build.
             "APP_MODULES=c++_shared c++_static",
-            "BIONIC_PATH=" + bionic_path,
+            f"BIONIC_PATH={bionic_path}",
             # Tell ndk-build where all of our makefiles are and where outputs
             # should go. The defaults in ndk-build are only valid if we have a
             # typical ndk-build layout with a jni/{Android,Application}.mk.
             "NDK_PROJECT_PATH=null",
             f"APP_BUILD_SCRIPT={android_mk}",
             f"NDK_APPLICATION_MK={application_mk}",
-            "NDK_OUT=" + self.obj_out,
-            "NDK_LIBS_OUT=" + self.lib_out,
+            f"NDK_OUT={self.obj_out}",
+            f"NDK_LIBS_OUT={self.lib_out}",
             # Make sure we don't pick up a cached copy.
             "LIBCXX_FORCE_REBUILD=true",
         ]
@@ -869,18 +866,16 @@ class Libcxx(ndk.builds.Module):
     def install(self) -> None:
         install_root = self.get_install_path()
 
-        if os.path.exists(install_root):
+        if install_root.exists():
             shutil.rmtree(install_root)
-        os.makedirs(install_root)
+        install_root.mkdir(parents=True)
 
-        shutil.copy2(str(self.src / "Android.mk"), install_root)
-        shutil.copytree(
-            str(self.src / "include"), os.path.join(install_root, "include")
-        )
-        shutil.copytree(self.lib_out, os.path.join(install_root, "libs"))
+        shutil.copy2(self.src / "Android.mk", install_root)
+        shutil.copytree(self.src / "include", install_root / "include")
+        shutil.copytree(self.lib_out, install_root / "libs")
 
         for abi in ndk.abis.ALL_ABIS:
-            lib_dir = os.path.join(install_root, "libs", abi)
+            lib_dir = install_root / "libs" / abi
 
             # The static libraries installed to the obj dir, not the lib dir.
             self.install_static_libs(lib_dir, abi)
@@ -896,14 +891,14 @@ class Libcxx(ndk.builds.Module):
                 if api < ndk.abis.min_api_for_abi(abi):
                     continue
 
-    def install_static_libs(self, lib_dir: str, abi: ndk.abis.Abi) -> None:
-        static_lib_dir = os.path.join(self.obj_out, "local", abi)
+    def install_static_libs(self, lib_dir: Path, abi: ndk.abis.Abi) -> None:
+        static_lib_dir = self.obj_out / "local" / abi
 
-        shutil.copy2(os.path.join(static_lib_dir, "libc++abi.a"), lib_dir)
-        shutil.copy2(os.path.join(static_lib_dir, "libc++_static.a"), lib_dir)
+        shutil.copy2(static_lib_dir / "libc++abi.a", lib_dir)
+        shutil.copy2(static_lib_dir / "libc++_static.a", lib_dir)
 
         if abi in ndk.abis.LP32_ABIS:
-            shutil.copy2(os.path.join(static_lib_dir, "libandroid_support.a"), lib_dir)
+            shutil.copy2(static_lib_dir / "libandroid_support.a", lib_dir)
 
 
 @register
@@ -932,7 +927,7 @@ class Platforms(ndk.builds.Module):
 
     prebuilts_path = ANDROID_DIR / "prebuilts/ndk/platform"
 
-    def src_path(self, *args: str) -> str:  # pylint: disable=no-self-use
+    def src_path(self, *args: str) -> Path:  # pylint: disable=no-self-use
         return ndk.paths.android_path("development/ndk/platforms", *args)
 
     def llvm_tool(self, tool: str) -> Path:
@@ -983,8 +978,8 @@ class Platforms(ndk.builds.Module):
 
     def get_build_cmd(
         self,
-        dst: str,
-        srcs: List[str],
+        dst: Path,
+        srcs: List[Path],
         api: int,
         arch: ndk.abis.Arch,
         build_number: Union[int, str],
@@ -1014,25 +1009,25 @@ class Platforms(ndk.builds.Module):
             "-Wa,--noexecstack",
             "-Wl,-z,noexecstack",
             "-o",
-            dst,
-        ] + srcs
+            str(dst),
+        ] + [str(src) for src in srcs]
 
         if arch == ndk.abis.Arch("arm64"):
             args.append("-mbranch-protection=standard")
 
         return args
 
-    def check_elf_note(self, obj_file: str) -> None:
+    def check_elf_note(self, obj_file: Path) -> None:
         # readelf is a cross platform tool, so arch doesn't matter.
         readelf = self.llvm_tool("llvm-readelf")
-        out = subprocess.check_output([str(readelf), "--notes", obj_file])
+        out = subprocess.check_output([str(readelf), "--notes", str(obj_file)])
         if "Android" not in out.decode("utf-8"):
             raise RuntimeError("{} does not contain NDK ELF note".format(obj_file))
 
     def build_crt_object(
         self,
-        dst: str,
-        srcs: List[str],
+        dst: Path,
+        srcs: List[Path],
         api: int,
         arch: ndk.abis.Arch,
         build_number: Union[int, str],
@@ -1045,34 +1040,38 @@ class Platforms(ndk.builds.Module):
         subprocess.check_call(cc_args)
 
     def build_crt_objects(
-        self, dst_dir: str, api: int, arch: ndk.abis.Arch, build_number: Union[int, str]
+        self,
+        dst_dir: Path,
+        api: int,
+        arch: ndk.abis.Arch,
+        build_number: Union[int, str],
     ) -> None:
         src_dir = ndk.paths.android_path("bionic/libc/arch-common/bionic")
         crt_brand = ndk.paths.ndk_path("sources/crt/crtbrand.S")
 
         objects = {
             "crtbegin_dynamic.o": [
-                os.path.join(src_dir, "crtbegin.c"),
+                src_dir / "crtbegin.c",
                 crt_brand,
             ],
             "crtbegin_so.o": [
-                os.path.join(src_dir, "crtbegin_so.c"),
+                src_dir / "crtbegin_so.c",
                 crt_brand,
             ],
             "crtbegin_static.o": [
-                os.path.join(src_dir, "crtbegin.c"),
+                src_dir / "crtbegin.c",
                 crt_brand,
             ],
             "crtend_android.o": [
-                os.path.join(src_dir, "crtend.S"),
+                src_dir / "crtend.S",
             ],
             "crtend_so.o": [
-                os.path.join(src_dir, "crtend_so.S"),
+                src_dir / "crtend_so.S",
             ],
         }
 
         for name, srcs in objects.items():
-            dst_path = os.path.join(dst_dir, name)
+            dst_path = dst_dir / name
             defs = []
             if name == "crtbegin_static.o":
                 # libc.a is always the latest version, so ignore the API level
@@ -1083,8 +1082,8 @@ class Platforms(ndk.builds.Module):
                 self.check_elf_note(dst_path)
 
     def build(self) -> None:
-        build_dir = os.path.join(self.out_dir, self.install_path)
-        if os.path.exists(build_dir):
+        build_dir = self.out_dir / self.install_path
+        if build_dir.exists():
             shutil.rmtree(build_dir)
 
         apis = self.get_apis()
@@ -1111,18 +1110,18 @@ class Platforms(ndk.builds.Module):
             platform = "android-{}".format(api)
             for arch in self.get_arches(api):
                 arch_name = "arch-{}".format(arch)
-                dst_dir = os.path.join(build_dir, platform, arch_name)
-                os.makedirs(dst_dir)
+                dst_dir = build_dir / platform / arch_name
+                dst_dir.mkdir(parents=True)
                 assert self.context is not None
                 self.build_crt_objects(dst_dir, api, arch, self.context.build_number)
 
     def install(self) -> None:
-        build_dir = os.path.join(self.out_dir, self.install_path)
+        build_dir = self.out_dir / self.install_path
         install_dir = self.get_install_path()
 
-        if os.path.exists(install_dir):
+        if install_dir.exists():
             shutil.rmtree(install_dir)
-        os.makedirs(install_dir)
+        install_dir.mkdir(parents=True)
 
         for api in self.get_apis():
             if api in self.skip_apis:
@@ -1131,7 +1130,7 @@ class Platforms(ndk.builds.Module):
             # Copy shared libraries from prebuilts/ndk/platform/platforms.
             platform = "android-{}".format(api)
             platform_src = self.prebuilts_path / "platforms" / platform
-            platform_dst = os.path.join(install_dir, "android-{}".format(api))
+            platform_dst = install_dir / "android-{}".format(api)
             shutil.copytree(platform_src, platform_dst)
 
             for arch in self.get_arches(api):
@@ -1144,32 +1143,28 @@ class Platforms(ndk.builds.Module):
                 # duplicating all the libraries in platforms.
                 lib_dir = self.prebuilts_path / "sysroot/usr/lib" / triple
                 libdir_name = self.libdir_name(arch)
-                lib_dir_dst = os.path.join(
-                    install_dir, platform, arch_name, "usr", libdir_name
-                )
+                lib_dir_dst = install_dir / platform / arch_name / "usr" / libdir_name
                 for name in os.listdir(lib_dir):
-                    lib_src = os.path.join(lib_dir, name)
-                    lib_dst = os.path.join(lib_dir_dst, name)
+                    lib_src = lib_dir / name
+                    lib_dst = lib_dir_dst / name
                     shutil.copy2(lib_src, lib_dst)
 
                 if libdir_name == "lib64":
                     # The Clang driver won't accept a sysroot that contains
                     # only a lib64. An empty lib dir is enough to convince it.
-                    os.makedirs(
-                        os.path.join(install_dir, platform, arch_name, "usr/lib")
-                    )
+                    (install_dir / platform / arch_name / "usr/lib").mkdir(parents=True)
 
                 # Install the CRT objects that we just built.
-                obj_dir = os.path.join(build_dir, platform, arch_name)
+                obj_dir = build_dir / platform / arch_name
                 for name in os.listdir(obj_dir):
-                    obj_src = os.path.join(obj_dir, name)
-                    obj_dst = os.path.join(lib_dir_dst, name)
+                    obj_src = obj_dir / name
+                    obj_dst = lib_dir_dst / name
                     shutil.copy2(obj_src, obj_dst)
 
         # https://github.com/android-ndk/ndk/issues/372
         for root, dirs, files in os.walk(install_dir):
             if not files and not dirs:
-                with open(os.path.join(root, ".keep_dir"), "w") as keep_file:
+                with open(Path(root) / ".keep_dir", "w") as keep_file:
                     keep_file.write("This file forces git to keep the directory.")
 
 
@@ -1194,7 +1189,7 @@ class LibShaderc(ndk.builds.Module):
     def install(self) -> None:
         copies = [
             {
-                "source_dir": os.path.join(self.src, "shaderc"),
+                "source_dir": str(self.src / "shaderc"),
                 "dest_dir": "",
                 "files": [
                     "Android.mk",
@@ -1212,7 +1207,7 @@ class LibShaderc(ndk.builds.Module):
                 ],
             },
             {
-                "source_dir": os.path.join(self.src, "spirv-tools"),
+                "source_dir": str(self.src / "spirv-tools"),
                 "dest_dir": "third_party/spirv-tools",
                 "files": [
                     "utils/generate_grammar_tables.py",
@@ -1225,7 +1220,7 @@ class LibShaderc(ndk.builds.Module):
                 "dirs": ["include", "source"],
             },
             {
-                "source_dir": os.path.join(self.src, "spirv-headers"),
+                "source_dir": str(self.src / "spirv-headers"),
                 "dest_dir": "third_party/spirv-tools/external/spirv-headers",
                 "dirs": ["include"],
                 "files": [
@@ -1236,7 +1231,7 @@ class LibShaderc(ndk.builds.Module):
                 ],
             },
             {
-                "source_dir": os.path.join(self.src, "glslang"),
+                "source_dir": str(self.src / "glslang"),
                 "dest_dir": "third_party/glslang",
                 "files": [
                     "Android.mk",
@@ -1272,11 +1267,11 @@ class LibShaderc(ndk.builds.Module):
             source_dir = properties["source_dir"]
             assert isinstance(source_dir, str)
             assert isinstance(properties["dest_dir"], str)
-            dest_dir = os.path.join(install_dir, properties["dest_dir"])
+            dest_dir = install_dir / properties["dest_dir"]
             for d in properties["dirs"]:
                 assert isinstance(d, str)
-                src = os.path.join(source_dir, d)
-                dst = os.path.join(dest_dir, d)
+                src = Path(source_dir) / d
+                dst = Path(dest_dir) / d
                 print(src, " -> ", dst)
                 shutil.copytree(src, dst, ignore=default_ignore_patterns)
             for f in properties["files"]:
@@ -1285,8 +1280,8 @@ class LibShaderc(ndk.builds.Module):
                 # we can update this script in anticipation of
                 # source files yet-to-come.
                 assert isinstance(f, str)
-                if os.path.exists(os.path.join(source_dir, f)):
-                    install_file(f, source_dir, dest_dir)
+                if (Path(source_dir) / f).exists():
+                    install_file(f, Path(source_dir), Path(dest_dir))
                 else:
                     print(source_dir, ":", dest_dir, ":", f, "SKIPPED")
 
@@ -1361,11 +1356,9 @@ class Sysroot(ndk.builds.Module):
                 "usr/include/linux/netfilter/xt_TCPMSS.h",
             ]
             for remove_path in remove_paths:
-                os.remove(os.path.join(install_path, remove_path))
+                os.remove(install_path / remove_path)
 
-        ndk_version_h_path = os.path.join(
-            install_path, "usr/include/android/ndk-version.h"
-        )
+        ndk_version_h_path = install_path / "usr/include/android/ndk-version.h"
         with open(ndk_version_h_path, "w") as ndk_version_h:
             major = ndk.config.major
             minor = ndk.config.hotfix
@@ -1421,7 +1414,7 @@ class Sysroot(ndk.builds.Module):
 
 
 def write_clang_shell_script(
-    wrapper_path: str, clang_name: str, flags: List[str]
+    wrapper_path: Path, clang_name: str, flags: List[str]
 ) -> None:
     with open(wrapper_path, "w") as wrapper:
         wrapper.write(
@@ -1445,7 +1438,7 @@ def write_clang_shell_script(
 
 
 def write_clang_batch_script(
-    wrapper_path: str, clang_name: str, flags: List[str]
+    wrapper_path: Path, clang_name: str, flags: List[str]
 ) -> None:
     with open(wrapper_path, "w") as wrapper:
         wrapper.write(
@@ -1481,7 +1474,7 @@ def write_clang_batch_script(
 
 
 def write_clang_wrapper(
-    install_dir: str, api: int, triple: str, is_windows: bool
+    install_dir: Path, api: int, triple: str, is_windows: bool
 ) -> None:
     """Writes a target-specific Clang wrapper.
 
@@ -1499,8 +1492,8 @@ def write_clang_wrapper(
     if triple.startswith("arm-linux"):
         triple = "armv7a-linux-androideabi"
 
-    wrapper_path = os.path.join(install_dir, "{}{}-clang".format(triple, api))
-    wrapperxx_path = wrapper_path + "++"
+    wrapper_path = install_dir / "{}{}-clang".format(triple, api)
+    wrapperxx_path = wrapper_path.parent / (wrapper_path.name + "++")
 
     flags = ["--target={}{}".format(triple, api)]
 
@@ -1512,8 +1505,12 @@ def write_clang_wrapper(
     write_clang_shell_script(wrapper_path, "clang" + exe_suffix, flags)
     write_clang_shell_script(wrapperxx_path, "clang++" + exe_suffix, flags)
     if is_windows:
-        write_clang_batch_script(wrapper_path + ".cmd", "clang" + exe_suffix, flags)
-        write_clang_batch_script(wrapperxx_path + ".cmd", "clang++" + exe_suffix, flags)
+        write_clang_batch_script(
+            wrapper_path.with_suffix(".cmd"), "clang" + exe_suffix, flags
+        )
+        write_clang_batch_script(
+            wrapperxx_path.with_suffix(".cmd"), "clang++" + exe_suffix, flags
+        )
 
 
 @register
@@ -1564,8 +1561,8 @@ class BaseToolchain(ndk.builds.Module):
 
         exe = ".exe" if self.host.is_windows else ""
         shutil.copy2(
-            os.path.join(yasm_dir, "bin", "yasm" + exe),
-            os.path.join(install_dir, "bin"),
+            yasm_dir / "bin" / ("yasm" + exe),
+            install_dir / "bin",
         )
 
         bin_dir = Path(install_dir) / "bin"
@@ -1586,26 +1583,24 @@ class BaseToolchain(ndk.builds.Module):
                 triple = ndk.abis.arch_to_triple(arch)
                 arch_name = "arch-{}".format(arch)
                 lib_dir = "lib64" if arch == "x86_64" else "lib"
-                src_dir = os.path.join(
-                    platforms_dir, platform, arch_name, "usr", lib_dir
-                )
-                dst_dir = os.path.join(install_dir, "sysroot/usr/lib", triple, str(api))
+                src_dir = platforms_dir / platform / arch_name / "usr" / lib_dir
+                dst_dir = install_dir / "sysroot/usr/lib" / triple / str(api)
                 shutil.copytree(src_dir, dst_dir)
                 # TODO: Remove duplicate static libraries from this directory.
                 # We already have them in the version-generic directory.
 
                 write_clang_wrapper(
-                    os.path.join(install_dir, "bin"), api, triple, self.host.is_windows
+                    install_dir / "bin", api, triple, self.host.is_windows
                 )
 
         # Clang searches for libstdc++ headers at $GCC_PATH/../include/c++. It
         # maybe be worth adding a search for the same path within the usual
         # sysroot location to centralize these, or possibly just remove them
         # from the NDK since they aren't particularly useful anyway.
-        system_stl_hdr_dir = os.path.join(install_dir, "include/c++")
-        os.makedirs(system_stl_hdr_dir)
-        system_stl_inc_src = os.path.join(system_stl_dir, "include")
-        system_stl_inc_dst = os.path.join(system_stl_hdr_dir, "4.9.x")
+        system_stl_hdr_dir = install_dir / "include/c++"
+        system_stl_hdr_dir.mkdir(parents=True)
+        system_stl_inc_src = system_stl_dir / "include"
+        system_stl_inc_dst = system_stl_hdr_dir / "4.9.x"
         shutil.copytree(system_stl_inc_src, system_stl_inc_dst)
 
         # $SYSROOT/usr/local/include comes before $SYSROOT/usr/include, so we
@@ -1615,10 +1610,10 @@ class BaseToolchain(ndk.builds.Module):
         # android-21+ and in the case of pre-21 without libandroid_support
         # (libstdc++), we're only degrading the UX; the user will get a linker
         # error instead of a compiler error.
-        support_hdr_dir = os.path.join(install_dir, "sysroot/usr/local")
-        os.makedirs(support_hdr_dir)
-        support_inc_src = os.path.join(libandroid_support_dir, "include")
-        support_inc_dst = os.path.join(support_hdr_dir, "include")
+        support_hdr_dir = install_dir / "sysroot/usr/local"
+        support_hdr_dir.mkdir(parents=True)
+        support_inc_src = libandroid_support_dir / "include"
+        support_inc_dst = support_hdr_dir / "include"
         shutil.copytree(support_inc_src, support_inc_dst)
 
 
@@ -1689,20 +1684,20 @@ class Toolchain(ndk.builds.Module):
         libcxx_dir = self.get_dep("libc++").get_install_path()
         libcxxabi_dir = self.get_dep("libc++abi").get_install_path()
 
-        libcxx_hdr_dir = os.path.join(install_dir, "sysroot/usr/include/c++")
-        os.makedirs(libcxx_hdr_dir)
-        libcxx_inc_src = os.path.join(libcxx_dir, "include")
-        libcxx_inc_dst = os.path.join(libcxx_hdr_dir, "v1")
+        libcxx_hdr_dir = install_dir / "sysroot/usr/include/c++"
+        libcxx_hdr_dir.mkdir(parents=True)
+        libcxx_inc_src = libcxx_dir / "include"
+        libcxx_inc_dst = libcxx_hdr_dir / "v1"
         shutil.copytree(libcxx_inc_src, libcxx_inc_dst)
 
-        libcxxabi_inc_src = os.path.join(libcxxabi_dir, "include")
-        copy_tree(libcxxabi_inc_src, libcxx_inc_dst)
+        libcxxabi_inc_src = libcxxabi_dir / "include"
+        copy_tree(str(libcxxabi_inc_src), str(libcxx_inc_dst))
 
         for arch in ndk.abis.ALL_ARCHITECTURES:
             triple = ndk.abis.arch_to_triple(arch)
             (abi,) = ndk.abis.arch_to_abis(arch)
-            libcxx_lib_dir = os.path.join(libcxx_dir, "libs", abi)
-            sysroot_dst = os.path.join(install_dir, "sysroot/usr/lib", triple)
+            libcxx_lib_dir = libcxx_dir / "libs" / abi
+            sysroot_dst = install_dir / "sysroot/usr/lib" / triple
 
             libs = [
                 "libc++_shared.so",
@@ -1713,7 +1708,7 @@ class Toolchain(ndk.builds.Module):
                 libs.append("libandroid_support.a")
 
             for lib in libs:
-                shutil.copy2(os.path.join(libcxx_lib_dir, lib), sysroot_dst)
+                shutil.copy2(libcxx_lib_dir / lib, sysroot_dst)
 
         platforms = self.get_dep("platforms")
         assert isinstance(platforms, Platforms)
@@ -1723,7 +1718,7 @@ class Toolchain(ndk.builds.Module):
 
             for arch in platforms.get_arches(api):
                 triple = ndk.abis.arch_to_triple(arch)
-                dst_dir = os.path.join(install_dir, "sysroot/usr/lib", triple, str(api))
+                dst_dir = install_dir / "sysroot/usr/lib" / triple / str(api)
 
                 # Also install a libc++.so and libc++.a linker script per API
                 # level. We need this to be done on a per-API level basis
@@ -1745,11 +1740,11 @@ class Toolchain(ndk.builds.Module):
                     )
                     shared_script.insert(0, "-landroid_support")
 
-                libcxx_so_path = os.path.join(dst_dir, "libc++.so")
+                libcxx_so_path = dst_dir / "libc++.so"
                 with open(libcxx_so_path, "w") as script:
                     script.write("INPUT({})".format(" ".join(shared_script)))
 
-                libcxx_a_path = os.path.join(dst_dir, "libc++.a")
+                libcxx_a_path = dst_dir / "libc++.a"
                 with open(libcxx_a_path, "w") as script:
                     script.write("INPUT({})".format(" ".join(static_script)))
 
@@ -1919,18 +1914,16 @@ class NdkBuild(ndk.builds.PackageModule):
         self, name: str, func: Callable[[dict[str, Any]], dict[str, Any]]
     ) -> None:
         install_path = self.get_install_path()
-        json_path = os.path.join(
-            self.get_dep("meta").get_install_path(), name + ".json"
-        )
+        json_path = self.get_dep("meta").get_install_path() / (name + ".json")
         meta = json.loads(ndk.file.read_file(json_path))
         meta_vars = func(meta)
 
         ndk.file.write_file(
-            os.path.join(install_path, "core/{}.mk".format(name)),
+            install_path / "core/{}.mk".format(name),
             var_dict_to_make(meta_vars),
         )
         ndk.file.write_file(
-            os.path.join(install_path, "cmake/{}.cmake".format(name)),
+            install_path / "cmake/{}.cmake".format(name),
             var_dict_to_cmake(meta_vars),
         )
 
@@ -1980,13 +1973,17 @@ class SimplePerf(ndk.builds.Module):
         install_dir.mkdir(parents=True)
 
         simpleperf_path = ndk.paths.android_path("prebuilts/simpleperf")
-        dirs = ["doc", "inferno", "bin/android", "app_api", "purgatorio"]
+        dirs = [
+            Path("doc"),
+            Path("inferno"),
+            Path("bin/android"),
+            Path("app_api"),
+            Path("purgatorio"),
+        ]
         host_bin_dir = "windows" if self.host.is_windows else self.host.value
-        dirs.append(os.path.join("bin/", host_bin_dir))
+        dirs.append(Path("bin") / host_bin_dir)
         for d in dirs:
-            shutil.copytree(
-                os.path.join(simpleperf_path, d), os.path.join(install_dir, d)
-            )
+            shutil.copytree(simpleperf_path / d, install_dir / d)
 
         for item in os.listdir(simpleperf_path):
             should_copy = False
@@ -2003,9 +2000,9 @@ class SimplePerf(ndk.builds.Module):
             elif item == "inferno.bat" and self.host.is_windows:
                 should_copy = True
             if should_copy:
-                shutil.copy2(os.path.join(simpleperf_path, item), install_dir)
+                shutil.copy2(simpleperf_path / item, install_dir)
 
-        shutil.copy2(os.path.join(simpleperf_path, "ChangeLog"), install_dir)
+        shutil.copy2(simpleperf_path / "ChangeLog", install_dir)
 
 
 @register
@@ -2145,10 +2142,10 @@ class Meta(ndk.builds.PackageModule):
 
         system_libs: Dict[str, str] = {}
         for api_name in sorted(os.listdir(sysroot_base)):
-            path = os.path.join(sysroot_base, api_name)
+            path = sysroot_base / api_name
 
             # There are also non-versioned libraries in this directory.
-            if not os.path.isdir(path):
+            if not path.is_dir():
                 continue
 
             for lib in os.listdir(path):
@@ -2175,7 +2172,7 @@ class Meta(ndk.builds.PackageModule):
 
         system_libs = collections.OrderedDict(sorted(system_libs.items()))
 
-        json_path = os.path.join(self.get_install_path(), "system_libs.json")
+        json_path = self.get_install_path() / "system_libs.json"
         with open(json_path, "w") as json_file:
             json.dump(system_libs, json_file, indent=2, separators=(",", ": "))
 
@@ -2477,7 +2474,7 @@ def parse_args() -> Tuple[argparse.Namespace, List[str]]:
     return parser.parse_known_args()
 
 
-def log_build_failure(log_path: str, dist_dir: str) -> None:
+def log_build_failure(log_path: Path, dist_dir: Path) -> None:
     with open(log_path, "r") as log_file:
         contents = log_file.read()
         print(contents)
@@ -2485,7 +2482,7 @@ def log_build_failure(log_path: str, dist_dir: str) -> None:
         # The build server has a build_error.log file that is supposed to be
         # the short log of the failure that stopped the build. Append our
         # failing log to that.
-        build_error_log = os.path.join(dist_dir, "logs/build_error.log")
+        build_error_log = dist_dir / "logs/build_error.log"
         with open(build_error_log, "a") as error_log:
             error_log.write("\n")
             error_log.write(contents)
@@ -2530,7 +2527,7 @@ def build_ui_context(debuggable: bool) -> Iterator[None]:
 def wait_for_build(
     deps: ndk.deps.DependencyManager,
     workqueue: ndk.workqueue.AnyWorkQueue,
-    dist_dir: str,
+    dist_dir: Path,
     log_dir: Path,
     debuggable: bool,
     skip_deps: bool,
@@ -2608,7 +2605,7 @@ def build_ndk(
     log_dir = dist_dir / "logs"
     log_dir.mkdir(parents=True, exist_ok=True)
 
-    ndk_dir = Path(ndk.paths.get_install_path(str(out_dir), args.system))
+    ndk_dir = ndk.paths.get_install_path(out_dir, args.system)
     ndk_dir.mkdir(parents=True, exist_ok=True)
 
     deps = ndk.deps.DependencyManager(modules)
@@ -2623,7 +2620,7 @@ def build_ndk(
         wait_for_build(
             deps,
             workqueue,
-            str(dist_dir),
+            dist_dir,
             log_dir,
             args.debuggable,
             args.skip_deps,
@@ -2658,10 +2655,10 @@ def build_ndk_for_cross_compile(out_dir: Path, args: argparse.Namespace) -> None
     build_ndk(modules, deps_only, out_dir, out_dir, args)
 
 
-def create_ndk_symlink(out_dir: str) -> None:
+def create_ndk_symlink(out_dir: Path) -> None:
     this_host_ndk = ndk.paths.get_install_path()
-    ndk_symlink = os.path.join(out_dir, os.path.basename(this_host_ndk))
-    if not os.path.exists(ndk_symlink):
+    ndk_symlink = out_dir / this_host_ndk.name
+    if not ndk_symlink.exists():
         os.symlink(this_host_ndk, ndk_symlink)
 
 
@@ -2698,7 +2695,7 @@ def main() -> None:
     if args.system.is_windows or not have_required_modules:
         args.build_tests = False
 
-    os.chdir(os.path.dirname(os.path.dirname(os.path.realpath(__file__))))
+    os.chdir(Path(__file__).resolve().parent.parent)
 
     # Set ANDROID_BUILD_TOP.
     if "ANDROID_BUILD_TOP" in os.environ:
@@ -2715,7 +2712,7 @@ def main() -> None:
             )
         )
 
-    os.environ["ANDROID_BUILD_TOP"] = ndk.paths.android_path()
+    os.environ["ANDROID_BUILD_TOP"] = str(ndk.paths.android_path())
 
     out_dir = ndk.paths.get_out_dir()
     dist_dir = ndk.paths.get_dist_dir(out_dir)
@@ -2756,7 +2753,7 @@ def main() -> None:
             package_path = package_ndk(
                 ndk_dir, Path(out_dir), Path(dist_dir), args.system, args.build_number
             )
-            packaged_size_bytes = os.path.getsize(package_path)
+            packaged_size_bytes = package_path.stat().st_size
             packaged_size = packaged_size_bytes // (2 ** 20)
 
     good = True

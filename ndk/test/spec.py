@@ -35,9 +35,9 @@ class TestOptions:
 
     def __init__(
         self,
-        src_dir: str,
-        ndk_path: str,
-        out_dir: str,
+        src_dir: Path,
+        ndk_path: Path,
+        out_dir: Path,
         test_filter: Optional[str] = None,
         clean: bool = True,
         build_report: Optional[str] = None,

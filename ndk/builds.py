@@ -33,7 +33,6 @@ from typing import Any, Dict, Iterator, List, Optional, Set
 
 from ndk.autoconf import AutoconfBuilder
 from ndk.cmake import CMakeBuilder
-import ndk.ext.shutil
 from ndk.hosts import Host
 import ndk.paths
 
@@ -255,7 +254,7 @@ class Module:
             host = self.host
 
         install_subdir = ndk.paths.expand_path(self.install_path, host)
-        install_base = Path(ndk.paths.get_install_path(str(self.out_dir), host))
+        install_base = ndk.paths.get_install_path(self.out_dir, host)
         if self.intermediate_module:
             install_base = self.intermediate_out_dir / "install"
         return install_base / install_subdir
