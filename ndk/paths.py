@@ -16,7 +16,6 @@
 """Helper functions for NDK build and test paths."""
 import os
 from pathlib import Path
-import sys
 from typing import Callable, Iterator, Optional
 
 import ndk.config
@@ -27,17 +26,17 @@ ANDROID_DIR = Path(__file__).resolve().parents[2]
 NDK_DIR = ANDROID_DIR / "ndk"
 
 
-def android_path(*args: str) -> str:
+def android_path(*args: str) -> Path:
     """Returns the absolute path rooted within the top level source tree."""
-    return str(ANDROID_DIR.joinpath(*args))
+    return ANDROID_DIR.joinpath(*args)
 
 
-def ndk_path(*args: str) -> str:
+def ndk_path(*args: str) -> Path:
     """Returns the absolute path rooted within the NDK source tree."""
     return android_path("ndk", *args)
 
 
-def toolchain_path(*args: str) -> str:
+def toolchain_path(*args: str) -> Path:
     """Returns a path within the toolchain subdirectory."""
     return android_path("toolchain", *args)
 
@@ -55,7 +54,7 @@ def expand_path(path: Path, host: ndk.hosts.Host) -> Path:
     return Path(str(path).format(host=host_tag))
 
 
-def _get_dir_from_env(default: str, env_var: str) -> str:
+def _get_dir_from_env(default: Path, env_var: str) -> Path:
     """Returns the path to a directory specified by the environment.
 
     If the environment variable is not set, the default will be used. The
@@ -68,27 +67,27 @@ def _get_dir_from_env(default: str, env_var: str) -> str:
     Returns:
         The absolute path to the directory.
     """
-    path = os.path.realpath(os.getenv(env_var, default))
-    if not os.path.isdir(path):
-        os.makedirs(path)
-    return path
+    path = Path(os.getenv(env_var, default))
+    if not path.is_dir():
+        path.mkdir(parents=True)
+    return path.resolve()
 
 
-def get_out_dir() -> str:
+def get_out_dir() -> Path:
     """Returns the out directory."""
     return _get_dir_from_env(android_path("out"), "OUT_DIR")
 
 
-def get_dist_dir(out_dir: str) -> str:
+def get_dist_dir(out_dir: Path) -> Path:
     """Returns the distribution directory.
 
     The contents of the distribution directory are archived on the build
     servers. Suitable for build logs and final artifacts.
     """
-    return _get_dir_from_env(os.path.join(out_dir, "dist"), "DIST_DIR")
+    return _get_dir_from_env(out_dir / "dist", "DIST_DIR")
 
 
-def path_in_out(dirname: str, out_dir: Optional[str] = None) -> str:
+def path_in_out(dirname: Path, out_dir: Optional[Path] = None) -> Path:
     """Returns a path within the out directory."
 
     Args:
@@ -102,12 +101,12 @@ def path_in_out(dirname: str, out_dir: Optional[str] = None) -> str:
     """
     if out_dir is None:
         out_dir = get_out_dir()
-    return os.path.join(out_dir, dirname)
+    return out_dir / dirname
 
 
 def get_install_path(
-    out_dir: Optional[str] = None, host: Optional[ndk.hosts.Host] = None
-) -> str:
+    out_dir: Optional[Path] = None, host: Optional[ndk.hosts.Host] = None
+) -> Path:
     """Returns the built NDK install path.
 
     Note that the path returned might not actually contain the NDK. The NDK may
@@ -128,15 +127,7 @@ def get_install_path(
     if host is None:
         host = ndk.hosts.get_default_host()
     release_name = f"android-ndk-{ndk.config.release}"
-    return path_in_out(os.path.join(host.value, release_name), out_dir)
-
-
-def to_posix_path(path: str) -> str:
-    """Replaces backslashes with forward slashes on Windows."""
-    if sys.platform == "win32":
-        return path.replace("\\", "/")
-    else:
-        return path
+    return path_in_out(Path(host.value) / release_name, out_dir)
 
 
 def walk(

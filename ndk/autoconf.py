@@ -111,7 +111,7 @@ class AutoconfBuilder:
 
     def cd(self) -> ContextManager[None]:
         """Context manager that moves into the working directory."""
-        return ndk.ext.os.cd(str(self.working_directory))
+        return ndk.ext.os.cd(self.working_directory)
 
     def _run(self, cmd: List[str], extra_env: Optional[Dict[str, str]] = None) -> None:
         """Runs and logs execution of a subprocess."""

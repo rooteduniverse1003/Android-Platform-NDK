@@ -14,15 +14,16 @@
 # limitations under the License.
 #
 """Contains file I/O APIs."""
+from pathlib import Path
 
 
-def read_file(path: str) -> str:
+def read_file(path: Path) -> str:
     """Reads the contents of a file into a string, closing the file."""
     with open(path) as the_file:
         return the_file.read()
 
 
-def write_file(path: str, contents: str) -> None:
+def write_file(path: Path, contents: str) -> None:
     """Writes the given string to the path specified, closing the file."""
     with open(path, "w") as the_file:
         the_file.write(contents)

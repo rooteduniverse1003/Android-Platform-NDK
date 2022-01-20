@@ -15,7 +15,6 @@
 #
 from importlib.abc import Loader
 import importlib.util
-import os
 from pathlib import Path
 from types import ModuleType
 from typing import Any, Callable, List, Optional, Tuple, Union
@@ -119,13 +118,13 @@ class TestConfig:
 
         # pylint: enable=unused-argument
 
-    def __init__(self, file_path: str) -> None:
+    def __init__(self, test_config_py: Path) -> None:
         # Note that this namespace isn't actually meaningful from our side;
         # it's only what the loaded module's __name__ gets set to.
-        dirname = os.path.dirname(file_path)
-        namespace = ".".join([dirname, "test_config"])
+        dirname = test_config_py.parent
+        namespace = ".".join([str(dirname), "test_config"])
 
-        self.module = self.load_module(namespace, Path(file_path))
+        self.module = self.load_module(namespace, test_config_py)
 
         # mypy doesn't understand that the type doesn't matter because we're
         # checking for errors with AttributeError. It doesn't understand
@@ -168,9 +167,8 @@ class TestConfig:
             self.is_negative_test = self.NullTestConfig.is_negative_test
 
     @classmethod
-    def from_test_dir(cls, test_dir: str) -> "TestConfig":
-        path = os.path.join(test_dir, "test_config.py")
-        return cls(path)
+    def from_test_dir(cls, test_dir: Path) -> "TestConfig":
+        return cls(test_dir / "test_config.py")
 
     @staticmethod
     def load_module(namespace: str, path: Path) -> Optional[ModuleType]:
@@ -213,8 +211,8 @@ class DeviceTestConfig(TestConfig):
 
         # pylint: enable=unused-argument
 
-    def __init__(self, file_path: str) -> None:
-        super().__init__(file_path)
+    def __init__(self, test_config_py: Path) -> None:
+        super().__init__(test_config_py)
 
         try:
             self.run_broken: Callable[
@@ -240,9 +238,8 @@ class DeviceTestConfig(TestConfig):
             raise RuntimeError("is_negative_test is invalid for device tests")
 
     @classmethod
-    def from_test_dir(cls, test_dir: str) -> "DeviceTestConfig":
-        path = os.path.join(test_dir, "test_config.py")
-        return cls(path)
+    def from_test_dir(cls, test_dir: Path) -> "DeviceTestConfig":
+        return cls(test_dir / "test_config.py")
 
 
 class LibcxxTestConfig(DeviceTestConfig):

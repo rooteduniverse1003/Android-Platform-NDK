@@ -25,7 +25,6 @@ import subprocess
 from typing import Any, Dict, List, Optional, Set
 
 from ndk.abis import Abi
-import ndk.ext.shutil
 import ndk.paths
 from ndk.test.spec import BuildConfiguration
 from ndk.workqueue import ShardingGroup, Worker, WorkQueue
@@ -35,7 +34,7 @@ try:
 except ImportError:
     import site
 
-    site.addsitedir(ndk.paths.android_path("development/python-packages"))
+    site.addsitedir(str(ndk.paths.android_path("development/python-packages")))
     import adb  # pylint: disable=import-error,ungrouped-imports
 
 
