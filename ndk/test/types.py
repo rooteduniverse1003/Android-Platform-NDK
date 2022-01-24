@@ -583,14 +583,12 @@ def find_original_libcxx_test(name: str) -> List[str]:
 
     # On Windows, a multiprocessing worker process does not inherit ALL_TESTS,
     # so we must scan libc++ tests in each worker.
+    from ndk.test.scanner import (
+        LibcxxTestScanner,
+    )  # pylint: disable=import-outside-toplevel
 
-    # ndk.test.scanner is not explicitly imported, which messes with mypy, but
-    # works. We can't add the import because then there's a cyclic dependency
-    # between this module and ndk.test.scanner. We'll need to refactor to fix
-    # that.
-    ndk.test.scanner.LibcxxTestScanner.find_all_libcxx_tests()  # type: ignore
-
-    all_libcxx_tests = ndk.test.scanner.LibcxxTestScanner.ALL_TESTS  # type: ignore
+    LibcxxTestScanner.find_all_libcxx_tests()
+    all_libcxx_tests = LibcxxTestScanner.ALL_TESTS
     for match in fnmatch.filter(all_libcxx_tests, test_pattern):
         matches.append(test_prefix + match)
     return matches
