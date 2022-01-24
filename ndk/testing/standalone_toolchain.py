@@ -125,6 +125,6 @@ def run_test(
         # occasional "file in use" errors on Windows.
         try:
             shutil.rmtree(install_dir)
-        except Exception:  # pylint:disable=broad-except
+        except OSError:
             time.sleep(10)
             shutil.rmtree(install_dir)
