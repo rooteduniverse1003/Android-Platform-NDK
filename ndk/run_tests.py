@@ -494,7 +494,7 @@ def push_tests_to_device(
     """
     worker.status = f"Pushing {config} tests to {device}."
     logger().info("%s: mkdir %s", device.name, dest_dir)
-    device.shell_nocheck(["mkdir", dest_dir])
+    device.shell_nocheck(["mkdir", str(dest_dir)])
     logger().info(
         "%s: push%s %s %s",
         device.name,
@@ -502,9 +502,9 @@ def push_tests_to_device(
         src_dir,
         dest_dir,
     )
-    device.push(src_dir, dest_dir, sync=use_sync)
+    device.push(str(src_dir), str(dest_dir), sync=use_sync)
     if sys.platform == "win32":
-        device.shell(["chmod", "-R", "777", dest_dir])
+        device.shell(["chmod", "-R", "777", str(dest_dir)])
 
 
 def finish_workqueue_with_ui(workqueue: WorkQueue) -> None:
