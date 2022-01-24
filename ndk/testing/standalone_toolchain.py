@@ -23,6 +23,7 @@ import time
 from typing import Any
 
 import ndk.abis
+import ndk.paths
 from ndk.test.spec import BuildConfiguration
 
 
@@ -102,7 +103,16 @@ def run_test(
     flags: list[str],
 ) -> tuple[bool, str]:
 
-    install_dir = Path(tempfile.mkdtemp())
+    # On Windows, the default directory for temporary files may have a different
+    # (slow) configuration for security controls, indexing, etc. So we create
+    # temporary directories directly in "out".
+    install_dir = Path(
+        (
+            tempfile.mkdtemp(dir=ndk.paths.get_out_dir())
+            if os.name == "nt"
+            else tempfile.mkdtemp()
+        )
+    )
     try:
         success, out = make_standalone_toolchain(
             ndk_path, config, extra_args, install_dir
@@ -111,8 +121,10 @@ def run_test(
             return success, out
         return test_standalone_toolchain(install_dir, test_source, flags)
     finally:
-        # Sophisticated synchronization algorithm to prevent Windows complaining
-        # about ld.exe still being in use.
-        if os.name == "nt":
-            time.sleep(1)
-        shutil.rmtree(install_dir)
+        # Try twice to delete the temporary directory, to work around
+        # occasional "file in use" errors on Windows.
+        try:
+            shutil.rmtree(install_dir)
+        except Exception:  # pylint:disable=broad-except
+            time.sleep(10)
+            shutil.rmtree(install_dir)
