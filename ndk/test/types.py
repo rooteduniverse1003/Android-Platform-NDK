@@ -583,9 +583,9 @@ def find_original_libcxx_test(name: str) -> List[str]:
 
     # On Windows, a multiprocessing worker process does not inherit ALL_TESTS,
     # so we must scan libc++ tests in each worker.
-    from ndk.test.scanner import (
+    from ndk.test.scanner import (  # pylint: disable=import-outside-toplevel
         LibcxxTestScanner,
-    )  # pylint: disable=import-outside-toplevel
+    )
 
     LibcxxTestScanner.find_all_libcxx_tests()
     all_libcxx_tests = LibcxxTestScanner.ALL_TESTS
