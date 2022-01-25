@@ -463,14 +463,13 @@ class ScriptShortcutModule(Module):
     def make_cmd_helper(self) -> None:
         """Makes a .cmd helper script for Windows."""
         script = self.get_script_path().with_suffix(self.windows_ext)
-        full_path = PureWindowsPath("%~dp0") / script
 
         install_path = self.get_install_path().with_suffix(".cmd")
         install_path.write_text(
             textwrap.dedent(
                 f"""\
                 @echo off
-                {full_path} %*
+                %~dp0{PureWindowsPath(script)} %*
                 """
             )
         )
