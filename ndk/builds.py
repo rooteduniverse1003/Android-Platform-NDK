@@ -23,7 +23,6 @@ from __future__ import annotations
 # https://github.com/PyCQA/pylint/issues/73
 from distutils.dir_util import copy_tree
 from enum import auto, Enum, unique
-import os
 from pathlib import Path, PureWindowsPath
 import shutil
 import stat
@@ -566,41 +565,3 @@ def install_directory(src: Path, dst: Path) -> None:
         shutil.rmtree(dst)
     ignore_patterns = shutil.ignore_patterns("*.pyc", "*.pyo", "*.swp", "*.git*")
     shutil.copytree(src, dst, ignore=ignore_patterns)
-
-
-def make_repo_prop(out_dir: Path) -> None:
-    """Installs a repro.prop file to the given directory.
-
-    A repo.prop file is a file listing all of the git projects used and their
-    checked out revisions. i.e.
-
-        platform/bionic 40538268d43d82409a93637960f2da3c1226840a
-        platform/development 688f15246399db98897e660889d9a202559fe5d8
-        ...
-
-    Historically we installed one of these per "module" (from the attempted
-    modular NDK), but since the same information can be retrieved from the
-    build number we do not install them for most things now.
-
-    If this build is happening on the build server then there will be a
-    repo.prop file in the DIST_DIR for us to copy, otherwise we generate our
-    own.
-    """
-    # TODO: Finish removing users of this in favor of installing a single
-    # manifest.xml file in the root of the NDK.
-    file_name = "repo.prop"
-
-    dist_dir = os.environ.get("DIST_DIR")
-    if dist_dir is not None:
-        dist_repo_prop = Path(dist_dir) / file_name
-        shutil.copy(dist_repo_prop, out_dir)
-    else:
-        out_file = out_dir / file_name
-        with out_file.open("w") as prop_file:
-            cmd = [
-                "repo",
-                "forall",
-                "-c",
-                "echo $REPO_PROJECT $(git rev-parse HEAD)",
-            ]
-            subprocess.check_call(cmd, stdout=prop_file)

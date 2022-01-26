@@ -78,12 +78,14 @@ def get_out_dir() -> Path:
     return _get_dir_from_env(android_path("out"), "OUT_DIR")
 
 
-def get_dist_dir(out_dir: Path) -> Path:
+def get_dist_dir(out_dir: Optional[Path] = None) -> Path:
     """Returns the distribution directory.
 
     The contents of the distribution directory are archived on the build
     servers. Suitable for build logs and final artifacts.
     """
+    if out_dir is None:
+        out_dir = get_out_dir()
     return _get_dir_from_env(out_dir / "dist", "DIST_DIR")
 
 
