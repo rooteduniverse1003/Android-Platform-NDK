@@ -1,38 +1,5 @@
 #!/bin/bash
-NDK_BIN_DIR=$(dirname "$0")
-
-HOST_OS=$(uname -s)
-case $HOST_OS in
-  Darwin) HOST_OS=darwin;;
-  Linux) HOST_OS=linux;;
-  FreeBsd) HOST_OS=freebsd;;
-  Windows) HOST_OS=windows;;
-  *) echo "ERROR: Unknown host operating system: $HOST_OS"
-     exit 1
-esac
-
-HOST_ARCH=$(uname -m)
-case $HOST_ARCH in
-    arm64) HOST_ARCH=arm64;;
-    i?86) HOST_ARCH=x86;;
-    x86_64|amd64) HOST_ARCH=x86_64;;
-    *) echo "ERROR: Unknown host CPU architecture: $HOST_ARCH"
-       exit 1
-esac
-
-HOST_TAG=$HOST_OS-$HOST_ARCH
-
-if [ $HOST_TAG = darwin-arm64 ]; then
-    # The NDK ships universal arm64+x86_64 binaries in the darwin-x86_64
-    # directory.
-    HOST_TAG=darwin-x86_64
-fi
-
-TOOLCHAIN_ROOT=$NDK_BIN_DIR/../../../toolchains/llvm/prebuilt/$HOST_TAG
-HOST_PYTHON=$TOOLCHAIN_ROOT/python3/bin/python3
-
-if [ $HOST_OS = windows ]; then
-  HOST_PYTHON=$TOOLCHAIN_ROOT/python3/python.exe
-fi
-
-"${HOST_PYTHON}" "${NDK_BIN_DIR}"/ndk-gdb.py "$@"
+THIS_DIR=$(cd "$(dirname "$0")" && pwd)
+ANDROID_NDK_ROOT=$(cd "$THIS_DIR/../../.." && pwd)
+. "$ANDROID_NDK_ROOT/build/tools/ndk_bin_common.sh"
+"$ANDROID_NDK_PYTHON" "$THIS_DIR/ndk-gdb.py" "$@"

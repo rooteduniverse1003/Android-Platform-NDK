@@ -23,6 +23,7 @@ import time
 from typing import Any
 
 import ndk.abis
+from ndk.hosts import Host
 import ndk.paths
 from ndk.test.spec import BuildConfiguration
 
@@ -44,6 +45,15 @@ def call_output(cmd: list[str], *args: Any, **kwargs: Any) -> tuple[int, Any]:
         return proc.returncode, out
 
 
+def get_python_executable(ndk_path: Path) -> Path:
+    host = Host.current()
+    python_dir = ndk_path / "toolchains/llvm/prebuilt" / host.tag / "python3"
+    if host == Host.Windows64:
+        return python_dir / "python.exe"
+    else:
+        return python_dir / "bin/python3"
+
+
 def make_standalone_toolchain(
     ndk_path: Path, config: BuildConfiguration, extra_args: list[str], install_dir: Path
 ) -> tuple[bool, str]:
@@ -53,27 +63,13 @@ def make_standalone_toolchain(
 
     arch = ndk.abis.abi_to_arch(config.abi)
     cmd = [
+        str(get_python_executable(ndk_path)),
         str(make_standalone_toolchain_path),
         "--force",
         "--install-dir=" + str(install_dir),
         "--arch=" + arch,
         "--api={}".format(config.api),
     ] + extra_args
-
-    if os.name == "nt":
-        # Windows doesn't process shebang lines, and we wouldn't be pointing at
-        # the right Python if it did. Explicitly invoke the NDK's Python for on
-        # Windows.
-        prebuilt_dir = ndk_path / "prebuilt" / "windows-x86_64"
-        if not prebuilt_dir.exists():
-            prebuilt_dir = ndk_path / "prebuilt" / "windows"
-        if not prebuilt_dir.exists():
-            raise RuntimeError(
-                "Could not find prebuilts in {}".format(ndk_path / "prebuilt")
-            )
-
-        python_path = prebuilt_dir / "bin" / "python.exe"
-        cmd = [str(python_path)] + cmd
 
     rc, out = call_output(cmd)
     return rc == 0, out.decode("utf-8")

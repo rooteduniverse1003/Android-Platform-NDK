@@ -49,7 +49,7 @@ unset PYTHONPATH
 
 # Check if absolute NDK path contain space
 #
-case $PROGDIR in
+case "$PROGDIR" in
     *\ *) echo "ERROR: NDK path cannot contain space"
           exit 1
         ;;
@@ -111,35 +111,9 @@ else
 fi
 
 # Detect host operating system and architecture
-HOST_OS=$(uname -s)
-case $HOST_OS in
-  Darwin) HOST_OS=darwin;;
-  Linux) HOST_OS=linux;;
-  FreeBsd) HOST_OS=freebsd;;
-  CYGWIN*|*_NT-*) HOST_OS=cygwin;;
-  *) echo "ERROR: Unknown host operating system: $HOST_OS"
-     exit 1
-esac
+. "$ANDROID_NDK_ROOT/build/tools/ndk_bin_common.sh"
 log "HOST_OS=$HOST_OS"
-
-HOST_ARCH=$(uname -m)
-case $HOST_ARCH in
-    arm64) HOST_ARCH=arm64;;
-    i?86) HOST_ARCH=x86;;
-    x86_64|amd64) HOST_ARCH=x86_64;;
-    *) echo "ERROR: Unknown host CPU architecture: $HOST_ARCH"
-       exit 1
-esac
 log "HOST_ARCH=$HOST_ARCH"
-
-HOST_TAG=$HOST_OS-$HOST_ARCH
-
-if [ $HOST_TAG = darwin-arm64 ]; then
-    # The NDK ships universal arm64+x86_64 binaries in the darwin-x86_64
-    # directory.
-    HOST_TAG=darwin-x86_64
-fi
-
 log "HOST_TAG=$HOST_TAG"
 
 # If GNUMAKE is defined, check that it points to a valid file

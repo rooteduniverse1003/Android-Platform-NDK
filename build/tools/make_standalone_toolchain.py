@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 #
 # Copyright (C) 2016 The Android Open Source Project
 #
@@ -21,7 +21,6 @@ indended to be used with existing build systems such as autotools.
 """
 import argparse
 import atexit
-from distutils.dir_util import copy_tree
 import inspect
 import json
 import logging
@@ -221,15 +220,23 @@ def replace_gcc_wrappers(install_path, triple, is_windows):
     shutil.copy2(clangpp, gpp)
 
 
+def copytree(src, dst):
+    # A Python invocation running concurrently with make_standalone_toolchain.py
+    # can create a __pycache__ directory inside the src dir. Avoid copying it,
+    # because it can be in an inconsistent state.
+    shutil.copytree(src, dst, ignore=shutil.ignore_patterns("__pycache__"),
+                    dirs_exist_ok=True)
+
+
 def create_toolchain(install_path, arch, api, toolchain_path, host_tag):
     """Create a standalone toolchain."""
-    copy_tree(toolchain_path, install_path)
+    copytree(toolchain_path, install_path)
     triple = get_triple(arch)
     make_clang_scripts(install_path, arch, api, host_tag == 'windows-x86_64')
     replace_gcc_wrappers(install_path, triple, host_tag == 'windows-x86_64')
 
     prebuilt_path = os.path.join(NDK_DIR, 'prebuilt', host_tag)
-    copy_tree(prebuilt_path, install_path)
+    copytree(prebuilt_path, install_path)
 
 
 def warn_unnecessary(arch, api, host_tag):
