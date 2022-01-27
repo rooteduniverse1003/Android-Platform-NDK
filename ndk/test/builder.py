@@ -94,6 +94,9 @@ def _fixup_negative_test(
         return result
 
 
+RunTestResult = tuple[str, ndk.test.result.TestResult, list[Test]]
+
+
 def _run_test(
     worker: Worker,
     suite: str,
@@ -101,7 +104,7 @@ def _run_test(
     obj_dir: Path,
     dist_dir: Path,
     test_filters: TestFilter,
-) -> Tuple[str, ndk.test.result.TestResult, List[Test]]:
+) -> RunTestResult:
     """Runs a given test according to the given filters.
 
     Args:
@@ -239,7 +242,7 @@ class TestBuilder:
         return result
 
     def do_build(self, test_filters: TestFilter) -> Report:
-        workqueue = LoadRestrictingWorkQueue()
+        workqueue: LoadRestrictingWorkQueue[RunTestResult] = LoadRestrictingWorkQueue()
         try:
             for suite, tests in self.tests.items():
                 # Each test configuration was expanded when each test was
@@ -281,7 +284,7 @@ class TestBuilder:
     def wait_for_results(
         self,
         report: Report,
-        workqueue: LoadRestrictingWorkQueue,
+        workqueue: LoadRestrictingWorkQueue[RunTestResult],
         test_filters: TestFilter,
     ) -> None:
         console = ndk.ansi.get_console()
@@ -289,31 +292,24 @@ class TestBuilder:
         with ndk.ansi.disable_terminal_echo(sys.stdin):
             with console.cursor_hide_context():
                 while not workqueue.finished():
-                    suite, result, additional_tests = workqueue.get_result()
-                    # Filtered test. Skip them entirely to avoid polluting
-                    # --show-all results.
-                    if result is None:
-                        assert not additional_tests
-                        ui.draw()
-                        continue
-
-                    assert result.passed() or not additional_tests
-                    for test in additional_tests:
-                        workqueue.add_task(
-                            _run_test,
-                            suite,
-                            test,
-                            self.obj_dir,
-                            self.dist_dir,
-                            test_filters,
-                        )
-                    if logger().isEnabledFor(logging.INFO):
-                        ui.clear()
-                        self.printer.print_result(result)
-                    elif result.failed():
-                        ui.clear()
-                        self.printer.print_result(result)
-                    report.add_result(suite, result)
+                    for suite, result, additional_tests in workqueue.get_results():
+                        assert result.passed() or not additional_tests
+                        for test in additional_tests:
+                            workqueue.add_task(
+                                _run_test,
+                                suite,
+                                test,
+                                self.obj_dir,
+                                self.dist_dir,
+                                test_filters,
+                            )
+                        if logger().isEnabledFor(logging.INFO):
+                            ui.clear()
+                            self.printer.print_result(result)
+                        elif result.failed():
+                            ui.clear()
+                            self.printer.print_result(result)
+                        report.add_result(suite, result)
                     ui.draw()
                 ui.clear()
 

@@ -199,7 +199,7 @@ class BasicWorkQueueTest(unittest.TestCase):
 
     def test_put_func(self) -> None:
         """Test that we can pass a function to the queue and get results."""
-        workqueue = BasicWorkQueue()
+        workqueue: BasicWorkQueue[int] = BasicWorkQueue()
 
         workqueue.add_task(put, 1)
         workqueue.add_task(put, 2)
@@ -215,7 +215,7 @@ class BasicWorkQueueTest(unittest.TestCase):
 
     def test_put_functor(self) -> None:
         """Test that we can pass a functor to the queue and get results."""
-        workqueue = BasicWorkQueue()
+        workqueue: BasicWorkQueue[int] = BasicWorkQueue()
 
         workqueue.add_task(Functor(1))
         workqueue.add_task(Functor(2))
@@ -245,7 +245,7 @@ class BasicWorkQueueTest(unittest.TestCase):
 
     def test_subprocess_exception(self) -> None:
         """Tests that exceptions raised in the task are re-raised."""
-        workqueue = BasicWorkQueue()
+        workqueue: BasicWorkQueue[None] = BasicWorkQueue()
 
         try:
             workqueue.add_task(raise_error)
