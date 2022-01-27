@@ -133,7 +133,8 @@ class TestCase:
     def run(self, device: Device) -> AdbResult:
         raise NotImplementedError
 
-    def run_cmd(self, device: Device, cmd: str) -> AdbResult:
+    @staticmethod
+    def run_cmd(device: Device, cmd: str) -> AdbResult:
         logger().info('%s: shell_nocheck "%s"', device.name, cmd)
         return shell_nocheck_wrap_errors(device, cmd)
 
@@ -284,7 +285,7 @@ class TestRun:
             if result.failed():
                 assert isinstance(result, Failure)
                 return ExpectedFailure(self, result.message, config, bug)
-            elif result.passed():
+            if result.passed():
                 return UnexpectedSuccess(self, config, bug)
             raise ValueError("Test result must have either failed or passed.")
         return result
@@ -686,7 +687,7 @@ def get_config_dict(config: str, abis: Iterable[Abi]) -> Dict[str, Any]:
 def str_to_bool(s: str) -> bool:
     if s == "true":
         return True
-    elif s == "false":
+    if s == "false":
         return False
     raise ValueError(s)
 
