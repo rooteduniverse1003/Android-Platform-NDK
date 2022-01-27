@@ -27,6 +27,7 @@ import os
 from pathlib import Path, PurePosixPath
 import random
 import shlex
+import shutil
 import site
 import subprocess
 import sys
@@ -46,6 +47,7 @@ from typing import (
 
 from ndk.abis import Abi
 import ndk.ansi
+import ndk.archive
 import ndk.ext.subprocess
 import ndk.notify
 import ndk.paths
@@ -697,7 +699,13 @@ def parse_args() -> argparse.Namespace:
         # Path.resolve() fails if the path doesn't exist. We want to resolve
         # symlinks when possible, but not require that the path necessarily
         # exist, because we will create it later.
-        return Path(path).resolve(strict=False)
+        return Path(path).expanduser().resolve(strict=False)
+
+    def ExistingPathArg(path: str) -> Path:
+        expanded_path = Path(path).expanduser()
+        if not expanded_path.exists():
+            raise argparse.ArgumentTypeError("{} does not exist".format(path))
+        return expanded_path.resolve(strict=True)
 
     def ExistingDirectoryArg(path: str) -> Path:
         expanded_path = Path(path).expanduser()
@@ -787,7 +795,7 @@ def parse_args() -> argparse.Namespace:
 
     parser.add_argument(
         "--ndk",
-        type=ExistingDirectoryArg,
+        type=ExistingPathArg,
         default=ndk.paths.get_install_path(),
         help="NDK to validate. Defaults to ../out/android-ndk-$RELEASE.",
     )
@@ -861,6 +869,20 @@ def run_tests(args: argparse.Namespace) -> Results:
         args.test_src = Path("tests").resolve(strict=False)
         if not args.test_src.exists():
             sys.exit("Test source directory does not exist: {}".format(args.test_src))
+
+    if args.ndk.is_file():
+        if args.ndk.suffix == ".zip":
+            ndk_dir = ndk.paths.path_in_out(Path(args.ndk.stem))
+            if ndk_dir.exists():
+                shutil.rmtree(ndk_dir)
+            ndk_dir.mkdir(parents=True)
+            ndk.archive.unzip(args.ndk, ndk_dir)
+            contents = list(ndk_dir.iterdir())
+            assert len(contents) == 1
+            assert contents[0].is_dir()
+            args.ndk = contents[0]
+        else:
+            sys.exit("--ndk must be a directory or a .zip file: {}".format(args.ndk))
 
     test_dist_dir = args.test_dir / "dist"
     if args.build_only or args.rebuild:
