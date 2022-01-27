@@ -57,7 +57,7 @@ def logger() -> logging.Logger:
     return logging.getLogger(__name__)
 
 
-def worker_sigterm_handler(_signum: int, _frame: FrameType) -> None:
+def worker_sigterm_handler(_signum: int, _frame: Optional[FrameType]) -> None:
     """Raises SystemExit so atexit/finally handlers can be executed."""
     sys.exit()
 

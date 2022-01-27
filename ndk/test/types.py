@@ -194,9 +194,7 @@ class PythonBuildTest(BuildTest):
             # https://github.com/python/typeshed/issues/2793
             assert isinstance(spec.loader, Loader)
             spec.loader.exec_module(module)
-            success, failure_message = module.run_test(  # type: ignore
-                self.ndk_path, self.config
-            )
+            success, failure_message = module.run_test(self.ndk_path, self.config)
             if success:
                 return Success(self), []
             else:
