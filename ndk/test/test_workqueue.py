@@ -21,6 +21,7 @@ import signal
 import sys
 from threading import Event
 from types import FrameType
+from typing import Optional
 import time
 import unittest
 
@@ -56,7 +57,7 @@ def update_status(
     finish_event.wait()
 
 
-def sigterm_handler(_signum: int, _trace: FrameType) -> None:
+def sigterm_handler(_signum: int, _trace: Optional[FrameType]) -> None:
     """Raises SystemExit."""
     sys.exit()
 

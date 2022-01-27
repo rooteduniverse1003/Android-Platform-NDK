@@ -9,7 +9,10 @@ license = "Apache-2.0"
 python = "^3.9"
 
 [tool.poetry.dev-dependencies]
-mypy = "^0.910"
+# Poetry handles 0.* differently than other versions. ^0.1 may not upgrade to
+# 0.2, but ^1.1 may upgrade to 1.2.
+# https://python-poetry.org/docs/dependency-specification/
+mypy = "^0"
 pylint = "^2.12.2"
 pytest = "^6.2.5"
 black = "^21.12b0"
