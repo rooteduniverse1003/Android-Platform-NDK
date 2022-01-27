@@ -610,7 +610,9 @@ def pair_test_runs(
 
 
 def wait_for_results(
-    report: Report, workqueue: ShardingWorkQueue[DeviceShardingGroup], printer: Printer
+    report: Report,
+    workqueue: ShardingWorkQueue[TestResult, DeviceShardingGroup],
+    printer: Printer,
 ) -> None:
     console = ndk.ansi.get_console()
     ui = ndk.test.ui.get_test_progress_ui(console, workqueue)
@@ -651,7 +653,7 @@ def flake_filter(result: TestResult) -> bool:
 
 
 def restart_flaky_tests(
-    report: Report, workqueue: ShardingWorkQueue[DeviceShardingGroup]
+    report: Report, workqueue: ShardingWorkQueue[TestResult, DeviceShardingGroup]
 ) -> None:
     """Finds and restarts any failing flaky tests."""
     rerun_tests = report.remove_all_failing_flaky(flake_filter)
@@ -958,7 +960,9 @@ def run_tests(args: argparse.Namespace) -> Results:
         workqueue.terminate()
         workqueue.join()
 
-    shard_queue = ShardingWorkQueue(fleet.get_unique_device_groups(), 4)
+    shard_queue: ShardingWorkQueue[TestResult, DeviceShardingGroup] = ShardingWorkQueue(
+        fleet.get_unique_device_groups(), 4
+    )
     try:
         # Need an input queue per device group, a single result queue, and a
         # pool of threads per device.

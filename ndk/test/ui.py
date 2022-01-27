@@ -18,7 +18,7 @@ from __future__ import absolute_import
 from __future__ import print_function
 
 import os
-from typing import List
+from typing import Any, List
 
 from ndk.ansi import AnsiConsole, Console, font_bold, font_faint, font_reset
 from ndk.ui import Ui, UiRenderer, AnsiUiRenderer, NonAnsiUiRenderer, columnate
@@ -34,7 +34,7 @@ class TestProgressUi(Ui):
         ui_renderer: UiRenderer,
         show_worker_status: bool,
         show_device_groups: bool,
-        workqueue: ShardingWorkQueue[DeviceShardingGroup],
+        workqueue: ShardingWorkQueue[Any, DeviceShardingGroup],
     ) -> None:
         super().__init__(ui_renderer)
         self.show_worker_status = show_worker_status
@@ -79,7 +79,7 @@ class TestProgressUi(Ui):
 
 
 def get_test_progress_ui(
-    console: Console, workqueue: ShardingWorkQueue[DeviceShardingGroup]
+    console: Console, workqueue: ShardingWorkQueue[Any, DeviceShardingGroup]
 ) -> TestProgressUi:
     ui_renderer: UiRenderer
     if console.smart_console:
@@ -106,7 +106,7 @@ class TestBuildProgressUi(Ui):
         self,
         ui_renderer: UiRenderer,
         show_worker_status: bool,
-        workqueue: LoadRestrictingWorkQueue,
+        workqueue: LoadRestrictingWorkQueue[Any],
     ):
         super().__init__(ui_renderer)
         self.show_worker_status = show_worker_status
@@ -137,7 +137,7 @@ class TestBuildProgressUi(Ui):
 
 
 def get_test_build_progress_ui(
-    console: Console, workqueue: LoadRestrictingWorkQueue
+    console: Console, workqueue: LoadRestrictingWorkQueue[Any]
 ) -> TestBuildProgressUi:
     ui_renderer: UiRenderer
     if console.smart_console:

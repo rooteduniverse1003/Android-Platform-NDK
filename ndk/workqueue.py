@@ -16,6 +16,7 @@
 """Defines WorkQueue for delegating asynchronous work to subprocesses."""
 from __future__ import annotations
 
+from abc import ABC, abstractmethod
 import collections
 import itertools
 import logging
@@ -353,7 +354,34 @@ class BasicWorker:
         self.data = data
 
 
-class BasicWorkQueue:
+ResultT = TypeVar("ResultT")
+
+
+class BaseWorkQueue(ABC, Generic[ResultT]):
+    @abstractmethod
+    def get_result(self) -> ResultT:
+        ...
+
+    @property
+    @abstractmethod
+    def has_pending_results(self) -> bool:
+        ...
+
+    def get_results(self) -> list[ResultT]:
+        """Gets all pending results.
+
+        If no results are available, this will block until at least one is
+        available. It will then continue dequeing until the queue is empty, and
+        then return.
+        """
+        results: list[ResultT] = []
+        results.append(self.get_result())
+        while self.has_pending_results:
+            results.append(self.get_result())
+        return results
+
+
+class BasicWorkQueue(BaseWorkQueue[ResultT]):
     """A WorkQueue that does not delegate.
 
     This is the simplest possible implementation of a workqueue, performing all
@@ -366,7 +394,7 @@ class BasicWorkQueue:
         self,
         num_workers: Optional[int] = None,
         task_queue: Optional[Queue[Task]] = None,
-        result_queue: Optional[Queue[Any]] = None,
+        result_queue: Optional[Queue[ResultT]] = None,
         worker_data: Optional[Any] = None,
     ) -> None:
         """Creates a SerialWorkQueue."""
@@ -408,6 +436,10 @@ class BasicWorkQueue:
         return len(self.task_queue)
 
     @property
+    def has_pending_results(self) -> bool:
+        return False
+
+    @property
     def workers(self) -> List[Worker]:
         """List of workers."""
         return []
@@ -417,7 +449,7 @@ class BasicWorkQueue:
         return self.num_tasks == 0
 
 
-class LoadRestrictingWorkQueue:
+class LoadRestrictingWorkQueue(BaseWorkQueue[ResultT]):
     """Specialized work queue for building tests.
 
     Building the libc++ tests is very demanding and we should not be running
@@ -481,6 +513,10 @@ class LoadRestrictingWorkQueue:
             )
         )
 
+    @property
+    def has_pending_results(self) -> bool:
+        return not self.result_queue.empty()
+
     def finished(self) -> bool:
         """Returns True if all tasks have completed execution."""
         return self.num_tasks == 0
@@ -495,7 +531,7 @@ class ShardingGroup:
 ShardingGroupType = TypeVar("ShardingGroupType", bound=ShardingGroup)
 
 
-class ShardingWorkQueue(Generic[ShardingGroupType]):
+class ShardingWorkQueue(BaseWorkQueue[ResultT], Generic[ResultT, ShardingGroupType]):
     def __init__(
         self, device_groups: Iterable[ShardingGroupType], procs_per_device: int
     ) -> None:
@@ -534,19 +570,6 @@ class ShardingWorkQueue(Generic[ShardingGroupType]):
         self.num_tasks -= 1
         return result
 
-    def get_results(self) -> List[Any]:
-        """Gets all pending results.
-
-        If no results are available, this will block until at least one is
-        available. It will then continue dequeing until the queue is empty, and
-        then return.
-        """
-        results: List[Any] = []
-        results.append(self.get_result())
-        while not self.result_queue.empty():
-            results.append(self.get_result())
-        return results
-
     def terminate(self) -> None:
         for group_queues in self.work_queues.values():
             for work_queue in group_queues.values():
@@ -556,6 +579,10 @@ class ShardingWorkQueue(Generic[ShardingGroupType]):
         for group_queues in self.work_queues.values():
             for work_queue in group_queues.values():
                 work_queue.join()
+
+    @property
+    def has_pending_results(self) -> bool:
+        return not self.result_queue.empty()
 
     def finished(self) -> bool:
         """Returns True if all tasks have completed execution."""
