@@ -700,14 +700,16 @@ def parse_args() -> argparse.Namespace:
         return Path(path).resolve(strict=False)
 
     def ExistingDirectoryArg(path: str) -> Path:
-        if not Path(path).is_dir():
+        expanded_path = Path(path).expanduser()
+        if not expanded_path.is_dir():
             raise argparse.ArgumentTypeError("{} is not a directory".format(path))
-        return Path(path).resolve(strict=True)
+        return expanded_path.resolve(strict=True)
 
     def ExistingFileArg(path: str) -> Path:
-        if not Path(path).is_file():
+        expanded_path = Path(path).expanduser()
+        if not expanded_path.is_file():
             raise argparse.ArgumentTypeError("{} is not a file".format(path))
-        return Path(path).resolve(strict=True)
+        return expanded_path.resolve(strict=True)
 
     config_options = parser.add_argument_group("Test Configuration Options")
     config_options.add_argument(
@@ -804,6 +806,13 @@ def parse_args() -> argparse.Namespace:
         help="Directory containing built tests.",
     )
 
+    parser.add_argument(
+        "--dist-dir",
+        type=PathArg,
+        default=ndk.paths.get_dist_dir(),
+        help="Directory to store packaged tests. Defaults to $DIST_DIR or ../out/dist",
+    )
+
     return parser.parse_args()
 
 
@@ -840,6 +849,10 @@ def run_tests(args: argparse.Namespace) -> Results:
         else:
             sys.exit("Test output directory does not exist: {}".format(args.test_dir))
 
+    if args.package and not args.dist_dir.exists():
+        if args.rebuild or args.build_only:
+            args.dist_dir.mkdir(parents=True)
+
     test_config = get_config_dict(args.config, args.abi)
 
     printer = StdoutPrinter(show_all=args.show_all)
@@ -859,9 +872,7 @@ def run_tests(args: argparse.Namespace) -> Results:
                 args.test_dir,
                 test_filter=args.filter,
                 clean=args.clean,
-                package_path=ndk.paths.path_in_out(Path("dist/ndk-tests"))
-                if args.package
-                else None,
+                package_path=args.dist_dir / "ndk-tests" if args.package else None,
             )
 
             test_spec = ndk.test.builder.test_spec_from_config(test_config)

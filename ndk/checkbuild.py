@@ -2715,7 +2715,7 @@ def main() -> None:
     os.environ["ANDROID_BUILD_TOP"] = str(ndk.paths.android_path())
 
     out_dir = ndk.paths.get_out_dir()
-    dist_dir = ndk.paths.get_dist_dir(out_dir)
+    dist_dir = ndk.paths.get_dist_dir()
 
     print("Machine has {} CPUs".format(multiprocessing.cpu_count()))
 
@@ -2735,7 +2735,7 @@ def main() -> None:
 
     build_timer = ndk.timer.Timer()
     with build_timer:
-        ndk_dir = build_ndk(modules, deps_only, Path(out_dir), Path(dist_dir), args)
+        ndk_dir = build_ndk(modules, deps_only, out_dir, dist_dir, args)
     installed_size = get_directory_size(ndk_dir)
 
     # Create a symlink to the NDK usable by this host in the root of the out
@@ -2751,7 +2751,7 @@ def main() -> None:
             # packaging, ensure that the directory is purged before and after
             # building the tests.
             package_path = package_ndk(
-                ndk_dir, Path(out_dir), Path(dist_dir), args.system, args.build_number
+                ndk_dir, out_dir, dist_dir, args.system, args.build_number
             )
             packaged_size_bytes = package_path.stat().st_size
             packaged_size = packaged_size_bytes // (2 ** 20)
