@@ -23,7 +23,6 @@ from pathlib import Path
 import pickle
 import random
 import shutil
-import subprocess
 import sys
 import traceback
 from typing import (
@@ -34,6 +33,7 @@ from typing import (
 )
 
 import ndk.abis
+import ndk.archive
 from ndk.test.filters import TestFilter
 from ndk.test.printers import Printer
 from ndk.test.report import Report
@@ -316,28 +316,8 @@ class TestBuilder:
     def package(self) -> None:
         assert self.test_options.package_path is not None
         print("Packaging tests...")
-        if os.name == "nt":
-            shutil.make_archive(
-                str(self.test_options.package_path),
-                "bztar",
-                str(Path(self.test_options.out_dir).parent),
-                "tests/dist",
-            )
-        else:
-            has_pbzip2 = shutil.which("pbzip2") is not None
-            if has_pbzip2:
-                compress_arg = "--use-compress-prog=pbzip2"
-            else:
-                compress_arg = "-j"
-
-            package_path = self.test_options.package_path.with_suffix(".tar.bz2")
-            cmd = [
-                "tar",
-                compress_arg,
-                "-cf",
-                str(package_path),
-                "-C",
-                str(Path(self.test_options.out_dir).parent),
-                "tests/dist",
-            ]
-            subprocess.check_call(cmd)
+        ndk.archive.make_bztar(
+            self.test_options.package_path,
+            self.test_options.out_dir.parent,
+            Path("tests/dist"),
+        )
