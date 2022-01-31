@@ -735,7 +735,7 @@ def parse_args() -> argparse.Namespace:
     config_options.add_argument(
         "--config",
         type=ExistingFileArg,
-        default="qa_config.json",
+        default=ndk.paths.ndk_path("qa_config.json"),
         help="Path to the config file describing the test run.",
     )
 
@@ -802,7 +802,8 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--test-src",
         type=ExistingDirectoryArg,
-        help="Path to test source directory. Defaults to ./tests.",
+        default=ndk.paths.ndk_path("tests"),
+        help="Path to test source directory. Defaults to ndk/tests.",
     )
 
     parser.add_argument(
@@ -864,11 +865,6 @@ def run_tests(args: argparse.Namespace) -> Results:
     test_config = get_config_dict(args.config, args.abi)
 
     printer = StdoutPrinter(show_all=args.show_all)
-
-    if args.test_src is None:
-        args.test_src = Path("tests").resolve(strict=False)
-        if not args.test_src.exists():
-            sys.exit("Test source directory does not exist: {}".format(args.test_src))
 
     if args.ndk.is_file():
         if args.ndk.suffix == ".zip":
