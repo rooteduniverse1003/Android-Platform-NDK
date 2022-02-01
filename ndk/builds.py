@@ -19,8 +19,6 @@ Note: this isn't the ndk-build API, but the API for building the NDK itself.
 """
 from __future__ import annotations
 
-# pylint: disable=import-error,no-name-in-module
-# https://github.com/PyCQA/pylint/issues/73
 from distutils.dir_util import copy_tree
 from enum import auto, Enum, unique
 from pathlib import Path, PureWindowsPath
@@ -129,7 +127,9 @@ class Module:
             return
         yield self.notice
 
-    def default_notice_path(self) -> Optional[Path]:
+    # This can't actually be static because subclasses might use self, but for some
+    # reason pylint doesn't know that in this case.
+    def default_notice_path(self) -> Optional[Path]:  # pylint: disable=no-self-use
         """Returns the path to the default notice for this module, if any."""
         return None
 

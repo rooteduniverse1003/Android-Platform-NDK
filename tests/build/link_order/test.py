@@ -141,15 +141,14 @@ def run_test(ndk_path: str, config: BuildConfiguration) -> tuple[bool, str]:
     if proc.returncode != 0:
         return proc.returncode == 0, out
 
-    link_line = None
+    link_line: Optional[str] = None
     for line in out.splitlines():
         if 'bin/ld' in re.sub(r'[/\\]+', '/', line):
             if link_line is not None:
                 err_msg = 'Found duplicate link lines:\n{}\n{}'.format(
                     link_line, line)
                 return False, err_msg
-            else:
-                link_line = line
+            link_line = line
 
     if link_line is None:
         return False, 'Did not find link line in out:\n{}'.format(out)

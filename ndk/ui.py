@@ -180,9 +180,8 @@ def get_build_progress_ui(console: ndk.ansi.Console, workqueue: AnyWorkQueue) ->
     if console.smart_console:
         ui_renderer = AnsiUiRenderer(console)
         return BuildProgressUi(ui_renderer, workqueue)
-    else:
-        ui_renderer = NonAnsiUiRenderer(console)
-        return NonAnsiBuildProgressUi(ui_renderer)
+    ui_renderer = NonAnsiUiRenderer(console)
+    return NonAnsiBuildProgressUi(ui_renderer)
 
 
 class NonAnsiBuildProgressUi(Ui):

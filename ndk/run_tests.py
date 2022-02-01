@@ -133,7 +133,8 @@ class TestCase:
     def run(self, device: Device) -> AdbResult:
         raise NotImplementedError
 
-    def run_cmd(self, device: Device, cmd: str) -> AdbResult:
+    @staticmethod
+    def run_cmd(device: Device, cmd: str) -> AdbResult:
         logger().info('%s: shell_nocheck "%s"', device.name, cmd)
         return shell_nocheck_wrap_errors(device, cmd)
 
@@ -284,7 +285,7 @@ class TestRun:
             if result.failed():
                 assert isinstance(result, Failure)
                 return ExpectedFailure(self, result.message, config, bug)
-            elif result.passed():
+            if result.passed():
                 return UnexpectedSuccess(self, config, bug)
             raise ValueError("Test result must have either failed or passed.")
         return result
@@ -352,7 +353,7 @@ def enumerate_libcxx_tests(
 ) -> List[TestCase]:
     tests: List[TestCase] = []
     tests_dir = out_dir_base / str(build_cfg) / build_system
-    if tests_dir.exists():
+    if not tests_dir.exists():
         return tests
 
     for root, _, files in os.walk(tests_dir):
@@ -686,7 +687,7 @@ def get_config_dict(config: str, abis: Iterable[Abi]) -> Dict[str, Any]:
 def str_to_bool(s: str) -> bool:
     if s == "true":
         return True
-    elif s == "false":
+    if s == "false":
         return False
     raise ValueError(s)
 
@@ -735,7 +736,7 @@ def parse_args() -> argparse.Namespace:
     config_options.add_argument(
         "--config",
         type=ExistingFileArg,
-        default="qa_config.json",
+        default=ndk.paths.ndk_path("qa_config.json"),
         help="Path to the config file describing the test run.",
     )
 
@@ -802,7 +803,8 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--test-src",
         type=ExistingDirectoryArg,
-        help="Path to test source directory. Defaults to ./tests.",
+        default=ndk.paths.ndk_path("tests"),
+        help="Path to test source directory. Defaults to ndk/tests.",
     )
 
     parser.add_argument(
@@ -865,12 +867,8 @@ def run_tests(args: argparse.Namespace) -> Results:
 
     printer = StdoutPrinter(show_all=args.show_all)
 
-    if args.test_src is None:
-        args.test_src = Path("tests").resolve(strict=False)
-        if not args.test_src.exists():
-            sys.exit("Test source directory does not exist: {}".format(args.test_src))
-
     if args.ndk.is_file():
+        # Unzip the NDK into out/ndk-zip.
         if args.ndk.suffix == ".zip":
             ndk_dir = ndk.paths.path_in_out(Path(args.ndk.stem))
             if ndk_dir.exists():
@@ -880,7 +878,18 @@ def run_tests(args: argparse.Namespace) -> Results:
             contents = list(ndk_dir.iterdir())
             assert len(contents) == 1
             assert contents[0].is_dir()
-            args.ndk = contents[0]
+            # Windows paths, by default, are limited to 260 characters.
+            # Some of our deeply nested paths run up against this limitation.
+            # Therefore, after unzipping the NDK into something like
+            # out/android-ndk-8136140-windows-x86_64/android-ndk-r25-canary
+            # (61 characters) we rename it to out/ndk-zip (7 characters),
+            # shortening paths in the NDK by 54 characters.
+            short_path = ndk.paths.path_in_out(Path("ndk-zip"))
+            if short_path.exists():
+                shutil.rmtree(short_path)
+            contents[0].rename(short_path)
+            args.ndk = short_path
+            shutil.rmtree(ndk_dir)
         else:
             sys.exit("--ndk must be a directory or a .zip file: {}".format(args.ndk))
 
