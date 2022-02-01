@@ -884,6 +884,8 @@ def run_tests(args: argparse.Namespace) -> Results:
             # (61 characters) we rename it to out/ndk-zip (7 characters),
             # shortening paths in the NDK by 54 characters.
             short_path = ndk.paths.path_in_out(Path("ndk-zip"))
+            if short_path.exists():
+                shutil.rmtree(short_path)
             contents[0].rename(short_path)
             args.ndk = short_path
             shutil.rmtree(ndk_dir)
