@@ -48,10 +48,9 @@ def call_output(cmd: list[str], *args: Any, **kwargs: Any) -> tuple[int, Any]:
 def get_python_executable(ndk_path: Path) -> Path:
     host = Host.current()
     python_dir = ndk_path / "toolchains/llvm/prebuilt" / host.tag / "python3"
-    if host == Host.Windows64:
+    if host is Host.Windows64:
         return python_dir / "python.exe"
-    else:
-        return python_dir / "bin/python3"
+    return python_dir / "bin/python3"
 
 
 def make_standalone_toolchain(

@@ -24,11 +24,8 @@ import collections
 import contextlib
 import copy
 
-# pylint: disable=import-error,no-name-in-module
-# https://github.com/PyCQA/pylint/issues/73
 from distutils.dir_util import copy_tree
 
-# pylint: enable=import-error,no-name-in-module
 import inspect
 import json
 import logging
@@ -508,9 +505,9 @@ def versioned_so(host: Host, lib: str, version: str) -> str:
     >>> versioned_so(Host.Linux, 'libfoo', '0')
     'libfoo.so.0'
     """
-    if host == Host.Darwin:
+    if host is Host.Darwin:
         return f"{lib}.{version}.dylib"
-    elif host == Host.Linux:
+    if host is Host.Linux:
         return f"{lib}.so.{version}"
     raise ValueError(f"Unsupported host: {host}")
 
@@ -908,21 +905,19 @@ class Platforms(ndk.builds.Module):
 
     prebuilts_path = ANDROID_DIR / "prebuilts/ndk/platform"
 
-    def src_path(self, *args: str) -> Path:  # pylint: disable=no-self-use
+    @staticmethod
+    def src_path(*args: str) -> Path:
         return ndk.paths.android_path("development/ndk/platforms", *args)
 
     def llvm_tool(self, tool: str) -> Path:
         path = Path(self.get_dep("clang").get_build_host_install())
         return path / f"bin/{tool}"
 
-    # pylint: disable=no-self-use
-    def libdir_name(self, arch: ndk.abis.Arch) -> str:
+    @staticmethod
+    def libdir_name(arch: ndk.abis.Arch) -> str:
         if arch == "x86_64":
             return "lib64"
-        else:
-            return "lib"
-
-    # pylint: enable=no-self-use
+        return "lib"
 
     def get_apis(self) -> List[int]:
         apis: List[int] = []
@@ -1860,7 +1855,8 @@ class NdkBuild(ndk.builds.PackageModule):
             )
         )
 
-    def get_clang_version(self, clang: Path) -> str:
+    @staticmethod
+    def get_clang_version(clang: Path) -> str:
         """Invokes Clang to determine its version string."""
         result = subprocess.run(
             [str(clang), "--version"], capture_output=True, encoding="utf-8", check=True

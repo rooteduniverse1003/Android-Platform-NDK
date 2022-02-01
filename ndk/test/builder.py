@@ -77,10 +77,10 @@ def _fixup_expected_failure(
 ) -> ndk.test.result.TestResult:
     if isinstance(result, ndk.test.result.Failure):
         return ndk.test.result.ExpectedFailure(result.test, result.message, config, bug)
-    elif isinstance(result, ndk.test.result.Success):
+    if isinstance(result, ndk.test.result.Success):
         return ndk.test.result.UnexpectedSuccess(result.test, config, bug)
-    else:  # Skipped, UnexpectedSuccess, or ExpectedFailure.
-        return result
+    # Skipped, UnexpectedSuccess, or ExpectedFailure.
+    return result
 
 
 def _fixup_negative_test(
@@ -88,10 +88,10 @@ def _fixup_negative_test(
 ) -> ndk.test.result.TestResult:
     if isinstance(result, ndk.test.result.Failure):
         return ndk.test.result.Success(result.test)
-    elif isinstance(result, ndk.test.result.Success):
+    if isinstance(result, ndk.test.result.Success):
         return ndk.test.result.Failure(result.test, "negative test case succeeded")
-    else:  # Skipped, UnexpectedSuccess, or ExpectedFailure.
-        return result
+    # Skipped, UnexpectedSuccess, or ExpectedFailure.
+    return result
 
 
 RunTestResult = tuple[str, ndk.test.result.TestResult, list[Test]]
