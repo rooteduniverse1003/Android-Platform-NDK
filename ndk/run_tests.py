@@ -867,6 +867,7 @@ def run_tests(args: argparse.Namespace) -> Results:
     printer = StdoutPrinter(show_all=args.show_all)
 
     if args.ndk.is_file():
+        # Unzip the NDK into out/ndk-zip.
         if args.ndk.suffix == ".zip":
             ndk_dir = ndk.paths.path_in_out(Path(args.ndk.stem))
             if ndk_dir.exists():
@@ -876,7 +877,16 @@ def run_tests(args: argparse.Namespace) -> Results:
             contents = list(ndk_dir.iterdir())
             assert len(contents) == 1
             assert contents[0].is_dir()
-            args.ndk = contents[0]
+            # Windows paths, by default, are limited to 260 characters.
+            # Some of our deeply nested paths run up against this limitation.
+            # Therefore, after unzipping the NDK into something like
+            # out/android-ndk-8136140-windows-x86_64/android-ndk-r25-canary
+            # (61 characters) we rename it to out/ndk-zip (7 characters),
+            # shortening paths in the NDK by 54 characters.
+            short_path = ndk.paths.path_in_out(Path("ndk-zip"))
+            contents[0].rename(short_path)
+            args.ndk = short_path
+            shutil.rmtree(ndk_dir)
         else:
             sys.exit("--ndk must be a directory or a .zip file: {}".format(args.ndk))
 
