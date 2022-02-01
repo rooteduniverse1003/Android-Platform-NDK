@@ -7,9 +7,9 @@ For Android Studio issues, follow the docs on the [Android Studio site].
 [GitHub]: https://github.com/android/ndk/issues
 [Android Studio site]: http://tools.android.com/filing-bugs
 
-## Announcements
-
 ## Changes
+
+* Includes Android-T (Tiramisu) Developer Preview 1 APIs.
 
 ## Known Issues
 
