@@ -353,7 +353,7 @@ def enumerate_libcxx_tests(
 ) -> List[TestCase]:
     tests: List[TestCase] = []
     tests_dir = out_dir_base / str(build_cfg) / build_system
-    if tests_dir.exists():
+    if not tests_dir.exists():
         return tests
 
     for root, _, files in os.walk(tests_dir):
