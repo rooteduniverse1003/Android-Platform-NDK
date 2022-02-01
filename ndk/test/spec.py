@@ -19,7 +19,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 import enum
 from pathlib import Path
-from typing import Iterable, List, Optional
+from typing import Iterable, Optional
 
 from ndk.abis import Abi, LP32_ABIS, LP64_ABIS
 
@@ -140,12 +140,14 @@ class BuildConfiguration:
 
         return BuildConfiguration(Abi(abi), api, toolchain_file)
 
-    def get_extra_ndk_build_flags(self) -> List[str]:
+    @staticmethod
+    def get_extra_ndk_build_flags() -> list[str]:
         extra_flags = []
         extra_flags.append("V=1")
         return extra_flags
 
-    def get_extra_cmake_flags(self) -> List[str]:
+    @staticmethod
+    def get_extra_cmake_flags() -> list[str]:
         extra_flags = []
         extra_flags.append("-DCMAKE_VERBOSE_MAKEFILE=ON")
         return extra_flags

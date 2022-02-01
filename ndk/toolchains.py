@@ -65,7 +65,8 @@ class DarwinSdk:
             f"-mlinker-version={self.linker_version}",
         ]
 
-    def sdk_tool(self, name: str) -> Path:
+    @staticmethod
+    def sdk_tool(name: str) -> Path:
         """Returns the path to the given SDK tool."""
         proc_result = subprocess.run(
             ["xcrun", "--find", name],
@@ -75,7 +76,8 @@ class DarwinSdk:
         )
         return Path(proc_result.stdout.strip())
 
-    def _get_sdk_path(self) -> Path:
+    @staticmethod
+    def _get_sdk_path() -> Path:
         """Gets the path to the Mac SDK."""
         proc_result = subprocess.run(
             ["xcrun", "--show-sdk-path"],
@@ -85,7 +87,8 @@ class DarwinSdk:
         )
         return Path(proc_result.stdout.strip())
 
-    def _get_ld_version(self) -> str:
+    @staticmethod
+    def _get_ld_version() -> str:
         """Gets the version of the system linker."""
         proc_result = subprocess.run(
             ["ld", "-v"],
@@ -219,16 +222,15 @@ class Sysroot:
                 ndk.paths.ANDROID_DIR
                 / "prebuilts/gcc/darwin-x86/host/i686-apple-darwin-4.2.1"
             )
-        elif self.target == Host.Linux:
+        if self.target == Host.Linux:
             return (
                 ndk.paths.ANDROID_DIR
                 / "prebuilts/gcc/linux-x86/host/x86_64-linux-glibc2.17-4.8"
             )
-        else:
-            return (
-                ndk.paths.ANDROID_DIR
-                / "prebuilts/gcc/linux-x86/host/x86_64-w64-mingw32-4.8"
-            )
+        return (
+            ndk.paths.ANDROID_DIR
+            / "prebuilts/gcc/linux-x86/host/x86_64-w64-mingw32-4.8"
+        )
 
     @property
     def sysroot(self) -> Path:
