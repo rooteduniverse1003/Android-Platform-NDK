@@ -103,19 +103,12 @@ def unzip(zip_file: Path, dest_dir: Path) -> None:
     # restore permissions, including the executable bit.
     # https://bugs.python.org/issue15795
     if os.name == "nt":
-        # Recent versions of Windows have built-in support for unzipping files,
-        # and with some cleverness you can access it from the command line.
-        # I'm not that clever, and 7-Zip is pretty widely available.
         # https://superuser.com/questions/1314420/how-to-unzip-a-file-using-the-cmd
         subprocess.check_call(
             [
-                "C:/Program Files/7-Zip/7z.exe",
-                "x",
-                str(zip_file),
-                # Make 7-Zip more quiet. Unfortunately, we can't easily silence
-                # it completely.
-                "-bd",
-                f"-o{dest_dir}",
+                "powershell",
+                "-command",
+                f"Expand-Archive -Force '{zip_file}' '{dest_dir}'",
             ]
         )
     else:

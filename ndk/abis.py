@@ -134,7 +134,6 @@ def min_api_for_abi(abi: Abi) -> int:
     """
     if abi in LP64_ABIS:
         return FIRST_LP64_API_LEVEL
-    elif abi in LP32_ABIS:
+    if abi in LP32_ABIS:
         return MIN_API_LEVEL
-    else:
-        raise ValueError("Invalid ABI: {}".format(abi))
+    raise ValueError("Invalid ABI: {}".format(abi))

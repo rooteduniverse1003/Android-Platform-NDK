@@ -64,12 +64,11 @@ class Host(enum.Enum):
         """Returns the Host matching the current machine."""
         if sys.platform in ("linux", "linux2"):
             return Host.Linux
-        elif sys.platform == "darwin":
+        if sys.platform == "darwin":
             return Host.Darwin
-        elif sys.platform == "win32":
+        if sys.platform == "win32":
             return Host.Windows64
-        else:
-            raise RuntimeError(f"Unsupported host: {sys.platform}")
+        raise RuntimeError(f"Unsupported host: {sys.platform}")
 
     @classmethod
     def from_tag(cls, tag: str) -> Host:
@@ -84,7 +83,12 @@ class Host(enum.Enum):
 
 def get_host_tag() -> str:
     """Returns the host tag used for testing on the current host."""
-    if sys.platform.startswith("linux"):
+    # mypy prunes unreachable code fairly aggressively with sys.platform, so if this
+    # doesn't use elif mypy will actually complain that the checks after the check for
+    # the OS doing the linting are unreachable. That actually does mean that mypy isn't
+    # checking most of this function because it quits looking after the first condition.
+    # https://github.com/python/mypy/issues/5678
+    if sys.platform.startswith("linux"):  # pylint: disable=no-else-return
         return "linux-x86_64"
     elif sys.platform == "darwin":
         return "darwin-x86_64"
@@ -107,7 +111,7 @@ def host_to_tag(host: Host) -> str:
     # value.
     if not host.is_windows:
         return host.value + "-x86_64"
-    elif host == Host.Windows64:
+    if host == Host.Windows64:
         return "windows-x86_64"
     raise NotImplementedError
 

@@ -197,8 +197,7 @@ class PythonBuildTest(BuildTest):
             success, failure_message = module.run_test(self.ndk_path, self.config)
             if success:
                 return Success(self), []
-            else:
-                return Failure(self, failure_message), []
+            return Failure(self, failure_message), []
 
 
 class ShellBuildTest(BuildTest):
@@ -220,18 +219,17 @@ class ShellBuildTest(BuildTest):
         if os.name == "nt":
             reason = "build.sh tests are not supported on Windows"
             return Skipped(self, reason), []
-        else:
-            assert self.api is not None
-            result = _run_build_sh_test(
-                self,
-                build_dir,
-                self.test_dir,
-                self.ndk_path,
-                self.ndk_build_flags,
-                self.abi,
-                self.api,
-            )
-            return result, []
+        assert self.api is not None
+        result = _run_build_sh_test(
+            self,
+            build_dir,
+            self.test_dir,
+            self.ndk_path,
+            self.ndk_build_flags,
+            self.abi,
+            self.api,
+        )
+        return result, []
 
 
 def _run_build_sh_test(
@@ -256,8 +254,7 @@ def _run_build_sh_test(
         )
         if rc == 0:
             return Success(test)
-        else:
-            return Failure(test, out)
+        return Failure(test, out)
 
 
 def _platform_from_application_mk(test_dir: Path) -> Optional[int]:
@@ -341,8 +338,7 @@ class NdkBuildTest(BuildTest):
     def get_dist_dir(self, obj_dir: Path, dist_dir: Path) -> Path:
         if self.dist:
             return self.get_build_dir(dist_dir)
-        else:
-            return self.get_build_dir(obj_dir) / "dist"
+        return self.get_build_dir(obj_dir) / "dist"
 
     def get_build_dir(self, out_dir: Path) -> Path:
         return out_dir / str(self.config) / "ndk-build" / self.name
@@ -387,8 +383,7 @@ def _run_ndk_build_test(
         rc, out = ndk.ndkbuild.build(ndk_path, args + ndk_build_flags)
         if rc == 0:
             return Success(test)
-        else:
-            return Failure(test, out)
+        return Failure(test, out)
 
 
 class CMakeBuildTest(BuildTest):
@@ -410,8 +405,7 @@ class CMakeBuildTest(BuildTest):
     def get_dist_dir(self, obj_dir: Path, dist_dir: Path) -> Path:
         if self.dist:
             return self.get_build_dir(dist_dir)
-        else:
-            return self.get_build_dir(obj_dir) / "dist"
+        return self.get_build_dir(obj_dir) / "dist"
 
     def get_build_dir(self, out_dir: Path) -> Path:
         return out_dir / str(self.config) / "cmake" / self.name
@@ -550,7 +544,7 @@ def get_lit_cmd() -> Optional[List[str]]:
     lit_path = ndk.paths.android_path("toolchain/llvm-project/llvm/utils/lit/lit.py")
     if lit_path.exists():
         return ["python", str(lit_path)]
-    elif shutil.which("lit"):
+    if shutil.which("lit"):
         return ["lit"]
     return None
 
@@ -754,7 +748,6 @@ class LibcxxTest(Test):
 
         return Success(self), test_reports
 
-    # pylint: disable=no-self-use
     def check_broken(self) -> Union[Tuple[None, None], Tuple[str, str]]:
         # Actual results are reported individually by pulling them out of the
         # xunit output. This just reports the status of the overall test run,
@@ -766,8 +759,6 @@ class LibcxxTest(Test):
 
     def is_negative_test(self) -> bool:
         return False
-
-    # pylint: enable=no-self-use
 
 
 class XunitResult(Test):

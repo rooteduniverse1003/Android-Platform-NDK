@@ -97,9 +97,8 @@ def assign_self_to_new_process_group() -> ProcessGroup:
     """Assigns this process to a new process group."""
     if sys.platform == "win32":
         return create_windows_process_group()
-    else:
-        os.setpgrp()
-        return None
+    os.setpgrp()
+    return None
 
 
 def kill_process_group(group: ProcessGroup) -> None:
