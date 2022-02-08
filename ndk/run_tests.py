@@ -324,7 +324,7 @@ def enumerate_basic_tests(
                 logger().error(
                     "Found static library in app install directory. Static "
                     "libraries should never be installed. This is a bug in "
-                    "build system: %s",
+                    "the build system: %s",
                     test_path,
                 )
                 continue
