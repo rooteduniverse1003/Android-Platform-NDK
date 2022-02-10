@@ -19,49 +19,12 @@
 This would normally be installed by pip, but we want to keep this in place in
 the source directory since the buildbots expect it to be here.
 """
-import argparse
-import logging
-import os
-import subprocess
-import sys
-
-from bootstrap import bootstrap, python_cmd
+import ndk.run_tests
 
 
-THIS_DIR = os.path.realpath(os.path.dirname(__file__))
-
-
-def parse_args():
-    """Parses and returns command line arguments."""
-    # Don't add help because it inhibits the real run_tests.py's --help.
-    parser = argparse.ArgumentParser(add_help=False)
-    parser.add_argument(
-        "-v",
-        "--verbose",
-        action="count",
-        dest="verbosity",
-        default=0,
-        help="Increase logging verbosity.",
-    )
-    return parser.parse_known_args()
-
-
-def main():
-    """Program entry point.
-
-    Bootstraps the real run_tests wrapper, do_runtests.py.
-    """
-    args, _ = parse_args()
-
-    if args.verbosity >= 2:
-        logging.basicConfig(level=logging.DEBUG)
-    else:
-        logging.basicConfig(level=logging.INFO)
-
-    bootstrap()
-    subprocess.check_call(
-        [python_cmd(), os.path.join(THIS_DIR, "do_runtests.py")] + sys.argv[1:]
-    )
+def main() -> None:
+    """Trampoline into the test runner defined in the ndk package."""
+    ndk.run_tests.main()
 
 
 if __name__ == "__main__":
