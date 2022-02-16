@@ -30,7 +30,7 @@ directly, see the [build system maintainers guide].
   release. The minimum OS supported by the NDK for r24 will be KitKat (API level
   19).
 
-[Clang Migration Notes]: ClangMigration.md
+[Clang Migration Notes]: https://android.googlesource.com/platform/ndk/+/master/docs/ClangMigration.md
 
 ## r23c
 

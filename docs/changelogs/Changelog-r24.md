@@ -32,7 +32,7 @@ directly, see the [build system maintainers guide].
   in Android 12. If you have not finished migrating your apps away from
   RenderScript, NDK r23 LTS can be used.
 
-[Clang Migration Notes]: ClangMigration.md
+[Clang Migration Notes]: https://android.googlesource.com/platform/ndk/+/master/docs/ClangMigration.md
 
 ## Changes
 
