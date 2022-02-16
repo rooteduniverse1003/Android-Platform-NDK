@@ -85,6 +85,39 @@ poetry shell
 $ python checkbuild.py
 ```
 
+If you get an error like the following:
+
+```
+Expected python to be $NDK_SRC/prebuilts/python/$HOST/bin/python3.9, but is ~/.cache/pypoetry/virtualenvs/$VENV/bin/python (/usr/bin/python3.9).
+```
+
+Your Poetry virualenv was misconfigured. It seems that `poetry env use` will not
+replace an existing virtualenv of the same major/minor version, so if you ran
+any poetry commands before `poetry env use`, your environment needs to be
+deleted and recreated.
+
+```bash
+$ poetry env remove $VENV
+$ poetry env use ../prebuilts/python/linux-x86/bin/python3
+$ poetry install
+```
+
+If you get an error like the following:
+
+```
+Expected python to be $NDK_SRC/prebuilts/python/linux-x86/bin/python3.9, but is /usr/bin/python (/usr/bin/python3.9).
+```
+
+You ran checkbuild.py outside the poetry environment. Ensure that you've done
+the first time setup (`poetry env use` and `poetry install`, as above), then
+either run `poetry shell` to enter a new shell with the correct environment, or
+use `poetry run checkbuild.py`.
+
+If you get errors from the pythonlint task but it appears to only affect your
+machine, one of the linters you have installed is probably not the correct
+version. Run `poetry install` to sync your environment with the expected
+versions.
+
 ### For Windows, from Linux
 
 ```bash
