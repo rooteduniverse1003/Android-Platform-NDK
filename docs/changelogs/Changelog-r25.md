@@ -13,7 +13,7 @@ directly, see the [build system maintainers guide].
 
 ## Changes
 
-* Includes Android-T (Tiramisu) Developer Preview 1 APIs.
+* Includes Android-T (Tiramisu) Developer Preview 2 APIs.
 
 ## Known Issues
 
