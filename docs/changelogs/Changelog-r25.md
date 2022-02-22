@@ -9,7 +9,7 @@ For Android Studio issues, follow the docs on the [Android Studio site].
 
 ## Changes
 
-* Includes Android-T (Tiramisu) Developer Preview 1 APIs.
+* Includes Android-T (Tiramisu) Developer Preview 2 APIs.
 
 ## Known Issues
 
