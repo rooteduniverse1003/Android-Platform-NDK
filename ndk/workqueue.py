@@ -402,7 +402,7 @@ class BasicWorkQueue(BaseWorkQueue[ResultT]):
 
     # pylint: enable=unused-argument
 
-    def add_task(self, func: Callable[..., Any], *args: Any, **kwargs: Any) -> None:
+    def add_task(self, func: Callable[..., ResultT], *args: Any, **kwargs: Any) -> None:
         """Queues up a new task for execution.
 
         Tasks are executed when get_result is called.
@@ -477,12 +477,12 @@ class LoadRestrictingWorkQueue(BaseWorkQueue[ResultT]):
 
         self.num_tasks = 0
 
-    def add_task(self, func: Callable[..., Any], *args: Any, **kwargs: Any) -> None:
+    def add_task(self, func: Callable[..., ResultT], *args: Any, **kwargs: Any) -> None:
         self.main_task_queue.put(Task(func, args, kwargs))
         self.num_tasks += 1
 
     def add_load_restricted_task(
-        self, func: Callable[..., Any], *args: Any, **kwargs: Any
+        self, func: Callable[..., ResultT], *args: Any, **kwargs: Any
     ) -> None:
         self.restricted_task_queue.put(Task(func, args, kwargs))
         self.num_tasks += 1
@@ -554,7 +554,7 @@ class ShardingWorkQueue(BaseWorkQueue[ResultT], Generic[ResultT, ShardingGroupTy
     def add_task(
         self,
         group: ShardingGroupType,
-        func: Callable[..., Any],
+        func: Callable[..., ResultT],
         *args: Any,
         **kwargs: Any
     ) -> None:

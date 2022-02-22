@@ -4,8 +4,12 @@ Report issues to [GitHub].
 
 For Android Studio issues, follow the docs on the [Android Studio site].
 
+If you're a build system maintainer that needs to use the tools in the NDK
+directly, see the [build system maintainers guide].
+
 [GitHub]: https://github.com/android/ndk/issues
 [Android Studio site]: http://tools.android.com/filing-bugs
+[build system maintainers]: https://android.googlesource.com/platform/ndk/+/master/docs/BuildSystemMaintainers.md
 
 ## Announcements
 
@@ -26,7 +30,7 @@ For Android Studio issues, follow the docs on the [Android Studio site].
   release. The minimum OS supported by the NDK for r24 will be KitKat (API level
   19).
 
-[Clang Migration Notes]: ClangMigration.md
+[Clang Migration Notes]: https://android.googlesource.com/platform/ndk/+/master/docs/ClangMigration.md
 
 ## r23c
 
