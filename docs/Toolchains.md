@@ -30,17 +30,37 @@ repackages this into the NDK out directory.
 
 [Android LLVM Readme]: https://android.googlesource.com/toolchain/llvm_android/+/master/README.md
 
-### Testing Local Changes
+### Updating to a New Clang
 
-To test a Clang you just built:
+If you're updating the NDK to use a new release of the LLVM toolchain, do the
+following.
+
+Note: These steps need to be run after installing the new prebuilt from the
+build server to `prebuilts/clang` (see the [update-prebuilts.py]). The LLVM team
+will handle installing the new toolchain to prebuilts, but the NDK team usually
+makes the change to migrate to the new toolchain as described below.
+
+[update-prebuilts.py]: https://android.googlesource.com/toolchain/llvm_android/+/master/update-prebuilts.py
+
+```bash
+# Edit ndk/toolchains.py and update `CLANG_VERSION`.
+$ ./checkbuid.py
+# ./run_tests.py
+```
+
+### Testing local llvm-toolchain changes with the NDK
+
+If you're working with unsubmitted changes to llvm-toolchain and want to test
+your LLVM changes in the NDK, do the following. If you're just updating the NDK
+to use a newer prebuilt LLVM, you don't need to do this part.
 
 ```bash
 $ export CLANG_PREBUILTS=`realpath ../prebuilts/clang/host/linux-x86`
 $ rm -r $CLANG_PREBUILTS/clang-dev
-# The first path is in your llvm-toolchain's out directory. If you have a
-# tarball for the toolchain distribution, extract that to
+# $LLVM_TOOLCHAIN refers to the root of your llvm-toolchain source directory. If
+# you have a tarball for the toolchain distribution, extract that to
 # $CLANG_PREBUILTS/clang-dev instead.
-$ cp -r path/to/llvm-toolchain/out/install/$HOST/clang-dev $CLANG_PREBUILTS/
+$ cp -r $LLVM_TOOLCHAIN/out/install/$HOST/clang-dev $CLANG_PREBUILTS/
 # Update CLANG_VERSION in ndk/toolchains.py to clang-dev.
 $ ./checkbuild.py
 # Run tests. To run the NDK test suite, you will need to attach the
@@ -67,16 +87,3 @@ $ ./checkbuild.py toolchain
 ```
 
 We don't need to rebuild the whole NDK since we've already built most of it.
-
-### Updating to a New Clang
-
-These steps need to be run after installing the new prebuilt from the build
-server to `prebuilts/clang` (see the [update-prebuilts.py]).
-
-[update-prebuilts.py]: https://android.googlesource.com/toolchain/llvm_android/+/master/update-prebuilts.py
-
-```bash
-# Edit ndk/toolchains.py and update `CLANG_VERSION`.
-$ ./checkbuid.py
-# Run tests.
-```
