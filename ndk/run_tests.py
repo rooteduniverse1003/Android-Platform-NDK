@@ -76,6 +76,7 @@ import ndk.test.ui
 from ndk.timer import Timer
 import ndk.ui
 from ndk.workqueue import ShardingWorkQueue, Worker, WorkQueue
+from .pythonenv import ensure_python_environment
 
 
 DEVICE_TEST_BASE_DIR = PurePosixPath("/data/local/tmp/tests")
@@ -324,7 +325,7 @@ def enumerate_basic_tests(
                 logger().error(
                     "Found static library in app install directory. Static "
                     "libraries should never be installed. This is a bug in "
-                    "build system: %s",
+                    "the build system: %s",
                     test_path,
                 )
                 continue
@@ -1038,6 +1039,8 @@ def run_tests(args: argparse.Namespace) -> Results:
 
 
 def main() -> None:
+    ensure_python_environment()
+
     args = parse_args()
 
     log_levels = [logging.WARNING, logging.INFO, logging.DEBUG]
