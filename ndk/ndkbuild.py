@@ -18,15 +18,24 @@ from __future__ import absolute_import
 
 import os
 from pathlib import Path
-from typing import List, Tuple
+import subprocess
+from subprocess import CompletedProcess
 
-import ndk.ext.subprocess
 
-
-def build(ndk_path: Path, build_flags: List[str]) -> Tuple[int, str]:
-    """Invokes ndk-build with the given arguments."""
+def make_build_command(ndk_path: Path, build_flags: list[str]) -> list[str]:
     ndk_build_path = ndk_path / "ndk-build"
     cmd = [str(ndk_build_path)] + build_flags
     if os.name == "nt":
         cmd = ["cmd", "/c"] + cmd
-    return ndk.ext.subprocess.call_output(cmd, encoding="utf-8")
+    return cmd
+
+
+def build(ndk_path: Path, build_flags: list[str]) -> CompletedProcess[str]:
+    """Invokes ndk-build with the given arguments."""
+    return subprocess.run(
+        make_build_command(ndk_path, build_flags),
+        check=False,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+        encoding="utf-8",
+    )

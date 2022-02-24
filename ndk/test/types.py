@@ -20,8 +20,10 @@ import logging
 import multiprocessing
 import os
 from pathlib import Path, PurePosixPath
+import shlex
 import shutil
 import subprocess
+from subprocess import CompletedProcess
 from typing import (
     List,
     Optional,
@@ -120,6 +122,29 @@ class BuildTest(Test):
     def cmake_flags(self) -> List[str]:
         flags = self.config.get_extra_cmake_flags()
         return flags + self.get_extra_cmake_flags()
+
+    def make_build_result(self, proc: CompletedProcess[str]) -> TestResult:
+        if proc.returncode == 0:
+            return Success(self)
+        return Failure(
+            self, f"Test build failed: {shlex.join(proc.args)}:\n{proc.stdout}"
+        )
+
+    def verify_no_cruft_in_dist(
+        self, dist_dir: Path, build_cmd: list[str]
+    ) -> Optional[Failure]:
+        bad_files = []
+        for path in ndk.paths.walk(dist_dir, directories=False):
+            if path.suffix == ".a":
+                bad_files.append(str(path))
+        if bad_files:
+            files = "\n".join(bad_files)
+            return Failure(
+                self,
+                f"Found unexpected files in test dist directory. Build command was: "
+                f"{shlex.join(build_cmd)}\n{files}",
+            )
+        return None
 
     def run(
         self, obj_dir: Path, dist_dir: Path, _test_filters: TestFilter
@@ -350,8 +375,7 @@ class NdkBuildTest(BuildTest):
         obj_dir = self.get_build_dir(obj_dir)
         dist_dir = self.get_dist_dir(obj_dir, dist_dir)
         assert self.api is not None
-        result = _run_ndk_build_test(
-            self,
+        proc = _run_ndk_build_test(
             obj_dir,
             dist_dir,
             self.test_dir,
@@ -360,11 +384,12 @@ class NdkBuildTest(BuildTest):
             self.abi,
             self.api,
         )
-        return result, []
+        if (failure := self.verify_no_cruft_in_dist(dist_dir, proc.args)) is not None:
+            return failure, []
+        return self.make_build_result(proc), []
 
 
 def _run_ndk_build_test(
-    test: NdkBuildTest,
     obj_dir: Path,
     dist_dir: Path,
     test_dir: Path,
@@ -372,7 +397,7 @@ def _run_ndk_build_test(
     ndk_build_flags: List[str],
     abi: Abi,
     platform: int,
-) -> TestResult:
+) -> CompletedProcess[str]:
     _prep_build_dir(test_dir, obj_dir)
     with ndk.ext.os.cd(obj_dir):
         args = [
@@ -380,10 +405,7 @@ def _run_ndk_build_test(
             f"APP_PLATFORM=android-{platform}",
             f"NDK_LIBS_OUT={dist_dir}",
         ] + _get_jobs_args()
-        rc, out = ndk.ndkbuild.build(ndk_path, args + ndk_build_flags)
-        if rc == 0:
-            return Success(test)
-        return Failure(test, out)
+        return ndk.ndkbuild.build(ndk_path, args + ndk_build_flags)
 
 
 class CMakeBuildTest(BuildTest):
@@ -417,8 +439,7 @@ class CMakeBuildTest(BuildTest):
         dist_dir = self.get_dist_dir(obj_dir, dist_dir)
         logger().info("Building test: %s", self.name)
         assert self.api is not None
-        result = _run_cmake_build_test(
-            self,
+        proc = _run_cmake_build_test(
             obj_dir,
             dist_dir,
             self.test_dir,
@@ -428,11 +449,12 @@ class CMakeBuildTest(BuildTest):
             self.api,
             self.config.toolchain_file == CMakeToolchainFile.Legacy,
         )
-        return result, []
+        if (failure := self.verify_no_cruft_in_dist(dist_dir, proc.args)) is not None:
+            return failure, []
+        return self.make_build_result(proc), []
 
 
 def _run_cmake_build_test(
-    test: CMakeBuildTest,
     obj_dir: Path,
     dist_dir: Path,
     test_dir: Path,
@@ -441,7 +463,7 @@ def _run_cmake_build_test(
     abi: str,
     platform: int,
     use_legacy_toolchain_file: bool,
-) -> TestResult:
+) -> CompletedProcess[str]:
     _prep_build_dir(test_dir, obj_dir)
 
     cmake_bin = find_cmake()
@@ -466,18 +488,22 @@ def _run_cmake_build_test(
         args.append("-DANDROID_USE_LEGACY_TOOLCHAIN_FILE=ON")
     else:
         args.append("-DANDROID_USE_LEGACY_TOOLCHAIN_FILE=OFF")
-    rc, out = ndk.ext.subprocess.call_output(
-        [str(cmake_bin)] + cmake_flags + args, encoding="utf-8"
-    )
-    if rc != 0:
-        return Failure(test, out)
-    rc, out = ndk.ext.subprocess.call_output(
-        [str(cmake_bin), "--build", str(abi_obj_dir), "--"] + _get_jobs_args(),
+    proc = subprocess.run(
+        [str(cmake_bin)] + cmake_flags + args,
+        check=False,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
         encoding="utf-8",
     )
-    if rc != 0:
-        return Failure(test, out)
-    return Success(test)
+    if proc.returncode != 0:
+        return proc
+    return subprocess.run(
+        [str(cmake_bin), "--build", str(abi_obj_dir), "--"] + _get_jobs_args(),
+        check=False,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        encoding="utf-8",
+    )
 
 
 def get_xunit_reports(

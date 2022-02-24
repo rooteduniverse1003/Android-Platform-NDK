@@ -103,12 +103,21 @@ def unzip(zip_file: Path, dest_dir: Path) -> None:
     # restore permissions, including the executable bit.
     # https://bugs.python.org/issue15795
     if os.name == "nt":
+        # For various options, see
         # https://superuser.com/questions/1314420/how-to-unzip-a-file-using-the-cmd
+        # Note that using Expand-Archive in PowerShell results in modification
+        # times in the future for NDK .zip files, possibly due to not
+        # handling time zone correctly. tar is also faster than Expand-Archive,
+        # but note that it is bsdtar, and the command-line flags are slightly
+        # different than GNU tar.
         subprocess.check_call(
             [
-                "powershell",
-                "-command",
-                f"Expand-Archive -Force '{zip_file}' '{dest_dir}'",
+                # Explicit path, to avoid conflict with Cygwin.
+                "c:/windows/system32/tar.exe",
+                "xf",
+                str(zip_file),
+                "-C",
+                str(dest_dir),
             ]
         )
     else:

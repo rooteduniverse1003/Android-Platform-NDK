@@ -14,59 +14,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-"""Shortcut for ndk/checkbuild.py.
-
-Differs from do_checkbuild.py because it launches a new Python interpreter,
-allowing this script to bootstrap our build with a specific version of Python.
-"""
-import argparse
-import logging
-import os
-import subprocess
-import sys
-
-from bootstrap import bootstrap, python_cmd
+"""Shortcut for ndk/checkbuild.py."""
+import ndk.checkbuild
 
 
-THIS_DIR = os.path.realpath(os.path.dirname(__file__))
-
-
-def parse_args():
-    """Parses and returns command line arguments."""
-    # Don't add help because it inhibits the real checkbuild.py's --help.
-    parser = argparse.ArgumentParser(add_help=False)
-    parser.add_argument(
-        "-v",
-        "--verbose",
-        action="count",
-        dest="verbosity",
-        default=0,
-        help="Increase logging verbosity.",
-    )
-    return parser.parse_known_args()
-
-
-def main():
-    """Program entry point.
-
-    Bootstraps the real checkbuild wrapper, do_checkbuild.py.
-    """
-    args, _ = parse_args()
-
-    if args.verbosity >= 2:
-        logging.basicConfig(level=logging.DEBUG)
-    else:
-        logging.basicConfig(level=logging.INFO)
-
-    bootstrap()
-    new_env = os.environ.copy()
-    new_env["PYTHONNOUSERSITE"] = "1"
-    if "PYTHONPATH" in new_env:
-        del new_env["PYTHONPATH"]
-    subprocess.check_call(
-        [python_cmd(), os.path.join(THIS_DIR, "do_checkbuild.py")] + sys.argv[1:],
-        env=new_env,
-    )
+def main() -> None:
+    """Trampoline into the builder defined in the ndk package."""
+    ndk.checkbuild.main()
 
 
 if __name__ == "__main__":

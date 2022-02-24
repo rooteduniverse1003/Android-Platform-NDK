@@ -4,12 +4,16 @@ Report issues to [GitHub].
 
 For Android Studio issues, follow the docs on the [Android Studio site].
 
+If you're a build system maintainer that needs to use the tools in the NDK
+directly, see the [build system maintainers guide].
+
 [GitHub]: https://github.com/android/ndk/issues
 [Android Studio site]: http://tools.android.com/filing-bugs
+[build system maintainers]: https://android.googlesource.com/platform/ndk/+/master/docs/BuildSystemMaintainers.md
 
 ## Changes
 
-* Includes Android-T (Tiramisu) Developer Preview 1 APIs.
+* Includes Android-T (Tiramisu) Developer Preview 2 APIs.
 
 ## Known Issues
 

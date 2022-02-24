@@ -76,6 +76,7 @@ import ndk.timer
 from ndk.toolchains import ClangToolchain, CLANG_VERSION
 import ndk.ui
 import ndk.workqueue
+from .pythonenv import ensure_python_environment
 
 
 def get_version_string(build_number: str) -> str:
@@ -2652,6 +2653,8 @@ def main() -> None:
     total_timer = ndk.timer.Timer()
     total_timer.start()
 
+    ensure_python_environment()
+
     args, module_names = parse_args()
     if args.verbosity >= 2:
         logging.basicConfig(level=logging.DEBUG)
@@ -2659,6 +2662,7 @@ def main() -> None:
         logging.basicConfig(level=logging.INFO)
     else:
         logging.basicConfig()
+
     module_names.extend(args.modules)
     if not module_names:
         module_names = get_all_module_names()
