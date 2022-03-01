@@ -60,7 +60,7 @@ def _get_jobs_args() -> List[str]:
 def _prep_build_dir(src_dir: Path, out_dir: Path) -> None:
     if out_dir.exists():
         shutil.rmtree(out_dir)
-    shutil.copytree(src_dir, out_dir)
+    shutil.copytree(src_dir, out_dir, ignore=shutil.ignore_patterns("__pycache__"))
 
 
 class Test:
