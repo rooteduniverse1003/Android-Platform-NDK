@@ -1,7 +1,7 @@
 from typing import Optional
 
 from ndk.test.devices import Device
-from ndk.test.types import Test
+from ndk.test.buildtest.case import Test
 
 
 def run_unsupported(test: Test, _device: Device) -> Optional[str]:

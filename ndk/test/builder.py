@@ -34,13 +34,13 @@ from typing import (
 
 import ndk.abis
 import ndk.archive
+from ndk.test.buildtest.case import Test
+from ndk.test.buildtest.scanner import TestScanner
 from ndk.test.filters import TestFilter
 from ndk.test.printers import Printer
 from ndk.test.report import Report
-from ndk.test.scanner import TestScanner
 import ndk.test.spec
 import ndk.test.suites
-from ndk.test.types import Test
 import ndk.test.ui
 from ndk.workqueue import LoadRestrictingWorkQueue, Worker
 
@@ -160,11 +160,15 @@ class TestBuilder:
         self.find_tests(test_spec)
 
     def find_tests(self, test_spec: ndk.test.spec.TestSpec) -> None:
-        scanner = ndk.test.scanner.BuildTestScanner(self.test_options.ndk_path)
-        nodist_scanner = ndk.test.scanner.BuildTestScanner(
+        scanner = ndk.test.buildtest.scanner.BuildTestScanner(
+            self.test_options.ndk_path
+        )
+        nodist_scanner = ndk.test.buildtest.scanner.BuildTestScanner(
             self.test_options.ndk_path, dist=False
         )
-        libcxx_scanner = ndk.test.scanner.LibcxxTestScanner(self.test_options.ndk_path)
+        libcxx_scanner = ndk.test.buildtest.scanner.LibcxxTestScanner(
+            self.test_options.ndk_path
+        )
         build_api_level = None  # Always use the default.
         for abi in test_spec.abis:
             for toolchain_file in ndk.test.spec.CMakeToolchainFile:
