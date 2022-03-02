@@ -19,7 +19,7 @@ from pathlib import Path
 from types import ModuleType
 from typing import Any, Callable, List, Optional, Tuple, Union
 
-from ndk.test.devices import Device
+from ndk.test.devices import DeviceConfig
 
 
 # Need to refactor to resolve the circular import between this module and
@@ -197,12 +197,12 @@ class DeviceTestConfig(TestConfig):
         # pylint: disable=unused-argument
         @staticmethod
         def run_broken(
-            test: Test, device: Device
+            test: Test, device: DeviceConfig
         ) -> Union[Tuple[None, None], Tuple[str, str]]:
             return None, None
 
         @staticmethod
-        def run_unsupported(test: Test, device: Device) -> Optional[str]:
+        def run_unsupported(test: Test, device: DeviceConfig) -> Optional[str]:
             return None
 
         @staticmethod
@@ -216,14 +216,14 @@ class DeviceTestConfig(TestConfig):
 
         try:
             self.run_broken: Callable[
-                [Test, Device], Union[tuple[None, None], tuple[str, str]]
+                [Test, DeviceConfig], Union[tuple[None, None], tuple[str, str]]
             ] = self.module.run_broken  # type: ignore
         except AttributeError:
             self.run_broken = self.NullTestConfig.run_broken
 
         try:
             self.run_unsupported: Callable[
-                [Test, Device], Optional[str]
+                [Test, DeviceConfig], Optional[str]
             ] = self.module.run_unsupported  # type: ignore
         except AttributeError:
             self.run_unsupported = self.NullTestConfig.run_unsupported
@@ -260,12 +260,12 @@ class LibcxxTestConfig(DeviceTestConfig):
             return None, None
 
         @staticmethod
-        def run_unsupported(test: Test, device: Device) -> Optional[str]:
+        def run_unsupported(test: Test, device: DeviceConfig) -> Optional[str]:
             return None
 
         @staticmethod
         def run_broken(
-            test: Test, device: Device
+            test: Test, device: DeviceConfig
         ) -> Union[Tuple[None, None], Tuple[str, str]]:
             return None, None
 
