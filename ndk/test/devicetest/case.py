@@ -25,7 +25,7 @@ from typing import (
 )
 
 from ndk.test.config import DeviceTestConfig, LibcxxTestConfig
-from ndk.test.devices import Device
+from ndk.test.devices import Device, DeviceConfig
 from ndk.test.spec import BuildConfiguration
 
 
@@ -72,10 +72,12 @@ class TestCase:
         self.build_system = build_system
         self.device_dir = device_dir
 
-    def check_unsupported(self, device: Device) -> Optional[str]:
+    def check_unsupported(self, device: DeviceConfig) -> Optional[str]:
         raise NotImplementedError
 
-    def check_broken(self, device: Device) -> Union[Tuple[None, None], Tuple[str, str]]:
+    def check_broken(
+        self, device: DeviceConfig
+    ) -> Union[Tuple[None, None], Tuple[str, str]]:
         raise NotImplementedError
 
     def run(self, device: Device) -> AdbResult:
@@ -118,10 +120,12 @@ class BasicTestCase(TestCase):
         test_dir = self.test_src_dir / "device" / self.suite
         return DeviceTestConfig.from_test_dir(test_dir)
 
-    def check_unsupported(self, device: Device) -> Optional[str]:
+    def check_unsupported(self, device: DeviceConfig) -> Optional[str]:
         return self.get_test_config().run_unsupported(self, device)
 
-    def check_broken(self, device: Device) -> Union[Tuple[None, None], Tuple[str, str]]:
+    def check_broken(
+        self, device: DeviceConfig
+    ) -> Union[Tuple[None, None], Tuple[str, str]]:
         return self.get_test_config().run_broken(self, device)
 
     def run(self, device: Device) -> AdbResult:
@@ -176,13 +180,15 @@ class LibcxxTestCase(TestCase):
         test_dir = self.test_src_dir / "libc++/test" / test_subdir
         return LibcxxTestConfig.from_test_dir(test_dir)
 
-    def check_unsupported(self, device: Device) -> Optional[str]:
+    def check_unsupported(self, device: DeviceConfig) -> Optional[str]:
         config = self.get_test_config().run_unsupported(self, device)
         if config is not None:
             return config
         return None
 
-    def check_broken(self, device: Device) -> Union[Tuple[None, None], Tuple[str, str]]:
+    def check_broken(
+        self, device: DeviceConfig
+    ) -> Union[Tuple[None, None], Tuple[str, str]]:
         config, bug = self.get_test_config().run_broken(self, device)
         if config is not None:
             assert bug is not None

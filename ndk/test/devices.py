@@ -16,6 +16,7 @@
 """Device wrappers and device fleet management."""
 from __future__ import print_function
 
+from dataclasses import dataclass
 import logging
 import os
 from pathlib import Path
@@ -43,6 +44,11 @@ def logger() -> logging.Logger:
     return logging.getLogger(__name__)
 
 
+@dataclass(frozen=True)
+class DeviceConfig:
+    version: int
+
+
 class Device(adb.AndroidDevice):
     """A device to be used for testing."""
 
@@ -64,6 +70,9 @@ class Device(adb.AndroidDevice):
 
         if precache:
             self.cache_properties()
+
+    def config(self) -> DeviceConfig:
+        return DeviceConfig(self.version)
 
     def cache_properties(self) -> None:
         """Caches the device's system properties."""

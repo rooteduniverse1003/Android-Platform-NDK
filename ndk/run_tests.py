@@ -115,7 +115,7 @@ class TestRun:
         return self.fixup_xfail(result, device)
 
     def fixup_xfail(self, result: TestResult, device: Device) -> TestResult:
-        config, bug = self.test_case.check_broken(device)
+        config, bug = self.test_case.check_broken(device.config())
         if config is not None:
             assert bug is not None
             if result.failed():
@@ -127,7 +127,7 @@ class TestRun:
         return result
 
     def run(self, device: Device) -> TestResult:
-        config = self.test_case.check_unsupported(device)
+        config = self.test_case.check_unsupported(device.config())
         if config is not None:
             return Skipped(self, f"test unsupported for {config}")
         return self.make_result(self.test_case.run(device), device)
