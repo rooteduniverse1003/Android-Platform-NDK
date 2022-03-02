@@ -23,26 +23,20 @@ import collections
 import datetime
 import json
 import logging
-import os
 from pathlib import Path, PurePosixPath
 import random
-import shlex
 import shutil
 import site
 import subprocess
 import sys
 import time
-import traceback
 from typing import (
     Any,
-    Callable,
     Dict,
     Iterable,
     List,
     Mapping,
     Optional,
-    Tuple,
-    Union,
 )
 
 from ndk.abis import Abi
@@ -51,8 +45,10 @@ import ndk.archive
 import ndk.ext.subprocess
 import ndk.notify
 import ndk.paths
+import ndk.test.buildtest.case
 import ndk.test.builder
-from ndk.test.config import DeviceTestConfig, LibcxxTestConfig
+from ndk.test.devicetest.case import TestCase
+from ndk.test.devicetest.scanner import ConfigFilter, enumerate_tests
 from ndk.test.devices import (
     Device,
     DeviceFleet,
@@ -71,7 +67,6 @@ from ndk.test.result import (
     UnexpectedSuccess,
 )
 from ndk.test.spec import BuildConfiguration
-import ndk.test.types
 import ndk.test.ui
 from ndk.timer import Timer
 import ndk.ui
@@ -88,166 +83,6 @@ AdbResult = tuple[int, str, str, str]
 def logger() -> logging.Logger:
     """Returns the module logger."""
     return logging.getLogger(__name__)
-
-
-def shell_nocheck_wrap_errors(device: Device, cmd: str) -> AdbResult:
-    """Invokes device.shell_nocheck and wraps exceptions as failed commands."""
-    repro_cmd = f"adb -s {device.serial} shell {shlex.quote(cmd)}"
-    try:
-        rc, stdout, stderr = device.shell_nocheck([cmd])
-        return rc, stdout, stderr, repro_cmd
-    except RuntimeError:
-        return 1, cmd, traceback.format_exc(), repro_cmd
-
-
-# TODO: Extract a common interface from this and ndk.test.types.Test for the
-# printer.
-class TestCase:
-    """A test case found in the dist directory.
-
-    The test directory is structured as tests/dist/$CONFIG/$BUILD_SYTEM/...
-    What follows depends on the type of test case. Each discovered test case
-    will have a name, a build configuration, a build system, and a device
-    directory.
-    """
-
-    def __init__(
-        self,
-        name: str,
-        test_src_dir: Path,
-        config: BuildConfiguration,
-        build_system: str,
-        device_dir: PurePosixPath,
-    ) -> None:
-        self.name = name
-        self.test_src_dir = test_src_dir
-        self.config = config
-        self.build_system = build_system
-        self.device_dir = device_dir
-
-    def check_unsupported(self, device: Device) -> Optional[str]:
-        raise NotImplementedError
-
-    def check_broken(self, device: Device) -> Union[Tuple[None, None], Tuple[str, str]]:
-        raise NotImplementedError
-
-    def run(self, device: Device) -> AdbResult:
-        raise NotImplementedError
-
-    @staticmethod
-    def run_cmd(device: Device, cmd: str) -> AdbResult:
-        logger().info('%s: shell_nocheck "%s"', device.name, cmd)
-        return shell_nocheck_wrap_errors(device, cmd)
-
-
-class BasicTestCase(TestCase):
-    """A test case for the standard NDK test builder.
-
-    These tests were written specifically for the NDK and thus follow the
-    layout we expect. In each test configuration directory, we have
-    $TEST_SUITE/$ABI/$TEST_FILES. $TEST_FILES includes both the shared
-    libraries for the test and the test executables.
-    """
-
-    def __init__(
-        self,
-        suite: str,
-        executable: str,
-        test_src_dir: Path,
-        config: BuildConfiguration,
-        build_system: str,
-        device_dir: PurePosixPath,
-    ) -> None:
-        name = ".".join([suite, executable])
-        super().__init__(name, test_src_dir, config, build_system, device_dir)
-
-        self.suite = suite
-        self.executable = executable
-
-    def get_test_config(self) -> DeviceTestConfig:
-        # We don't run anything in tests/build, and the libc++ tests are
-        # handled by a different LibcxxTest. We can safely assume that anything
-        # here is in tests/device.
-        test_dir = self.test_src_dir / "device" / self.suite
-        return DeviceTestConfig.from_test_dir(test_dir)
-
-    def check_unsupported(self, device: Device) -> Optional[str]:
-        return self.get_test_config().run_unsupported(self, device)
-
-    def check_broken(self, device: Device) -> Union[Tuple[None, None], Tuple[str, str]]:
-        return self.get_test_config().run_broken(self, device)
-
-    def run(self, device: Device) -> AdbResult:
-        return self.run_cmd(
-            device,
-            "cd {} && LD_LIBRARY_PATH={} ./{} 2>&1".format(
-                self.device_dir, self.device_dir, self.executable
-            ),
-        )
-
-
-class LibcxxTestCase(TestCase):
-    """A libc++ test case built by LIT.
-
-    LIT's test structure doesn't map cleanly to ours; they have a hierarchical
-    test structure. The top level contains a single "libc++" directory. In that
-    directory is where shared libraries common to all tests are placed. That
-    directory and any under it may contain test executables (always suffixed
-    with ".exe") or test data (always suffixed with ".dat").
-    """
-
-    def __init__(
-        self,
-        suite: str,
-        executable: str,
-        test_src_dir: Path,
-        config: BuildConfiguration,
-        device_dir: PurePosixPath,
-    ) -> None:
-        # Tests in the top level don't need any mangling to match the filters.
-        if suite == "libc++":
-            filter_name = executable
-        else:
-            filter_name = os.path.join(suite[len("libc++/") :], executable)
-
-        # The executable name ends with .exe. Remove that so it matches the
-        # filter that would be used to build the test.
-        name = ".".join(["libc++", filter_name[:-4]])
-        super().__init__(name, test_src_dir, config, "libc++", device_dir)
-        self.suite = suite
-        self.executable = executable
-
-    @property
-    def case_name(self) -> str:
-        # Executable is foo.pass.cpp.exe, we want foo.pass.
-        return os.path.splitext(os.path.splitext(self.executable)[0])[0]
-
-    def get_test_config(self) -> DeviceTestConfig:
-        _, _, test_subdir = self.suite.partition("/")
-        test_dir = self.test_src_dir / "libc++/test" / test_subdir
-        return LibcxxTestConfig.from_test_dir(test_dir)
-
-    def check_unsupported(self, device: Device) -> Optional[str]:
-        config = self.get_test_config().run_unsupported(self, device)
-        if config is not None:
-            return config
-        return None
-
-    def check_broken(self, device: Device) -> Union[Tuple[None, None], Tuple[str, str]]:
-        config, bug = self.get_test_config().run_broken(self, device)
-        if config is not None:
-            assert bug is not None
-            return config, bug
-        return None, None
-
-    def run(self, device: Device) -> AdbResult:
-        libcxx_so_dir = DEVICE_TEST_BASE_DIR / str(self.config) / "libcxx" / "libc++"
-        return self.run_cmd(
-            device,
-            "cd {} && LD_LIBRARY_PATH={} ./{} 2>&1".format(
-                self.device_dir, libcxx_so_dir, self.executable
-            ),
-        )
 
 
 class TestRun:
@@ -296,157 +131,6 @@ class TestRun:
         if config is not None:
             return Skipped(self, f"test unsupported for {config}")
         return self.make_result(self.test_case.run(device), device)
-
-
-def enumerate_basic_tests(
-    out_dir_base: Path,
-    test_src_dir: Path,
-    build_cfg: BuildConfiguration,
-    build_system: str,
-    test_filter: TestFilter,
-) -> List[TestCase]:
-    tests: List[TestCase] = []
-    tests_dir = out_dir_base / str(build_cfg) / build_system
-    if not tests_dir.exists():
-        return tests
-
-    for test_subdir in os.listdir(tests_dir):
-        test_dir = tests_dir / test_subdir
-        out_dir = test_dir / build_cfg.abi
-        test_relpath = out_dir.relative_to(out_dir_base)
-        device_dir = DEVICE_TEST_BASE_DIR / test_relpath
-        for test_file in os.listdir(out_dir):
-            if test_file.endswith(".so"):
-                continue
-            if test_file.endswith(".sh"):
-                continue
-            if test_file.endswith(".a"):
-                test_path = out_dir / test_file
-                logger().error(
-                    "Found static library in app install directory. Static "
-                    "libraries should never be installed. This is a bug in "
-                    "the build system: %s",
-                    test_path,
-                )
-                continue
-            name = ".".join([test_subdir, test_file])
-            if not test_filter.filter(name):
-                continue
-            tests.append(
-                BasicTestCase(
-                    test_subdir,
-                    test_file,
-                    test_src_dir,
-                    build_cfg,
-                    build_system,
-                    device_dir,
-                )
-            )
-    return tests
-
-
-def enumerate_libcxx_tests(
-    out_dir_base: Path,
-    test_src_dir: Path,
-    build_cfg: BuildConfiguration,
-    build_system: str,
-    test_filter: TestFilter,
-) -> List[TestCase]:
-    tests: List[TestCase] = []
-    tests_dir = out_dir_base / str(build_cfg) / build_system
-    if not tests_dir.exists():
-        return tests
-
-    for root, _, files in os.walk(tests_dir):
-        for test_file in files:
-            if not test_file.endswith(".exe"):
-                continue
-            test_relpath = Path(root).relative_to(out_dir_base)
-            device_dir = DEVICE_TEST_BASE_DIR / test_relpath
-            suite_name = str(PurePosixPath(os.path.relpath(root, tests_dir)))
-
-            # Our file has a .exe extension, but the name should match the
-            # source file for the filters to work.
-            test_name = test_file[:-4]
-
-            # Tests in the top level don't need any mangling to match the
-            # filters.
-            if suite_name != "libc++":
-                if not suite_name.startswith("libc++/"):
-                    raise ValueError(suite_name)
-                # According to the test runner, these are all part of the
-                # "libc++" test, and the rest of the data is the subtest name.
-                # i.e.  libc++/foo/bar/baz.cpp.exe is actually
-                # libc++.foo/bar/baz.cpp.  Matching this expectation here
-                # allows us to use the same filter string for running the tests
-                # as for building the tests.
-                test_path = suite_name[len("libc++/") :]
-                test_name = "/".join([test_path, test_name])
-
-            filter_name = ".".join(["libc++", test_name])
-            if not test_filter.filter(filter_name):
-                continue
-            tests.append(
-                LibcxxTestCase(
-                    suite_name, test_file, test_src_dir, build_cfg, device_dir
-                )
-            )
-    return tests
-
-
-class ConfigFilter:
-    def __init__(self, test_config: Dict[Any, Any]) -> None:
-        test_spec = ndk.test.builder.test_spec_from_config(test_config)
-        self.spec = test_spec
-
-    def filter(self, build_config: BuildConfiguration) -> bool:
-        return build_config.abi in self.spec.abis
-
-
-def enumerate_tests(
-    test_dir: Path,
-    test_src_dir: Path,
-    test_filter: TestFilter,
-    config_filter: ConfigFilter,
-) -> Dict[BuildConfiguration, List[TestCase]]:
-    tests: Dict[BuildConfiguration, List[TestCase]] = {}
-
-    # The tests directory has a directory for each type of test. For example:
-    #
-    #  * build.sh
-    #  * cmake
-    #  * libcxx
-    #  * ndk-build
-    #  * test.py
-    #
-    # We need to handle some of these differently. The test.py and build.sh
-    # type tests are build only, so we don't need to run them. The libc++ tests
-    # are built by a test runner we don't control, so its output doesn't quite
-    # match what we expect.
-    test_subdir_class_map: Dict[
-        str, Callable[[Path, Path, BuildConfiguration, str, TestFilter], List[TestCase]]
-    ] = {
-        "cmake": enumerate_basic_tests,
-        "libcxx": enumerate_libcxx_tests,
-        "ndk-build": enumerate_basic_tests,
-    }
-
-    for build_cfg_str in os.listdir(test_dir):
-        build_cfg = BuildConfiguration.from_string(build_cfg_str)
-        if not config_filter.filter(build_cfg):
-            continue
-
-        if build_cfg not in tests:
-            tests[build_cfg] = []
-
-        for test_type, scan_for_tests in test_subdir_class_map.items():
-            tests[build_cfg].extend(
-                scan_for_tests(
-                    test_dir, test_src_dir, build_cfg, test_type, test_filter
-                )
-            )
-
-    return tests
 
 
 def clear_test_directory(_worker: Worker, device: Device) -> None:
@@ -933,7 +617,11 @@ def run_tests(args: argparse.Namespace) -> Results:
     test_discovery_timer = Timer()
     with test_discovery_timer:
         test_groups = enumerate_tests(
-            test_dist_dir, args.test_src, test_filter, config_filter
+            test_dist_dir,
+            args.test_src,
+            DEVICE_TEST_BASE_DIR,
+            test_filter,
+            config_filter,
         )
     results.add_timing_report("Test discovery", test_discovery_timer)
 
