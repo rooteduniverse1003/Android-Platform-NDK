@@ -81,12 +81,12 @@ class TestCase:
         raise NotImplementedError
 
     def run(self, device: Device) -> AdbResult:
-        raise NotImplementedError
+        logger().info('%s: shell_nocheck "%s"', device.name, self.cmd)
+        return shell_nocheck_wrap_errors(device, self.cmd)
 
-    @staticmethod
-    def run_cmd(device: Device, cmd: str) -> AdbResult:
-        logger().info('%s: shell_nocheck "%s"', device.name, cmd)
-        return shell_nocheck_wrap_errors(device, cmd)
+    @property
+    def cmd(self) -> str:
+        raise NotImplementedError
 
 
 class BasicTestCase(TestCase):
@@ -128,12 +128,10 @@ class BasicTestCase(TestCase):
     ) -> Union[Tuple[None, None], Tuple[str, str]]:
         return self.get_test_config().run_broken(self, device)
 
-    def run(self, device: Device) -> AdbResult:
-        return self.run_cmd(
-            device,
-            "cd {} && LD_LIBRARY_PATH={} ./{} 2>&1".format(
-                self.device_dir, self.device_dir, self.executable
-            ),
+    @property
+    def cmd(self) -> str:
+        return "cd {} && LD_LIBRARY_PATH={} {}/{} 2>&1".format(
+            self.device_dir, self.device_dir, self.device_dir, self.executable
         )
 
 
@@ -195,11 +193,9 @@ class LibcxxTestCase(TestCase):
             return config, bug
         return None, None
 
-    def run(self, device: Device) -> AdbResult:
+    @property
+    def cmd(self) -> str:
         libcxx_so_dir = self.device_base_dir / str(self.config) / "libcxx" / "libc++"
-        return self.run_cmd(
-            device,
-            "cd {} && LD_LIBRARY_PATH={} ./{} 2>&1".format(
-                self.device_dir, libcxx_so_dir, self.executable
-            ),
+        return "cd {} && LD_LIBRARY_PATH={} {}/{} 2>&1".format(
+            self.device_dir, libcxx_so_dir, self.device_dir, self.executable
         )
