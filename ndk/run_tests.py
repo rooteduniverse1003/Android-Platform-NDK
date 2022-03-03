@@ -23,7 +23,7 @@ import collections
 import datetime
 import json
 import logging
-from pathlib import Path, PurePosixPath
+from pathlib import Path
 import random
 import shutil
 import site
@@ -72,9 +72,6 @@ from ndk.timer import Timer
 import ndk.ui
 from ndk.workqueue import ShardingWorkQueue, Worker, WorkQueue
 from .pythonenv import ensure_python_environment
-
-
-DEVICE_TEST_BASE_DIR = PurePosixPath("/data/local/tmp/tests")
 
 
 AdbResult = tuple[int, str, str, str]
@@ -135,7 +132,7 @@ class TestRun:
 
 def clear_test_directory(_worker: Worker, device: Device) -> None:
     print(f"Clearing test directory on {device}")
-    cmd = ["rm", "-r", str(DEVICE_TEST_BASE_DIR)]
+    cmd = ["rm", "-r", str(ndk.paths.DEVICE_TEST_BASE_DIR)]
     logger().info('%s: shell_nocheck "%s"', device.name, cmd)
     device.shell_nocheck(cmd)
 
@@ -213,7 +210,7 @@ def push_tests_to_devices(
     groups_for_config: Mapping[BuildConfiguration, Iterable[DeviceShardingGroup]],
     use_sync: bool,
 ) -> None:
-    dest_dir = DEVICE_TEST_BASE_DIR
+    dest_dir = ndk.paths.DEVICE_TEST_BASE_DIR
     for config, groups in groups_for_config.items():
         src_dir = test_dir / str(config)
         for group in groups:
@@ -619,7 +616,7 @@ def run_tests(args: argparse.Namespace) -> Results:
         test_groups = enumerate_tests(
             test_dist_dir,
             args.test_src,
-            DEVICE_TEST_BASE_DIR,
+            ndk.paths.DEVICE_TEST_BASE_DIR,
             test_filter,
             config_filter,
         )
