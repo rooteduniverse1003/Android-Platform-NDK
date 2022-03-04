@@ -281,10 +281,8 @@ def build_ndk_tests(out_dir: Path, dist_dir: Path, args: argparse.Namespace) -> 
     )
 
     printer = ndk.test.printers.StdoutPrinter()
-    with open(ndk.paths.ndk_path("qa_config.json")) as config_file:
-        test_config = json.load(config_file)
 
-    test_spec = ndk.test.builder.test_spec_from_config(test_config)
+    test_spec = ndk.test.spec.TestSpec.load(ndk.paths.ndk_path("qa_config.json"))
     builder = ndk.test.builder.TestBuilder(test_spec, test_options, printer)
 
     report = builder.build()

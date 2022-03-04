@@ -16,7 +16,6 @@
 """APIs for enumerating and building NDK tests."""
 from __future__ import absolute_import
 
-import json
 import logging
 import os
 from pathlib import Path
@@ -26,7 +25,6 @@ import shutil
 import sys
 import traceback
 from typing import (
-    Any,
     Dict,
     List,
     Tuple,
@@ -48,13 +46,6 @@ from ndk.workqueue import LoadRestrictingWorkQueue, Worker
 def logger() -> logging.Logger:
     """Returns the module logger."""
     return logging.getLogger(__name__)
-
-
-def test_spec_from_config(test_config: dict[str, Any]) -> ndk.test.spec.TestSpec:
-    """Returns a TestSpec based on the test config file."""
-    abis = test_config.get("abis", ndk.abis.ALL_ABIS)
-    suites = test_config.get("suites", ndk.test.suites.ALL_SUITES)
-    return ndk.test.spec.TestSpec(abis, suites)
 
 
 def write_build_report(build_report: str, results: Report) -> None:
@@ -188,18 +179,6 @@ class TestBuilder:
         if "libc++" in test_spec.suites:
             test_src = self.test_options.src_dir / "libc++"
             self.add_suite("libc++", test_src, libcxx_scanner)
-
-    @classmethod
-    def from_config_file(
-        cls,
-        config_path: Path,
-        test_options: ndk.test.spec.TestOptions,
-        printer: Printer,
-    ) -> "TestBuilder":
-        with open(config_path) as test_config_file:
-            test_config = json.load(test_config_file)
-        spec = test_spec_from_config(test_config)
-        return cls(spec, test_options, printer)
 
     def add_suite(self, name: str, path: Path, test_scanner: TestScanner) -> None:
         if name in self.tests:

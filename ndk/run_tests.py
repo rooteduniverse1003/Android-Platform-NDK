@@ -21,7 +21,6 @@ from __future__ import print_function
 import argparse
 import collections
 import datetime
-import json
 import logging
 from pathlib import Path, PurePosixPath
 import random
@@ -31,7 +30,6 @@ import subprocess
 import sys
 import time
 from typing import (
-    Any,
     Dict,
     Iterable,
     List,
@@ -39,7 +37,6 @@ from typing import (
     Optional,
 )
 
-from ndk.abis import Abi
 import ndk.ansi
 import ndk.archive
 import ndk.ext.subprocess
@@ -66,7 +63,7 @@ from ndk.test.result import (
     TestResult,
     UnexpectedSuccess,
 )
-from ndk.test.spec import BuildConfiguration
+from ndk.test.spec import BuildConfiguration, TestSpec
 import ndk.test.ui
 from ndk.timer import Timer
 import ndk.ui
@@ -361,14 +358,6 @@ def restart_flaky_tests(
         workqueue.add_task(group, run_test, flaky_report.result.test)
 
 
-def get_config_dict(config: str, abis: Iterable[Abi]) -> Dict[str, Any]:
-    with open(config) as test_config_file:
-        test_config: dict[str, Any] = json.load(test_config_file)
-    if abis is not None:
-        test_config["abis"] = abis
-    return test_config
-
-
 def str_to_bool(s: str) -> bool:
     if s == "true":
         return True
@@ -548,7 +537,7 @@ def run_tests(args: argparse.Namespace) -> Results:
         if args.rebuild or args.build_only:
             args.dist_dir.mkdir(parents=True)
 
-    test_config = get_config_dict(args.config, args.abi)
+    test_spec = TestSpec.load(args.config, abis=args.abi)
 
     printer = StdoutPrinter(show_all=args.show_all)
 
@@ -591,7 +580,6 @@ def run_tests(args: argparse.Namespace) -> Results:
                 package_path=args.dist_dir / "ndk-tests" if args.package else None,
             )
 
-            test_spec = ndk.test.builder.test_spec_from_config(test_config)
             builder = ndk.test.builder.TestBuilder(test_spec, test_options, printer)
 
             report = builder.build()
@@ -613,7 +601,7 @@ def run_tests(args: argparse.Namespace) -> Results:
 
     test_filter = TestFilter.from_string(args.filter)
     # dict of {BuildConfiguration: [Test]}
-    config_filter = ConfigFilter(test_config)
+    config_filter = ConfigFilter(test_spec)
     test_discovery_timer = Timer()
     with test_discovery_timer:
         test_groups = enumerate_tests(
@@ -661,7 +649,7 @@ def run_tests(args: argparse.Namespace) -> Results:
     try:
         device_discovery_timer = Timer()
         with device_discovery_timer:
-            fleet = find_devices(test_config["devices"], workqueue)
+            fleet = find_devices(test_spec.devices, workqueue)
         results.add_timing_report("Device discovery", device_discovery_timer)
 
         have_all_devices = verify_have_all_requested_devices(fleet)

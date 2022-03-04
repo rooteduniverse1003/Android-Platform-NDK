@@ -138,8 +138,7 @@ def _enumerate_libcxx_tests(
 
 
 class ConfigFilter:
-    def __init__(self, test_config: Dict[Any, Any]) -> None:
-        test_spec = ndk.test.builder.test_spec_from_config(test_config)
+    def __init__(self, test_spec: ndk.test.spec.TestSpec) -> None:
         self.spec = test_spec
 
     def filter(self, build_config: BuildConfiguration) -> bool:
