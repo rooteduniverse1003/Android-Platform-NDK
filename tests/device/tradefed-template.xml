@@ -1,0 +1,17 @@
+<?xml version='1.0' encoding='utf-8'?>
+<configuration>  <!-- Description will be filled in automatically. -->
+  <option name="test-suite-tag" value="ndk-tests" />
+  <object type="module_controller" class="com.android.tradefed.testtype.suite.module.ArchModuleController">
+    <!-- <option name="arch" ...> will be filled in automatically. -->
+  </object>
+  <object type="module_controller" class="com.android.tradefed.testtype.suite.module.MinApiLevelModuleController">
+    <!-- <option name="min-api-level" ...> will be filled in automatically. -->
+  </object>
+  <target_preparer class="com.android.tradefed.targetprep.PushFilePreparer">
+    <!-- <option name="push-file" ...> will be filled in automatically. -->
+    <option name="cleanup" value="true" />
+  </target_preparer>
+  <test class="com.android.tradefed.testtype.binary.ExecutableTargetTest">
+    <!-- <option name="test-command-line" ...> will be filled in automatically. -->
+  </test>
+</configuration>

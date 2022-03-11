@@ -22,6 +22,7 @@ from pathlib import Path
 import pickle
 import random
 import shutil
+import subprocess
 import sys
 import traceback
 from typing import (
@@ -29,18 +30,22 @@ from typing import (
     List,
     Tuple,
 )
+from xml.etree import ElementTree
 
 import ndk.abis
 import ndk.archive
+import ndk.paths
 from ndk.test.buildtest.case import Test
 from ndk.test.buildtest.scanner import TestScanner
+import ndk.test.devicetest.scanner
+from ndk.test.devices import DeviceConfig
 from ndk.test.filters import TestFilter
 from ndk.test.printers import Printer
 from ndk.test.report import Report
 import ndk.test.spec
 import ndk.test.suites
 import ndk.test.ui
-from ndk.workqueue import LoadRestrictingWorkQueue, Worker
+from ndk.workqueue import LoadRestrictingWorkQueue, Worker, WorkQueue
 
 
 def logger() -> logging.Logger:
@@ -148,9 +153,10 @@ class TestBuilder:
         self.obj_dir = self.test_options.out_dir / "obj"
         self.dist_dir = self.test_options.out_dir / "dist"
 
-        self.find_tests(test_spec)
+        self.test_spec = test_spec
+        self.find_tests()
 
-    def find_tests(self, test_spec: ndk.test.spec.TestSpec) -> None:
+    def find_tests(self) -> None:
         scanner = ndk.test.buildtest.scanner.BuildTestScanner(
             self.test_options.ndk_path
         )
@@ -161,7 +167,7 @@ class TestBuilder:
             self.test_options.ndk_path
         )
         build_api_level = None  # Always use the default.
-        for abi in test_spec.abis:
+        for abi in self.test_spec.abis:
             for toolchain_file in ndk.test.spec.CMakeToolchainFile:
                 config = ndk.test.spec.BuildConfiguration(
                     abi, build_api_level, toolchain_file
@@ -170,13 +176,13 @@ class TestBuilder:
                 nodist_scanner.add_build_configuration(config)
                 libcxx_scanner.add_build_configuration(config)
 
-        if "build" in test_spec.suites:
+        if "build" in self.test_spec.suites:
             test_src = self.test_options.src_dir / "build"
             self.add_suite("build", test_src, nodist_scanner)
-        if "device" in test_spec.suites:
+        if "device" in self.test_spec.suites:
             test_src = self.test_options.src_dir / "device"
             self.add_suite("device", test_src, scanner)
-        if "libc++" in test_spec.suites:
+        if "libc++" in self.test_spec.suites:
             test_src = self.test_options.src_dir / "libc++"
             self.add_suite("libc++", test_src, libcxx_scanner)
 
@@ -299,8 +305,143 @@ class TestBuilder:
     def package(self) -> None:
         assert self.test_options.package_path is not None
         print("Packaging tests...")
+
         ndk.archive.make_bztar(
             self.test_options.package_path,
             self.test_options.out_dir.parent,
             Path("tests/dist"),
         )
+
+        test_groups = ndk.test.devicetest.scanner.enumerate_tests(
+            self.test_options.out_dir / "dist",
+            self.test_options.src_dir,
+            ndk.paths.DEVICE_TEST_BASE_DIR,
+            TestFilter.from_string(self.test_options.test_filter),
+            ndk.test.devicetest.scanner.ConfigFilter(self.test_spec),
+        )
+        workqueue: WorkQueue = WorkQueue()
+        try:
+            for config, tests in test_groups.items():
+                if not tests:
+                    continue
+                workqueue.add_task(
+                    _make_tradefed_zip,
+                    self.test_options,
+                    config,
+                    tests,
+                    self.test_spec.devices,
+                )
+            while not workqueue.finished():
+                workqueue.get_result()
+        finally:
+            workqueue.terminate()
+            workqueue.join()
+
+
+def _desired_api_level(
+    min_api: int, abi: ndk.abis.Abi, devices: dict[int, list[ndk.abis.Abi]]
+) -> int:
+    for api in sorted(devices.keys()):
+        if api < min_api:
+            continue
+        if abi in devices[api]:
+            return api
+    raise RuntimeError(f"Desired API level >= {min_api} not found for {abi}")
+
+
+def _make_tradefed_zip(
+    _worker: Worker,
+    test_options: ndk.test.spec.TestOptions,
+    config: ndk.test.spec.BuildConfiguration,
+    tests: list[ndk.test.devicetest.case.TestCase],
+    devices: dict[int, list[ndk.abis.Abi]],
+) -> None:
+    """Creates a TradeFed .zip file for the specified config.
+
+    Args:
+        worker: The worker that invoked this task.
+        test_options: Paths and other overall options for the tests.
+        config: The ABI/API/toolchain triple.
+        tests: A list of all the test cases.
+        devices: The desired API levels for the different ABIs, typically from qa_config.json.
+
+    Returns: Nothing.
+    """
+    assert config.api is not None
+    device_config = DeviceConfig(_desired_api_level(config.api, config.abi, devices))
+    tree = ElementTree.parse(test_options.src_dir / "device/tradefed-template.xml")
+    root = tree.getroot()
+    root.attrib["description"] = f"NDK Tests for {config}"
+
+    preparer = root.find("./target_preparer")
+    assert preparer is not None
+    ElementTree.SubElement(
+        preparer,
+        "option",
+        {
+            "name": "push-file",
+            "key": str(config),
+            "value": str(ndk.paths.DEVICE_TEST_BASE_DIR / str(config)),
+        },
+    )
+
+    arch_elem = root.find(
+        "./object[@class='com.android.tradefed.testtype.suite.module.ArchModuleController']"
+    )
+    assert arch_elem is not None
+    ElementTree.SubElement(
+        arch_elem,
+        "option",
+        {
+            "name": "arch",
+            "value": ndk.abis.abi_to_arch(config.abi),
+        },
+    )
+
+    api_elem = root.find(
+        "./object[@class='com.android.tradefed.testtype.suite.module.MinApiLevelModuleController']"
+    )
+    assert api_elem is not None
+    ElementTree.SubElement(
+        api_elem,
+        "option",
+        {
+            "name": "min-api-level",
+            "value": str(config.api),
+        },
+    )
+
+    test_elem = root.find("./test")
+    assert test_elem is not None
+    for test in tests:
+        if test.check_unsupported(device_config):
+            continue
+        broken_config, _bug = test.check_broken(device_config)
+        ElementTree.SubElement(
+            test_elem,
+            "option",
+            {
+                "name": "test-command-line",
+                "key": test.name,
+                "value": test.cmd if broken_config is None else test.negated_cmd,
+            },
+        )
+
+    ElementTree.indent(tree, space="  ", level=0)
+
+    tradefed_config_filename = f"{config}-AndroidTest.config"
+    tradefed_config_path = test_options.out_dir / "dist" / tradefed_config_filename
+    tree.write(tradefed_config_path, encoding="utf-8", xml_declaration=True)
+    assert test_options.package_path is not None
+    zipfile = test_options.package_path.parent / f"{config}-androidTest.zip"
+    if zipfile.exists():
+        zipfile.unlink()
+    ndk.archive.make_zip(
+        zipfile,
+        test_options.out_dir / "dist",
+        [
+            tradefed_config_filename,
+            str(config),
+        ],
+        preserve_symlinks=True,
+    )
