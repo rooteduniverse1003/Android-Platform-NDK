@@ -101,7 +101,7 @@ def _enumerate_libcxx_tests(
                 continue
             test_relpath = Path(root).relative_to(out_dir_base)
             device_dir = device_base_dir / test_relpath
-            suite_name = str(PurePosixPath(os.path.relpath(root, tests_dir)))
+            suite_name = str(PurePosixPath(Path(os.path.relpath(root, tests_dir))))
 
             # Our file has a .exe extension, but the name should match the
             # source file for the filters to work.
