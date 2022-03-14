@@ -66,7 +66,7 @@ class Artifact:
 
     def __post_init__(self):
         sort_order = {"windows": 1, "darwin": 2, "linux": 3}
-        object.__setattr__(self, 'sort_index', sort_order.get(self.host, 4))
+        object.__setattr__(self, "sort_index", sort_order.get(self.host, 4))
 
     @property
     def pretty_host(self) -> str:
