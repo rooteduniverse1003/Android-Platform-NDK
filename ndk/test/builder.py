@@ -384,6 +384,19 @@ def _make_tradefed_zip(
         },
     )
 
+    # There's no executable bit on Windows. Mark everything executable after copying to the device.
+    if sys.platform == 'win32':
+        ElementTree.SubElement(
+            preparer,
+            "option",
+            {
+                "name": "post-push",
+                "value": "chmod -R 777 {}".format(
+                    str(ndk.paths.DEVICE_TEST_BASE_DIR / str(config))
+                ),
+            },
+        )
+
     arch_elem = root.find(
         "./object[@class='com.android.tradefed.testtype.suite.module.ArchModuleController']"
     )
