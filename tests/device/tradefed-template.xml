@@ -9,6 +9,7 @@
   </object>
   <target_preparer class="com.android.tradefed.targetprep.PushFilePreparer">
     <!-- <option name="push-file" ...> will be filled in automatically. -->
+    <!-- <option name="post-push" ...> will be filled in automatically. -->
     <option name="cleanup" value="true" />
   </target_preparer>
   <test class="com.android.tradefed.testtype.binary.ExecutableTargetTest">
