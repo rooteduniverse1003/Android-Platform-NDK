@@ -1,6 +1,7 @@
 <?xml version='1.0' encoding='utf-8'?>
 <configuration>  <!-- Description will be filled in automatically. -->
   <option name="test-suite-tag" value="ndk-tests" />
+  <option name="exit-status-workaround" value="true" />
   <object type="module_controller" class="com.android.tradefed.testtype.suite.module.ArchModuleController">
     <!-- <option name="arch" ...> will be filled in automatically. -->
   </object>
