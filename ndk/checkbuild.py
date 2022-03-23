@@ -1560,9 +1560,7 @@ class BaseToolchain(ndk.builds.Module):
                 lib_dir = "lib64" if arch == "x86_64" else "lib"
                 src_dir = platforms_dir / platform / arch_name / "usr" / lib_dir
                 dst_dir = install_dir / "sysroot/usr/lib" / triple / str(api)
-                shutil.copytree(src_dir, dst_dir)
-                # TODO: Remove duplicate static libraries from this directory.
-                # We already have them in the version-generic directory.
+                shutil.copytree(src_dir, dst_dir, ignore=shutil.ignore_patterns("*.a"))
 
                 write_clang_wrapper(
                     install_dir / "bin", api, triple, self.host.is_windows

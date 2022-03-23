@@ -385,7 +385,7 @@ def _make_tradefed_zip(
     )
 
     # There's no executable bit on Windows. Mark everything executable after copying to the device.
-    if sys.platform == 'win32':
+    if sys.platform == "win32":
         ElementTree.SubElement(
             preparer,
             "option",

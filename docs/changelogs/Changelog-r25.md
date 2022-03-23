@@ -14,6 +14,8 @@ directly, see the [build system maintainers guide].
 ## Changes
 
 * Includes Android-T (Tiramisu) Developer Preview 2 APIs.
+* Eliminates duplicate static libraries in API-versioned sysroot directories.
+  This reduces the uncompressed size of the NDK from 2.1G to 1.6G.
 
 ## Known Issues
 
