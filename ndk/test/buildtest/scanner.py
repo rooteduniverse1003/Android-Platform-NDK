@@ -21,8 +21,7 @@ from pathlib import Path, PurePosixPath
 from typing import List, Set
 
 import ndk.paths
-from ndk.test.spec import BuildConfiguration, CMakeToolchainFile
-from ndk.test.types import (
+from ndk.test.buildtest.case import (
     CMakeBuildTest,
     LibcxxTest,
     NdkBuildTest,
@@ -30,6 +29,7 @@ from ndk.test.types import (
     ShellBuildTest,
     Test,
 )
+from ndk.test.spec import BuildConfiguration, CMakeToolchainFile
 
 
 class TestScanner:
