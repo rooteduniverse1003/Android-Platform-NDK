@@ -18,7 +18,7 @@
 from __future__ import annotations
 
 import argparse
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 import logging
 from pathlib import Path
 import re
@@ -58,11 +58,15 @@ def parse_args():
 
 @dataclass(frozen=True, order=True)
 class Artifact:
-    # Host comes first to ensure that it dominates the sort order.
+    sort_index: int = field(init=False, repr=True)
     host: str
     package: str
     size: int
     sha: str
+
+    def __post_init__(self):
+        sort_order = {"windows": 1, "darwin": 2, "linux": 3}
+        object.__setattr__(self, "sort_index", sort_order.get(self.host, 4))
 
     @property
     def pretty_host(self) -> str:
@@ -128,7 +132,7 @@ def main():
         if (artifact := Artifact.from_line(line)) is not None:
             artifacts.append(artifact)
 
-    # Sort the artifacts by the host name.
+    # Sort the artifacts by the specific order.
     artifacts = sorted(artifacts)
 
     print("For GitHub:")
@@ -136,7 +140,7 @@ def main():
     print("  <tr>")
     print("    <th>Platform</th>")
     print("    <th>Package</th>")
-    print("    <th>Size (bytes)</th>")
+    print("    <th>Size (Bytes)</th>")
     print("    <th>SHA1 Checksum</th>")
     print("  </tr>")
     for artifact in artifacts:

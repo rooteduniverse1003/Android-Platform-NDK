@@ -18,10 +18,12 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 import enum
+import json
 from pathlib import Path
-from typing import Iterable, Optional
+from typing import Any, Dict, Iterable, List, Optional
 
 from ndk.abis import Abi, LP32_ABIS, LP64_ABIS
+import ndk.test.suites
 
 
 @enum.unique
@@ -64,11 +66,29 @@ class TestOptions:
 
 
 class TestSpec:
-    """Configuration for which tests should be run."""
+    """Configuration for which tests should be run on which devices."""
 
-    def __init__(self, abis: Iterable[Abi], suites: Iterable[str]) -> None:
+    def __init__(
+        self, abis: Iterable[Abi], suites: Iterable[str], devices: Dict[int, List[Abi]]
+    ) -> None:
         self.abis = abis
         self.suites = suites
+        self.devices = devices
+
+    @classmethod
+    def load(cls, path: Path, abis: Optional[Iterable[Abi]] = None) -> TestSpec:
+        with open(path) as config_file:
+            test_config: dict[str, Any] = json.load(config_file)
+        if abis is None:
+            abis = test_config.get("abis", ndk.abis.ALL_ABIS)
+        assert abis is not None
+        suites = test_config.get("suites", ndk.test.suites.ALL_SUITES)
+        devices: Dict[int, List[Abi]] = {}
+        for api, device_abis in test_config["devices"].items():
+            devices[int(api)] = []
+            for abi in device_abis:
+                devices[int(api)].append(Abi(abi))
+        return cls(abis, suites, devices)
 
 
 @dataclass(frozen=True)

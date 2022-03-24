@@ -13,6 +13,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+"""Build test cases."""
+
 import fnmatch
 from importlib.abc import Loader
 import importlib.util
@@ -60,7 +62,7 @@ def _get_jobs_args() -> List[str]:
 def _prep_build_dir(src_dir: Path, out_dir: Path) -> None:
     if out_dir.exists():
         shutil.rmtree(out_dir)
-    shutil.copytree(src_dir, out_dir)
+    shutil.copytree(src_dir, out_dir, ignore=shutil.ignore_patterns("__pycache__"))
 
 
 class Test:
@@ -601,7 +603,7 @@ def find_original_libcxx_test(name: str) -> List[str]:
 
     # On Windows, a multiprocessing worker process does not inherit ALL_TESTS,
     # so we must scan libc++ tests in each worker.
-    from ndk.test.scanner import (  # pylint: disable=import-outside-toplevel
+    from ndk.test.buildtest.scanner import (  # pylint: disable=import-outside-toplevel
         LibcxxTestScanner,
     )
 
