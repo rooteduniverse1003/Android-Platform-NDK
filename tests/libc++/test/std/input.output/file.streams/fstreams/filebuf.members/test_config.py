@@ -1,10 +1,10 @@
 from typing import Optional
 
-from ndk.test.devices import Device
-from ndk.test.types import Test
+from ndk.test.devices import DeviceConfig
+from ndk.test.buildtest.case import Test
 
 
-def run_broken(test: Test, device: Device) -> tuple[Optional[str], Optional[str]]:
+def run_broken(test: Test, device: DeviceConfig) -> tuple[Optional[str], Optional[str]]:
     if test.case_name == "close.pass" and device.version >= 32:
         return (
             f"device API level {device.version}",

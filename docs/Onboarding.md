@@ -43,4 +43,4 @@ work our release tooling.
 
 ## Chat
 
-* [#ndk on the r/AndroidDev Discord](https://discord.gg/REGa5bTP)
+* [#ndk on the r/AndroidDev Discord](https://discord.gg/8rjcbDbh6e)
