@@ -48,7 +48,7 @@ def check_python_is_prebuilt() -> None:
     if interp != prebuilt:
         sys.exit(
             f"Expected python to be {prebuilt}, but is {sys.executable} ({interp}).\n\n"
-            f"Follow {PYTHON_DOCS} to set up your Python environement."
+            f"Follow {PYTHON_DOCS} to set up your Python environment."
         )
 
 

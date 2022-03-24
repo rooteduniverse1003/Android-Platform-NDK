@@ -1,7 +1,7 @@
 from typing import Optional
 
 from ndk.abis import LP32_ABIS
-from ndk.test.types import Test
+from ndk.test.buildtest.case import Test
 
 
 def build_unsupported(test: Test) -> Optional[str]:
