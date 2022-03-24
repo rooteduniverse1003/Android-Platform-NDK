@@ -495,6 +495,29 @@ class Clang(ndk.builds.Module):
             (install_path / "lib64/libc++.a").unlink()
             (install_path / "lib64/libc++abi.a").unlink()
 
+        # Strip some large binaries and libraries. This is awkward, hand-crafted
+        # logic to select most of the biggest offenders, but could be
+        # greatly improved, although handling Mac, Windows, and Linux
+        # elegantly and consistently is a bit tricky.
+        strip_cmd = ClangToolchain(Host.current()).strip
+        for file in ndk.paths.walk(bin_dir, directories=False):
+            if Host.current().is_windows:
+                if file.suffix == ".exe":
+                    subprocess.check_call([str(strip_cmd), str(file)])
+            elif file.stat().st_size > 100000:
+                subprocess.check_call([str(strip_cmd), str(file)])
+        for file in ndk.paths.walk(install_clanglib, directories=False):
+            if file.name == "lldb-server":
+                subprocess.check_call([str(strip_cmd), str(file)])
+            if (
+                file.name.startswith("libLLVM.")
+                or file.name.startswith("libclang.")
+                or file.name.startswith("libclang-cpp.")
+                or file.name.startswith("libLTO.")
+                or file.name.startswith("liblldb.")
+            ):
+                subprocess.check_call([str(strip_cmd), "--strip-unneeded", str(file)])
+
 
 def versioned_so(host: Host, lib: str, version: str) -> str:
     """Returns the formatted versioned library for the given host.
