@@ -12,6 +12,7 @@
     <!-- <option name="push-file" ...> will be filled in automatically. -->
     <!-- <option name="post-push" ...> will be filled in automatically. -->
     <option name="cleanup" value="true" />
+    <option name="skip-abi-filtering" value="true" />
   </target_preparer>
   <test class="com.android.tradefed.testtype.binary.ExecutableTargetTest">
     <!-- <option name="test-command-line" ...> will be filled in automatically. -->
