@@ -1571,8 +1571,12 @@ class BaseToolchain(ndk.builds.Module):
         lld = bin_dir / f"ld.lld{exe}"
         new_bin_ld = bin_dir / f"ld{exe}"
 
-        shutil.copyfile(lld, new_bin_ld)
-        shutil.copystat(lld, new_bin_ld)
+        if self.host.is_windows:
+            shutil.copyfile(lld, new_bin_ld)
+            shutil.copystat(lld, new_bin_ld)
+        else:
+            # This reduces the size of the NDK by 60M on non-Windows.
+            os.symlink(lld.name, new_bin_ld)
 
         platforms = self.get_dep("platforms")
         assert isinstance(platforms, Platforms)
