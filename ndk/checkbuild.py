@@ -501,12 +501,16 @@ class Clang(ndk.builds.Module):
         # elegantly and consistently is a bit tricky.
         strip_cmd = ClangToolchain(Host.current()).strip
         for file in ndk.paths.walk(bin_dir, directories=False):
+            if not file.is_file() or file.is_symlink():
+                continue
             if Host.current().is_windows:
                 if file.suffix == ".exe":
                     subprocess.check_call([str(strip_cmd), str(file)])
             elif file.stat().st_size > 100000:
                 subprocess.check_call([str(strip_cmd), str(file)])
         for file in ndk.paths.walk(install_clanglib, directories=False):
+            if not file.is_file() or file.is_symlink():
+                continue
             if file.name == "lldb-server":
                 subprocess.check_call([str(strip_cmd), str(file)])
             if (
