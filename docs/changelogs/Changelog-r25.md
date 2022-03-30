@@ -18,6 +18,7 @@ directly, see the [build system maintainers guide].
   This reduces the uncompressed size of the NDK by 500 MB.
 * Strip some binaries and libraries. This reduces the uncompressed size of
   the NDK by 300 MB.
+* Remove python2. All scripts now use python3.
 
 ## Known Issues
 
