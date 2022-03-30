@@ -1,6 +1,6 @@
 @echo off
 setlocal
-set PREBUILT_BIN=%~dp0
+set ANDROID_NDK_PYTHON=%~dp0..\..\..\toolchains\llvm\prebuilt\windows-x86_64\python3\python.exe
 set SHELL=cmd
-"%PREBUILT_BIN%/python.exe" -u "%~dp0ndk-stack.py" %*
+"%ANDROID_NDK_PYTHON%" -u "%~dp0ndk-stack.py" %*
 endlocal
