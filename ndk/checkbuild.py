@@ -686,29 +686,6 @@ class NdkWhich(ndk.builds.FileModule):
 
 
 @register
-class Python(ndk.builds.Module):
-    """Module for host Python 2 to support GDB.
-
-    This is now a prebuilt. Next time this or GDB breaks we'll be removing both
-    and migrating the tools we ship with ndk-build to Python 3.
-    """
-
-    name = "python"
-    install_path = Path("prebuilt/{host}")
-    PREBUILTS_BASE = ANDROID_DIR / "prebuilts/ndk/python"
-    notice = ANDROID_DIR / "prebuilts/ndk/python/NOTICE"
-    notice_group = ndk.builds.NoticeGroup.TOOLCHAIN
-
-    def build(self) -> None:
-        pass
-
-    def install(self) -> None:
-        copy_tree(
-            str(self.PREBUILTS_BASE / self.host.tag), str(self.get_install_path())
-        )
-
-
-@register
 class Black(ndk.builds.LintModule):
     name = "black"
 
