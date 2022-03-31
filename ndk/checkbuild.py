@@ -845,6 +845,9 @@ class Libcxx(ndk.builds.Module):
         subprocess.check_call(build_cmd)
 
     def install(self) -> None:
+        """Installs headers and makefiles.
+
+        The libraries are installed separately, by the Toolchain module."""
         install_root = self.get_install_path()
 
         if install_root.exists():
@@ -852,34 +855,8 @@ class Libcxx(ndk.builds.Module):
         install_root.mkdir(parents=True)
 
         shutil.copy2(self.src / "Android.mk", install_root)
+        # TODO: Use the includes from sysroot.
         shutil.copytree(self.src / "include", install_root / "include")
-        shutil.copytree(self.lib_out, install_root / "libs")
-
-        for abi in ndk.abis.ALL_ABIS:
-            lib_dir = install_root / "libs" / abi
-
-            # The static libraries installed to the obj dir, not the lib dir.
-            self.install_static_libs(lib_dir, abi)
-
-            # Create linker scripts for the libraries we use so that we link
-            # things properly even when we're not using ndk-build. The linker
-            # will read the script in place of the library so that we link the
-            # unwinder and other support libraries appropriately.
-            platforms_meta = json.loads(
-                ndk.file.read_file(ndk.paths.ndk_path("meta/platforms.json"))
-            )
-            for api in range(platforms_meta["min"], platforms_meta["max"] + 1):
-                if api < ndk.abis.min_api_for_abi(abi):
-                    continue
-
-    def install_static_libs(self, lib_dir: Path, abi: ndk.abis.Abi) -> None:
-        static_lib_dir = self.obj_out / "local" / abi
-
-        shutil.copy2(static_lib_dir / "libc++abi.a", lib_dir)
-        shutil.copy2(static_lib_dir / "libc++_static.a", lib_dir)
-
-        if abi in ndk.abis.LP32_ABIS:
-            shutil.copy2(static_lib_dir / "libandroid_support.a", lib_dir)
 
 
 @register
@@ -1677,19 +1654,22 @@ class Toolchain(ndk.builds.Module):
         for arch in ndk.abis.ALL_ARCHITECTURES:
             triple = ndk.abis.arch_to_triple(arch)
             (abi,) = ndk.abis.arch_to_abis(arch)
-            libcxx_lib_dir = libcxx_dir / "libs" / abi
             sysroot_dst = install_dir / "sysroot/usr/lib" / triple
 
-            libs = [
-                "libc++_shared.so",
+            shutil.copy2(
+                self.out_dir / "libcxx" / "libs" / abi / "libc++_shared.so", sysroot_dst
+            )
+            static_libs = [
                 "libc++_static.a",
                 "libc++abi.a",
             ]
             if abi in ndk.abis.LP32_ABIS:
-                libs.append("libandroid_support.a")
+                static_libs.append("libandroid_support.a")
 
-            for lib in libs:
-                shutil.copy2(libcxx_lib_dir / lib, sysroot_dst)
+            for lib in static_libs:
+                shutil.copy2(
+                    self.out_dir / "libcxx" / "obj" / "local" / abi / lib, sysroot_dst
+                )
 
         platforms = self.get_dep("platforms")
         assert isinstance(platforms, Platforms)
