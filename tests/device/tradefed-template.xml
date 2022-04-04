@@ -14,6 +14,7 @@
     <option name="skip-abi-filtering" value="true" />
   </target_preparer>
   <test class="com.android.tradefed.testtype.binary.ExecutableTargetTest">
+    <option name="skip-binary-check" value="true" />
     <!-- <option name="test-command-line" ...> will be filled in automatically. -->
   </test>
 </configuration>
