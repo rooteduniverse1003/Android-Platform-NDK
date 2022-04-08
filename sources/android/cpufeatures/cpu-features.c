@@ -492,12 +492,6 @@ cpulist_read_from(CpuList* list, const char* filename)
     HWCAP_IDIVT )
 #endif
 
-#if defined(__mips__)
-// see <uapi/asm/hwcap.h> kernel header
-#define HWCAP_MIPS_R6           (1 << 0)
-#define HWCAP_MIPS_MSA          (1 << 1)
-#endif
-
 #if defined(__arm__)
 // Parse /proc/self/auxv to extract the ELF HW capabilities bitmap for the
 // current CPU. Note that this file is not accessible from regular
@@ -616,11 +610,6 @@ android_cpuInitFamily(void)
     g_cpuFamily = ANDROID_CPU_FAMILY_ARM;
 #elif defined(__i386__)
     g_cpuFamily = ANDROID_CPU_FAMILY_X86;
-#elif defined(__mips64)
-/* Needs to be before __mips__ since the compiler defines both */
-    g_cpuFamily = ANDROID_CPU_FAMILY_MIPS64;
-#elif defined(__mips__)
-    g_cpuFamily = ANDROID_CPU_FAMILY_MIPS;
 #elif defined(__aarch64__)
     g_cpuFamily = ANDROID_CPU_FAMILY_ARM64;
 #elif defined(__x86_64__)
@@ -998,20 +987,6 @@ android_cpuInit(void)
 
 
 #endif
-#if defined( __mips__)
-    {   /* MIPS and MIPS64 */
-        /* Extract the list of CPU features from ELF hwcaps */
-        uint32_t hwcaps = getauxval(AT_HWCAP);
-        if (hwcaps != 0) {
-            int has_r6      = (hwcaps & HWCAP_MIPS_R6);
-            int has_msa     = (hwcaps & HWCAP_MIPS_MSA);
-            if (has_r6)
-                g_cpuFeatures |= ANDROID_CPU_MIPS_FEATURE_R6;
-            if (has_msa)
-                g_cpuFeatures |= ANDROID_CPU_MIPS_FEATURE_MSA;
-        }
-    }
-#endif /* __mips__ */
 
     free(cpuinfo);
 }

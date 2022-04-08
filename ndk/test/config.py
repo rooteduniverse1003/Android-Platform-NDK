@@ -76,7 +76,7 @@ class TestConfig:
             """Tests if a given configuration is unsupported.
 
             An unsupported test is a test that do not make sense to run for a
-            given configuration. Testing x86 assembler on MIPS, for example.
+            given configuration. Testing x86 assembler on arm, for example.
 
             These tests will not be built or run.
 
