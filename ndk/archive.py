@@ -59,6 +59,44 @@ def make_bztar(base_name: Path, root_dir: Path, base_dir: Path) -> None:
         )
 
 
+def make_xztar(
+    base_name: Path, root_dir: Path, base_dir: Path, preserve_symlinks: bool
+) -> Path:
+    """Create a xz-compressed tarball.
+
+    Arguments have the same name and meaning as shutil.make_archive.
+
+    Args:
+        base_name: Base name of archive to create. ".tar.xz" will be appended.
+        root_dir: Directory that's the root of the archive.
+        base_dir: Directory relative to root_dir to archive.
+    """
+    if not root_dir.is_dir():
+        raise RuntimeError(f"Not a directory: {root_dir}")
+    if not (root_dir / base_dir).is_dir():
+        raise RuntimeError(f"Not a directory: {root_dir}/{base_dir}")
+
+    xz_file = base_name.with_suffix(".tar.xz")
+
+    cmd = ["c:/windows/system32/tar.exe"] if os.name == "nt" else ["tar"]
+    if not preserve_symlinks:
+        cmd.append("--dereference")
+    cmd.extend(
+        [
+            "-J",
+            "-cf",
+            str(xz_file),
+            "-C",
+            str(root_dir),
+            str(base_dir),
+        ]
+    )
+    env = dict(os.environ)
+    env["XZ_OPT"] = "-T0"
+    subprocess.check_call(cmd, env=env)
+    return xz_file
+
+
 # For (un)zipping archives on Unix-like systems, the "zip" and "unzip" commands
 # are pretty universally available.
 #
@@ -108,6 +146,8 @@ def make_zip(
 
     cwd = os.getcwd()
     zip_file = base_name.with_suffix(".zip")
+    if zip_file.exists():
+        zip_file.unlink()
 
     # See comment above regarding .zip files on Windows.
     if os.name == "nt":
