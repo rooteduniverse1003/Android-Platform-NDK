@@ -43,9 +43,14 @@ directly, see the [build system maintainers guide].
   did. With CMake 3.22 it is an error to set `CMAKE_ANDROID_ARM_MODE` for other
   ABIs, so this fixes a potential incompatibility between the legacy and new
   toolchains when using CMake 3.22+.
+* [Issue 1693]: The NDK's toolchain file for CMake (`android.toolchain.cmake`)
+  defaults to the legacy toolchain file for all versions of CMake. The new
+  toolchain file can still be enabled using
+  `-DANDROID_USE_LEGACY_TOOLCHAIN_FILE=OFF`.
 
 [Issue 1610]: https://github.com/android/ndk/issues/1610
 [Issue 1656]: https://github.com/android/ndk/issues/1656
+[Issue 1693]: https://github.com/android/ndk/issues/1693
 
 ## r23b
 
