@@ -19,6 +19,12 @@ directly, see the [build system maintainers guide].
 * Strip some binaries and libraries. This reduces the uncompressed size of
   the NDK by 300 MB.
 * Remove python2. All scripts now use python3.
+* [Issue 1693]: The NDK's toolchain file for CMake (`android.toolchain.cmake`)
+  defaults to the legacy toolchain file for all versions of CMake. The new
+  toolchain file can still be enabled using
+  `-DANDROID_USE_LEGACY_TOOLCHAIN_FILE=OFF`.
+
+[Issue 1693]: https://github.com/android/ndk/issues/1693
 
 ## Known Issues
 
