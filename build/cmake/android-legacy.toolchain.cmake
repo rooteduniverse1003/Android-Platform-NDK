@@ -447,8 +447,9 @@ list(APPEND ANDROID_COMPILER_FLAGS
 # the old version of LLDB in Android Studio, which doesn't understand LLD's
 # default hash ("fast").
 list(APPEND ANDROID_LINKER_FLAGS -Wl,--build-id=sha1)
-if(ANDROID_PLATFORM_LEVEL LESS 29)
+if(ANDROID_PLATFORM_LEVEL LESS 30)
   # https://github.com/android/ndk/issues/1196
+  # https://github.com/android/ndk/issues/1589
   list(APPEND ANDROID_LINKER_FLAGS -Wl,--no-rosegment)
 endif()
 
