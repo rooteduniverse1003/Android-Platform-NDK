@@ -41,6 +41,7 @@ directly, see the [build system maintainers guide].
   * [Issue 1645]: Fixed crash caused by openmp master/critical pragmas.
   * [Issue 1672]: Fixed armeabi-v7a libunwind.a to be compatible with vfpv3-d16
     (remember that this is the last release that will support that FPU setting).
+* [Issue 1410]: Fix ndk-build for Apple M1.
 * [Issue 1569]: Fix `-fno-integrated-as` for Linux and Darwin hosts by making
   GAS symlink relative
 * [Issue 1589]: Fix incorrect API level check for `-Wl,--no-rosegment` in
@@ -59,6 +60,7 @@ directly, see the [build system maintainers guide].
   toolchain file can still be enabled using
   `-DANDROID_USE_LEGACY_TOOLCHAIN_FILE=OFF`.
 
+[Issue 1410]: https://github.com/android/ndk/issues/1410
 [Issue 1589]: https://github.com/android/ndk/issues/1589
 [Issue 1590]: https://github.com/android/ndk/issues/1590
 [Issue 1608]: https://github.com/android/ndk/issues/1608
