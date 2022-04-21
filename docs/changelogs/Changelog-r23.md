@@ -42,6 +42,9 @@ directly, see the [build system maintainers guide].
   * [Issue 1672]: Fixed armeabi-v7a libunwind.a to be compatible with vfpv3-d16
     (remember that this is the last release that will support that FPU setting).
 * [Issue 1410]: Fix ndk-build for Apple M1.
+* [Issue 1546]: Universal binaries (M1 support) for make (affects ndk-build).
+* [Issue 1577]: Universal binaries (M1 support) for shader-tools (vulkan
+  compilers).
 * [Issue 1569]: Fix `-fno-integrated-as` for Linux and Darwin hosts by making
   GAS symlink relative
 * [Issue 1589]: Fix incorrect API level check for `-Wl,--no-rosegment` in
@@ -61,6 +64,8 @@ directly, see the [build system maintainers guide].
   `-DANDROID_USE_LEGACY_TOOLCHAIN_FILE=OFF`.
 
 [Issue 1410]: https://github.com/android/ndk/issues/1410
+[Issue 1546]: https://github.com/android/ndk/issues/1546
+[Issue 1577]: https://github.com/android/ndk/issues/1577
 [Issue 1589]: https://github.com/android/ndk/issues/1589
 [Issue 1590]: https://github.com/android/ndk/issues/1590
 [Issue 1608]: https://github.com/android/ndk/issues/1608
