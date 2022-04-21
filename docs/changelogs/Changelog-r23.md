@@ -45,6 +45,9 @@ For Android Studio issues, follow the docs on the [Android Studio site].
   GAS symlink relative
 * [Issue 1589]: Fix incorrect API level check for `-Wl,--no-rosegment` in
   ndk-build and CMake.
+* [Issue 1593]: Improved ndk-which to fall back to LLVM tools when the GNU names
+  are used. For example, `ndk-which strip` will now return the path to
+  `llvm-strip` instead of nothing.
 * [Issue 1610]: Fix `ANDROID_NATIVE_API_LEVEL` CMake variable when using the
   non-legacy toolchain file.
 * [Issue 1618]: Fix behavior of `ANDROID_CPP_FEATURES` with the new toolchain
@@ -64,6 +67,7 @@ For Android Studio issues, follow the docs on the [Android Studio site].
 [Issue 1577]: https://github.com/android/ndk/issues/1577
 [Issue 1589]: https://github.com/android/ndk/issues/1589
 [Issue 1590]: https://github.com/android/ndk/issues/1590
+[Issue 1593]: https://github.com/android/ndk/issues/1593
 [Issue 1608]: https://github.com/android/ndk/issues/1608
 [Issue 1610]: https://github.com/android/ndk/issues/1610
 [Issue 1618]: https://github.com/android/ndk/issues/1618
