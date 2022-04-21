@@ -383,6 +383,11 @@ class Clang(ndk.builds.Module):
             symlinks=not self.host.is_windows,
         )
 
+        # The prebuilt Linux Clangs include a bazel file for some other users.
+        # We don't need or test this interface so we shouldn't ship it.
+        if self.host is Host.Linux:
+            (install_path / "BUILD.bazel").unlink()
+
         # clang-4053586 was patched in the prebuilts directory to add the
         # libc++ includes. These are almost certainly a different revision than
         # the NDK libc++, and may contain local changes that the NDK's don't
