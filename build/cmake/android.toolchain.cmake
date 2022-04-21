@@ -166,6 +166,13 @@ elseif(ANDROID_TOOLCHAIN STREQUAL gcc)
   "https://android.googlesource.com/platform/ndk/+/master/docs/ClangMigration.md.")
 endif()
 
+if(ANDROID_NATIVE_API_LEVEL AND NOT ANDROID_PLATFORM)
+  if(ANDROID_NATIVE_API_LEVEL MATCHES "^android-[0-9]+$")
+    set(ANDROID_PLATFORM ${ANDROID_NATIVE_API_LEVEL})
+  elseif(ANDROID_NATIVE_API_LEVEL MATCHES "^[0-9]+$")
+    set(ANDROID_PLATFORM android-${ANDROID_NATIVE_API_LEVEL})
+  endif()
+endif()
 include(${CMAKE_ANDROID_NDK}/build/cmake/adjust_api_level.cmake)
 adjust_api_level("${ANDROID_PLATFORM}" CMAKE_SYSTEM_VERSION)
 
