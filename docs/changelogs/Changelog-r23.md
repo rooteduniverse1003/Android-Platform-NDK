@@ -47,6 +47,8 @@ directly, see the [build system maintainers guide].
   ndk-build and CMake.
 * [Issue 1610]: Fix `ANDROID_NATIVE_API_LEVEL` CMake variable when using the
   non-legacy toolchain file.
+* [Issue 1618]: Fix behavior of `ANDROID_CPP_FEATURES` with the new toolchain
+  file.
 * [Issue 1656]: The new CMake toolchain file now ignores `ANDROID_ARM_MODE` when
   it is passed for ABIs other than armeabi-v7a like the legacy toolchain file
   did. With CMake 3.22 it is an error to set `CMAKE_ANDROID_ARM_MODE` for other
@@ -61,6 +63,7 @@ directly, see the [build system maintainers guide].
 [Issue 1590]: https://github.com/android/ndk/issues/1590
 [Issue 1608]: https://github.com/android/ndk/issues/1608
 [Issue 1610]: https://github.com/android/ndk/issues/1610
+[Issue 1618]: https://github.com/android/ndk/issues/1618
 [Issue 1619]: https://github.com/android/ndk/issues/1619
 [Issue 1645]: https://github.com/android/ndk/issues/1645
 [Issue 1656]: https://github.com/android/ndk/issues/1656
