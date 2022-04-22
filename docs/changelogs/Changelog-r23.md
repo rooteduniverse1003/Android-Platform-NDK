@@ -28,6 +28,55 @@ For Android Studio issues, follow the docs on the [Android Studio site].
 
 [Clang Migration Notes]: ClangMigration.md
 
+## r23c
+
+* Update LLVM to clang-r416183c2, based on LLVM 12 development.
+  * [Issue 1590]: Fixed LLDB crashes when calling help on unknown commands.
+  * [Issue 1608]: Fixed crash in vector conversions.
+  * [Issue 1619]: Fixed performance regression in arm64 vectorization.
+  * [Issue 1645]: Fixed crash caused by openmp master/critical pragmas.
+  * [Issue 1672]: Fixed armeabi-v7a libunwind.a to be compatible with vfpv3-d16
+    (remember that this is the last release that will support that FPU setting).
+* [Issue 1410]: Fix ndk-build for Apple M1.
+* [Issue 1546]: Universal binaries (M1 support) for make (affects ndk-build).
+* [Issue 1577]: Universal binaries (M1 support) for shader-tools (vulkan
+  compilers).
+* [Issue 1569]: Fix `-fno-integrated-as` for Linux and Darwin hosts by making
+  GAS symlink relative
+* [Issue 1589]: Fix incorrect API level check for `-Wl,--no-rosegment` in
+  ndk-build and CMake.
+* [Issue 1593]: Improved ndk-which to fall back to LLVM tools when the GNU names
+  are used. For example, `ndk-which strip` will now return the path to
+  `llvm-strip` instead of nothing.
+* [Issue 1610]: Fix `ANDROID_NATIVE_API_LEVEL` CMake variable when using the
+  non-legacy toolchain file.
+* [Issue 1618]: Fix behavior of `ANDROID_CPP_FEATURES` with the new toolchain
+  file.
+* [Issue 1656]: The new CMake toolchain file now ignores `ANDROID_ARM_MODE` when
+  it is passed for ABIs other than armeabi-v7a like the legacy toolchain file
+  did. With CMake 3.22 it is an error to set `CMAKE_ANDROID_ARM_MODE` for other
+  ABIs, so this fixes a potential incompatibility between the legacy and new
+  toolchains when using CMake 3.22+.
+* [Issue 1693]: The NDK's toolchain file for CMake (`android.toolchain.cmake`)
+  defaults to the legacy toolchain file for all versions of CMake. The new
+  toolchain file can still be enabled using
+  `-DANDROID_USE_LEGACY_TOOLCHAIN_FILE=OFF`.
+
+[Issue 1410]: https://github.com/android/ndk/issues/1410
+[Issue 1546]: https://github.com/android/ndk/issues/1546
+[Issue 1577]: https://github.com/android/ndk/issues/1577
+[Issue 1589]: https://github.com/android/ndk/issues/1589
+[Issue 1590]: https://github.com/android/ndk/issues/1590
+[Issue 1593]: https://github.com/android/ndk/issues/1593
+[Issue 1608]: https://github.com/android/ndk/issues/1608
+[Issue 1610]: https://github.com/android/ndk/issues/1610
+[Issue 1618]: https://github.com/android/ndk/issues/1618
+[Issue 1619]: https://github.com/android/ndk/issues/1619
+[Issue 1645]: https://github.com/android/ndk/issues/1645
+[Issue 1656]: https://github.com/android/ndk/issues/1656
+[Issue 1672]: https://github.com/android/ndk/issues/1672
+[Issue 1693]: https://github.com/android/ndk/issues/1693
+
 ## r23b
 
 * Update LLVM to clang-r416183c1, based on LLVM 12 development.

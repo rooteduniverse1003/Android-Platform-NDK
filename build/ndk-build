@@ -118,10 +118,6 @@ else
 fi
 
 # Detect host operating system and architecture
-# The 64-bit / 32-bit distinction gets tricky on Linux and Darwin because
-# uname -m returns the kernel's bit size, and it's possible to run with
-# a 64-bit kernel and a 32-bit userland.
-#
 HOST_OS=$(uname -s)
 case $HOST_OS in
   Darwin) HOST_OS=darwin;;
@@ -135,6 +131,7 @@ log "HOST_OS=$HOST_OS"
 
 HOST_ARCH=$(uname -m)
 case $HOST_ARCH in
+    arm64) HOST_ARCH=arm64;;
     i?86) HOST_ARCH=x86;;
     x86_64|amd64) HOST_ARCH=x86_64;;
     *) echo "ERROR: Unknown host CPU architecture: $HOST_ARCH"
@@ -142,36 +139,15 @@ case $HOST_ARCH in
 esac
 log "HOST_ARCH=$HOST_ARCH"
 
-# Detect 32-bit userland on 64-bit kernels
-HOST_TAG="$HOST_OS-$HOST_ARCH"
-case $HOST_TAG in
-  linux-x86_64|darwin-x86_64)
-    # we look for x86_64 or x86-64 in the output of 'file' for our shell
-    # the -L flag is used to dereference symlinks, just in case.
-    file -L "$SHELL" | grep -q "x86[_-]64"
-    if [ $? != 0 ]; then
-      HOST_ARCH=x86
-      log "HOST_ARCH=$HOST_ARCH (32-bit userland detected)"
-    fi
-    ;;
-esac
-
-# Check that we have 64-bit binaries on 64-bit system, otherwise fallback
-# on 32-bit ones. This gives us more freedom in packaging the NDK.
-LOG_MESSAGE=
-if [ $HOST_ARCH = x86_64 ]; then
-  if [ ! -d $ANDROID_NDK_ROOT/prebuilt/$HOST_TAG ]; then
-    HOST_ARCH=x86
-    LOG_MESSAGE="(no 64-bit prebuilt binaries detected)"
-  fi
-fi
-
 HOST_TAG=$HOST_OS-$HOST_ARCH
-# Special case windows-x86 -> windows
-if [ $HOST_TAG = windows-x86 ]; then
-  HOST_TAG=windows
+
+if [ $HOST_TAG = darwin-arm64 ]; then
+    # The NDK ships universal arm64+x86_64 binaries in the darwin-x86_64
+    # directory.
+    HOST_TAG=darwin-x86_64
 fi
-log "HOST_TAG=$HOST_TAG $LOG_MESSAGE"
+
+log "HOST_TAG=$HOST_TAG"
 
 # If GNUMAKE is defined, check that it points to a valid file
 if [ -n "$GNUMAKE" ] ; then
