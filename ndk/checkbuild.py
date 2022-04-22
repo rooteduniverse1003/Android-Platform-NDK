@@ -145,6 +145,14 @@ def purge_unwanted_files(ndk_dir: Path) -> None:
             path.unlink()
 
 
+def make_symlink(src: Path, dest: Path) -> None:
+    src.unlink(missing_ok=True)
+    if dest.is_absolute():
+        src.symlink_to(Path(os.path.relpath(dest, src.parent)))
+    else:
+        src.symlink_to(dest)
+
+
 def create_stub_entry_point(path: Path) -> None:
     """Creates a stub "application" for the app bundle.
 
@@ -411,7 +419,7 @@ class Clang(ndk.builds.Module):
             (bin_dir / 'clang-cl').unlink()
             clang = install_path / 'bin/clang'
             (bin_dir / 'clang.real').rename(clang)
-            (bin_dir / 'clang++').symlink_to('clang')
+            make_symlink(bin_dir / 'clang++', Path('clang'))
 
         bin_ext = '.exe' if self.host.is_windows else ''
         if self.host.is_windows:
@@ -634,20 +642,15 @@ class ShaderTools(ndk.builds.CMakeModule):
         # Symlink libc++ to install path.
         for lib in self._libcxx:
             symlink_name = self.get_install_path() / lib.name
-            symlink_name.unlink(missing_ok=True)
-            symlink_name.symlink_to(
-                Path(os.path.relpath(lib, symlink_name.parent)))
+            make_symlink(symlink_name, lib)
 
 
-class Make(ndk.builds.AutoconfModule):
+class Make(ndk.builds.CMakeModule):
     name = 'make'
     path = Path('prebuilt/{host}')
     notice_group = ndk.builds.NoticeGroup.TOOLCHAIN
     src = ANDROID_DIR / 'toolchain/make'
-    # The macOS sed chokes on invalid UTF-8 in config.h-vms.template, at least
-    # for the old version on some build servers. (It works fine locally on
-    # 10.15.) This is stackoverflow's suggested workaround.
-    env = {'LC_ALL': 'C', 'LANG': 'C'}
+    deps = {'clang'}
 
     @property
     def notices(self) -> Iterator[Path]:
@@ -1520,7 +1523,7 @@ class BaseToolchain(ndk.builds.Module):
             if self.host is Host.Windows64:
                 shutil.copy2(gas, triple_bin_dir / 'as.exe')
             else:
-                (triple_bin_dir / 'as').symlink_to(bin_dir / gas_name)
+                make_symlink(triple_bin_dir / 'as', bin_dir / gas_name)
 
             # Without a GCC lib directory, Clang will not consider the
             # toolchain to be a binutils directory, so won't find GAS when
@@ -2467,6 +2470,38 @@ def wait_for_build(deps: ndk.deps.DependencyManager,
             print('Build finished')
 
 
+def check_ndk_symlink(ndk_dir: Path, src: Path, target: Path) -> None:
+    """Check that the symlink's target is relative, exists, and points within
+    the NDK installation.
+    """
+    if target.is_absolute():
+        raise RuntimeError(f'Symlink {src} points to absolute path {target}')
+    ndk_dir = ndk_dir.resolve()
+    cur = src.parent.resolve()
+    for part in target.parts:
+        # (cur / part) might itself be a symlink. Its validity is checked from
+        # the top-level scan, so it doesn't need to be checked here.
+        cur = (cur / part).resolve()
+        if not cur.exists():
+            raise RuntimeError(f'Symlink {src} targets non-existent {cur}')
+        if not cur.is_relative_to(ndk_dir):
+            raise RuntimeError(
+                f'Symlink {src} targets {cur} outside NDK {ndk_dir}')
+
+
+def check_ndk_symlinks(ndk_dir: Path, host: Host) -> None:
+    for path in ndk.paths.walk(ndk_dir):
+        if not path.is_symlink():
+            continue
+        if host == Host.Windows64:
+            # Symlinks aren't supported well enough on Windows. (e.g. They
+            # require Developer Mode and/or special permissions. Cygwin
+            # tools might create symlinks that non-Cygwin programs don't
+            # recognize.)
+            raise RuntimeError(f'Symlink {path} unexpected in Windows NDK')
+        check_ndk_symlink(ndk_dir, path, path.readlink())
+
+
 def build_ndk(modules: List[ndk.builds.Module],
               deps_only: Set[ndk.builds.Module], out_dir: Path, dist_dir: Path,
               args: argparse.Namespace) -> Path:
@@ -2498,6 +2533,7 @@ def build_ndk(modules: List[ndk.builds.Module],
         create_notice_file(ndk_dir / 'NOTICE', ndk.builds.NoticeGroup.BASE)
         create_notice_file(ndk_dir / 'NOTICE.toolchain',
                            ndk.builds.NoticeGroup.TOOLCHAIN)
+        check_ndk_symlinks(ndk_dir, args.system)
         return ndk_dir
     finally:
         workqueue.terminate()

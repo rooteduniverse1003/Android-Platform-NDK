@@ -33,6 +33,25 @@ usage() {
   exit 1
 }
 
+error() {
+  echo "The tool: $1 doesn't exist"
+  echo "Possible choices are: "
+  count=0
+  for file in $2*
+  do
+    if [[ $file == *$1 ]]
+    then
+        echo $file
+        ((count = count + 1))
+    fi
+  done
+  if [ $count -eq 0 ]
+  then
+      echo " None "
+  fi
+  exit 1
+}
+
 ABI=armeabi-v7a
 
 while (( "$#" )); do
@@ -72,7 +91,7 @@ get_build_var_for_abi() {
   fi
   NDK_PROJECT_PATH=$TMPDIR $GNUMAKE --no-print-dir -f $MYNDKDIR/build/core/build-local.mk DUMP_$1 APP_ABI=$2
 }
-
+LLVM_TOOLCHAIN_PREFIX=`get_build_var_for_abi LLVM_TOOLCHAIN_PREFIX $ABI`
 TOOLCHAIN_PREFIX=`get_build_var_for_abi TOOLCHAIN_PREFIX $ABI`
 rm -Rf $TMPDIR
 
@@ -80,4 +99,12 @@ rm -Rf $TMPDIR
 FQFN=${TOOLCHAIN_PREFIX}$TOOL
 
 # use the host system's 'which' to decide/report if the file exists or not, and is executable
+if [ ! -f $FQFN ]
+then
+    FQFN=${LLVM_TOOLCHAIN_PREFIX}llvm-$TOOL
+    if [ ! -f $FQFN ]
+    then
+        error $TOOL $LLVM_TOOLCHAIN_PREFIX
+    fi
+fi
 which "$FQFN"
