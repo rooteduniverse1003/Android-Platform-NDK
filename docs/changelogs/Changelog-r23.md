@@ -39,6 +39,8 @@ For Android Studio issues, follow the docs on the [Android Studio site].
     (remember that this is the last release that will support that FPU setting).
 * [Issue 1569]: Fix `-fno-integrated-as` for Linux and Darwin hosts by making
   GAS symlink relative
+* [Issue 1589]: Fix incorrect API level check for `-Wl,--no-rosegment` in
+  ndk-build and CMake.
 * [Issue 1610]: Fix `ANDROID_NATIVE_API_LEVEL` CMake variable when using the
   non-legacy toolchain file.
 * [Issue 1656]: The new CMake toolchain file now ignores `ANDROID_ARM_MODE` when
@@ -51,6 +53,7 @@ For Android Studio issues, follow the docs on the [Android Studio site].
   toolchain file can still be enabled using
   `-DANDROID_USE_LEGACY_TOOLCHAIN_FILE=OFF`.
 
+[Issue 1589]: https://github.com/android/ndk/issues/1589
 [Issue 1590]: https://github.com/android/ndk/issues/1590
 [Issue 1608]: https://github.com/android/ndk/issues/1608
 [Issue 1610]: https://github.com/android/ndk/issues/1610
