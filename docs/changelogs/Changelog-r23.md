@@ -30,6 +30,13 @@ For Android Studio issues, follow the docs on the [Android Studio site].
 
 ## r23c
 
+* Update LLVM to clang-r416183c2, based on LLVM 12 development.
+  * [Issue 1590]: Fixed LLDB crashes when calling help on unknown commands.
+  * [Issue 1608]: Fixed crash in vector conversions.
+  * [Issue 1619]: Fixed performance regression in arm64 vectorization.
+  * [Issue 1645]: Fixed crash caused by openmp master/critical pragmas.
+  * [Issue 1672]: Fixed armeabi-v7a libunwind.a to be compatible with vfpv3-d16
+    (remember that this is the last release that will support that FPU setting).
 * [Issue 1569]: Fix `-fno-integrated-as` for Linux and Darwin hosts by making
   GAS symlink relative
 * [Issue 1610]: Fix `ANDROID_NATIVE_API_LEVEL` CMake variable when using the
@@ -44,8 +51,13 @@ For Android Studio issues, follow the docs on the [Android Studio site].
   toolchain file can still be enabled using
   `-DANDROID_USE_LEGACY_TOOLCHAIN_FILE=OFF`.
 
+[Issue 1590]: https://github.com/android/ndk/issues/1590
+[Issue 1608]: https://github.com/android/ndk/issues/1608
 [Issue 1610]: https://github.com/android/ndk/issues/1610
+[Issue 1619]: https://github.com/android/ndk/issues/1619
+[Issue 1645]: https://github.com/android/ndk/issues/1645
 [Issue 1656]: https://github.com/android/ndk/issues/1656
+[Issue 1672]: https://github.com/android/ndk/issues/1672
 [Issue 1693]: https://github.com/android/ndk/issues/1693
 
 ## r23b
