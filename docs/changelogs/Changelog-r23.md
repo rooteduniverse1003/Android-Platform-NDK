@@ -30,12 +30,18 @@ For Android Studio issues, follow the docs on the [Android Studio site].
 
 ## r23c
 
- * [Issue 1569]: Fix `-fno-integrated-as` for Linux and Darwin hosts by making
-   GAS symlink relative
- * [Issue 1610]: Fix `ANDROID_NATIVE_API_LEVEL` CMake variable when using the
-   non-legacy toolchain file.
+* [Issue 1569]: Fix `-fno-integrated-as` for Linux and Darwin hosts by making
+  GAS symlink relative
+* [Issue 1610]: Fix `ANDROID_NATIVE_API_LEVEL` CMake variable when using the
+  non-legacy toolchain file.
+* [Issue 1656]: The new CMake toolchain file now ignores `ANDROID_ARM_MODE` when
+  it is passed for ABIs other than armeabi-v7a like the legacy toolchain file
+  did. With CMake 3.22 it is an error to set `CMAKE_ANDROID_ARM_MODE` for other
+  ABIs, so this fixes a potential incompatibility between the legacy and new
+  toolchains when using CMake 3.22+.
 
 [Issue 1610]: https://github.com/android/ndk/issues/1610
+[Issue 1656]: https://github.com/android/ndk/issues/1656
 
 ## r23b
 
