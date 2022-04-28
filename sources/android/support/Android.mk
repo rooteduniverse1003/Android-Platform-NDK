@@ -5,7 +5,7 @@ ifeq ($(filter $(NDK_KNOWN_DEVICE_ABI64S),$(TARGET_ARCH_ABI)),)
 
 ifneq ($(LIBCXX_FORCE_REBUILD),true) # Using prebuilt
 
-LIBCXX_LIBS := ../../cxx-stl/llvm-libc++/libs/$(TARGET_ARCH_ABI)
+LIBCXX_LIBS := $(SYSROOT_LIB_DIR)
 
 include $(CLEAR_VARS)
 LOCAL_MODULE := android_support

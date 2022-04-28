@@ -216,6 +216,6 @@ class LibcxxTestCase(TestCase):
     def cmd(self) -> str:
         # See note in the base class above about parsing by TradeFed.
         libcxx_so_dir = self.device_base_dir / str(self.config) / "libcxx" / "libc++"
-        return "cd {} && LD_LIBRARY_PATH={} {}/{} 2>&1".format(
-            self.device_dir, libcxx_so_dir, self.device_dir, self.executable
+        return "cd {} && LD_LIBRARY_PATH={} ./{} 2>&1".format(
+            self.device_dir, libcxx_so_dir, self.executable
         )

@@ -70,6 +70,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/auxv.h>
 #include <sys/system_properties.h>
 #include <unistd.h>
 
@@ -491,56 +492,6 @@ cpulist_read_from(CpuList* list, const char* filename)
     HWCAP_IDIVT )
 #endif
 
-#if defined(__mips__)
-// see <uapi/asm/hwcap.h> kernel header
-#define HWCAP_MIPS_R6           (1 << 0)
-#define HWCAP_MIPS_MSA          (1 << 1)
-#endif
-
-#if defined(__arm__) || defined(__aarch64__) || defined(__mips__)
-
-#define AT_HWCAP 16
-#define AT_HWCAP2 26
-
-// Probe the system's C library for a 'getauxval' function and call it if
-// it exits, or return 0 for failure. This function is available since API
-// level 20.
-//
-// This code does *NOT* check for '__ANDROID_API__ >= 20' to support the
-// edge case where some NDK developers use headers for a platform that is
-// newer than the one really targetted by their application.
-// This is typically done to use newer native APIs only when running on more
-// recent Android versions, and requires careful symbol management.
-//
-// Note that getauxval() can't really be re-implemented here, because
-// its implementation does not parse /proc/self/auxv. Instead it depends
-// on values  that are passed by the kernel at process-init time to the
-// C runtime initialization layer.
-static uint32_t
-get_elf_hwcap_from_getauxval(int hwcap_type) {
-    typedef unsigned long getauxval_func_t(unsigned long);
-
-    dlerror();
-    void* libc_handle = dlopen("libc.so", RTLD_NOW);
-    if (!libc_handle) {
-        D("Could not dlopen() C library: %s\n", dlerror());
-        return 0;
-    }
-
-    uint32_t ret = 0;
-    getauxval_func_t* func = (getauxval_func_t*)
-            dlsym(libc_handle, "getauxval");
-    if (!func) {
-        D("Could not find getauxval() in C library\n");
-    } else {
-        // Note: getauxval() returns 0 on failure. Doesn't touch errno.
-        ret = (uint32_t)(*func)(hwcap_type);
-    }
-    dlclose(libc_handle);
-    return ret;
-}
-#endif
-
 #if defined(__arm__)
 // Parse /proc/self/auxv to extract the ELF HW capabilities bitmap for the
 // current CPU. Note that this file is not accessible from regular
@@ -659,11 +610,6 @@ android_cpuInitFamily(void)
     g_cpuFamily = ANDROID_CPU_FAMILY_ARM;
 #elif defined(__i386__)
     g_cpuFamily = ANDROID_CPU_FAMILY_X86;
-#elif defined(__mips64)
-/* Needs to be before __mips__ since the compiler defines both */
-    g_cpuFamily = ANDROID_CPU_FAMILY_MIPS64;
-#elif defined(__mips__)
-    g_cpuFamily = ANDROID_CPU_FAMILY_MIPS;
 #elif defined(__aarch64__)
     g_cpuFamily = ANDROID_CPU_FAMILY_ARM64;
 #elif defined(__x86_64__)
@@ -775,8 +721,7 @@ android_cpuInit(void)
         }
 
         /* Extract the list of CPU features from ELF hwcaps */
-        uint32_t hwcaps = 0;
-        hwcaps = get_elf_hwcap_from_getauxval(AT_HWCAP);
+        uint32_t hwcaps = getauxval(AT_HWCAP);
         if (!hwcaps) {
             D("Parsing /proc/self/auxv to extract ELF hwcaps!\n");
             hwcaps = get_elf_hwcap_from_proc_self_auxv();
@@ -849,8 +794,7 @@ android_cpuInit(void)
         }
 
         /* Extract the list of CPU features from ELF hwcaps2 */
-        uint32_t hwcaps2 = 0;
-        hwcaps2 = get_elf_hwcap_from_getauxval(AT_HWCAP2);
+        uint32_t hwcaps2 = getauxval(AT_HWCAP2);
         if (hwcaps2 != 0) {
             int has_aes     = (hwcaps2 & HWCAP2_AES);
             int has_pmull   = (hwcaps2 & HWCAP2_PMULL);
@@ -959,8 +903,7 @@ android_cpuInit(void)
 #ifdef __aarch64__
     {
         /* Extract the list of CPU features from ELF hwcaps */
-        uint32_t hwcaps = 0;
-        hwcaps = get_elf_hwcap_from_getauxval(AT_HWCAP);
+        uint32_t hwcaps = getauxval(AT_HWCAP);
         if (hwcaps != 0) {
             int has_fp      = (hwcaps & HWCAP_FP);
             int has_asimd   = (hwcaps & HWCAP_ASIMD);
@@ -1044,21 +987,6 @@ android_cpuInit(void)
 
 
 #endif
-#if defined( __mips__)
-    {   /* MIPS and MIPS64 */
-        /* Extract the list of CPU features from ELF hwcaps */
-        uint32_t hwcaps = 0;
-        hwcaps = get_elf_hwcap_from_getauxval(AT_HWCAP);
-        if (hwcaps != 0) {
-            int has_r6      = (hwcaps & HWCAP_MIPS_R6);
-            int has_msa     = (hwcaps & HWCAP_MIPS_MSA);
-            if (has_r6)
-                g_cpuFeatures |= ANDROID_CPU_MIPS_FEATURE_R6;
-            if (has_msa)
-                g_cpuFeatures |= ANDROID_CPU_MIPS_FEATURE_MSA;
-        }
-    }
-#endif /* __mips__ */
 
     free(cpuinfo);
 }
