@@ -6,8 +6,6 @@ if(CMAKE_SYSTEM_PROCESSOR STREQUAL armv7-a)
   set(TEST_SOURCES jni/assembly1.s jni/assembly2.S)
 elseif(CMAKE_SYSTEM_PROCESSOR STREQUAL i686)
   set(TEST_SOURCES jni/assembly-x86.S)
-elseif(CMAKE_SYSTEM_PROCESSOR STREQUAL mips)
-  set(TEST_SOURCES jni/assembly-mips.S)
 endif()
 
 if(DEFINED TEST_SOURCES)

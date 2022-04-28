@@ -244,6 +244,13 @@ def package_ndk(
         bundle_name = f"android-ndk-{build_number}-app-bundle"
         bundle_path = dist_dir / bundle_name
         make_app_bundle(bundle_path, ndk_dir, build_number, out_dir)
+    # TODO: Treat the .tar.xz archive as authoritative and return its path.
+    ndk.archive.make_xztar(
+        package_path,
+        ndk_dir.parent,
+        Path(ndk_dir.name),
+        preserve_symlinks=(host != Host.Windows64),
+    )
     return ndk.archive.make_zip(
         package_path,
         ndk_dir.parent,
@@ -376,6 +383,11 @@ class Clang(ndk.builds.Module):
             symlinks=not self.host.is_windows,
         )
 
+        # The prebuilt Linux Clangs include a bazel file for some other users.
+        # We don't need or test this interface so we shouldn't ship it.
+        if self.host is Host.Linux:
+            (install_path / "BUILD.bazel").unlink()
+
         # clang-4053586 was patched in the prebuilts directory to add the
         # libc++ includes. These are almost certainly a different revision than
         # the NDK libc++, and may contain local changes that the NDK's don't
@@ -494,6 +506,33 @@ class Clang(ndk.builds.Module):
         if self.host == Host.Darwin:
             (install_path / "lib64/libc++.a").unlink()
             (install_path / "lib64/libc++abi.a").unlink()
+
+        # Strip some large binaries and libraries. This is awkward, hand-crafted
+        # logic to select most of the biggest offenders, but could be
+        # greatly improved, although handling Mac, Windows, and Linux
+        # elegantly and consistently is a bit tricky.
+        strip_cmd = ClangToolchain(Host.current()).strip
+        for file in ndk.paths.walk(bin_dir, directories=False):
+            if not file.is_file() or file.is_symlink():
+                continue
+            if Host.current().is_windows:
+                if file.suffix == ".exe":
+                    subprocess.check_call([str(strip_cmd), str(file)])
+            elif file.stat().st_size > 100000:
+                subprocess.check_call([str(strip_cmd), str(file)])
+        for file in ndk.paths.walk(install_clanglib, directories=False):
+            if not file.is_file() or file.is_symlink():
+                continue
+            if file.name == "lldb-server":
+                subprocess.check_call([str(strip_cmd), str(file)])
+            if (
+                file.name.startswith("libLLVM.")
+                or file.name.startswith("libclang.")
+                or file.name.startswith("libclang-cpp.")
+                or file.name.startswith("libLTO.")
+                or file.name.startswith("liblldb.")
+            ):
+                subprocess.check_call([str(strip_cmd), "--strip-unneeded", str(file)])
 
 
 def versioned_so(host: Host, lib: str, version: str) -> str:
@@ -659,29 +698,6 @@ class NdkWhich(ndk.builds.FileModule):
 
 
 @register
-class Python(ndk.builds.Module):
-    """Module for host Python 2 to support GDB.
-
-    This is now a prebuilt. Next time this or GDB breaks we'll be removing both
-    and migrating the tools we ship with ndk-build to Python 3.
-    """
-
-    name = "python"
-    install_path = Path("prebuilt/{host}")
-    PREBUILTS_BASE = ANDROID_DIR / "prebuilts/ndk/python"
-    notice = ANDROID_DIR / "prebuilts/ndk/python/NOTICE"
-    notice_group = ndk.builds.NoticeGroup.TOOLCHAIN
-
-    def build(self) -> None:
-        pass
-
-    def install(self) -> None:
-        copy_tree(
-            str(self.PREBUILTS_BASE / self.host.tag), str(self.get_install_path())
-        )
-
-
-@register
 class Black(ndk.builds.LintModule):
     name = "black"
 
@@ -841,6 +857,9 @@ class Libcxx(ndk.builds.Module):
         subprocess.check_call(build_cmd)
 
     def install(self) -> None:
+        """Installs headers and makefiles.
+
+        The libraries are installed separately, by the Toolchain module."""
         install_root = self.get_install_path()
 
         if install_root.exists():
@@ -848,34 +867,8 @@ class Libcxx(ndk.builds.Module):
         install_root.mkdir(parents=True)
 
         shutil.copy2(self.src / "Android.mk", install_root)
+        # TODO: Use the includes from sysroot.
         shutil.copytree(self.src / "include", install_root / "include")
-        shutil.copytree(self.lib_out, install_root / "libs")
-
-        for abi in ndk.abis.ALL_ABIS:
-            lib_dir = install_root / "libs" / abi
-
-            # The static libraries installed to the obj dir, not the lib dir.
-            self.install_static_libs(lib_dir, abi)
-
-            # Create linker scripts for the libraries we use so that we link
-            # things properly even when we're not using ndk-build. The linker
-            # will read the script in place of the library so that we link the
-            # unwinder and other support libraries appropriately.
-            platforms_meta = json.loads(
-                ndk.file.read_file(ndk.paths.ndk_path("meta/platforms.json"))
-            )
-            for api in range(platforms_meta["min"], platforms_meta["max"] + 1):
-                if api < ndk.abis.min_api_for_abi(abi):
-                    continue
-
-    def install_static_libs(self, lib_dir: Path, abi: ndk.abis.Abi) -> None:
-        static_lib_dir = self.obj_out / "local" / abi
-
-        shutil.copy2(static_lib_dir / "libc++abi.a", lib_dir)
-        shutil.copy2(static_lib_dir / "libc++_static.a", lib_dir)
-
-        if abi in ndk.abis.LP32_ABIS:
-            shutil.copy2(static_lib_dir / "libandroid_support.a", lib_dir)
 
 
 @register
@@ -1544,8 +1537,12 @@ class BaseToolchain(ndk.builds.Module):
         lld = bin_dir / f"ld.lld{exe}"
         new_bin_ld = bin_dir / f"ld{exe}"
 
-        shutil.copyfile(lld, new_bin_ld)
-        shutil.copystat(lld, new_bin_ld)
+        if self.host.is_windows:
+            shutil.copyfile(lld, new_bin_ld)
+            shutil.copystat(lld, new_bin_ld)
+        else:
+            # This reduces the size of the NDK by 60M on non-Windows.
+            os.symlink(lld.name, new_bin_ld)
 
         platforms = self.get_dep("platforms")
         assert isinstance(platforms, Platforms)
@@ -1669,19 +1666,22 @@ class Toolchain(ndk.builds.Module):
         for arch in ndk.abis.ALL_ARCHITECTURES:
             triple = ndk.abis.arch_to_triple(arch)
             (abi,) = ndk.abis.arch_to_abis(arch)
-            libcxx_lib_dir = libcxx_dir / "libs" / abi
             sysroot_dst = install_dir / "sysroot/usr/lib" / triple
 
-            libs = [
-                "libc++_shared.so",
+            shutil.copy2(
+                self.out_dir / "libcxx" / "libs" / abi / "libc++_shared.so", sysroot_dst
+            )
+            static_libs = [
                 "libc++_static.a",
                 "libc++abi.a",
             ]
             if abi in ndk.abis.LP32_ABIS:
-                libs.append("libandroid_support.a")
+                static_libs.append("libandroid_support.a")
 
-            for lib in libs:
-                shutil.copy2(libcxx_lib_dir / lib, sysroot_dst)
+            for lib in static_libs:
+                shutil.copy2(
+                    self.out_dir / "libcxx" / "obj" / "local" / abi / lib, sysroot_dst
+                )
 
         platforms = self.get_dep("platforms")
         assert isinstance(platforms, Platforms)

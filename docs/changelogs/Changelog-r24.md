@@ -34,6 +34,15 @@ directly, see the [build system maintainers guide].
 
 [Clang Migration Notes]: https://android.googlesource.com/platform/ndk/+/master/docs/ClangMigration.md
 
+## r24b
+
+* [Issue 1693]: The NDK's toolchain file for CMake (`android.toolchain.cmake`)
+  defaults to the legacy toolchain file for all versions of CMake. The new
+  toolchain file can still be enabled using
+  `-DANDROID_USE_LEGACY_TOOLCHAIN_FILE=OFF`.
+
+[Issue 1693]: https://github.com/android/ndk/issues/1693
+
 ## Changes
 
 * Includes Android 12L APIs.
