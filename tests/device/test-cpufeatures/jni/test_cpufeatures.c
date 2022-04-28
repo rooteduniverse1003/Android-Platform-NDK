@@ -29,17 +29,11 @@ int main(void)
     case ANDROID_CPU_FAMILY_X86:
         printf("CPU family is x86\n");
         break;
-    case ANDROID_CPU_FAMILY_MIPS:
-        printf("CPU family is MIPS\n");
-        break;
     case ANDROID_CPU_FAMILY_ARM64:
         printf("CPU family is ARM64\n");
         break;
     case ANDROID_CPU_FAMILY_X86_64:
         printf("CPU family is x86_64\n");
-        break;
-    case ANDROID_CPU_FAMILY_MIPS64:
-        printf("CPU family is MIPS64\n");
         break;
     default:
         fprintf(stderr, "Unsupported CPU family: %d\n", family);
@@ -91,12 +85,6 @@ int main(void)
         CHECK(X86, MOVBE)
         CHECK(X86, SSE4_1)
         CHECK(X86, SSE4_2)
-        break;
-    case ANDROID_CPU_FAMILY_MIPS:
-    case ANDROID_CPU_FAMILY_MIPS64:
-        printf( "Supported MIPS features:\n");
-        CHECK(MIPS, R6)
-        CHECK(MIPS, MSA)
         break;
     default:
         if (features != 0) {
