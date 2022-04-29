@@ -45,10 +45,10 @@ set(ANDROID_NDK_TOOLCHAIN_INCLUDED true)
 
 if(DEFINED ANDROID_USE_LEGACY_TOOLCHAIN_FILE)
   set(_USE_LEGACY_TOOLCHAIN_FILE ${ANDROID_USE_LEGACY_TOOLCHAIN_FILE})
-elseif(CMAKE_VERSION VERSION_LESS "3.21")
-  set(_USE_LEGACY_TOOLCHAIN_FILE true)
 else()
-  set(_USE_LEGACY_TOOLCHAIN_FILE false)
+  # Default to the legacy toolchain file to avoid changing the behavior of
+  # CMAKE_CXX_FLAGS. See https://github.com/android/ndk/issues/1693.
+  set(_USE_LEGACY_TOOLCHAIN_FILE true)
 endif()
 if(_USE_LEGACY_TOOLCHAIN_FILE)
   include("${CMAKE_CURRENT_LIST_DIR}/android-legacy.toolchain.cmake")

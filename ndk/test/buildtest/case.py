@@ -723,11 +723,14 @@ class LibcxxTest(Test):
         if not build_dir.exists():
             build_dir.mkdir(parents=True)
 
-        xunit_output = Path(build_dir) / "xunit.xml"
+        xunit_output = build_dir / "xunit.xml"
         libcxx_test_path = libcxx_src / "test"
-        ndk_path = Path(self.ndk_path)
         libcxx_install = (
-            ndk_path / "sources/cxx-stl/llvm-libc++" / "libs" / str(self.config.abi)
+            self.ndk_path
+            / "toolchains/llvm/prebuilt"
+            / ndk.hosts.get_host_tag()
+            / "sysroot/usr/lib"
+            / ndk.abis.arch_to_triple(ndk.abis.abi_to_arch(self.config.abi))
         )
         libcxx_so_path = libcxx_install / "libc++_shared.so"
         shutil.copy2(str(libcxx_so_path), build_dir)
@@ -755,7 +758,7 @@ class LibcxxTest(Test):
                 raise RuntimeError(f"{path} does not exist")
 
             filters.append(path)
-        self.run_lit(lit, ndk_path, libcxx_src, libcxx_install, build_dir, filters)
+        self.run_lit(lit, self.ndk_path, libcxx_src, libcxx_install, build_dir, filters)
 
         for root, _, files in os.walk(libcxx_test_path):
             for test_file in files:

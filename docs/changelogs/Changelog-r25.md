@@ -13,9 +13,19 @@ directly, see the [build system maintainers guide].
 
 ## Changes
 
-* Includes Android-T (Tiramisu) Beta 1 APIs.
-* Eliminates duplicate static libraries in API-versioned sysroot directories.
-  This reduces the uncompressed size of the NDK from 2.1G to 1.6G.
+* Includes Android 13 Beta 2 APIs.
+* Updated LLVM to clang-r450784d, based on LLVM 14 development.
+* Eliminate duplicate static libraries in API-versioned sysroot directories.
+  This reduces the uncompressed size of the NDK by 500 MB.
+* Strip some binaries and libraries. This reduces the uncompressed size of
+  the NDK by 300 MB.
+* Remove python2. All scripts now use python3.
+* [Issue 1693]: The NDK's toolchain file for CMake (`android.toolchain.cmake`)
+  defaults to the legacy toolchain file for all versions of CMake. The new
+  toolchain file can still be enabled using
+  `-DANDROID_USE_LEGACY_TOOLCHAIN_FILE=OFF`.
+
+[Issue 1693]: https://github.com/android/ndk/issues/1693
 
 ## Known Issues
 
