@@ -147,14 +147,15 @@ system. The entry point for this build system is `$NDK/build/ndk-build` (or
 `$NDK/build/ndk-build.cmd`).
 
 A CMake toolchain file is included at
-`$NDK/build/cmake/android.toolchain.cmake`. For r23 and newer (and CMake 3.21
-and newer) this toolchain file configures some default behaviors and then
-delegates to the [built-in CMake NDK support], which in turn allows the NDK to
-customize some internal behaviors via the hooks in `$NDK/build/cmake/hooks`. For
-older versions of CMake or the NDK CMake's built-in support is not used, but
-CMake support for the NDK is entirely implemented in the toolchain file. In NDK
-r23 and newer this legacy method is preserved in
-`android-legacy.toolchain.cmake`.
+`$NDK/build/cmake/android.toolchain.cmake`. This toolchain file configures some
+default behaviors and then delegates to the [built-in CMake NDK support], which
+in turn allows the NDK to customize some internal behaviors via the hooks in
+`$NDK/build/cmake/hooks`. For some configurations, CMake support for the NDK is
+entirely implemented in `android-legacy.toolchain.cmake`. Which toolchain is
+used by default depends on both the NDK and CMake version, as we will default to
+the legacy toolchain file when the new toolchain file has known regressions. To
+determine which behavior is the default for a given NDK, check the fallback
+condition in `android.toolchain.cmake`.
 
 [built-in CMake NDK support]: https://cmake.org/cmake/help/latest/manual/cmake-toolchains.7.html#cross-compiling-for-android
 
