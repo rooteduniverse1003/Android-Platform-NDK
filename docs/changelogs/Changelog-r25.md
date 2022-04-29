@@ -13,7 +13,7 @@ directly, see the [build system maintainers guide].
 
 ## Changes
 
-* Includes Android-T (Tiramisu) Beta 1 APIs.
+* Includes Android 13 Beta 2 APIs.
 * Updated LLVM to clang-r450784d, based on LLVM 14 development.
 * Eliminate duplicate static libraries in API-versioned sysroot directories.
   This reduces the uncompressed size of the NDK by 500 MB.
