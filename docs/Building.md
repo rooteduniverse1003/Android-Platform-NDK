@@ -17,6 +17,7 @@ to use repo and gerrit from other Android projects, you already know plenty :)
 Check out the branch `master-ndk`. Do this in a new directory.
 
 ```bash
+# For non-Googlers:
 repo init -u https://android.googlesource.com/platform/manifest -b master-ndk
 
 # Googlers, follow http://go/repo-init/master-ndk (select AOSP in the Host menu,
