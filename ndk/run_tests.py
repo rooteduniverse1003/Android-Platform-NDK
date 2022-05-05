@@ -185,8 +185,10 @@ def push_tests_to_device(
         dest_dir,
     )
     device.push(str(src_dir), str(dest_dir), sync=use_sync)
-    if sys.platform == "win32":
-        device.shell(["chmod", "-R", "777", str(dest_dir)])
+    # Tests that were built and bundled on Windows but pushed from Linux or macOS will
+    # not have execute permission by default. Since we don't know where the tests came
+    # from, chmod all the tests regardless.
+    device.shell(["chmod", "-R", "777", str(dest_dir)])
 
 
 def finish_workqueue_with_ui(workqueue: WorkQueue) -> None:
