@@ -52,6 +52,7 @@ For Android Studio issues, follow the docs on the [Android Studio site].
   non-legacy toolchain file.
 * [Issue 1618]: Fix behavior of `ANDROID_CPP_FEATURES` with the new toolchain
   file.
+* [Issue 1634]: Fixed the build rule for the libshaderc_combined target.
 * [Issue 1656]: The new CMake toolchain file now ignores `ANDROID_ARM_MODE` when
   it is passed for ABIs other than armeabi-v7a like the legacy toolchain file
   did. With CMake 3.22 it is an error to set `CMAKE_ANDROID_ARM_MODE` for other
@@ -72,6 +73,7 @@ For Android Studio issues, follow the docs on the [Android Studio site].
 [Issue 1610]: https://github.com/android/ndk/issues/1610
 [Issue 1618]: https://github.com/android/ndk/issues/1618
 [Issue 1619]: https://github.com/android/ndk/issues/1619
+[Issue 1634]: https://github.com/android/ndk/issues/1634
 [Issue 1645]: https://github.com/android/ndk/issues/1645
 [Issue 1656]: https://github.com/android/ndk/issues/1656
 [Issue 1672]: https://github.com/android/ndk/issues/1672
