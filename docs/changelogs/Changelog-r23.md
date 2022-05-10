@@ -43,6 +43,7 @@ directly, see the [build system maintainers guide].
     (remember that this is the last release that will support that FPU setting).
 * [Issue 1410]: Fix ndk-build for Apple M1.
 * [Issue 1546]: Universal binaries (M1 support) for make (affects ndk-build).
+* [Issue 1547]: ndk-build now uses Python 3 internally, improving M1 support.
 * [Issue 1577]: Universal binaries (M1 support) for shader-tools (vulkan
   compilers).
 * [Issue 1569]: Fix `-fno-integrated-as` for Linux and Darwin hosts by making
@@ -120,6 +121,7 @@ directly, see the [build system maintainers guide].
 [Issue 1536]: https://github.com/android/ndk/issues/1536
 [Issue 1540]: https://github.com/android/ndk/issues/1540
 [Issue 1544]: https://github.com/android/ndk/issues/1544
+[Issue 1547]: https://github.com/android/ndk/issues/1547
 [Issue 1551]: https://github.com/android/ndk/issues/1551
 [Issue 1553]: https://github.com/android/ndk/issues/1553
 [Issue 1555]: https://github.com/android/ndk/issues/1555
