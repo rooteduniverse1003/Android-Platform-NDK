@@ -244,9 +244,8 @@ def package_ndk(
         bundle_name = f"android-ndk-{build_number}-app-bundle"
         bundle_path = dist_dir / bundle_name
         make_app_bundle(bundle_path, ndk_dir, build_number, out_dir)
-    # TODO: Treat the .tar.br archive as authoritative and return its path.
-    # TODO: Create archives in parallel.
-    ndk.archive.make_brtar(
+    # TODO: Treat the .tar.xz archive as authoritative and return its path.
+    ndk.archive.make_xztar(
         package_path,
         ndk_dir.parent,
         Path(ndk_dir.name),
