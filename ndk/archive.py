@@ -20,6 +20,9 @@ import shutil
 import subprocess
 from typing import List
 
+from ndk.hosts import Host
+import ndk.paths
+
 
 def make_bztar(base_name: Path, root_dir: Path, base_dir: Path) -> None:
     """Create a compressed tarball.
@@ -59,15 +62,15 @@ def make_bztar(base_name: Path, root_dir: Path, base_dir: Path) -> None:
         )
 
 
-def make_xztar(
+def make_brtar(
     base_name: Path, root_dir: Path, base_dir: Path, preserve_symlinks: bool
 ) -> Path:
-    """Create a xz-compressed tarball.
+    """Create a Brotli-compressed tarball.
 
     Arguments have the same name and meaning as shutil.make_archive.
 
     Args:
-        base_name: Base name of archive to create. ".tar.xz" will be appended.
+        base_name: Base name of archive to create. ".tar.br" will be appended.
         root_dir: Directory that's the root of the archive.
         base_dir: Directory relative to root_dir to archive.
     """
@@ -76,25 +79,44 @@ def make_xztar(
     if not (root_dir / base_dir).is_dir():
         raise RuntimeError(f"Not a directory: {root_dir}/{base_dir}")
 
-    xz_file = base_name.with_suffix(".tar.xz")
+    br_file = base_name.with_suffix(".tar.br")
 
-    cmd = ["c:/windows/system32/tar.exe"] if os.name == "nt" else ["tar"]
+    if os.name == "nt":
+        raise NotImplementedError
+    cmd = ["tar"]
     if not preserve_symlinks:
         cmd.append("--dereference")
     cmd.extend(
         [
-            "-J",
+            "--use-compress-program",
+            str(
+                ndk.paths.android_path(
+                    "prebuilts/build-tools/{host}-x86/bin/brotli".format(
+                        host=Host.current().value
+                    )
+                )
+            )
+            # Choice of 7 as quality parameter based on the following data:
+            #
+            # q | size (MB) | compression time relative to -q 0
+            # --+-----------+----------------------------------
+            # 0 | 622       |  0:00
+            # 2 | 514       |  0:10
+            # 5 | 447       |  1:14
+            # 6 | 435       |  1:48
+            # 7 | 401       |  3:24
+            # 8 | 393       |  5:35
+            # 9 | 388       | 10:37
+            + " -q 7",
             "-cf",
-            str(xz_file),
+            str(br_file),
             "-C",
             str(root_dir),
             str(base_dir),
         ]
     )
-    env = dict(os.environ)
-    env["XZ_OPT"] = "-T0"
-    subprocess.check_call(cmd, env=env)
-    return xz_file
+    subprocess.check_call(cmd)
+    return br_file
 
 
 # For (un)zipping archives on Unix-like systems, the "zip" and "unzip" commands
