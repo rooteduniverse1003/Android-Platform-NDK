@@ -13,6 +13,11 @@ directly, see the [build system maintainers guide].
 
 ## Changes
 
+* [Issue 933]: Updated reference ASan wrap.sh to support attaching the Java
+  debugger.
+
+[Issue 933]: https://github.com/android/ndk/issues/933
+
 ## Known Issues
 
 This is not intended to be a comprehensive list of all outstanding bugs.
