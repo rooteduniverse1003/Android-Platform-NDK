@@ -453,6 +453,7 @@ if(ANDROID_PLATFORM_LEVEL LESS 30)
 endif()
 
 list(APPEND ANDROID_LINKER_FLAGS -Wl,--fatal-warnings)
+list(APPEND ANDROID_LINKER_FLAGS -Wl,--gc-sections)
 list(APPEND ANDROID_LINKER_FLAGS_EXE -Wl,--gc-sections)
 
 # Debug and release flags.

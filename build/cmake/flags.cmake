@@ -46,6 +46,7 @@ if(CMAKE_SYSTEM_VERSION LESS 30)
 endif()
 
 string(APPEND _ANDROID_NDK_INIT_LDFLAGS " -Wl,--fatal-warnings")
+string(APPEND _ANDROID_NDK_INIT_LDFLAGS " -Wl,--gc-sections")
 string(APPEND _ANDROID_NDK_INIT_LDFLAGS_EXE " -Wl,--gc-sections")
 
 # Toolchain and ABI specific flags.
