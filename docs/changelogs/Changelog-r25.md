@@ -27,10 +27,13 @@ directly, see the [build system maintainers guide].
   defaults to the legacy toolchain file for all versions of CMake. The new
   toolchain file can still be enabled using
   `-DANDROID_USE_LEGACY_TOOLCHAIN_FILE=OFF`.
+* [Issue 1717]: Arranged for --gc-sections to be passed to the linker when
+  building shared libraries.
 
 [Issue 933]: https://github.com/android/ndk/issues/933
 [Issue 1634]: https://github.com/android/ndk/issues/1634
 [Issue 1693]: https://github.com/android/ndk/issues/1693
+[Issue 1717]: https://github.com/android/ndk/issues/1717
 
 ## Known Issues
 
