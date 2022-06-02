@@ -1209,10 +1209,13 @@ class LibShaderc(ndk.builds.Module):
                     "CHANGES.md",
                     "build_info.h.tmpl",
                     "build_info.py",
+                    "StandAlone/DirStackFileIncluder.h",
+                    "StandAlone/ResourceLimits.h",
                 ],
                 "dirs": [
                     "SPIRV",
                     "OGLCompilersDLL",
+                    "glslang/CInterface",
                     "glslang/GenericCodeGen",
                     "hlsl",
                     "glslang/HLSL",
