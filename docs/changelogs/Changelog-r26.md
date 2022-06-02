@@ -15,8 +15,11 @@ directly, see the [build system maintainers guide].
 
 * [Issue 933]: Updated reference ASan wrap.sh to support attaching the Java
   debugger.
+* [Issue 1717]: Arranged for --gc-sections to be passed to the linker when
+  building shared libraries.
 
 [Issue 933]: https://github.com/android/ndk/issues/933
+[Issue 1717]: https://github.com/android/ndk/issues/1717
 
 ## Known Issues
 
