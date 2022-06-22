@@ -167,10 +167,11 @@ otherwise. Using `clang++` ensures that the C++ standard library is linked.
 
 ### Target Selection
 
-[Cross-compilation] targets can be selected in one of two ways.
+[Cross-compilation] targets can be selected in one of two ways: by using
+the `--target` flag, or by using target-specific wrapper scripts.
 
-First, the `--target` flag can be used (see the [Clang User Manual] for more
-details on Clang's supported arguments). The value passed is a Clang target
+If possible, we recommend using the `--target` flag, which is described more
+fully in the [Clang User Manual]. The value passed is a Clang target
 triple suffixed with an Android API level. For example, to target API 26 for
 32-bit ARM, use `--target armv7a-linux-androideabi26`.
 
@@ -179,18 +180,17 @@ for Clang to generate ARMv7 code rather than the slower ARMv5 code. Specifying
 ARMv5 and thumb code generation will result in Thumb-1 being generated rather
 than Thumb-2, which is less efficient.
 
-Second, a target-specific Clang can be used. In addition to the `clang` and
-`clang++` binaries, there are also `<triple><API-level>-clang` and
-`<triple><API-level>-clang++` scripts. For example, to target API 26 32-bit ARM,
+If not possible to use the `--target` flag, we supply wrapper scripts alongside
+the `clang` and `clang++` binaries, named `<triple><API-level>-clang` and
+`<triple><API-level>-clang++`. For example, to target API 26 32-bit ARM,
 invoke `armv7a-linux-androideabi26-clang` or
-`armv7a-linux-androideabi26-clang++` instead of `clang` or `clang++`.
+`armv7a-linux-androideabi26-clang++` instead of `clang` or `clang++`. These
+wrappers come in two forms: Bash scripts (for Mac, Linux, Cygwin, and WSL) and
+Windows batch files (with `.cmd` extensions).
 
-Note: Target specific Clangs are currently implemented as shell scripts. Linux
-and Mac NDKs have Bash scripts, Windows includes Bash scripts to support Cygwin
-and WSL but also batch scripts (with `.cmd` extensions) for Windows command
-line support. For large numbers of relatively small source files, the additional
-overhead caused by these scripts may be noticably slower than using `--target`,
-especially on Windows where `CreateProcess` is slower than `fork`.
+Note: For projects with many source files, the wrapper scripts may cause
+noticeable overhead, which is why we recommend using `--target`. The overhead
+is most significant on Windows, as `CreateProcess` is slower than `fork`.
 
 For more information on Android targets, see the [Architectures] and [OS
 Versions] sections.
