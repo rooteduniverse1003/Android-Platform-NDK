@@ -140,11 +140,12 @@ def make_clang_scripts(install_dir, arch, api, windows):
     with open(clang_path, 'w') as clang:
         clang.write(textwrap.dedent("""\
             #!/bin/bash
+            bin_dir=`dirname "$0"`
             if [ "$1" != "-cc1" ]; then
-                `dirname $0`/clang{version} {flags} "$@"
+                "$bin_dir/clang{version}" {flags} "$@"
             else
                 # target/triple already spelled out.
-                `dirname $0`/clang{version} "$@"
+                "$bin_dir/clang{version}" "$@"
             fi
         """.format(version=version_number, flags=flags)))
 
@@ -155,11 +156,12 @@ def make_clang_scripts(install_dir, arch, api, windows):
     with open(clangpp_path, 'w') as clangpp:
         clangpp.write(textwrap.dedent("""\
             #!/bin/bash
+            bin_dir=`dirname "$0"`
             if [ "$1" != "-cc1" ]; then
-                `dirname $0`/clang{version}++ {flags} "$@"
+                "$bin_dir/clang{version}++" {flags} "$@"
             else
                 # target/triple already spelled out.
-                `dirname $0`/clang{version}++ "$@"
+                "$bin_dir/clang{version}++" "$@"
             fi
         """.format(version=version_number, flags=cxx_flags)))
 
