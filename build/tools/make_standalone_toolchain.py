@@ -181,13 +181,13 @@ def make_clang_scripts(install_dir, arch, api, windows):
                 call :find_bin
                 if "%1" == "-cc1" goto :L
 
-                set "_BIN_DIR=" && %_BIN_DIR%{exe} {flags} %*
+                set "_BIN_DIR=" && "%_BIN_DIR%{exe}" {flags} %*
                 if ERRORLEVEL 1 exit /b 1
                 goto :done
 
                 :L
                 rem target/triple already spelled out.
-                set "_BIN_DIR=" && %_BIN_DIR%{exe} %*
+                set "_BIN_DIR=" && "%_BIN_DIR%{exe}" %*
                 if ERRORLEVEL 1 exit /b 1
                 goto :done
 

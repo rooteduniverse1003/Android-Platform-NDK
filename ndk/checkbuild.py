@@ -1421,13 +1421,13 @@ def write_clang_batch_script(
             call :find_bin
             if "%1" == "-cc1" goto :L
 
-            set "_BIN_DIR=" && %_BIN_DIR%{clang} {flags} %*
+            set "_BIN_DIR=" && "%_BIN_DIR%{clang}" {flags} %*
             if ERRORLEVEL 1 exit /b 1
             goto :done
 
             :L
             rem Target is already an argument.
-            set "_BIN_DIR=" && %_BIN_DIR%{clang} %*
+            set "_BIN_DIR=" && "%_BIN_DIR%{clang}" %*
             if ERRORLEVEL 1 exit /b 1
             goto :done
 
