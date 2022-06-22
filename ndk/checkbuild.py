@@ -1393,11 +1393,12 @@ def write_clang_shell_script(
             textwrap.dedent(
                 """\
             #!/bin/bash
+            bin_dir=`dirname "$0"`
             if [ "$1" != "-cc1" ]; then
-                `dirname $0`/{clang} {flags} "$@"
+                "$bin_dir/{clang}" {flags} "$@"
             else
                 # Target is already an argument.
-                `dirname $0`/{clang} "$@"
+                "$bin_dir/{clang}" "$@"
             fi
         """.format(
                     clang=clang_name, flags=" ".join(flags)
