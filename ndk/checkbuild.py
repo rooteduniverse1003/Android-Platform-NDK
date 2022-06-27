@@ -1389,11 +1389,12 @@ def write_clang_shell_script(
             textwrap.dedent(
                 """\
             #!/bin/bash
+            bin_dir=`dirname "$0"`
             if [ "$1" != "-cc1" ]; then
-                `dirname $0`/{clang} {flags} "$@"
+                "$bin_dir/{clang}" {flags} "$@"
             else
                 # Target is already an argument.
-                `dirname $0`/{clang} "$@"
+                "$bin_dir/{clang}" "$@"
             fi
         """.format(
                     clang=clang_name, flags=" ".join(flags)
@@ -1417,13 +1418,13 @@ def write_clang_batch_script(
             call :find_bin
             if "%1" == "-cc1" goto :L
 
-            set "_BIN_DIR=" && %_BIN_DIR%{clang} {flags} %*
+            set "_BIN_DIR=" && "%_BIN_DIR%{clang}" {flags} %*
             if ERRORLEVEL 1 exit /b 1
             goto :done
 
             :L
             rem Target is already an argument.
-            set "_BIN_DIR=" && %_BIN_DIR%{clang} %*
+            set "_BIN_DIR=" && "%_BIN_DIR%{clang}" %*
             if ERRORLEVEL 1 exit /b 1
             goto :done
 
@@ -2354,6 +2355,15 @@ def parse_args() -> Tuple[argparse.Namespace, List[str]]:
     )
 
     parser.add_argument(
+        "--permissive-python-environment",
+        action="store_true",
+        help=(
+            "Disable strict Python path checking. This allows using a non-prebuilt "
+            "Python when one is not available."
+        ),
+    )
+
+    parser.add_argument(
         "-j",
         "--jobs",
         type=int,
@@ -2649,9 +2659,10 @@ def main() -> None:
     total_timer = ndk.timer.Timer()
     total_timer.start()
 
-    ensure_python_environment()
-
     args, module_names = parse_args()
+
+    ensure_python_environment(args.permissive_python_environment)
+
     if args.verbosity >= 2:
         logging.basicConfig(level=logging.DEBUG)
     elif args.verbosity == 1:
