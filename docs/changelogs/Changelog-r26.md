@@ -9,7 +9,7 @@ directly, see the [build system maintainers guide].
 
 [GitHub]: https://github.com/android/ndk/issues
 [Android Studio site]: http://tools.android.com/filing-bugs
-[build system maintainers]: https://android.googlesource.com/platform/ndk/+/master/docs/BuildSystemMaintainers.md
+[build system maintainers guide]: https://android.googlesource.com/platform/ndk/+/master/docs/BuildSystemMaintainers.md
 
 ## Changes
 
