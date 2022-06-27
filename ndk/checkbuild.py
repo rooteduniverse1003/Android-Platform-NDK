@@ -2354,6 +2354,15 @@ def parse_args() -> Tuple[argparse.Namespace, List[str]]:
     )
 
     parser.add_argument(
+        "--permissive-python-environment",
+        action="store_true",
+        help=(
+            "Disable strict Python path checking. This allows using a non-prebuilt "
+            "Python when one is not available."
+        ),
+    )
+
+    parser.add_argument(
         "-j",
         "--jobs",
         type=int,
@@ -2649,9 +2658,10 @@ def main() -> None:
     total_timer = ndk.timer.Timer()
     total_timer.start()
 
-    ensure_python_environment()
-
     args, module_names = parse_args()
+
+    ensure_python_environment(args.permissive_python_environment)
+
     if args.verbosity >= 2:
         logging.basicConfig(level=logging.DEBUG)
     elif args.verbosity == 1:

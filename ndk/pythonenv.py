@@ -74,8 +74,9 @@ def purge_user_site_packages() -> None:
         sys.path = [p for p in sys.path if p != site.getusersitepackages()]
 
 
-def ensure_python_environment() -> None:
+def ensure_python_environment(permissive_path: bool) -> None:
     """Verifies that the current Python environment is what we expect."""
-    check_python_is_prebuilt()
+    if not permissive_path:
+        check_python_is_prebuilt()
     ensure_poetry_if_available()
     purge_user_site_packages()
