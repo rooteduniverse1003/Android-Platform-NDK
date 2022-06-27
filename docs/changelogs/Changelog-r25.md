@@ -15,6 +15,7 @@ directly, see the [build system maintainers guide].
 
 * Includes Android 13 Beta 2 APIs.
 * Updated LLVM to clang-r450784d, based on LLVM 14 development.
+  * [Issue 1455]: Improved display of Android API levels in Clang diagnostics.
 * Eliminate duplicate static libraries in API-versioned sysroot directories.
   This reduces the uncompressed size of the NDK by 500 MB.
 * Strip some binaries and libraries. This reduces the uncompressed size of
@@ -34,6 +35,7 @@ directly, see the [build system maintainers guide].
 
 [Issue 933]: https://github.com/android/ndk/issues/933
 [Issue 1334]: https://github.com/android/ndk/issues/1334
+[Issue 1455]: https://github.com/android/ndk/issues/1455
 [Issue 1634]: https://github.com/android/ndk/issues/1634
 [Issue 1693]: https://github.com/android/ndk/issues/1693
 [Issue 1717]: https://github.com/android/ndk/issues/1717
