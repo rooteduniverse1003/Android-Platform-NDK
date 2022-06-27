@@ -24,6 +24,7 @@ import argparse
 import json
 import os
 
+from shlex import join
 
 def get_argument_parser() -> argparse.ArgumentParser:
     """Parses and returns command line arguments."""
@@ -71,7 +72,7 @@ def main() -> None:
     if not args.command_file and not args.compile_command:
         parser.error('Either --command-file or COMPILE_COMMAND is required.')
 
-    command = ' '.join(args.compile_command)
+    command = join(args.compile_command)
     if args.command_file:
         with open(args.command_file) as command_file:
             command = command_file.read().strip()

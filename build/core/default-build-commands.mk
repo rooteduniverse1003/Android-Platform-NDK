@@ -43,6 +43,7 @@ TARGET_DISABLE_FORMAT_STRING_CFLAGS := -Wno-error=format-security
 
 define cmd-build-shared-library
 $(PRIVATE_CXX) \
+    -Wl,--gc-sections \
     -Wl,-soname,$(notdir $(LOCAL_BUILT_MODULE)) \
     -shared \
     $(PRIVATE_LINKER_OBJECTS_AND_LIBRARIES) \

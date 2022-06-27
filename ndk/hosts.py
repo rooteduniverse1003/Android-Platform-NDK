@@ -62,13 +62,21 @@ class Host(enum.Enum):
     @classmethod
     def current(cls) -> Host:
         """Returns the Host matching the current machine."""
-        if sys.platform in ("linux", "linux2"):
+        # Mypy is rather picky about how these are written. `startswith` and `==` work
+        # fine, but `in` behaves differently. The pattern here comes straight from the
+        # mypy docs, so better work.
+        # https://mypy.readthedocs.io/en/stable/common_issues.html#version-and-platform-checks
+        #
+        # But of course pylint thinks we *shouldn't* do that...
+        # pylint: disable=no-else-return
+        if sys.platform == "linux":
             return Host.Linux
-        if sys.platform == "darwin":
+        elif sys.platform == "darwin":
             return Host.Darwin
-        if sys.platform == "win32":
+        elif sys.platform == "win32":
             return Host.Windows64
-        raise RuntimeError(f"Unsupported host: {sys.platform}")
+        else:
+            raise RuntimeError(f"Unsupported host: {sys.platform}")
 
     @classmethod
     def from_tag(cls, tag: str) -> Host:

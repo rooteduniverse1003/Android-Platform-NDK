@@ -185,8 +185,10 @@ def push_tests_to_device(
         dest_dir,
     )
     device.push(str(src_dir), str(dest_dir), sync=use_sync)
-    if sys.platform == "win32":
-        device.shell(["chmod", "-R", "777", str(dest_dir)])
+    # Tests that were built and bundled on Windows but pushed from Linux or macOS will
+    # not have execute permission by default. Since we don't know where the tests came
+    # from, chmod all the tests regardless.
+    device.shell(["chmod", "-R", "777", str(dest_dir)])
 
 
 def finish_workqueue_with_ui(workqueue: WorkQueue) -> None:
@@ -390,6 +392,15 @@ def parse_args() -> argparse.Namespace:
         if not expanded_path.is_file():
             raise argparse.ArgumentTypeError("{} is not a file".format(path))
         return expanded_path.resolve(strict=True)
+
+    parser.add_argument(
+        "--permissive-python-environment",
+        action="store_true",
+        help=(
+            "Disable strict Python path checking. This allows using a non-prebuilt "
+            "Python when one is not available."
+        ),
+    )
 
     config_options = parser.add_argument_group("Test Configuration Options")
     config_options.add_argument(
@@ -712,9 +723,9 @@ def run_tests(args: argparse.Namespace) -> Results:
 
 
 def main() -> None:
-    ensure_python_environment()
-
     args = parse_args()
+
+    ensure_python_environment(args.permissive_python_environment)
 
     log_levels = [logging.WARNING, logging.INFO, logging.DEBUG]
     verbosity = min(args.verbose, len(log_levels) - 1)
