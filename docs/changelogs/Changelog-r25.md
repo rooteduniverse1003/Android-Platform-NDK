@@ -13,7 +13,7 @@ directly, see the [build system maintainers guide].
 
 ## Changes
 
-* Includes Android 13 Beta 2 APIs.
+* Includes Android 13 APIs.
 * Updated LLVM to clang-r450784d, based on LLVM 14 development.
   * [Issue 1455]: Improved display of Android API levels in Clang diagnostics.
   * [Issue 1710]: Fixed compiler crash caused by invalid `-march` values.
