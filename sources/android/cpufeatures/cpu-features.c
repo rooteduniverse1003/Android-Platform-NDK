@@ -872,11 +872,13 @@ android_cpuInit(void)
             uint32_t  cpuid;
             uint64_t  or_flags;
         } cpu_fixes[] = {
-            /* The Nexus 4 (Qualcomm Krait) kernel configuration
-             * forgets to report IDIV support. */
+            /* The Nexus 4 and 7 (Qualcomm Krait) kernel configurations
+             * forget to report IDIV support. */
             { 0x510006f2, ANDROID_CPU_ARM_FEATURE_IDIV_ARM |
                           ANDROID_CPU_ARM_FEATURE_IDIV_THUMB2 },
             { 0x510006f3, ANDROID_CPU_ARM_FEATURE_IDIV_ARM |
+                          ANDROID_CPU_ARM_FEATURE_IDIV_THUMB2 },
+            { 0x511006f0, ANDROID_CPU_ARM_FEATURE_IDIV_ARM |
                           ANDROID_CPU_ARM_FEATURE_IDIV_THUMB2 },
         };
         size_t n;
