@@ -11,6 +11,17 @@ directly, see the [build system maintainers guide].
 [Android Studio site]: http://tools.android.com/filing-bugs
 [build system maintainers guide]: https://android.googlesource.com/platform/ndk/+/master/docs/BuildSystemMaintainers.md
 
+
+## r25b
+
+* [Issue 1740]: Fixed the legacy toolchain when using CMake's `Release` build
+  configuration. Since r23b it has not be receiving any optimization flag. It
+  will now receive `-O3`. If you're building with AGP and haven't overridden
+  AGP's default CMake modes, this change does not affect you, as AGP uses
+  `RelWithDebInfo` by default.
+
+[Issue 1740]: https://github.com/android/ndk/issues/1740
+
 ## Changes
 
 * Includes Android 13 Beta 2 APIs.
