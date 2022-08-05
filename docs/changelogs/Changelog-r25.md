@@ -19,8 +19,11 @@ directly, see the [build system maintainers guide].
   will now receive `-O3`. If you're building with AGP and haven't overridden
   AGP's default CMake modes, this change does not affect you, as AGP uses
   `RelWithDebInfo` by default.
+* [Issue 1744]: Fixes ASan wrap.sh file to support 32-bit apps on 64-bit
+  devices.
 
 [Issue 1740]: https://github.com/android/ndk/issues/1740
+[Issue 1744]: https://github.com/android/ndk/issues/1744
 
 ## Changes
 
