@@ -14,6 +14,7 @@ directly, see the [build system maintainers guide].
 
 ## r25b
 
+* [Issue 1739]: Fixed C compatibility issue in `amidi/AMidi.h`.
 * [Issue 1740]: Fixed the legacy toolchain when using CMake's `Release` build
   configuration. Since r23b it has not be receiving any optimization flag. It
   will now receive `-O3`. If you're building with AGP and haven't overridden
@@ -22,6 +23,7 @@ directly, see the [build system maintainers guide].
 * [Issue 1744]: Fixes ASan wrap.sh file to support 32-bit apps on 64-bit
   devices.
 
+[Issue 1739]: https://github.com/android/ndk/issues/1739
 [Issue 1740]: https://github.com/android/ndk/issues/1740
 [Issue 1744]: https://github.com/android/ndk/issues/1744
 
