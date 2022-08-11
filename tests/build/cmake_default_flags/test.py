@@ -18,17 +18,38 @@ from pathlib import Path
 from typing import Optional
 
 from ndk.test.spec import BuildConfiguration
-from ndk.testing.flag_verifier import FlagVerifier
+from ndk.testing.flag_verifier import FlagVerifier, FlagVerifierResult
 
 
-def run_test(ndk_path: str,
-             config: BuildConfiguration) -> tuple[bool, Optional[str]]:
-    """Check that the CMake toolchain uses the correct default flags.
+def check_configuration(
+    ndk_path: str,
+    build_config: BuildConfiguration,
+    cmake_config: str,
+    expected_flags: list[str],
+    unexpected_flags: list[str],
+) -> FlagVerifierResult:
+    verifier = FlagVerifier(Path("project"), Path(ndk_path), build_config)
+    for flag in expected_flags:
+        verifier.expect_flag(flag)
+    for flag in unexpected_flags:
+        verifier.expect_not_flag(flag)
+    return verifier.verify_cmake([f"-DCMAKE_BUILD_TYPE={cmake_config}"])
 
-    Currently this only tests the optimization flags for RelWithDebInfo, but
-    it's probably worth expanding in the future.
-    """
-    verifier = FlagVerifier(Path('project'), Path(ndk_path), config)
-    verifier.expect_flag('-O2')
-    return verifier.verify_cmake(['-DCMAKE_BUILD_TYPE=RelWithDebInfo'
-                                  ]).make_test_result_tuple()
+
+def run_test(ndk_path: str, config: BuildConfiguration) -> tuple[bool, Optional[str]]:
+    """Check that the CMake toolchain uses the correct default flags."""
+    verify_configs: dict[str, tuple[list[str], list[str]]] = {
+        # No flag is the same as -O0. As long as no other opt flag is used, the default
+        # is fine.
+        "Debug": ([], ["-O1", "-O2", "-O3", "-Os", "-Oz"]),
+        "MinSizeRel": (["-Os"], ["-O0", "-O1", "-O2", "-O3", "-Oz"]),
+        "Release": (["-O3"], ["-O0", "-O1", "-O2", "-Os", "-Oz"]),
+        "RelWithDebInfo": (["-O2"], ["-O0", "-O1", "-O3", "-Os", "-Oz"]),
+    }
+    for cmake_config, (expected_flags, unexpected_flags) in verify_configs.items():
+        result = check_configuration(
+            ndk_path, config, cmake_config, expected_flags, unexpected_flags
+        )
+        if result.failed():
+            return result.make_test_result_tuple()
+    return result.make_test_result_tuple()
