@@ -11,11 +11,28 @@ directly, see the [build system maintainers guide].
 [Android Studio site]: http://tools.android.com/filing-bugs
 [build system maintainers guide]: https://android.googlesource.com/platform/ndk/+/master/docs/BuildSystemMaintainers.md
 
+
+## r25b
+
+* [Issue 1739]: Fixed C compatibility issue in `amidi/AMidi.h`.
+* [Issue 1740]: Fixed the legacy toolchain when using CMake's `Release` build
+  configuration. Since r23b it has not be receiving any optimization flag. It
+  will now receive `-O3`. If you're building with AGP and haven't overridden
+  AGP's default CMake modes, this change does not affect you, as AGP uses
+  `RelWithDebInfo` by default.
+* [Issue 1744]: Fixes ASan wrap.sh file to support 32-bit apps on 64-bit
+  devices.
+
+[Issue 1739]: https://github.com/android/ndk/issues/1739
+[Issue 1740]: https://github.com/android/ndk/issues/1740
+[Issue 1744]: https://github.com/android/ndk/issues/1744
+
 ## Changes
 
 * Includes Android 13 APIs.
 * Updated LLVM to clang-r450784d, based on LLVM 14 development.
   * [Issue 1455]: Improved display of Android API levels in Clang diagnostics.
+  * [Issue 1608]: Fixed crash in vector conversions.
   * [Issue 1710]: Fixed compiler crash caused by invalid `-march` values.
 * Eliminate duplicate static libraries in API-versioned sysroot directories.
   This reduces the uncompressed size of the NDK by 500 MB.
@@ -37,6 +54,7 @@ directly, see the [build system maintainers guide].
 [Issue 933]: https://github.com/android/ndk/issues/933
 [Issue 1334]: https://github.com/android/ndk/issues/1334
 [Issue 1455]: https://github.com/android/ndk/issues/1455
+[Issue 1608]: https://github.com/android/ndk/issues/1608
 [Issue 1634]: https://github.com/android/ndk/issues/1634
 [Issue 1693]: https://github.com/android/ndk/issues/1693
 [Issue 1710]: https://github.com/android/ndk/issues/1710
