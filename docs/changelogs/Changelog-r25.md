@@ -12,6 +12,14 @@ directly, see the [build system maintainers guide].
 [build system maintainers guide]: https://android.googlesource.com/platform/ndk/+/master/docs/BuildSystemMaintainers.md
 
 
+## Announcements
+
+* Support for KitKat (APIs 19 and 20) is planned to be removed in the next NDK
+  release. The minimum OS supported by the NDK for r26 will be Lollipop (API
+  level 21). See [Issue 1751] for details.
+
+[Issue 1751]: https://github.com/android/ndk/issues/1751
+
 ## r25b
 
 * [Issue 1739]: Fixed C compatibility issue in `amidi/AMidi.h`.
