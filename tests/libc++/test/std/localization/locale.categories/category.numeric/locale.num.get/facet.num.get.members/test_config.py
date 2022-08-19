@@ -4,7 +4,7 @@ def run_broken(test, device):
     if is_lp64 and device.version < 26 and test.case_name in failing_tests:
         return f"android-{device.version}", "http://b/31101647"
 
-    if not is_lp64 and test.case_name == "get_float.pass":
+    if test.case_name == "get_float.pass" and device.version < 21:
         return test.config.abi, "https://github.com/android-ndk/ndk/issues/415"
 
     percent_a_tests = (
