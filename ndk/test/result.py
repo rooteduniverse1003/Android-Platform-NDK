@@ -14,6 +14,7 @@
 # limitations under the License.
 #
 """Test result classes."""
+from dataclasses import dataclass
 from typing import Any, Optional
 
 import ndk.termcolor
@@ -21,6 +22,15 @@ import ndk.termcolor
 
 # TODO: Need to resolve the circular import between this and ndk.test.types.
 Test = Any
+
+
+@dataclass(frozen=True)
+class ResultTranslations:
+    success: str = "PASS"
+    failure: str = "FAIL"
+    skip: str = "SKIP"
+    expected_failure: str = "KNOWN FAIL"
+    unexpected_success: str = "SHOULD FAIL"
 
 
 class TestResult:
@@ -36,7 +46,9 @@ class TestResult:
     def failed(self) -> bool:
         raise NotImplementedError
 
-    def to_string(self, colored: bool = False) -> str:
+    def to_string(
+        self, tr: ResultTranslations = ResultTranslations(), colored: bool = False
+    ) -> str:
         raise NotImplementedError
 
 
@@ -54,8 +66,10 @@ class Failure(TestResult):
     def failed(self) -> bool:
         return True
 
-    def to_string(self, colored: bool = False) -> str:
-        label = ndk.termcolor.maybe_color("FAIL", "red", colored)
+    def to_string(
+        self, tr: ResultTranslations = ResultTranslations(), colored: bool = False
+    ) -> str:
+        label = ndk.termcolor.maybe_color(tr.failure, "red", colored)
         repro = f" {self.repro_cmd}" if self.repro_cmd else ""
         return (
             f"{label} {self.test.name} [{self.test.config}]:{repro}\n" f"{self.message}"
@@ -69,8 +83,10 @@ class Success(TestResult):
     def failed(self) -> bool:
         return False
 
-    def to_string(self, colored: bool = False) -> str:
-        label = ndk.termcolor.maybe_color("PASS", "green", colored)
+    def to_string(
+        self, tr: ResultTranslations = ResultTranslations(), colored: bool = False
+    ) -> str:
+        label = ndk.termcolor.maybe_color(tr.success, "green", colored)
         return f"{label} {self.test.name} [{self.test.config}]"
 
 
@@ -85,8 +101,10 @@ class Skipped(TestResult):
     def failed(self) -> bool:
         return False
 
-    def to_string(self, colored: bool = False) -> str:
-        label = ndk.termcolor.maybe_color("SKIP", "yellow", colored)
+    def to_string(
+        self, tr: ResultTranslations = ResultTranslations(), colored: bool = False
+    ) -> str:
+        label = ndk.termcolor.maybe_color(tr.skip, "yellow", colored)
         return f"{label} {self.test.name} [{self.test.config}]: {self.reason}"
 
 
@@ -103,8 +121,10 @@ class ExpectedFailure(TestResult):
     def failed(self) -> bool:
         return False
 
-    def to_string(self, colored: bool = False) -> str:
-        label = ndk.termcolor.maybe_color("KNOWN FAIL", "yellow", colored)
+    def to_string(
+        self, tr: ResultTranslations = ResultTranslations(), colored: bool = False
+    ) -> str:
+        label = ndk.termcolor.maybe_color(tr.expected_failure, "yellow", colored)
         return (
             f"{label} {self.test.name} [{self.test.config}]: known failure "
             f"for {self.broken_config} ({self.bug}): {self.message}"
@@ -123,8 +143,10 @@ class UnexpectedSuccess(TestResult):
     def failed(self) -> bool:
         return True
 
-    def to_string(self, colored: bool = False) -> str:
-        label = ndk.termcolor.maybe_color("SHOULD FAIL", "red", colored)
+    def to_string(
+        self, tr: ResultTranslations = ResultTranslations(), colored: bool = False
+    ) -> str:
+        label = ndk.termcolor.maybe_color(tr.unexpected_success, "red", colored)
         return (
             f"{label} {self.test.name} [{self.test.config}]: "
             f"unexpected success for {self.broken_config} ({self.bug})"

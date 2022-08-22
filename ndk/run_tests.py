@@ -58,6 +58,7 @@ from ndk.test.report import Report
 from ndk.test.result import (
     ExpectedFailure,
     Failure,
+    ResultTranslations,
     Skipped,
     Success,
     TestResult,
@@ -577,6 +578,10 @@ def run_tests(args: argparse.Namespace) -> Results:
 
     test_dist_dir = args.test_dir / "dist"
     if args.build_only or args.rebuild:
+        build_printer = StdoutPrinter(
+            show_all=args.show_all,
+            result_translations=ResultTranslations(success="BUILT"),
+        )
         build_timer = Timer()
         with build_timer:
             test_options = ndk.test.spec.TestOptions(
@@ -588,7 +593,9 @@ def run_tests(args: argparse.Namespace) -> Results:
                 package_path=args.dist_dir / "ndk-tests" if args.package else None,
             )
 
-            builder = ndk.test.builder.TestBuilder(test_spec, test_options, printer)
+            builder = ndk.test.builder.TestBuilder(
+                test_spec, test_options, build_printer
+            )
 
             report = builder.build()
 
@@ -598,7 +605,7 @@ def run_tests(args: argparse.Namespace) -> Results:
             results.failed("Found no tests for filter {}.".format(args.filter))
             return results
 
-        printer.print_summary(report)
+        build_printer.print_summary(report)
         if not report.successful:
             results.failed()
             return results

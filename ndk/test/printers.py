@@ -21,13 +21,13 @@ from typing import Optional, TextIO
 
 import ndk.termcolor
 from ndk.test.report import Report
-from ndk.test.result import TestResult
+from ndk.test.result import ResultTranslations, TestResult
 
 
-def format_stats_str(report: Report, use_color: bool) -> str:
-    pass_label = ndk.termcolor.maybe_color("PASS", "green", use_color)
-    fail_label = ndk.termcolor.maybe_color("FAIL", "red", use_color)
-    skip_label = ndk.termcolor.maybe_color("SKIP", "yellow", use_color)
+def format_stats_str(report: Report, tr: ResultTranslations, use_color: bool) -> str:
+    pass_label = ndk.termcolor.maybe_color(tr.success, "green", use_color)
+    fail_label = ndk.termcolor.maybe_color(tr.failure, "red", use_color)
+    skip_label = ndk.termcolor.maybe_color(tr.skip, "yellow", use_color)
     return "{pl} {p}/{t} {fl} {f}/{t} {sl} {s}/{t}".format(
         pl=pass_label,
         p=report.num_passed,
@@ -54,10 +54,12 @@ class FilePrinter(Printer):
         use_color: Optional[bool] = None,
         show_all: bool = False,
         quiet: bool = False,
+        result_translations: ResultTranslations = ResultTranslations(),
     ) -> None:
         self.file = to_file
         self.show_all = show_all
         self.quiet = quiet
+        self.result_translations = result_translations
 
         if use_color is None:
             self.use_color = to_file.isatty() and os.name != "nt"
@@ -67,20 +69,27 @@ class FilePrinter(Printer):
     def print_result(self, result: TestResult) -> None:
         if self.quiet and not result.failed():
             return
-        print(result.to_string(colored=self.use_color), file=self.file)
+        print(
+            result.to_string(self.result_translations, colored=self.use_color),
+            file=self.file,
+        )
 
     def print_summary(self, report: Report) -> None:
         print(file=self.file)
-        formatted = format_stats_str(report, self.use_color)
+        formatted = format_stats_str(report, self.result_translations, self.use_color)
         print(formatted, file=self.file)
         for suite, suite_report in report.by_suite().items():
-            stats_str = format_stats_str(suite_report, self.use_color)
+            stats_str = format_stats_str(
+                suite_report, self.result_translations, self.use_color
+            )
             print(file=self.file)
             print("{}: {}".format(suite, stats_str), file=self.file)
             for test_report in suite_report.reports:
                 if self.show_all or test_report.result.failed():
                     print(
-                        test_report.result.to_string(colored=self.use_color),
+                        test_report.result.to_string(
+                            self.result_translations, colored=self.use_color
+                        ),
                         file=self.file,
                     )
 
@@ -91,5 +100,12 @@ class StdoutPrinter(FilePrinter):
         use_color: Optional[bool] = None,
         show_all: bool = False,
         quiet: bool = False,
+        result_translations: ResultTranslations = ResultTranslations(),
     ) -> None:
-        super().__init__(sys.stdout, use_color, show_all, quiet)
+        super().__init__(
+            sys.stdout,
+            use_color,
+            show_all,
+            quiet,
+            result_translations=result_translations,
+        )
