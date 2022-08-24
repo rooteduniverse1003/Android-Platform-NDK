@@ -207,3 +207,21 @@ should be renamed, but for other releases the APIs should be removed.
 For example, prior to the Android R developer previews being available
 `--remove-platform R` was used. To include R API previews
 `--rename-codename R=30` was used.
+
+#### Possible problems
+If you get the error message like
+```bash
+RuntimeError: Could not rename android-something to android-xx because android-xx already exists.
+```
+when running
+```bash
+$ ./update_platform.py --no-download path/to/platform/ndk-dist/ndk_platform.tar.bz2
+```
+It it because `android-something` is in the `ndk-out/soong/ndk/platform`.
+
+Solution:
+Do a clean rebuild.
+```bash
+$ rm -rf path/to/platform/ndk-out
+$ ./update_platform.py --no-download path/to/platform/ndk-dist/ndk_platform.tar.bz2
+```
