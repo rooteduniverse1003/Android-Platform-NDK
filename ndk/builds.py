@@ -19,7 +19,6 @@ Note: this isn't the ndk-build API, but the API for building the NDK itself.
 """
 from __future__ import annotations
 
-from distutils.dir_util import copy_tree
 from enum import auto, Enum, unique
 from pathlib import Path, PureWindowsPath
 import shutil
@@ -129,7 +128,7 @@ class Module:
 
     # This can't actually be static because subclasses might use self, but for some
     # reason pylint doesn't know that in this case.
-    def default_notice_path(self) -> Optional[Path]:  # pylint: disable=no-self-use
+    def default_notice_path(self) -> Path | None:
         """Returns the path to the default notice for this module, if any."""
         return None
 
@@ -317,7 +316,7 @@ class AutoconfModule(Module):
     def install(self) -> None:
         install_dir = self.get_install_path()
         install_dir.mkdir(parents=True, exist_ok=True)
-        copy_tree(str(self.builder.install_directory), str(install_dir))
+        shutil.copytree(self.builder.install_directory, install_dir, dirs_exist_ok=True)
 
 
 class CMakeModule(Module):
@@ -363,7 +362,7 @@ class CMakeModule(Module):
     def install(self) -> None:
         install_dir = self.get_install_path()
         install_dir.mkdir(parents=True, exist_ok=True)
-        copy_tree(str(self.builder.install_directory), str(install_dir))
+        shutil.copytree(self.builder.install_directory, install_dir, dirs_exist_ok=True)
 
 
 class PackageModule(Module):

@@ -24,8 +24,6 @@ import collections
 import contextlib
 import copy
 
-from distutils.dir_util import copy_tree
-
 import inspect
 import json
 import logging
@@ -1530,7 +1528,7 @@ class BaseToolchain(ndk.builds.Module):
         sysroot_dir = self.get_dep("sysroot").get_install_path()
         system_stl_dir = self.get_dep("system-stl").get_install_path()
 
-        copy_tree(str(sysroot_dir), str(install_dir / "sysroot"))
+        shutil.copytree(sysroot_dir, install_dir / "sysroot", dirs_exist_ok=True)
 
         exe = ".exe" if self.host.is_windows else ""
         shutil.copy2(
@@ -1666,7 +1664,7 @@ class Toolchain(ndk.builds.Module):
         shutil.copytree(libcxx_inc_src, libcxx_inc_dst)
 
         libcxxabi_inc_src = libcxxabi_dir / "include"
-        copy_tree(str(libcxxabi_inc_src), str(libcxx_inc_dst))
+        shutil.copytree(libcxxabi_inc_src, libcxx_inc_dst, dirs_exist_ok=True)
 
         for arch in ndk.abis.ALL_ARCHITECTURES:
             triple = ndk.abis.arch_to_triple(arch)
