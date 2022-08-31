@@ -6,16 +6,16 @@ authors = ["The Android Open Source Project"]
 license = "Apache-2.0"
 
 [tool.poetry.dependencies]
-python = "^3.9"
+python = "^3.10"
 
 [tool.poetry.dev-dependencies]
 # Poetry handles 0.* differently than other versions. ^0.1 may not upgrade to
 # 0.2, but ^1.1 may upgrade to 1.2.
 # https://python-poetry.org/docs/dependency-specification/
-mypy = "^0"
-pylint = "^2.12.2"
-pytest = "^6.2.5"
-black = "^21.12b0"
+mypy = "^0.971"
+pylint = "^2.15.0"
+pytest = "^7.1.2"
+black = "^22.6.0"
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]

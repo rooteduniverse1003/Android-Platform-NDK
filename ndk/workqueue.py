@@ -556,7 +556,7 @@ class ShardingWorkQueue(BaseWorkQueue[ResultT], Generic[ResultT, ShardingGroupTy
         group: ShardingGroupType,
         func: Callable[..., ResultT],
         *args: Any,
-        **kwargs: Any
+        **kwargs: Any,
     ) -> None:
         self.task_queues[group].put(Task(func, args, kwargs))
         self.num_tasks += 1

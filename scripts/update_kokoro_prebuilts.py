@@ -239,7 +239,7 @@ def get_build_status(
     for ls_line in ls_output.stdout.splitlines():
         logger().debug("gsutil ls output: %s", ls_line)
         match = re.match(
-            fr"(gs://{GCS_BUCKET}/prod/"
+            rf"(gs://{GCS_BUCKET}/prod/"
             r"(.*)/"  # Kokoro job name (e.g. ndk/cmake/linux_release)
             r"\d+/"  # build number (e.g. 17)
             r"\d+-\d+)"  # timestamp (e.g. 20211109-203945)
