@@ -628,7 +628,7 @@ def run_tests(args: argparse.Namespace) -> Results:
         )
     results.add_timing_report("Test discovery", test_discovery_timer)
 
-    if sum([len(tests) for tests in test_groups.values()]) == 0:
+    if sum(len(tests) for tests in test_groups.values()) == 0:
         # As long as we *built* some tests, not having anything to run isn't a
         # failure.
         if args.rebuild:
