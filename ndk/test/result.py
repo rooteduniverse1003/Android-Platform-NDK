@@ -71,9 +71,7 @@ class Failure(TestResult):
     ) -> str:
         label = ndk.termcolor.maybe_color(tr.failure, "red", colored)
         repro = f" {self.repro_cmd}" if self.repro_cmd else ""
-        return (
-            f"{label} {self.test.name} [{self.test.config}]:{repro}\n" f"{self.message}"
-        )
+        return f"{label} {self.test}:{repro}\n" f"{self.message}"
 
 
 class Success(TestResult):
@@ -87,7 +85,7 @@ class Success(TestResult):
         self, tr: ResultTranslations = ResultTranslations(), colored: bool = False
     ) -> str:
         label = ndk.termcolor.maybe_color(tr.success, "green", colored)
-        return f"{label} {self.test.name} [{self.test.config}]"
+        return f"{label} {self.test}"
 
 
 class Skipped(TestResult):
@@ -105,7 +103,7 @@ class Skipped(TestResult):
         self, tr: ResultTranslations = ResultTranslations(), colored: bool = False
     ) -> str:
         label = ndk.termcolor.maybe_color(tr.skip, "yellow", colored)
-        return f"{label} {self.test.name} [{self.test.config}]: {self.reason}"
+        return f"{label} {self.test}: {self.reason}"
 
 
 class ExpectedFailure(TestResult):
@@ -126,7 +124,7 @@ class ExpectedFailure(TestResult):
     ) -> str:
         label = ndk.termcolor.maybe_color(tr.expected_failure, "yellow", colored)
         return (
-            f"{label} {self.test.name} [{self.test.config}]: known failure "
+            f"{label} {self.test}: known failure "
             f"for {self.broken_config} ({self.bug}): {self.message}"
         )
 
@@ -148,6 +146,6 @@ class UnexpectedSuccess(TestResult):
     ) -> str:
         label = ndk.termcolor.maybe_color(tr.unexpected_success, "red", colored)
         return (
-            f"{label} {self.test.name} [{self.test.config}]: "
+            f"{label} {self.test}: "
             f"unexpected success for {self.broken_config} ({self.bug})"
         )
