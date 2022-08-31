@@ -76,6 +76,19 @@ class FilePrinter(Printer):
 
     def print_summary(self, report: Report) -> None:
         print(file=self.file)
+        if not report.num_tests:
+            print(
+                ndk.termcolor.maybe_color(
+                    "No tests were run. This usually means you do not have any devices "
+                    "required for this test connected. Check for warnings above about "
+                    "unavailable devices.",
+                    "red",
+                    self.use_color,
+                ),
+                file=self.file,
+            )
+            return
+
         formatted = format_stats_str(report, self.result_translations, self.use_color)
         print(formatted, file=self.file)
         for suite, suite_report in report.by_suite().items():
