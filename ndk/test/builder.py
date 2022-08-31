@@ -367,7 +367,9 @@ def _make_tradefed_zip(
     Returns: Nothing.
     """
     assert config.api is not None
-    device_config = DeviceConfig(_desired_api_level(config.api, config.abi, devices))
+    device_config = DeviceConfig(
+        [config.abi], _desired_api_level(config.api, config.abi, devices)
+    )
     tree = ElementTree.parse(test_options.src_dir / "device/tradefed-template.xml")
     root = tree.getroot()
     root.attrib["description"] = f"NDK Tests for {config}"

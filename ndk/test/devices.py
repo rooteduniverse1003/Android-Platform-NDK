@@ -14,7 +14,7 @@
 # limitations under the License.
 #
 """Device wrappers and device fleet management."""
-from __future__ import print_function
+from __future__ import annotations
 
 from dataclasses import dataclass
 import logging
@@ -46,7 +46,19 @@ def logger() -> logging.Logger:
 
 @dataclass(frozen=True)
 class DeviceConfig:
+    abis: list[Abi]
     version: int
+
+    def can_run_build_config(self, config: BuildConfiguration) -> bool:
+        assert config.api is not None
+        if self.version < config.api:
+            # Device is too old for this test.
+            return False
+
+        if config.abi not in self.abis:
+            return False
+
+        return True
 
 
 class Device(adb.AndroidDevice):
@@ -72,7 +84,7 @@ class Device(adb.AndroidDevice):
             self.cache_properties()
 
     def config(self) -> DeviceConfig:
-        return DeviceConfig(self.version)
+        return DeviceConfig(self.abis, self.version)
 
     def cache_properties(self) -> None:
         """Caches the device's system properties."""
@@ -151,15 +163,7 @@ class Device(adb.AndroidDevice):
         return int(self._ro_debuggable) != 0
 
     def can_run_build_config(self, config: BuildConfiguration) -> bool:
-        assert config.api is not None
-        if self.version < config.api:
-            # Device is too old for this test.
-            return False
-
-        if config.abi not in self.abis:
-            return False
-
-        return True
+        return self.config().can_run_build_config(config)
 
     @property
     def supports_pie(self) -> bool:
@@ -183,13 +187,32 @@ class DeviceShardingGroup(ShardingGroup):
     the same hardware running the same build.
     """
 
-    def __init__(self, first_device: Device) -> None:
-        self.devices = [first_device]
-        self.abis = sorted(first_device.abis)
-        self.version = first_device.version
-        self.is_emulator = first_device.is_emulator
-        self.is_release = first_device.is_release
-        self.is_debuggable = first_device.is_debuggable
+    def __init__(
+        self,
+        devices: list[Device],
+        abis: list[Abi],
+        version: int,
+        is_emulator: bool,
+        is_release: bool,
+        is_debuggable: bool,
+    ) -> None:
+        self.devices = devices
+        self.abis = abis
+        self.version = version
+        self.is_emulator = is_emulator
+        self.is_release = is_release
+        self.is_debuggable = is_debuggable
+
+    @classmethod
+    def with_first_device(cls, first_device: Device) -> DeviceShardingGroup:
+        return DeviceShardingGroup(
+            [first_device],
+            sorted(first_device.abis),
+            first_device.version,
+            first_device.is_emulator,
+            first_device.is_release,
+            first_device.is_debuggable,
+        )
 
     def __str__(self) -> str:
         return f'android-{self.version} {" ".join(self.abis)}'
@@ -288,7 +311,9 @@ class DeviceFleet:
 
             # Anything is better than nothing.
             if current_group is None:
-                self.devices[device.version][abi] = DeviceShardingGroup(device)
+                self.devices[device.version][
+                    abi
+                ] = DeviceShardingGroup.with_first_device(device)
                 continue
 
             if current_group.device_matches(device):
@@ -298,12 +323,16 @@ class DeviceFleet:
             # The emulator images have actually been changed over time, so the
             # devices are more trustworthy.
             if current_group.is_emulator and not device.is_emulator:
-                self.devices[device.version][abi] = DeviceShardingGroup(device)
+                self.devices[device.version][
+                    abi
+                ] = DeviceShardingGroup.with_first_device(device)
 
             # Trust release builds over pre-release builds, but don't block
             # pre-release because sometimes that's all there is.
             if not current_group.is_release and device.is_release:
-                self.devices[device.version][abi] = DeviceShardingGroup(device)
+                self.devices[device.version][
+                    abi
+                ] = DeviceShardingGroup.with_first_device(device)
 
     def get_unique_device_groups(self) -> Set[DeviceShardingGroup]:
         groups = set()
@@ -322,13 +351,22 @@ class DeviceFleet:
             return None
         return self.devices[version][abi]
 
-    def get_missing(self) -> List[str]:
+    def get_missing(self) -> list[DeviceShardingGroup]:
         """Describes desired configurations without available deices."""
         missing = []
         for version, abis in self.devices.items():
             for abi, group in abis.items():
                 if group is None:
-                    missing.append(f"android-{version} {abi}")
+                    missing.append(
+                        DeviceShardingGroup(
+                            [],
+                            [abi],
+                            version,
+                            is_emulator=False,
+                            is_release=True,
+                            is_debuggable=False,
+                        )
+                    )
         return missing
 
     def get_versions(self) -> List[int]:
