@@ -2744,7 +2744,7 @@ def main() -> None:
                 ndk_dir, out_dir, dist_dir, args.system, args.build_number
             )
             packaged_size_bytes = package_path.stat().st_size
-            packaged_size = packaged_size_bytes // (2 ** 20)
+            packaged_size = packaged_size_bytes // (2**20)
 
     good = True
     test_timer = ndk.timer.Timer()
