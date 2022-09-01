@@ -1515,7 +1515,6 @@ class BaseToolchain(ndk.builds.Module):
         yield from Platforms().notices
         yield from Sysroot().notices
         yield from SystemStl().notices
-        yield ANDROID_DIR / "toolchain/binutils/binutils-2.27/gas/COPYING"
 
     def build(self) -> None:
         pass
