@@ -50,7 +50,7 @@ class Report:
 
     @property
     def successful(self) -> bool:
-        return self.num_failed == 0
+        return self.num_failed == 0 and self.num_passed > 0
 
     @property
     def num_tests(self) -> int:

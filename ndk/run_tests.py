@@ -715,11 +715,11 @@ def run_tests(args: argparse.Namespace) -> Results:
             restart_flaky_tests(report, shard_queue)
             wait_for_results(report, shard_queue, printer)
         results.add_timing_report("Run", test_run_timer)
-
-        printer.print_summary(report)
     finally:
         shard_queue.terminate()
         shard_queue.join()
+
+    printer.print_summary(report)
 
     if report.successful:
         results.passed()
