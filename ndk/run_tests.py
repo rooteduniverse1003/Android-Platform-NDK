@@ -127,6 +127,9 @@ class TestRun:
             return Skipped(self, f"test unsupported for {config}")
         return self.make_result(self.test_case.run(device), device)
 
+    def __str__(self) -> str:
+        return f"{self.name} [{self.config} running on API {self.device_group.version}]"
+
 
 def clear_test_directory(_worker: Worker, device: Device) -> None:
     print(f"Clearing test directory on {device}")

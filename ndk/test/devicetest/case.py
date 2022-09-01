@@ -106,6 +106,9 @@ class TestCase:
         # ! (/path/to/some/cmd) won't work.
         return f"! ( {self.cmd} )"
 
+    def __str__(self) -> str:
+        return f"{self.name} [{self.config}]"
+
 
 class BasicTestCase(TestCase):
     """A test case for the standard NDK test builder.
