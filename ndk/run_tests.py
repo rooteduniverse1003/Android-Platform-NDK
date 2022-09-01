@@ -51,6 +51,7 @@ from ndk.test.devices import (
     DeviceFleet,
     DeviceShardingGroup,
     find_devices,
+    DeviceConfig,
 )
 from ndk.test.filters import TestFilter
 from ndk.test.printers import Printer, StdoutPrinter
@@ -253,7 +254,8 @@ def verify_have_all_requested_devices(fleet: DeviceFleet) -> bool:
     missing_configs = fleet.get_missing()
     if missing_configs:
         logger().warning(
-            "Missing device configurations: %s", ", ".join(missing_configs)
+            "Missing device configurations: %s",
+            ", ".join(str(c) for c in missing_configs),
         )
         return False
     return True
@@ -285,6 +287,8 @@ def match_configs_to_device_groups(
 def pair_test_runs(
     test_groups: Mapping[BuildConfiguration, Iterable[TestCase]],
     groups_for_config: Mapping[BuildConfiguration, Iterable[DeviceShardingGroup]],
+    report: Report,
+    fleet: DeviceFleet,
 ) -> List[TestRun]:
     """Creates a TestRun object for each device/test case pairing."""
     test_runs = []
@@ -292,9 +296,29 @@ def pair_test_runs(
         if not test_cases:
             continue
 
+        report_skipped_tests_for_missing_devices(report, config, fleet, test_cases)
         for group in groups_for_config[config]:
             test_runs.extend([TestRun(tc, group) for tc in test_cases])
     return test_runs
+
+
+def report_skipped_tests_for_missing_devices(
+    report: Report,
+    build_config: BuildConfiguration,
+    fleet: DeviceFleet,
+    test_cases: Iterable[TestCase],
+) -> None:
+    for group in fleet.get_missing():
+        device_config = DeviceConfig(group.abis, group.version)
+        if not device_config.can_run_build_config(build_config):
+            # These are a configuration that will never be valid, like a minSdkVersion
+            # 30 test on an API 21 device. No need to report these.
+            continue
+        for test_case in test_cases:
+            report.add_result(
+                test_case.build_system,
+                Skipped(TestRun(test_case, group), "No devices available"),
+            )
 
 
 def wait_for_results(
@@ -679,7 +703,6 @@ def run_tests(args: argparse.Namespace) -> Results:
         for config in find_configs_with_no_device(groups_for_config):
             logger().warning("No device found for %s.", config)
 
-        report = Report()
         clean_device_timer = Timer()
         if args.clean_device:
             with clean_device_timer:
@@ -697,6 +720,7 @@ def run_tests(args: argparse.Namespace) -> Results:
         workqueue.terminate()
         workqueue.join()
 
+    report = Report()
     shard_queue: ShardingWorkQueue[TestResult, DeviceShardingGroup] = ShardingWorkQueue(
         fleet.get_unique_device_groups(), 4
     )
@@ -707,7 +731,7 @@ def run_tests(args: argparse.Namespace) -> Results:
         # Shuffle the test runs to distribute the load more evenly. These are
         # ordered by (build config, device, test), so most of the tests running
         # at any given point in time are all running on the same device.
-        test_runs = pair_test_runs(test_groups, groups_for_config)
+        test_runs = pair_test_runs(test_groups, groups_for_config, report, fleet)
         random.shuffle(test_runs)
         test_run_timer = Timer()
         with test_run_timer:
