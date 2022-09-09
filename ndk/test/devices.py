@@ -352,7 +352,7 @@ class DeviceFleet:
         return self.devices[version][abi]
 
     def get_missing(self) -> list[DeviceShardingGroup]:
-        """Describes desired configurations without available deices."""
+        """Describes desired configurations without available devices."""
         missing = []
         for version, abis in self.devices.items():
             for abi, group in abis.items():
