@@ -179,6 +179,9 @@ def enumerate_tests(
     }
 
     for build_cfg_str in os.listdir(test_dir):
+        # Ignore TradeFed config files.
+        if not (test_dir / build_cfg_str).is_dir():
+            continue
         build_cfg = BuildConfiguration.from_string(build_cfg_str)
         if not config_filter.filter(build_cfg):
             continue

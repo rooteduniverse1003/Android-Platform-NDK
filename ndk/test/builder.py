@@ -323,13 +323,17 @@ class TestBuilder:
             for config, tests in test_groups.items():
                 if not tests:
                     continue
-                workqueue.add_task(
-                    _make_tradefed_zip,
-                    self.test_options,
-                    config,
-                    tests,
-                    self.test_spec.devices,
-                )
+                assert config.api is not None
+                for level in _desired_api_levels(
+                    config.api, config.abi, self.test_spec.devices
+                ):
+                    workqueue.add_task(
+                        _make_tradefed_zip,
+                        self.test_options,
+                        config,
+                        tests,
+                        DeviceConfig([config.abi], level),
+                    )
             while not workqueue.finished():
                 workqueue.get_result()
         finally:
@@ -337,15 +341,16 @@ class TestBuilder:
             workqueue.join()
 
 
-def _desired_api_level(
+def _desired_api_levels(
     min_api: int, abi: ndk.abis.Abi, devices: dict[int, list[ndk.abis.Abi]]
-) -> int:
+) -> list[int]:
+    levels = []
     for api in sorted(devices.keys()):
         if api < min_api:
             continue
         if abi in devices[api]:
-            return api
-    raise RuntimeError(f"Desired API level >= {min_api} not found for {abi}")
+            levels.append(api)
+    return levels
 
 
 def _make_tradefed_zip(
@@ -353,26 +358,24 @@ def _make_tradefed_zip(
     test_options: ndk.test.spec.TestOptions,
     config: ndk.test.spec.BuildConfiguration,
     tests: list[ndk.test.devicetest.case.TestCase],
-    devices: dict[int, list[ndk.abis.Abi]],
+    device_config: DeviceConfig,
 ) -> None:
-    """Creates a TradeFed .zip file for the specified config.
+    """Creates a TradeFed .zip file for the specified test and device configs.
 
     Args:
         worker: The worker that invoked this task.
         test_options: Paths and other overall options for the tests.
         config: The ABI/API/toolchain triple.
         tests: A list of all the test cases.
-        devices: The desired API levels for the different ABIs, typically from qa_config.json.
+        device_config: The device we will run the test on.
 
     Returns: Nothing.
     """
-    assert config.api is not None
-    device_config = DeviceConfig(
-        [config.abi], _desired_api_level(config.api, config.abi, devices)
-    )
     tree = ElementTree.parse(test_options.src_dir / "device/tradefed-template.xml")
     root = tree.getroot()
-    root.attrib["description"] = f"NDK Tests for {config}"
+    root.attrib[
+        "description"
+    ] = f"NDK Tests for {config}, device version {device_config.version}"
 
     preparer = root.find("./target_preparer")
     assert preparer is not None
@@ -412,18 +415,8 @@ def _make_tradefed_zip(
         },
     )
 
-    api_elem = root.find(
-        "./object[@class='com.android.tradefed.testtype.suite.module.MinApiLevelModuleController']"
-    )
-    assert api_elem is not None
-    ElementTree.SubElement(
-        api_elem,
-        "option",
-        {
-            "name": "min-api-level",
-            "value": str(config.api),
-        },
-    )
+    # TODO(jamesfarrell): Add min and max API level restrictions, once the
+    # TradeFed devices are the same versions as those in qa_config.json
 
     test_elem = root.find("./test")
     assert test_elem is not None
@@ -443,11 +436,16 @@ def _make_tradefed_zip(
 
     ElementTree.indent(tree, space="  ", level=0)
 
-    tradefed_config_filename = f"{config}-AndroidTest.config"
+    tradefed_config_filename = (
+        f"android-{device_config.version}-{config}-AndroidTest.config"
+    )
     tradefed_config_path = test_options.out_dir / "dist" / tradefed_config_filename
     tree.write(tradefed_config_path, encoding="utf-8", xml_declaration=True)
     assert test_options.package_path is not None
-    zipfile = test_options.package_path.parent / f"{config}-androidTest.zip"
+    zipfile = (
+        test_options.package_path.parent
+        / f"android-{device_config.version}-{config}-androidTest.zip"
+    )
     if zipfile.exists():
         zipfile.unlink()
     ndk.archive.make_zip(
