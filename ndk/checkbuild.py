@@ -1617,7 +1617,7 @@ class Vulkan(ndk.builds.Module):
         android_mk.write_text(
             textwrap.dedent(
                 f"""\
-            $(warning The Vulkan Validation Layers are now distrubted on \\
+            $(warning The Vulkan Validation Layers are now distributed on \\
                 GitHub. See {url} for more information.)
             """
             )
