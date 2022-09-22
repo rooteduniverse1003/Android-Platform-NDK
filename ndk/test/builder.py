@@ -320,6 +320,15 @@ class TestBuilder:
         )
         workqueue: WorkQueue = WorkQueue()
         try:
+            for device_version, abis in self.test_spec.devices.items():
+                for abi in abis:
+                    workqueue.add_task(
+                        _make_tradefed_zip,
+                        self.test_options,
+                        test_groups,
+                        DeviceConfig([abi], device_version),
+                    )
+
             for config, tests in test_groups.items():
                 if not tests:
                     continue
@@ -328,7 +337,7 @@ class TestBuilder:
                     config.api, config.abi, self.test_spec.devices
                 ):
                     workqueue.add_task(
-                        _make_tradefed_zip,
+                        _deprecated_make_tradefed_zip,
                         self.test_options,
                         config,
                         tests,
@@ -354,6 +363,115 @@ def _desired_api_levels(
 
 
 def _make_tradefed_zip(
+    _worker: Worker,
+    test_options: ndk.test.spec.TestOptions,
+    test_groups: dict[
+        ndk.test.spec.BuildConfiguration, list[ndk.test.devicetest.case.TestCase]
+    ],
+    device_config: DeviceConfig,
+) -> None:
+    """Creates a TradeFed .zip file for the specified device config.
+
+    Args:
+        worker: The worker that invoked this task.
+        test_options: Paths and other overall options for the tests.
+        test_groups: The set of available test groups from which to choose matching tests.
+        device_config: The device we will run the test on.
+
+    Returns: Nothing.
+    """
+    abi = device_config.abis[0]
+    api = device_config.version
+
+    tree = ElementTree.parse(test_options.src_dir / "device/tradefed-template.xml")
+    root = tree.getroot()
+    root.attrib["description"] = f"NDK Tests for API {api}, {abi}"
+
+    preparer = root.find("./target_preparer")
+    assert preparer is not None
+
+    arch_elem = root.find(
+        "./object[@class='com.android.tradefed.testtype.suite.module.ArchModuleController']"
+    )
+    assert arch_elem is not None
+    ElementTree.SubElement(
+        arch_elem,
+        "option",
+        {
+            "name": "arch",
+            "value": ndk.abis.abi_to_arch(abi),
+        },
+    )
+
+    test_elem = root.find("./test")
+    assert test_elem is not None
+
+    tradefed_config_filename = f"api-{api}-{abi}-AndroidTest.config"
+    files_to_zip = [tradefed_config_filename]
+    for config, tests in test_groups.items():
+        if config.abi != abi:
+            continue
+        assert config.api is not None
+        if config.api > api:
+            continue
+        print(f"{api}, {abi}, {config}")
+        files_to_zip.append(str(config))
+        ElementTree.SubElement(
+            preparer,
+            "option",
+            {
+                "name": "push-file",
+                "key": str(config),
+                "value": str(ndk.paths.DEVICE_TEST_BASE_DIR / str(config)),
+            },
+        )
+
+        # There's no executable bit on Windows. Mark everything executable after copying to the device.
+        if sys.platform == "win32":
+            ElementTree.SubElement(
+                preparer,
+                "option",
+                {
+                    "name": "post-push",
+                    "value": "chmod -R 777 {}".format(
+                        str(ndk.paths.DEVICE_TEST_BASE_DIR / str(config))
+                    ),
+                },
+            )
+
+        for test in tests:
+            if test.check_unsupported(device_config):
+                continue
+            # TODO: Keep a count of the number of tests and add that to the XML file so we can manually double-check.
+            broken_config, _bug = test.check_broken(device_config)
+            ElementTree.SubElement(
+                test_elem,
+                "option",
+                {
+                    "name": "test-command-line",
+                    "key": f"{config}.{test.name}",
+                    "value": test.cmd if broken_config is None else test.negated_cmd,
+                },
+            )
+
+    ElementTree.indent(tree, space="  ", level=0)
+
+    tradefed_config_path = test_options.out_dir / "dist" / tradefed_config_filename
+    tree.write(tradefed_config_path, encoding="utf-8", xml_declaration=True)
+    assert test_options.package_path is not None
+    zipfile = test_options.package_path.parent / f"api-{api}-{abi}-androidTest.zip"
+    if zipfile.exists():
+        zipfile.unlink()
+    ndk.archive.make_zip(
+        zipfile,
+        test_options.out_dir / "dist",
+        files_to_zip,
+        preserve_symlinks=True,
+    )
+
+
+# TODO: Delete this once the corresponding CI changes are submitted.
+def _deprecated_make_tradefed_zip(
     _worker: Worker,
     test_options: ndk.test.spec.TestOptions,
     config: ndk.test.spec.BuildConfiguration,
