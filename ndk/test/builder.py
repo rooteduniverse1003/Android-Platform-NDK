@@ -406,6 +406,16 @@ def _make_tradefed_zip(
     test_elem = root.find("./test")
     assert test_elem is not None
 
+    ElementTree.SubElement(
+        test_elem,
+        "option",
+        {
+            "name": "test-command-line",
+            "key": "device-version",
+            "value": f"echo ro.build.version.sdk = `getprop ro.build.version.sdk`; test `getprop ro.build.version.sdk` = {device_config.version}",
+        },
+    )
+
     tradefed_config_filename = f"api-{api}-{abi}-AndroidTest.config"
     files_to_zip = [tradefed_config_filename]
     for config, tests in test_groups.items():
