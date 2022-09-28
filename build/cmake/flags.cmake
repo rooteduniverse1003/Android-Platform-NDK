@@ -23,12 +23,12 @@ set(_ANDROID_NDK_INIT_LDFLAGS_EXE)
 
 # Generic flags.
 string(APPEND _ANDROID_NDK_INIT_CFLAGS
-  " -DANDROID"
-  " -fdata-sections"
-  " -ffunction-sections"
-  " -funwind-tables"
-  " -fstack-protector-strong"
-  " -no-canonical-prefixes")
+        " -DANDROID"
+        " -fdata-sections"
+        " -ffunction-sections"
+        " -funwind-tables"
+        " -fstack-protector-strong"
+        " -no-canonical-prefixes")
 
 string(APPEND _ANDROID_NDK_INIT_CFLAGS_DEBUG " -fno-limit-debug-info")
 
@@ -39,34 +39,34 @@ string(APPEND _ANDROID_NDK_INIT_CFLAGS_DEBUG " -fno-limit-debug-info")
 # https://github.com/android/ndk/issues/885
 string(APPEND _ANDROID_NDK_INIT_LDFLAGS " -Wl,--build-id=sha1")
 
-if(CMAKE_SYSTEM_VERSION LESS 30)
-  # https://github.com/android/ndk/issues/1196
-  # https://github.com/android/ndk/issues/1589
-  string(APPEND _ANDROID_NDK_INIT_LDFLAGS " -Wl,--no-rosegment")
-endif()
+if (CMAKE_SYSTEM_VERSION LESS 30)
+    # https://github.com/android/ndk/issues/1196
+    # https://github.com/android/ndk/issues/1589
+    string(APPEND _ANDROID_NDK_INIT_LDFLAGS " -Wl,--no-rosegment")
+endif ()
 
 string(APPEND _ANDROID_NDK_INIT_LDFLAGS " -Wl,--fatal-warnings")
 string(APPEND _ANDROID_NDK_INIT_LDFLAGS " -Wl,--gc-sections")
 string(APPEND _ANDROID_NDK_INIT_LDFLAGS_EXE " -Wl,--gc-sections")
 
 # Toolchain and ABI specific flags.
-if(CMAKE_ANDROID_ARCH_ABI STREQUAL x86 AND CMAKE_SYSTEM_VERSION LESS 24)
-  # http://b.android.com/222239
-  # http://b.android.com/220159 (internal http://b/31809417)
-  # x86 devices have stack alignment issues.
-  string(APPEND _ANDROID_NDK_INIT_CFLAGS " -mstackrealign")
-endif()
+if (CMAKE_ANDROID_ARCH_ABI STREQUAL x86 AND CMAKE_SYSTEM_VERSION LESS 24)
+    # http://b.android.com/222239
+    # http://b.android.com/220159 (internal http://b/31809417)
+    # x86 devices have stack alignment issues.
+    string(APPEND _ANDROID_NDK_INIT_CFLAGS " -mstackrealign")
+endif ()
 
 string(APPEND _ANDROID_NDK_INIT_CFLAGS " -D_FORTIFY_SOURCE=2")
 
-if(CMAKE_ANDROID_ARCH_ABI MATCHES "armeabi")
-  # Clang does not set this up properly when using -fno-integrated-as.
-  # https://github.com/android-ndk/ndk/issues/906
-  string(APPEND _ANDROID_NDK_INIT_CFLAGS " -march=armv7-a")
-  if(NOT CMAKE_ANDROID_ARM_MODE)
-    string(APPEND _ANDROID_NDK_INIT_CFLAGS " -mthumb")
-  endif()
-endif()
+if (CMAKE_ANDROID_ARCH_ABI MATCHES "armeabi")
+    # Clang does not set this up properly when using -fno-integrated-as.
+    # https://github.com/android-ndk/ndk/issues/906
+    string(APPEND _ANDROID_NDK_INIT_CFLAGS " -march=armv7-a")
+    if (NOT CMAKE_ANDROID_ARM_MODE)
+        string(APPEND _ANDROID_NDK_INIT_CFLAGS " -mthumb")
+    endif ()
+endif ()
 
 # CMake automatically forwards all compiler flags to the linker, and clang
 # doesn't like having -Wa flags being used for linking. To prevent CMake from
@@ -74,12 +74,12 @@ endif()
 # which would get quite messy.
 string(APPEND _ANDROID_NDK_INIT_LDFLAGS " -Qunused-arguments")
 
-if(ANDROID_DISABLE_FORMAT_STRING_CHECKS)
-  string(APPEND _ANDROID_NDK_INIT_CFLAGS " -Wno-error=format-security")
-else()
-  string(APPEND _ANDROID_NDK_INIT_CFLAGS " -Wformat -Werror=format-security")
-endif()
+if (ANDROID_DISABLE_FORMAT_STRING_CHECKS)
+    string(APPEND _ANDROID_NDK_INIT_CFLAGS " -Wno-error=format-security")
+else ()
+    string(APPEND _ANDROID_NDK_INIT_CFLAGS " -Wformat -Werror=format-security")
+endif ()
 
-if(NOT ANDROID_ALLOW_UNDEFINED_SYMBOLS)
-  string(APPEND _ANDROID_NDK_INIT_LDFLAGS " -Wl,--no-undefined")
-endif()
+if (NOT ANDROID_ALLOW_UNDEFINED_SYMBOLS)
+    string(APPEND _ANDROID_NDK_INIT_LDFLAGS " -Wl,--no-undefined")
+endif ()
