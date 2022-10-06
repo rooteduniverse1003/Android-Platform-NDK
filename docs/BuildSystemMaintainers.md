@@ -116,11 +116,13 @@ this doc refers to an API level, OS version, or target version, it is referring
 to the application's `minSdkVersion`.
 
 The API level targeted by an NDK application determines which APIs will be
-exposed for use by the application. APIs that are not present in the targeted
-API level cannot be linked directly, but may be accessed via `dlsym`. An NDK
-application running on a device with an API level lower than the target will
-often not load at all. If it does load, it may not behave as expected. This is
-not a supported configuration.
+exposed for use by the application. By default, APIs that are not present in the
+targeted API level cannot be linked directly, but may be accessed via `dlsym`.
+An NDK application running on a device with an API level lower than the target
+will often not load at all. If it does load, it may not behave as expected. This
+is not a supported configuration. This behavior can be altered by following the
+section about [weak symbols]. Be sure your users understand the implications of
+doing so.
 
 The major/minor version number given to an Android OS has no meaning when it
 comes to determining its API level. See the table in the [Build numbers]
@@ -151,6 +153,7 @@ releases should not be shipped to production. Consult
 [Build numbers]: https://source.android.com/setup/start/build-numbers
 [Distribution dashboard]: https://developer.android.com/about/dashboards/
 [uses-sdk]: https://developer.android.com/guide/topics/manifest/uses-sdk-element
+[weak symbols]: #weak-symbols-for-api-definitions
 
 ## Clang
 
@@ -292,6 +295,73 @@ provided by the Android OS but contain no implementation. They can be identified
 by their .so file extension and their presence in `<NDK>/meta/system_libs.json`.
 The entries in this file are a key/value pair that maps library names to the
 first API level the library is introduced.
+
+## Weak symbols for API definitions
+
+See [Issue 837].
+
+The Android APIs are exposed as strong symbols by default. This means that apps
+must not directly refer to any APIs that were not available in their
+`minSdkVersion`, even if they will not be called at runtime. The loader will
+reject any library with strong references to symbols that are not present at
+load time.
+
+It is possible to expose Android APIs as weak symbols to alter this behavior to
+more closely match the Java behavior, which many app developers are more
+familiar with. The loader will allow libraries with unresolved references to
+weak symbols to load, allowing those APIs to be safely called as long as they
+are only called when the API is available on the device. Absent APIs will have a
+`nullptr` address, so calling an unavailable API will segfault.
+
+Note: APIs that are guaranteed to be available in the `minSdkVersion` (the API
+level passed to Clang with `-target`) will always be strong references, even
+with this option enabled.
+
+This is not enabled by default because, unless used cautiously, this method is
+prone to deferring build failures to run-time (and only on older devices, since
+newer devices will have the API). The loader not prevent the library from
+loading, but the function's address will be `nullptr` if the API is not
+available (if the API is newer than the OS). The API availability should be
+checked with `__builtin_available` before making the call:
+
+```c++
+if (__builtin_available(android 33, *)) {
+  // Call some API that's only available in API 33+.
+} else {
+  // Use some fallback behavior, perhaps doing nothing.
+}
+```
+
+Clang offers some protections for this approach via `-Wunguarded-availability`,
+which will emit a warning unless the call to the API is guarded with
+`__builtin_available`.
+
+To enable this functionality, pass `-D__ANDROID_UNAVAILABLE_SYMBOLS_ARE_WEAK__`
+to Clang when compiling. We **strongly** recommend forcing
+`-Werror=unguarded-availability` when using this option.
+
+We recommend making the choice of weak or strong APIs an option in your build
+system. Most developers will likely prefer weak APIs as they are simpler than
+using `dlopen`/`dlsym`, and as long as `-Werror=unguarded-availability` is used,
+it should be safe. At the time of writing, the NDK's own build systems
+(ndk-build and CMake) use strong API references by default, but that may change
+in the future.
+
+Known issues and limitations:
+
+* Only symbols are affected, not libraries. The only way to conditionally depend
+  on a library that is not available in the app's `minSdkVersion` is with
+  `dlopen`. We do not know how to solve this in a backwards compatible manner.
+* APIs in bionic (libc, libm, libdl) are not currently supported. See the bug
+  for more information. If the source compatibility issues can be resolved, that
+  will change in a future NDK release.
+* Headers authored by third-parties (e.g. `vulkan.h`, which comes directly from
+  Khronos) are not supported. The implementation of this feature requires
+  annotation of all function declarations, and the upstream headers likely do
+  not contain those annotations. Solutions to this problem are being
+  investigated.
+
+[Issue 837]: https://github.com/android/ndk/issues/837
 
 ## STL
 
