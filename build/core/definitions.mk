@@ -1192,6 +1192,7 @@ NDK_APP_VARS_OPTIONAL := \
     APP_STL \
     APP_STRIP_MODE \
     APP_THIN_ARCHIVE \
+    APP_WEAK_API_DEFS \
     APP_WRAP_SH \
 
 # NDK_ALL_ABIS is not configured yet.
