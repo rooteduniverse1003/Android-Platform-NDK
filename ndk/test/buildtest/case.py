@@ -494,7 +494,7 @@ def _run_cmake_build_test(
         [str(cmake_bin)] + cmake_flags + args,
         check=False,
         stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
         encoding="utf-8",
     )
     if proc.returncode != 0:
