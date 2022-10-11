@@ -431,7 +431,7 @@ def _make_tradefed_zip(
                 "option",
                 {
                     "name": "test-command-line",
-                    "key": f"{config}.{test.name}",
+                    "key": f"{config}.{test.build_system}.{test.name}",
                     "value": test.cmd if broken_config is None else test.negated_cmd,
                 },
             )
