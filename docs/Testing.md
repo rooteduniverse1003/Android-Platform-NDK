@@ -444,6 +444,45 @@ configurations your changes are likely to break and make sure those are at least
 tested. When testing a release, make sure that all configurations have been
 tested before shipping.
 
+`qa_config.json` has the following format:
+
+```json
+{
+  "devices": {
+    "21": [
+      "armeabi-v7a",
+      "arm64-v8a"
+    ],
+    "32": [
+      "armeabi-v7a",
+      "arm64-v8a",
+      "x86_64"
+    ]
+  }
+}
+```
+
+The `devices` section specifies which types of devices should be used for
+running tests. Each key defines the OS API level that should be tested, and the
+value is a list of ABIs that should be checked for that OS version. In the
+example above, tests will be run on each of the following device configurations:
+
+* API 21 armeabi-v7a
+* API 21 arm64-v8a
+* API 32 armeabi-v7a
+* API 32 arm64-v8a
+* API 32 x86_64
+
+The format also supports the infrequently used `abis` and `suites` keys. **You
+probably do not need to read this paragraph.** Each has a list of strings as the
+value. Both can be used to restrict the build configurations of the tests.
+`abis` selects which ABIs to build. This property will be overridden by `--abis`
+if that argument is used, and will default to all ABIs if neither are present,
+which is the normal case. `suites` selects which test suites to build. Valid
+entries in this list are the directory names within `tests`, with the exception
+of `ndk-stack`. In other words (at the time of writing), `build`, `device`, and
+`libc++` are valid items.
+
 ## Windows VMs
 
 Warning: the process below hasn't been tested in a very long time. Googlers
