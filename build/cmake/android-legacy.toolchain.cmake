@@ -438,6 +438,11 @@ list(APPEND ANDROID_COMPILER_FLAGS
   -fstack-protector-strong
   -no-canonical-prefixes)
 
+if(ANDROID_WEAK_API_DEFS)
+  list(APPEND ANDROID_COMPILER_FLAGS
+      -D__ANDROID_UNAVAILABLE_SYMBOLS_ARE_WEAK__)
+endif()
+
 # https://github.com/android/ndk/issues/885
 # If we're using LLD we need to use a slower build-id algorithm to work around
 # the old version of LLDB in Android Studio, which doesn't understand LLD's

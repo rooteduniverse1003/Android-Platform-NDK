@@ -30,6 +30,11 @@ string(APPEND _ANDROID_NDK_INIT_CFLAGS
   " -fstack-protector-strong"
   " -no-canonical-prefixes")
 
+if(ANDROID_WEAK_API_DEFS)
+  string(APPEND _ANDROID_NDK_INIT_CFLAGS
+    " -D__ANDROID_UNAVAILABLE_SYMBOLS_ARE_WEAK__")
+endif()
+
 string(APPEND _ANDROID_NDK_INIT_CFLAGS_DEBUG " -fno-limit-debug-info")
 
 # If we're using LLD we need to use a slower build-id algorithm to work around
