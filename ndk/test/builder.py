@@ -397,7 +397,6 @@ def _make_tradefed_zip(
         assert config.api is not None
         if config.api > api:
             continue
-        print(f"{api}, {abi}, {config}")
         files_to_zip.append(str(config))
         ElementTree.SubElement(
             preparer,
