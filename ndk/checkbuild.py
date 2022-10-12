@@ -283,7 +283,9 @@ def build_ndk_tests(out_dir: Path, dist_dir: Path, args: argparse.Namespace) -> 
         ndk_dir,
         test_out_dir,
         clean=True,
-        package_path=Path(dist_dir).joinpath("ndk-tests") if args.package else None,
+        package_path=Path(dist_dir).joinpath("ndk-tests")
+        if args.package_tests
+        else None,
     )
 
     printer = ndk.test.printers.StdoutPrinter()
@@ -2412,18 +2414,27 @@ def parse_args() -> Tuple[argparse.Namespace, List[str]]:
         action="store_true",
         dest="build_tests",
         default=True,
-        help=textwrap.dedent(
-            """\
-        Build tests when finished. --package is required. Not supported
-        when targeting Windows.
-        """
-        ),
+        help="Build tests when finished. Not supported when targeting Windows.",
     )
     test_group.add_argument(
         "--no-build-tests",
         action="store_false",
         dest="build_tests",
         help="Skip building tests after building the NDK.",
+    )
+
+    package_test_group = parser.add_mutually_exclusive_group()
+    package_test_group.add_argument(
+        "--package-tests",
+        action="store_true",
+        dest="package_tests",
+        help="Package tests as build artifacts. Requires --build-tests.",
+    )
+    package_test_group.add_argument(
+        "--no-package-tests",
+        action="store_false",
+        dest="package_tests",
+        help="Don't package tests after building them.",
     )
 
     parser.add_argument(
@@ -2675,6 +2686,9 @@ def main() -> None:
     required_package_modules = set(get_all_module_names())
     have_required_modules = required_package_modules <= set(module_names)
 
+    if args.package_tests is None:
+        args.package_tests = args.package
+
     # TODO(danalbert): wine?
     # We're building the Windows packages from Linux, so we can't actually run
     # any of the tests from here.
@@ -2746,6 +2760,7 @@ def main() -> None:
     test_timer = ndk.timer.Timer()
     with test_timer:
         if args.build_tests:
+            purge_unwanted_files(ndk_dir)
             good = build_ndk_tests(out_dir, dist_dir, args)
             print()  # Blank line between test results and timing data.
 
