@@ -19,9 +19,8 @@ organized as follows:
 
 ### bionic
 
-The source for bionic, Android's libc (and friends). Some of the sources in
-libc/libm are included in `libandroid_support` for backporting some APIs to
-older OSs to support libc++.
+The source for bionic, Android's libc (and friends). The sources and includes
+for building the CRT objects come from this repository.
 
 ### development
 
@@ -34,9 +33,8 @@ and some of the vulkan code lives.
 
 ### ndk
 
-The main NDK repository. This is where the build systems, `libandroid_support`,
-and also the NDK's own build and test systems live. This directory is organized
-as:
+The main NDK repository. This is where the build systems and the NDK's own build
+and test systems live. This directory is organized as:
 
 #### Main directory
 
@@ -92,7 +90,7 @@ documentation will guide you to the correct ones.
 #### sources
 
 Sources for tools and libraries shipped in the NDK that are not maintained in a
-separate repository. `libandroid_support` lives here.
+separate repository.
 
 #### tests
 
