@@ -813,7 +813,6 @@ class Libcxx(ndk.builds.Module):
     notice_group = ndk.builds.NoticeGroup.TOOLCHAIN
     deps = {
         "base-toolchain",
-        "libandroid_support",
         "ndk-build",
         "ndk-build-shortcut",
     }
@@ -1501,7 +1500,6 @@ class BaseToolchain(ndk.builds.Module):
     notice_group = ndk.builds.NoticeGroup.TOOLCHAIN
     deps = {
         "clang",
-        "libandroid_support",
         "make",
         "platforms",
         "sysroot",
@@ -1513,7 +1511,6 @@ class BaseToolchain(ndk.builds.Module):
     def notices(self) -> Iterator[Path]:
         yield from Clang().notices
         yield from Yasm().notices
-        yield from LibAndroidSupport().notices
         yield from Platforms().notices
         yield from Sysroot().notices
         yield from SystemStl().notices
@@ -1524,7 +1521,6 @@ class BaseToolchain(ndk.builds.Module):
     def install(self) -> None:
         install_dir = self.get_install_path()
         yasm_dir = self.get_dep("yasm").get_install_path()
-        libandroid_support_dir = self.get_dep("libandroid_support").get_install_path()
         platforms_dir = self.get_dep("platforms").get_install_path()
         sysroot_dir = self.get_dep("sysroot").get_install_path()
         system_stl_dir = self.get_dep("system-stl").get_install_path()
@@ -1576,19 +1572,6 @@ class BaseToolchain(ndk.builds.Module):
         system_stl_inc_src = system_stl_dir / "include"
         system_stl_inc_dst = system_stl_hdr_dir / "4.9.x"
         shutil.copytree(system_stl_inc_src, system_stl_inc_dst)
-
-        # $SYSROOT/usr/local/include comes before $SYSROOT/usr/include, so we
-        # can use that for libandroid_support's headers. Puting them here
-        # *does* mean that libandroid_support's headers get used even when
-        # we're not using libandroid_support, but they should be a no-op for
-        # android-21+ and in the case of pre-21 without libandroid_support
-        # (libstdc++), we're only degrading the UX; the user will get a linker
-        # error instead of a compiler error.
-        support_hdr_dir = install_dir / "sysroot/usr/local"
-        support_hdr_dir.mkdir(parents=True)
-        support_inc_src = libandroid_support_dir / "include"
-        support_inc_dst = support_hdr_dir / "include"
-        shutil.copytree(support_inc_src, support_inc_dst)
 
 
 @register
@@ -1679,8 +1662,6 @@ class Toolchain(ndk.builds.Module):
                 "libc++_static.a",
                 "libc++abi.a",
             ]
-            if abi in ndk.abis.LP32_ABIS:
-                static_libs.append("libandroid_support.a")
 
             for lib in static_libs:
                 shutil.copy2(
@@ -1689,6 +1670,7 @@ class Toolchain(ndk.builds.Module):
 
         platforms = self.get_dep("platforms")
         assert isinstance(platforms, Platforms)
+        # Also install a libc++.so and libc++.a linker script per API level.
         for api in platforms.get_apis():
             if api in Platforms.skip_apis:
                 continue
@@ -1697,25 +1679,8 @@ class Toolchain(ndk.builds.Module):
                 triple = ndk.abis.arch_to_triple(arch)
                 dst_dir = install_dir / "sysroot/usr/lib" / triple / str(api)
 
-                # Also install a libc++.so and libc++.a linker script per API
-                # level. We need this to be done on a per-API level basis
-                # because libandroid_support is only used on pre-21 API levels.
                 static_script = ["-lc++_static", "-lc++abi"]
                 shared_script = ["-lc++_shared"]
-                if api < 21:
-                    # The ordering here is funky because of interdependencies
-                    # between libandroid_support and libc++abi.
-                    # libandroid_support needs new/delete from libc++abi but
-                    # libc++abi needs posix_memalign from libandroid_support.
-                    static_script.extend(
-                        [
-                            "-landroid_support",
-                            "-lc++abi",
-                            # TODO: Remove once API 16 is no longer supported.
-                            "-landroid_support",
-                        ]
-                    )
-                    shared_script.insert(0, "-landroid_support")
 
                 libcxx_so_path = dst_dir / "libc++.so"
                 with open(libcxx_so_path, "w") as script:
@@ -1918,13 +1883,6 @@ class SystemStl(ndk.builds.PackageModule):
     name = "system-stl"
     install_path = Path("sources/cxx-stl/system")
     src = NDK_DIR / "sources/cxx-stl/system"
-
-
-@register
-class LibAndroidSupport(ndk.builds.PackageModule):
-    name = "libandroid_support"
-    install_path = Path("sources/android/support")
-    src = NDK_DIR / "sources/android/support"
 
 
 @register
