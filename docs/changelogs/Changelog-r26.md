@@ -13,6 +13,15 @@ directly, see the [build system maintainers guide].
 
 ## Changes
 
+* Version scripts that name public symbols that are not present in the library
+  will now emit an error by default for ndk-build and the CMake toolchain file.
+  Build failures caused by this error are likely a bug in your library or a
+  mistake in the version script. To revert to the earlier behavior, pass
+  `-DANDROID_ALLOW_UNDEFINED_VERSION_SCRIPT_SYMBOLS=ON` to CMake or set
+  `LOCAL_ALLOW_UNDEFINED_VERSION_SCRIPT_SYMBOLS := true` in your `Android.mk`
+  file. For other build systems, see the secion titled "Version script
+  validation" in the [build system maintainers guide].
+
 ## Known Issues
 
 This is not intended to be a comprehensive list of all outstanding bugs.

@@ -45,6 +45,10 @@ if(CMAKE_SYSTEM_VERSION LESS 30)
   string(APPEND _ANDROID_NDK_INIT_LDFLAGS " -Wl,--no-rosegment")
 endif()
 
+if (NOT ANDROID_ALLOW_UNDEFINED_VERSION_SCRIPT_SYMBOLS)
+  string(APPEND _ANDROID_NDK_INIT_LDFLAGS " -Wl,--no-undefined-version")
+endif()
+
 string(APPEND _ANDROID_NDK_INIT_LDFLAGS " -Wl,--fatal-warnings")
 string(APPEND _ANDROID_NDK_INIT_LDFLAGS " -Wl,--gc-sections")
 string(APPEND _ANDROID_NDK_INIT_LDFLAGS_EXE " -Wl,--gc-sections")

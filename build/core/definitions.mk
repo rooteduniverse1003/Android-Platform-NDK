@@ -230,6 +230,7 @@ link-whole-archive-flags = -Wl,--whole-archive $(call host-path,$1) -Wl,--no-who
 modules-LOCALS := \
     ALLOW_MISSING_PREBUILT \
     ALLOW_UNDEFINED_SYMBOLS \
+    ALLOW_UNDEFINED_VERSION_SCRIPT_SYMBOLS \
     ARM_MODE \
     ARM_NEON \
     ASFLAGS \
