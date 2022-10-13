@@ -40,18 +40,6 @@ endif
 TARGET_PLATFORM := android-$(TARGET_PLATFORM_LEVEL)
 TARGET_ABI := $(TARGET_PLATFORM)-$(TARGET_ARCH_ABI)
 
-# If we're targeting a new enough platform version, we don't actually need to
-# cover any gaps in libc for libc++ support. In those cases, save size in the
-# APK by avoiding libandroid_support.
-#
-# This is also a requirement for static executables, since using
-# libandroid_support with a modern libc.a will result in multiple symbol
-# definition errors.
-NDK_PLATFORM_NEEDS_ANDROID_SUPPORT := true
-ifeq ($(call gte,$(TARGET_PLATFORM_LEVEL),21),$(true))
-    NDK_PLATFORM_NEEDS_ANDROID_SUPPORT := false
-endif
-
 # Separate the debug and release objects. This prevents rebuilding
 # everything when you switch between these two modes. For projects
 # with lots of C++ sources, this can be a considerable time saver.
