@@ -84,14 +84,6 @@ class TestCase:
         logger().info('%s: shell_nocheck "%s"', device.name, self.cmd)
         return shell_nocheck_wrap_errors(device, self.cmd)
 
-    # Note that TradeFed will split this command on whitespace, and verify
-    # that one of the tokens is an executable file on the device. Therefore, you
-    # must ensure that TestCase.cmd contains, somewhere, the full path
-    # to the executable, surrounded by whitespace.
-    #
-    # For example, neither of the following will work:
-    #   cd /path && ./cmd      # relative path
-    #   /path/cmd||echo "foo"  # no whitespace
     @property
     def cmd(self) -> str:
         """The shell command to run on the device to execute the test case."""
@@ -100,10 +92,6 @@ class TestCase:
     @property
     def negated_cmd(self) -> str:
         """The command to execute the test case, but with the exit code flipped."""
-        # Note that TradeFed will split this command on whitespace, and verify
-        # that one of the tokens is an executable file on the device.
-        # So the whitespace around the parens is intentional, because
-        # ! (/path/to/some/cmd) won't work.
         return f"! ( {self.cmd} )"
 
     def __str__(self) -> str:
@@ -151,8 +139,7 @@ class BasicTestCase(TestCase):
 
     @property
     def cmd(self) -> str:
-        # See note in the base class above about parsing by TradeFed.
-        return "cd {} && LD_LIBRARY_PATH={} {}/{} 2>&1".format(
+        return "cd {} && LD_LIBRARY_PATH={} ./{} 2>&1".format(
             self.device_dir, self.device_dir, self.device_dir, self.executable
         )
 
@@ -217,7 +204,6 @@ class LibcxxTestCase(TestCase):
 
     @property
     def cmd(self) -> str:
-        # See note in the base class above about parsing by TradeFed.
         libcxx_so_dir = self.device_base_dir / str(self.config) / "libcxx" / "libc++"
         return "cd {} && LD_LIBRARY_PATH={} ./{} 2>&1".format(
             self.device_dir, libcxx_so_dir, self.executable
