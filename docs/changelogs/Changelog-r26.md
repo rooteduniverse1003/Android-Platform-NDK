@@ -11,6 +11,13 @@ directly, see the [build system maintainers guide].
 [Android Studio site]: http://tools.android.com/filing-bugs
 [build system maintainers guide]: https://android.googlesource.com/platform/ndk/+/master/docs/BuildSystemMaintainers.md
 
+## Announcements
+
+* KitKat (APIs 19 and 20) is no longer supported. The minimum OS supported by
+  the NDK is Lollipop (API level 21). See [Issue 1751] for details.
+
+[Issue 1751]: https://github.com/android/nßdk/issues/1751
+
 ## Changes
 
 ## Known Issues

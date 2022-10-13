@@ -121,13 +121,13 @@ def clang_target(arch: Arch, api: Optional[int] = None) -> str:
 def min_api_for_abi(abi: Abi) -> int:
     """Returns the minimum supported build API for the given ABI.
 
-    >>> min_api_for_abi('arm64-v8a')
+    >>> min_api_for_abi(Abi('arm64-v8a'))
     21
 
-    >>> min_api_for_abi('armeabi-v7a')
-    19
+    >>> min_api_for_abi(Abi('armeabi-v7a'))
+    21
 
-    >>> min_api_for_abi('foobar')
+    >>> min_api_for_abi(Abi('foobar'))
     Traceback (most recent call last):
         ...
     ValueError: Invalid ABI: foobar
