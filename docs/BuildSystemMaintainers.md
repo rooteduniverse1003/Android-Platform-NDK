@@ -584,6 +584,13 @@ default.
 
 [FORTIFY in Android]: https://android-developers.googleblog.com/2017/04/fortify-in-android.html
 
+### Version script validation
+
+LLD will not raise any errors for symbols named in version scripts that are
+absent from the library. This is either a mistake in the version script, or a
+missing definition in the library. To have LLD diagnose these errors, pass
+`-Wl,--no-undefined-version` when linking.
+
 ## Common Issues
 
 ### Unwinding

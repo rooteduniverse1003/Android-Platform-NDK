@@ -209,6 +209,10 @@ ifeq ($(TARGET_ARCH_ABI),x86)
     endif
 endif
 
+ifneq ($(LOCAL_ALLOW_UNDEFINED_VERSION_SCRIPT_SYMBOLS),true)
+    LOCAL_LDFLAGS += -Wl,--no-undefined-version
+endif
+
 #
 # The original Android build system allows you to use the .arm prefix
 # to a source file name to indicate that it should be defined in either

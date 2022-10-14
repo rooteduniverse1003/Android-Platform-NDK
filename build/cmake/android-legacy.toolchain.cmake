@@ -449,6 +449,10 @@ if(ANDROID_PLATFORM_LEVEL LESS 30)
   list(APPEND ANDROID_LINKER_FLAGS -Wl,--no-rosegment)
 endif()
 
+if (NOT ANDROID_ALLOW_UNDEFINED_VERSION_SCRIPT_SYMBOLS)
+  list(APPEND ANDROID_LINKER_FLAGS -Wl,--no-undefined-version)
+endif()
+
 list(APPEND ANDROID_LINKER_FLAGS -Wl,--fatal-warnings)
 list(APPEND ANDROID_LINKER_FLAGS -Wl,--gc-sections)
 list(APPEND ANDROID_LINKER_FLAGS_EXE -Wl,--gc-sections)
