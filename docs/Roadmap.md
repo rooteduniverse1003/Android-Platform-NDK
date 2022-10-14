@@ -230,6 +230,18 @@ in recent releases.
 
 [history]: https://developer.android.com/ndk/downloads/revision_history.html
 
+### NDK r25
+
+Significantly reduced the size of the NDK. Reverted to older CMake toolchain
+behavior to improve build reliability.
+
+### NDK r24
+
+Neon is now enabled for all armeabi-v7a libraries, improving performance for
+those apps, but dropping Tegra 2 support as a result. Removed support for
+building RenderScript, which was deprecated in Android 12. Removed obsolete GNU
+assembler and GDB. Minimum OS support raised to API 19.
+
 ### NDK r23
 
 Migrated all ABIs from libgcc to the LLVM unwinder and libclang_rt. Finished
