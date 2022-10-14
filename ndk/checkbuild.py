@@ -827,7 +827,6 @@ class Libcxx(ndk.builds.Module):
 
     def build(self) -> None:
         ndk_build = self.get_dep("ndk-build").get_build_host_install() / "ndk-build"
-        bionic_path = ndk.paths.android_path("bionic")
 
         android_mk = self.src / "Android.mk"
         application_mk = self.src / "Application.mk"
@@ -840,7 +839,6 @@ class Libcxx(ndk.builds.Module):
             # Since nothing in this build depends on libc++_static, we need to
             # name it to force it to build.
             "APP_MODULES=c++_shared c++_static",
-            f"BIONIC_PATH={bionic_path}",
             # Tell ndk-build where all of our makefiles are and where outputs
             # should go. The defaults in ndk-build are only valid if we have a
             # typical ndk-build layout with a jni/{Android,Application}.mk.

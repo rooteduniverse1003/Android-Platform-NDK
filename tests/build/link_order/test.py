@@ -94,11 +94,9 @@ def check_link_order(
         between the expected link order and the actual link order.
     """
     assert config.api is not None
-    android_support_arg = ['libandroid_support.a'] if config.api < 21 else []
     expected = [
         'crtbegin_so.o',
         'foo.o',
-    ] + android_support_arg + [
         # The most important part of this test is checking that libunwind.a
         # comes *before* the shared libraries so we can be sure we're actually
         # getting libunwind.a symbols rather than getting them from some shared

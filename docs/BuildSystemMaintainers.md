@@ -381,9 +381,7 @@ Support document for more details.
 There are version-specific libc++.so and libc++.a libraries installed to
 `<NDK>/sysroot/usr/lib/<triple>/<version>`. These are not true libraries but
 [implicit linker scripts]. They inform the linker how to properly link the STL
-for the given version. Older OS versions may require that a compatibility
-library (libandroid_support) be linked with libc++ to provide APIs not available
-in those versions. These scripts also handle the inclusion of any libc++
+for the given version. These scripts handle the inclusion of any libc++
 dependencies if necessary. Linker scripts should not be included in the APK.
 
 Build systems should prefer to let Clang link the STL. If not using Clang, the

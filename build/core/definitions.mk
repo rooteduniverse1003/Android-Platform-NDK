@@ -710,9 +710,7 @@ modules-add-c++-dependencies = \
                 $(call ndk_log,Module '$(__module)' uses C++ features and the system STL)\
                 $(call import-module,cxx-stl/llvm-libc++)\
                 $(call import-module,cxx-stl/llvm-libc++abi)\
-                $(call module-add-c++-deps,$(__module),c++abi)\
-                $(if $(filter true,$(NDK_PLATFORM_NEEDS_ANDROID_SUPPORT)),\
-                    $(call module-add-c++-deps,$(__module),android_support))))\
+                $(call module-add-c++-deps,$(__module),c++abi)))\
     )
 
 
