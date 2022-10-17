@@ -21,4 +21,4 @@ RUN curl -o /usr/bin/repo \
     https://commondatastorage.googleapis.com/git-repo-downloads/repo
 RUN chmod a+x /usr/bin/repo
 
-CMD ["/bin/bash"]
+CMD ["/usr/bin/env bash"]

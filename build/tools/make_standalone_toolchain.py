@@ -139,7 +139,7 @@ def make_clang_scripts(install_dir, arch, api, windows):
     clang_path = os.path.join(install_dir, 'bin/clang')
     with open(clang_path, 'w') as clang:
         clang.write(textwrap.dedent("""\
-            #!/bin/bash
+            #!/usr/bin/env bash
             bin_dir=`dirname "$0"`
             if [ "$1" != "-cc1" ]; then
                 "$bin_dir/clang{version}" {flags} "$@"
@@ -155,7 +155,7 @@ def make_clang_scripts(install_dir, arch, api, windows):
     clangpp_path = os.path.join(install_dir, 'bin/clang++')
     with open(clangpp_path, 'w') as clangpp:
         clangpp.write(textwrap.dedent("""\
-            #!/bin/bash
+            #!/usr/bin/env bash
             bin_dir=`dirname "$0"`
             if [ "$1" != "-cc1" ]; then
                 "$bin_dir/clang{version}++" {flags} "$@"
