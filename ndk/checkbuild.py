@@ -174,7 +174,11 @@ def create_signer_metadata(package_dir: Path) -> None:
 
 
 def make_app_bundle(
-    zip_path: Path, ndk_dir: Path, build_number: str, build_dir: Path
+    worker: ndk.workqueue.Worker,
+    zip_path: Path,
+    ndk_dir: Path,
+    build_number: str,
+    build_dir: Path,
 ) -> None:
     """Builds a macOS App Bundle of the NDK.
 
@@ -195,6 +199,7 @@ def make_app_bundle(
         ndk_dir: The path to the NDK being bundled.
         build_dir: The path to the top level build directory.
     """
+    worker.status = "Packaging MacOS App Bundle"
     package_dir = build_dir / "bundle"
     app_directory_name = f"AndroidNDK{build_number}.app"
     bundle_dir = package_dir / app_directory_name
@@ -221,6 +226,32 @@ def make_app_bundle(
     )
 
 
+def make_brtar(
+    worker: ndk.workqueue.Worker,
+    base_name: Path,
+    root_dir: Path,
+    base_dir: Path,
+    preserve_symlinks: bool,
+) -> None:
+    worker.status = "Packaging .tar.br"
+    ndk.archive.make_brtar(
+        base_name, root_dir, base_dir, preserve_symlinks=preserve_symlinks
+    )
+
+
+def make_zip(
+    worker: ndk.workqueue.Worker,
+    base_name: Path,
+    root_dir: Path,
+    paths: List[str],
+    preserve_symlinks: bool,
+) -> None:
+    worker.status = "Packaging .zip"
+    ndk.archive.make_zip(
+        base_name, root_dir, paths, preserve_symlinks=preserve_symlinks
+    )
+
+
 def package_ndk(
     ndk_dir: Path, out_dir: Path, dist_dir: Path, host: Host, build_number: str
 ) -> Path:
@@ -238,24 +269,36 @@ def package_ndk(
 
     purge_unwanted_files(ndk_dir)
 
-    if host == Host.Darwin:
-        bundle_name = f"android-ndk-{build_number}-app-bundle"
-        bundle_path = dist_dir / bundle_name
-        make_app_bundle(bundle_path, ndk_dir, build_number, out_dir)
+    workqueue: ndk.workqueue.WorkQueue = ndk.workqueue.WorkQueue()
+    try:
+        if host == Host.Darwin:
+            workqueue.add_task(
+                make_app_bundle,
+                dist_dir / f"android-ndk-{build_number}-app-bundle",
+                ndk_dir,
+                build_number,
+                out_dir,
+            )
+        workqueue.add_task(
+            make_brtar,
+            package_path,
+            ndk_dir.parent,
+            Path(ndk_dir.name),
+            preserve_symlinks=(host != Host.Windows64),
+        )
+        workqueue.add_task(
+            make_zip,
+            package_path,
+            ndk_dir.parent,
+            [ndk_dir.name],
+            preserve_symlinks=(host != Host.Windows64),
+        )
+        ndk.ui.finish_workqueue_with_ui(workqueue, ndk.ui.get_build_progress_ui)
+    finally:
+        workqueue.terminate()
+        workqueue.join()
     # TODO: Treat the .tar.br archive as authoritative and return its path.
-    # TODO: Create archives in parallel.
-    ndk.archive.make_brtar(
-        package_path,
-        ndk_dir.parent,
-        Path(ndk_dir.name),
-        preserve_symlinks=(host != Host.Windows64),
-    )
-    return ndk.archive.make_zip(
-        package_path,
-        ndk_dir.parent,
-        [ndk_dir.name],
-        preserve_symlinks=(host != Host.Windows64),
-    )
+    return package_path.with_suffix(".zip")
 
 
 def build_ndk_tests(out_dir: Path, dist_dir: Path, args: argparse.Namespace) -> bool:

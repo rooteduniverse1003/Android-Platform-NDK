@@ -22,7 +22,7 @@ import math
 import os
 import sys
 import time
-from typing import Iterable, List, Optional, Tuple, cast
+from typing import Callable, Iterable, List, Optional, Tuple, cast
 
 import ndk.ansi
 from ndk.workqueue import AnyWorkQueue
@@ -262,3 +262,19 @@ class WorkQueueUi(Ui):
             )
         )
         return lines
+
+
+def finish_workqueue_with_ui(
+    workqueue: ndk.workqueue.WorkQueue,
+    ui_fn: Callable[[ndk.ansi.Console, ndk.workqueue.WorkQueue], Ui],
+) -> None:
+    console = ndk.ansi.get_console()
+    ui = ui_fn(console, workqueue)
+    with ndk.ansi.disable_terminal_echo(sys.stdin):
+        with console.cursor_hide_context():
+            ui.draw()
+            while not workqueue.finished():
+                ui.draw()
+                workqueue.get_result()
+                ui.draw()
+            ui.clear()
