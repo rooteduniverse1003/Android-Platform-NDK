@@ -181,7 +181,8 @@ class FlagVerifier:
                 "V=1",
                 f"APP_ABI={self.abi}",
                 f"APP_PLATFORM=android-{self.api}",
-            ] + self.ndk_build_flags
+            ]
+            + self.ndk_build_flags
         )
 
     def verify_cmake(self) -> FlagVerifierResult:
