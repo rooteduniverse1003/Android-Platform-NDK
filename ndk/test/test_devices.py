@@ -21,7 +21,7 @@ import unittest
 
 from ndk.abis import Abi
 import ndk.test.devices
-from ndk.test.spec import BuildConfiguration, CMakeToolchainFile
+from ndk.test.spec import BuildConfiguration, CMakeToolchainFile, WeakSymbolsConfig
 
 
 class MockDevice(ndk.test.devices.Device):
@@ -43,7 +43,9 @@ class TestBuildConfiguration(BuildConfiguration):
     def __init__(self, abi: Abi, api: Optional[int]):
         # The CMake toolchain file option is irrelevant for determining device
         # compatibility.
-        super().__init__(abi, api, CMakeToolchainFile.Default)
+        super().__init__(
+            abi, api, CMakeToolchainFile.Default, WeakSymbolsConfig.WeakAPI
+        )
 
 
 class DeviceTest(unittest.TestCase):

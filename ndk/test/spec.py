@@ -32,6 +32,12 @@ class CMakeToolchainFile(enum.Enum):
     Default = "new"
 
 
+@enum.unique
+class WeakSymbolsConfig(enum.Enum):
+    WeakAPI = "weakapi"
+    StrictAPI = "strictapi"
+
+
 class TestOptions:
     """Configuration for how tests should be run."""
 
@@ -102,6 +108,7 @@ class BuildConfiguration:
     abi: Abi
     api: Optional[int]
     toolchain_file: CMakeToolchainFile
+    weak_symbol: WeakSymbolsConfig
 
     def with_api(self, api: int) -> BuildConfiguration:
         """Creates a copy of this BuildConfiguration with a new API level.
@@ -113,7 +120,10 @@ class BuildConfiguration:
             A copy of this BuildConfiguration with the new API level.
         """
         return BuildConfiguration(
-            abi=self.abi, api=api, toolchain_file=self.toolchain_file
+            abi=self.abi,
+            api=api,
+            toolchain_file=self.toolchain_file,
+            weak_symbol=self.weak_symbol,
         )
 
     def __str__(self) -> str:
@@ -122,6 +132,7 @@ class BuildConfiguration:
                 self.abi,
                 str(self.api),
                 self.toolchain_file.value,
+                self.weak_symbol.value,
             ]
         )
 
@@ -154,20 +165,24 @@ class BuildConfiguration:
             abi += "-v8a"
             _, _, rest = rest.partition("-")
 
-        api_str, toolchain_file_str = rest.split("-")
+        api_str, toolchain_file_str, weak_symbols_str = rest.split("-")
         api = int(api_str)
         toolchain_file = CMakeToolchainFile(toolchain_file_str)
+        weak_symbols = WeakSymbolsConfig(weak_symbols_str)
 
-        return BuildConfiguration(Abi(abi), api, toolchain_file)
+        return BuildConfiguration(Abi(abi), api, toolchain_file, weak_symbols)
 
-    @staticmethod
-    def get_extra_ndk_build_flags() -> list[str]:
+    def get_extra_ndk_build_flags(self) -> list[str]:
         extra_flags = []
         extra_flags.append("V=1")
+        if self.weak_symbol == WeakSymbolsConfig.WeakAPI:
+            extra_flags.append("APP_WEAK_API_DEFS=true")
+
         return extra_flags
 
-    @staticmethod
-    def get_extra_cmake_flags() -> list[str]:
+    def get_extra_cmake_flags(self) -> list[str]:
         extra_flags = []
         extra_flags.append("-DCMAKE_VERBOSE_MAKEFILE=ON")
+        if self.weak_symbol == WeakSymbolsConfig.WeakAPI:
+            extra_flags.append("-DANDROID_WEAK_API_DEFS=ON")
         return extra_flags
