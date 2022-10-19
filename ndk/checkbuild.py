@@ -1389,7 +1389,7 @@ def write_clang_shell_script(
         wrapper.write(
             textwrap.dedent(
                 """\
-            #!/bin/bash
+            #!/usr/bin/env bash
             bin_dir=`dirname "$0"`
             if [ "$1" != "-cc1" ]; then
                 "$bin_dir/{clang}" {flags} "$@"
