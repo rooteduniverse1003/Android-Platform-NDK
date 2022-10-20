@@ -20,6 +20,8 @@ from __future__ import print_function
 
 import argparse
 import collections
+from collections.abc import Iterator
+from contextlib import contextmanager
 import datetime
 import logging
 from pathlib import Path
@@ -559,6 +561,13 @@ class Results:
         assert timer.duration is not None
         self.times[label] = timer.duration
 
+    @contextmanager
+    def timed(self, description: str) -> Iterator[None]:
+        timer = Timer()
+        with timer:
+            yield
+        self.add_timing_report(description, timer)
+
 
 def unzip_ndk(ndk_path: Path) -> Path:
     # Unzip the NDK into out/ndk-zip.
@@ -596,8 +605,7 @@ def rebuild_tests(
         show_all=args.show_all,
         result_translations=ResultTranslations(success="BUILT"),
     )
-    build_timer = Timer()
-    with build_timer:
+    with results.timed("Build"):
         test_options = ndk.test.spec.TestOptions(
             args.test_src,
             args.ndk,
@@ -608,8 +616,6 @@ def rebuild_tests(
         )
         builder = ndk.test.builder.TestBuilder(test_spec, test_options, build_printer)
         report = builder.build()
-
-    results.add_timing_report("Build", build_timer)
 
     if report.num_tests == 0:
         results.failed("Found no tests for filter {}.".format(args.filter))
@@ -655,8 +661,7 @@ def run_tests(args: argparse.Namespace) -> Results:
     test_filter = TestFilter.from_string(args.filter)
     # dict of {BuildConfiguration: [Test]}
     config_filter = ConfigFilter(test_spec)
-    test_discovery_timer = Timer()
-    with test_discovery_timer:
+    with results.timed("Test discovery"):
         test_groups = enumerate_tests(
             test_dist_dir,
             args.test_src,
@@ -664,7 +669,6 @@ def run_tests(args: argparse.Namespace) -> Results:
             test_filter,
             config_filter,
         )
-    results.add_timing_report("Test discovery", test_discovery_timer)
 
     if sum(len(tests) for tests in test_groups.values()) == 0:
         # As long as we *built* some tests, not having anything to run isn't a
@@ -700,10 +704,8 @@ def run_tests(args: argparse.Namespace) -> Results:
     # configuration that is unclaimed, print a warning.
     workqueue = WorkQueue()
     try:
-        device_discovery_timer = Timer()
-        with device_discovery_timer:
+        with results.timed("Device discovery"):
             fleet = find_devices(test_spec.devices, workqueue)
-        results.add_timing_report("Device discovery", device_discovery_timer)
 
         have_all_devices = verify_have_all_requested_devices(fleet)
         if args.require_all_devices and not have_all_devices:
@@ -714,19 +716,15 @@ def run_tests(args: argparse.Namespace) -> Results:
         for config in find_configs_with_no_device(groups_for_config):
             logger().warning("No device found for %s.", config)
 
-        clean_device_timer = Timer()
         if args.clean_device:
-            with clean_device_timer:
+            with results.timed("Clean device"):
                 clear_test_directories(workqueue, fleet)
-            results.add_timing_report("Clean device", clean_device_timer)
 
         can_use_sync = adb_has_feature("push_sync")
-        push_timer = Timer()
-        with push_timer:
+        with results.timed("Push"):
             push_tests_to_devices(
                 workqueue, test_dist_dir, groups_for_config, can_use_sync
             )
-        results.add_timing_report("Push", push_timer)
     finally:
         workqueue.terminate()
         workqueue.join()
