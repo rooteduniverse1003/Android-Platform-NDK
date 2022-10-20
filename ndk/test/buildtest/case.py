@@ -134,7 +134,7 @@ class BuildTest(Test):
 
     def verify_no_cruft_in_dist(
         self, dist_dir: Path, build_cmd: list[str]
-    ) -> Optional[Failure]:
+    ) -> Optional[Failure[None]]:
         bad_files = []
         for path in ndk.paths.walk(dist_dir, directories=False):
             if path.suffix == ".a":

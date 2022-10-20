@@ -109,7 +109,7 @@ class TestRun:
             result = Success(self)
         else:
             out = "\n".join([str(device), out])
-            result = Failure(self, out, cmd)
+            result = Failure(self, out, cmd, self.device_group)
         return self.fixup_xfail(result, device)
 
     def fixup_xfail(self, result: TestResult, device: Device) -> TestResult:
@@ -289,7 +289,7 @@ def match_configs_to_device_groups(
 def pair_test_runs(
     test_groups: Mapping[BuildConfiguration, Iterable[TestCase]],
     groups_for_config: Mapping[BuildConfiguration, Iterable[DeviceShardingGroup]],
-    report: Report,
+    report: Report[DeviceShardingGroup],
     fleet: DeviceFleet,
 ) -> List[TestRun]:
     """Creates a TestRun object for each device/test case pairing."""
@@ -305,7 +305,7 @@ def pair_test_runs(
 
 
 def report_skipped_tests_for_missing_devices(
-    report: Report,
+    report: Report[DeviceShardingGroup],
     build_config: BuildConfiguration,
     fleet: DeviceFleet,
     test_cases: Iterable[TestCase],
@@ -324,7 +324,7 @@ def report_skipped_tests_for_missing_devices(
 
 
 def wait_for_results(
-    report: Report,
+    report: Report[DeviceShardingGroup],
     workqueue: ShardingWorkQueue[TestResult, DeviceShardingGroup],
     printer: Printer,
 ) -> None:
@@ -367,7 +367,8 @@ def flake_filter(result: TestResult) -> bool:
 
 
 def restart_flaky_tests(
-    report: Report, workqueue: ShardingWorkQueue[TestResult, DeviceShardingGroup]
+    report: Report[DeviceShardingGroup],
+    workqueue: ShardingWorkQueue[TestResult, DeviceShardingGroup],
 ) -> None:
     """Finds and restarts any failing flaky tests."""
     rerun_tests = report.remove_all_failing_flaky(flake_filter)
@@ -385,6 +386,44 @@ def restart_flaky_tests(
         logger().warning("Flaky test failure: %s", flaky_report.result)
         group = flaky_report.result.test.device_group
         workqueue.add_task(group, run_test, flaky_report.result.test)
+
+
+def run_and_collect_logs(worker: Worker, test_run: TestRun) -> TestResult:
+    device: Device = worker.data[0]
+    worker.status = "Clearing device log"
+    device.clear_logcat()
+    result = run_test(worker, test_run)
+    if not isinstance(result, Failure):
+        logger().warning(
+            "Failing test passed on re-run while collecting logs. This makes testing "
+            "slower. Test flake should be investigated."
+        )
+        return result
+    worker.status = "Collecting device log"
+    log = device.logcat()
+    result.message += f"\nlogcat contents:\n{log}"
+    return result
+
+
+def get_and_attach_logs_for_failing_tests(
+    fleet: DeviceFleet, report: Report[DeviceShardingGroup], printer: Printer
+) -> None:
+    failures = report.remove_all_true_failures()
+    if not failures:
+        return
+
+    # Have to use max of one worker per re-run to ensure that the logs we collect do not
+    # conflate with other tests.
+    queue: ShardingWorkQueue[TestResult, DeviceShardingGroup] = ShardingWorkQueue(
+        fleet.get_unique_device_groups(), 1
+    )
+    try:
+        for failure in failures:
+            queue.add_task(failure.user_data, run_and_collect_logs, failure.test)
+        wait_for_results(report, queue, printer)
+    finally:
+        queue.terminate()
+        queue.join()
 
 
 def str_to_bool(s: str) -> bool:
@@ -729,7 +768,7 @@ def run_tests(args: argparse.Namespace) -> Results:
         workqueue.terminate()
         workqueue.join()
 
-    report = Report()
+    report = Report[DeviceShardingGroup]()
     shard_queue: ShardingWorkQueue[TestResult, DeviceShardingGroup] = ShardingWorkQueue(
         fleet.get_unique_device_groups(), 4
     )
@@ -742,18 +781,18 @@ def run_tests(args: argparse.Namespace) -> Results:
         # at any given point in time are all running on the same device.
         test_runs = pair_test_runs(test_groups, groups_for_config, report, fleet)
         random.shuffle(test_runs)
-        test_run_timer = Timer()
-        with test_run_timer:
+        with results.timed("Run"):
             for test_run in test_runs:
                 shard_queue.add_task(test_run.device_group, run_test, test_run)
 
             wait_for_results(report, shard_queue, printer)
             restart_flaky_tests(report, shard_queue)
             wait_for_results(report, shard_queue, printer)
-        results.add_timing_report("Run", test_run_timer)
     finally:
         shard_queue.terminate()
         shard_queue.join()
+
+    get_and_attach_logs_for_failing_tests(fleet, report, printer)
 
     printer.print_summary(report)
 

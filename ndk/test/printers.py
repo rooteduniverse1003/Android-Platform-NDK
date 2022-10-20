@@ -17,14 +17,16 @@ from __future__ import print_function
 
 import os
 import sys
-from typing import Optional, TextIO
+from typing import Any, Optional, TextIO
 
 import ndk.termcolor
 from ndk.test.report import Report
 from ndk.test.result import ResultTranslations, TestResult
 
 
-def format_stats_str(report: Report, tr: ResultTranslations, use_color: bool) -> str:
+def format_stats_str(
+    report: Report[Any], tr: ResultTranslations, use_color: bool
+) -> str:
     pass_label = ndk.termcolor.maybe_color(tr.success, "green", use_color)
     fail_label = ndk.termcolor.maybe_color(tr.failure, "red", use_color)
     skip_label = ndk.termcolor.maybe_color(tr.skip, "yellow", use_color)
@@ -43,7 +45,7 @@ class Printer:
     def print_result(self, result: TestResult) -> None:
         raise NotImplementedError
 
-    def print_summary(self, report: Report) -> None:
+    def print_summary(self, report: Report[Any]) -> None:
         raise NotImplementedError
 
 
@@ -74,7 +76,7 @@ class FilePrinter(Printer):
             file=self.file,
         )
 
-    def print_summary(self, report: Report) -> None:
+    def print_summary(self, report: Report[Any]) -> None:
         print(file=self.file)
         if not report.num_tests:
             print(

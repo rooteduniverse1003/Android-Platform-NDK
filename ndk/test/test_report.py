@@ -14,6 +14,7 @@
 # limitations under the License.
 #
 """Tests for ndk.test.report."""
+from typing import Any
 import unittest
 
 import ndk.run_tests
@@ -27,7 +28,7 @@ class MockTest:
 
 class ReportTest(unittest.TestCase):
     def test_remove_all_failing_flaky(self) -> None:
-        report = ndk.test.report.Report()
+        report = ndk.test.report.Report[Any]()
         # Success. Not filtered.
         report.add_result("build", ndk.test.result.Success(MockTest()))
 

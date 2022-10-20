@@ -52,7 +52,7 @@ def logger() -> logging.Logger:
     return logging.getLogger(__name__)
 
 
-def write_build_report(build_report: str, results: Report) -> None:
+def write_build_report(build_report: str, results: Report[None]) -> None:
     with open(build_report, "wb") as build_report_file:
         pickle.dump(results, build_report_file)
 
@@ -216,7 +216,7 @@ class TestBuilder:
         if self.test_options.out_dir.exists():
             shutil.rmtree(self.test_options.out_dir)
 
-    def build(self) -> Report:
+    def build(self) -> Report[None]:
         if self.test_options.clean:
             self.clean_out_dir()
         self.make_out_dirs()
@@ -229,7 +229,7 @@ class TestBuilder:
             self.package()
         return result
 
-    def do_build(self, test_filters: TestFilter) -> Report:
+    def do_build(self, test_filters: TestFilter) -> Report[None]:
         workqueue: LoadRestrictingWorkQueue[RunTestResult] = LoadRestrictingWorkQueue()
         try:
             for suite, tests in self.tests.items():
@@ -261,7 +261,7 @@ class TestBuilder:
                             test_filters,
                         )
 
-            report = Report()
+            report = Report[None]()
             self.wait_for_results(report, workqueue, test_filters)
 
             return report
@@ -271,7 +271,7 @@ class TestBuilder:
 
     def wait_for_results(
         self,
-        report: Report,
+        report: Report[None],
         workqueue: LoadRestrictingWorkQueue[RunTestResult],
         test_filters: TestFilter,
     ) -> None:
