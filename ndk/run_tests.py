@@ -589,6 +589,40 @@ def unzip_ndk(ndk_path: Path) -> Path:
         shutil.rmtree(ndk_dir)
 
 
+def rebuild_tests(
+    args: argparse.Namespace, results: Results, test_spec: TestSpec
+) -> bool:
+    build_printer = StdoutPrinter(
+        show_all=args.show_all,
+        result_translations=ResultTranslations(success="BUILT"),
+    )
+    build_timer = Timer()
+    with build_timer:
+        test_options = ndk.test.spec.TestOptions(
+            args.test_src,
+            args.ndk,
+            args.test_dir,
+            test_filter=args.filter,
+            clean=args.clean,
+            package_path=args.dist_dir / "ndk-tests" if args.package else None,
+        )
+        builder = ndk.test.builder.TestBuilder(test_spec, test_options, build_printer)
+        report = builder.build()
+
+    results.add_timing_report("Build", build_timer)
+
+    if report.num_tests == 0:
+        results.failed("Found no tests for filter {}.".format(args.filter))
+        return False
+
+    build_printer.print_summary(report)
+    if not report.successful:
+        results.failed()
+        return False
+
+    return True
+
+
 def run_tests(args: argparse.Namespace) -> Results:
     results = Results()
 
@@ -611,36 +645,7 @@ def run_tests(args: argparse.Namespace) -> Results:
 
     test_dist_dir = args.test_dir / "dist"
     if args.build_only or args.rebuild:
-        build_printer = StdoutPrinter(
-            show_all=args.show_all,
-            result_translations=ResultTranslations(success="BUILT"),
-        )
-        build_timer = Timer()
-        with build_timer:
-            test_options = ndk.test.spec.TestOptions(
-                args.test_src,
-                args.ndk,
-                args.test_dir,
-                test_filter=args.filter,
-                clean=args.clean,
-                package_path=args.dist_dir / "ndk-tests" if args.package else None,
-            )
-
-            builder = ndk.test.builder.TestBuilder(
-                test_spec, test_options, build_printer
-            )
-
-            report = builder.build()
-
-        results.add_timing_report("Build", build_timer)
-
-        if report.num_tests == 0:
-            results.failed("Found no tests for filter {}.".format(args.filter))
-            return results
-
-        build_printer.print_summary(report)
-        if not report.successful:
-            results.failed()
+        if not rebuild_tests(args, results, test_spec):
             return results
 
     if args.build_only:
