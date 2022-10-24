@@ -15,7 +15,7 @@
 #
 """Test result classes."""
 from dataclasses import dataclass
-from typing import Any, Optional
+from typing import Any, Generic, TypeVar
 
 import ndk.termcolor
 
@@ -52,13 +52,26 @@ class TestResult:
         raise NotImplementedError
 
 
-class Failure(TestResult):
+UserDataT = TypeVar("UserDataT")
+
+
+class Failure(TestResult, Generic[UserDataT]):
     def __init__(
-        self, test: Test, message: str, repro_cmd: Optional[str] = None
+        self,
+        test: Test,
+        message: str,
+        repro_cmd: str | None = None,
+        user_data: UserDataT | None = None,
     ) -> None:
         super().__init__(test)
         self.message = message
         self.repro_cmd = repro_cmd
+        self._user_data = user_data
+
+    @property
+    def user_data(self) -> UserDataT:
+        assert self._user_data is not None
+        return self._user_data
 
     def passed(self) -> bool:
         return False

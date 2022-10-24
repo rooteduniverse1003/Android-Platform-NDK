@@ -14,9 +14,12 @@
 # limitations under the License.
 #
 """Defines the format of test results from the test runner."""
-from typing import Callable, Dict, List
+from __future__ import annotations
 
-from ndk.test.result import TestResult
+from collections.abc import Iterator
+from typing import Callable, Dict, Generic, List, TypeVar, cast
+
+from ndk.test.result import Failure, TestResult
 
 
 class SingleResultReport:
@@ -27,7 +30,10 @@ class SingleResultReport:
         self.result = result
 
 
-class Report:
+UserDataT = TypeVar("UserDataT")
+
+
+class Report(Generic[UserDataT]):
     """Stores details of a test run.
 
     A "test run" means any number of tests run in any number of (unique)
@@ -40,8 +46,8 @@ class Report:
     def add_result(self, suite: str, result: TestResult) -> None:
         self.reports.append(SingleResultReport(suite, result))
 
-    def by_suite(self) -> Dict[str, "Report"]:
-        suite_reports: Dict[str, "Report"] = {}
+    def by_suite(self) -> Dict[str, Report[UserDataT]]:
+        suite_reports: Dict[str, Report[UserDataT]] = {}
         for report in self.reports:
             if report.suite not in suite_reports:
                 suite_reports[report.suite] = Report()
@@ -68,13 +74,14 @@ class Report:
     def num_skipped(self) -> int:
         return len(self.all_skipped)
 
-    @property
-    def all_failed(self) -> List[SingleResultReport]:
-        failures: List[SingleResultReport] = []
+    def iter_failed(self) -> Iterator[SingleResultReport]:
         for report in self.reports:
             if report.result.failed():
-                failures.append(report)
-        return failures
+                yield report
+
+    @property
+    def all_failed(self) -> List[SingleResultReport]:
+        return list(self.iter_failed())
 
     @property
     def all_passed(self) -> List[SingleResultReport]:
@@ -92,6 +99,19 @@ class Report:
                 skips.append(report)
         return skips
 
+    def _remove_matching(
+        self, filter_func: Callable[[TestResult], bool]
+    ) -> list[SingleResultReport]:
+        new_list = []
+        removed = []
+        for report in self.reports:
+            if filter_func(report.result):
+                removed.append(report)
+            else:
+                new_list.append(report)
+        self.reports = new_list
+        return removed
+
     def remove_all_failing_flaky(
         self, flake_filter: Callable[[TestResult], bool]
     ) -> List[SingleResultReport]:
@@ -100,12 +120,10 @@ class Report:
         Any failing tests that are known flaky are removed from the list of
         reports and returned to the caller to be rerun.
         """
-        new_list = []
-        flaky = []
-        for report in self.reports:
-            if report.result.failed() and flake_filter(report.result):
-                flaky.append(report)
-            else:
-                new_list.append(report)
-        self.reports = new_list
-        return flaky
+        return self._remove_matching(lambda r: r.failed() and flake_filter(r))
+
+    def remove_all_true_failures(self) -> list[Failure[UserDataT]]:
+        return [
+            cast(Failure[UserDataT], r.result)
+            for r in self._remove_matching(lambda r: isinstance(r, Failure))
+        ]
