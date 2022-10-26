@@ -32,7 +32,8 @@ string(APPEND _ANDROID_NDK_INIT_CFLAGS
 
 if(ANDROID_WEAK_API_DEFS)
   string(APPEND _ANDROID_NDK_INIT_CFLAGS
-    " -D__ANDROID_UNAVAILABLE_SYMBOLS_ARE_WEAK__")
+    " -D__ANDROID_UNAVAILABLE_SYMBOLS_ARE_WEAK__"
+    " -Werror=unguarded-availability")
 endif()
 
 string(APPEND _ANDROID_NDK_INIT_CFLAGS_DEBUG " -fno-limit-debug-info")

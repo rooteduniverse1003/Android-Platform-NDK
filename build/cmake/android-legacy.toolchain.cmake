@@ -440,7 +440,8 @@ list(APPEND ANDROID_COMPILER_FLAGS
 
 if(ANDROID_WEAK_API_DEFS)
   list(APPEND ANDROID_COMPILER_FLAGS
-      -D__ANDROID_UNAVAILABLE_SYMBOLS_ARE_WEAK__)
+      -D__ANDROID_UNAVAILABLE_SYMBOLS_ARE_WEAK__
+      -Werror=unguarded-availability)
 endif()
 
 # https://github.com/android/ndk/issues/885
