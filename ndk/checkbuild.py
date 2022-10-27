@@ -2718,6 +2718,7 @@ def main() -> None:
     test_timer = ndk.timer.Timer()
     with test_timer:
         if args.build_tests:
+            print("Building tests...")
             purge_unwanted_files(ndk_dir)
             good = build_ndk_tests(out_dir, dist_dir, args)
             print()  # Blank line between test results and timing data.
