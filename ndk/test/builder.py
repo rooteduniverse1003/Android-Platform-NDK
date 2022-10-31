@@ -16,6 +16,7 @@
 """APIs for enumerating and building NDK tests."""
 from __future__ import absolute_import
 
+import json
 import logging
 import os
 from pathlib import Path
@@ -24,11 +25,7 @@ import random
 import shutil
 import sys
 import traceback
-from typing import (
-    Dict,
-    List,
-    Tuple,
-)
+from typing import Dict, List, Tuple
 from xml.etree import ElementTree
 
 import ndk.abis
@@ -318,6 +315,37 @@ class TestBuilder:
             TestFilter.from_string(self.test_options.test_filter),
             ndk.test.devicetest.scanner.ConfigFilter(self.test_spec),
         )
+        tests_json: dict[str, list[dict[str, str | list[int]]]] = {}
+        for config, tests in test_groups.items():
+            testlist: list[dict[str, str | list[int]]] = []
+            for test in tests:
+                testobj: dict[str, str | list[int]] = {
+                    "cmd": test.cmd,
+                    "name": f"{config}.{test.build_system}.{test.name}",
+                }
+                unsupported: list[int] = []
+                broken: list[int] = []
+                for device_version, abis in self.test_spec.devices.items():
+                    if config.abi not in abis:
+                        continue
+                    device_config = DeviceConfig([config.abi], device_version)
+                    if test.check_unsupported(device_config) is not None:
+                        unsupported.append(device_version)
+                    else:
+                        broken_config, _bug = test.check_broken(device_config)
+                        if broken_config is not None:
+                            broken.append(device_version)
+                if unsupported:
+                    testobj["unsupported"] = unsupported
+                if broken:
+                    testobj["broken"] = broken
+                testlist.append(testobj)
+            tests_json[str(config)] = testlist
+        json_config_path = self.test_options.out_dir / "dist" / "tests.json"
+        with open(json_config_path, "w") as outfile:
+            json.dump(tests_json, outfile, indent=2)
+        shutil.copy2(json_config_path, self.test_options.package_path.parent)
+
         workqueue: WorkQueue = WorkQueue()
         try:
             for device_version, abis in self.test_spec.devices.items():
