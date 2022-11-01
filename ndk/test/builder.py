@@ -41,6 +41,7 @@ from ndk.test.report import Report
 import ndk.test.spec
 import ndk.test.suites
 import ndk.test.ui
+import ndk.ui
 from ndk.workqueue import LoadRestrictingWorkQueue, Worker, WorkQueue
 
 
@@ -356,15 +357,14 @@ class TestBuilder:
                         test_groups,
                         DeviceConfig([abi], device_version),
                     )
-            while not workqueue.finished():
-                workqueue.get_result()
+            ndk.ui.finish_workqueue_with_ui(workqueue, ndk.ui.get_build_progress_ui)
         finally:
             workqueue.terminate()
             workqueue.join()
 
 
 def _make_tradefed_zip(
-    _worker: Worker,
+    worker: Worker,
     test_options: ndk.test.spec.TestOptions,
     test_groups: dict[
         ndk.test.spec.BuildConfiguration, list[ndk.test.devicetest.case.TestCase]
@@ -381,6 +381,9 @@ def _make_tradefed_zip(
 
     Returns: Nothing.
     """
+    worker.status = (
+        f"Packaging tests for SDK {device_config.version}, {device_config.abis[0]}"
+    )
     abi = device_config.abis[0]
     api = device_config.version
 

@@ -198,18 +198,6 @@ def push_tests_to_device(
     device.shell(["chmod", "-R", "777", str(dest_dir)])
 
 
-def finish_workqueue_with_ui(workqueue: WorkQueue) -> None:
-    console = ndk.ansi.get_console()
-    ui = ndk.ui.get_work_queue_ui(console, workqueue)
-    with ndk.ansi.disable_terminal_echo(sys.stdin):
-        with console.cursor_hide_context():
-            ui.draw()
-            while not workqueue.finished():
-                workqueue.get_result()
-                ui.draw()
-            ui.clear()
-
-
 def push_tests_to_devices(
     workqueue: WorkQueue,
     test_dir: Path,
@@ -225,7 +213,7 @@ def push_tests_to_devices(
                     push_tests_to_device, src_dir, dest_dir, config, device, use_sync
                 )
 
-    finish_workqueue_with_ui(workqueue)
+    ndk.ui.finish_workqueue_with_ui(workqueue, ndk.ui.get_work_queue_ui)
     print("Finished pushing tests")
 
 
