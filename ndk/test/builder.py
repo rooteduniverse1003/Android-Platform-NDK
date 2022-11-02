@@ -346,3 +346,7 @@ class TestBuilder:
         with open(json_config_path, "w") as outfile:
             json.dump(tests_json, outfile, indent=2)
         shutil.copy2(json_config_path, self.test_options.package_path.parent)
+        shutil.copy2(
+            self.test_options.src_dir.parent / "qa_config.json",
+            self.test_options.package_path.parent,
+        )
