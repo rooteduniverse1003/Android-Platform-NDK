@@ -29,7 +29,7 @@ from ndk.test.buildtest.case import (
     ShellBuildTest,
     Test,
 )
-from ndk.test.spec import BuildConfiguration, CMakeToolchainFile
+from ndk.test.spec import BuildConfiguration, CMakeToolchainFile, WeakSymbolsConfig
 
 
 class TestScanner:
@@ -130,6 +130,7 @@ class LibcxxTestScanner(TestScanner):
             LibcxxTest("libc++", path, config, self.ndk_path)
             for config in self.build_configurations
             if config.toolchain_file == CMakeToolchainFile.Default
+            and config.weak_symbol == WeakSymbolsConfig.StrictAPI
         ]
 
     @classmethod

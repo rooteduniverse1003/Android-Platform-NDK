@@ -166,12 +166,13 @@ class TestBuilder:
         build_api_level = None  # Always use the default.
         for abi in self.test_spec.abis:
             for toolchain_file in ndk.test.spec.CMakeToolchainFile:
-                config = ndk.test.spec.BuildConfiguration(
-                    abi, build_api_level, toolchain_file
-                )
-                scanner.add_build_configuration(config)
-                nodist_scanner.add_build_configuration(config)
-                libcxx_scanner.add_build_configuration(config)
+                for weak_symbols in ndk.test.spec.WeakSymbolsConfig:
+                    config = ndk.test.spec.BuildConfiguration(
+                        abi, build_api_level, toolchain_file, weak_symbols
+                    )
+                    scanner.add_build_configuration(config)
+                    nodist_scanner.add_build_configuration(config)
+                    libcxx_scanner.add_build_configuration(config)
 
         if "build" in self.test_spec.suites:
             test_src = self.test_options.src_dir / "build"
