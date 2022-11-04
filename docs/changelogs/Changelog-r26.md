@@ -16,7 +16,7 @@ directly, see the [build system maintainers guide].
 * KitKat (APIs 19 and 20) is no longer supported. The minimum OS supported by
   the NDK is Lollipop (API level 21). See [Issue 1751] for details.
 
-[Issue 1751]: https://github.com/android/nßdk/issues/1751
+[Issue 1751]: https://github.com/android/ndk/issues/1751
 
 ## Changes
 
@@ -28,6 +28,11 @@ directly, see the [build system maintainers guide].
   `LOCAL_ALLOW_UNDEFINED_VERSION_SCRIPT_SYMBOLS := true` in your `Android.mk`
   file. For other build systems, see the secion titled "Version script
   validation" in the [build system maintainers guide].
+
+* Weak symbols for API additions is supported. Provide `__ANDROID_UNAVAILABLE_SYMBOLS_ARE_WEAK__`
+as an option. See [Issue 837] for details.
+
+[Issue 837]: https://github.com/android/ndk/issues/837
 
 ## Known Issues
 
