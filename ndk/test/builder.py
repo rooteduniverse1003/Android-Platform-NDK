@@ -26,7 +26,6 @@ import shutil
 import sys
 import traceback
 from typing import Dict, List, Tuple
-from xml.etree import ElementTree
 
 import ndk.abis
 import ndk.archive
@@ -42,7 +41,7 @@ import ndk.test.spec
 import ndk.test.suites
 import ndk.test.ui
 import ndk.ui
-from ndk.workqueue import LoadRestrictingWorkQueue, Worker, WorkQueue
+from ndk.workqueue import LoadRestrictingWorkQueue, Worker
 
 
 def logger() -> logging.Logger:
