@@ -20,6 +20,16 @@ directly, see the [build system maintainers guide].
 
 [Issue 1751]: https://github.com/android/ndk/issues/1751
 
+## r25c
+
+* [Issue 1813]: `-Wl,--gc-sections` is no longer set by default for debug
+  builds. This behavior was removed because it could cause the linker to remove
+  functions that may be useful to evaluate during debugging. The new CMake
+  toolchain file (`-DANDROID_USE_LEGACY_TOOLCHAIN_FILE=OFF`, not the default
+  behavior) does not include this fix because it requires a CMake fix first.
+
+[Issue 1813]: https://github.com/android/ndk/issues/1813
+
 ## r25b
 
 * [Issue 1739]: Fixed C compatibility issue in `amidi/AMidi.h`.
