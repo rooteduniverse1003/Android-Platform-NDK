@@ -35,7 +35,7 @@ try:
 except ImportError:
     import site
 
-    site.addsitedir(str(ndk.paths.android_path("development/python-packages")))
+    site.addsitedir(str(ndk.paths.android_path("development/python-packages/adb")))
     import adb  # pylint: disable=import-error,ungrouped-imports
 
 
