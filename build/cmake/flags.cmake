@@ -55,6 +55,9 @@ if (NOT ANDROID_ALLOW_UNDEFINED_VERSION_SCRIPT_SYMBOLS)
 endif()
 
 string(APPEND _ANDROID_NDK_INIT_LDFLAGS " -Wl,--fatal-warnings")
+# This should only be set for release modes, but CMake doesn't provide a way for
+# us to be that specific in the new toolchain file.
+# https://github.com/android/ndk/issues/1813
 string(APPEND _ANDROID_NDK_INIT_LDFLAGS " -Wl,--gc-sections")
 string(APPEND _ANDROID_NDK_INIT_LDFLAGS_EXE " -Wl,--gc-sections")
 
