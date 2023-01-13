@@ -36,9 +36,15 @@ class FlagVerifierResult:
         """Returns True if verification failed."""
         raise NotImplementedError
 
-    def make_test_result_tuple(self) -> tuple[bool, Optional[str]]:
+    def make_test_result_tuple(
+        self, message_prefix: str | None = None
+    ) -> tuple[bool, Optional[str]]:
         """Creates a test result tuple in the format expect by run_test."""
-        return not self.failed(), self.error_message
+        if message_prefix is None:
+            message = self.error_message
+        else:
+            message = f"{message_prefix}\n{self.error_message}"
+        return not self.failed(), message
 
 
 class FlagVerifierSuccess(FlagVerifierResult):
