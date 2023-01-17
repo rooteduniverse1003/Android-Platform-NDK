@@ -1,4 +1,17 @@
 [[package]]
+name = "adb"
+version = "0.0.1"
+description = "A Python interface to the Android Debug Bridge."
+category = "dev"
+optional = false
+python-versions = "*"
+develop = false
+
+[package.source]
+type = "directory"
+url = "../development/python-packages/adb"
+
+[[package]]
 name = "astroid"
 version = "2.12.5"
 description = "An abstract syntax tree for Python with inference support."
@@ -290,9 +303,10 @@ python-versions = "!=3.0.*,!=3.1.*,!=3.2.*,!=3.3.*,!=3.4.*,>=2.7"
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.10"
-content-hash = "cf914ec389dfc14439554f69f91be1ebba2de3b93a65f63431e148812b372d2f"
+content-hash = "c9b1f60fd32263b92dcb075a771134683d692a9d1f11f10dfaad50d662dc7636"
 
 [metadata.files]
+adb = []
 astroid = []
 atomicwrites = []
 attrs = []

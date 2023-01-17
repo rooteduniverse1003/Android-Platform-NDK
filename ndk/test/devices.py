@@ -77,7 +77,7 @@ class Device(adb.AndroidDevice):
         self._ro_build_id: Optional[str] = None
         self._ro_build_version_sdk: Optional[str] = None
         self._ro_build_version_codename: Optional[str] = None
-        self._ro_debuggable: Optional[bool] = None
+        self._ro_debuggable: Optional[str] = None
         self._ro_product_name: Optional[str] = None
 
         if precache:
@@ -109,7 +109,7 @@ class Device(adb.AndroidDevice):
             for abi_prop in abi_properties:
                 value = self.get_prop(abi_prop)
                 if value is not None:
-                    abis.update(value.split(","))
+                    abis.update([Abi(s) for s in value.split(",")])
 
             if "x86_64" in abis:
                 # Don't allow ndk_translation to count as an arm test device.
