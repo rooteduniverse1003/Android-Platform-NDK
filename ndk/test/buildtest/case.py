@@ -507,7 +507,7 @@ def _run_cmake_build_test(
     else:
         args.append("-DANDROID_USE_LEGACY_TOOLCHAIN_FILE=OFF")
     proc = subprocess.run(
-        [str(cmake_bin)] + cmake_flags + args,
+        [str(cmake_bin)] + args + cmake_flags,
         check=False,
         stdout=subprocess.PIPE,
         stderr=subprocess.STDOUT,
