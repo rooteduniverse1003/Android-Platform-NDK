@@ -116,6 +116,20 @@ class TestConfig:
             """
             return False
 
+        @staticmethod
+        def override_runtime_minsdkversion(test: Test) -> int | None:
+            """Overrides the minSdkVersion that will be used for determining OS compat.
+
+            Static executables have the unusual build requirement that they always be
+            built with the latest API level, but are compatible with old devices. We
+            need to specify `APP_PLATFORM := latest` for those tests, but the test
+            runner needs to run them on old devices. There isn't an easy way to infer
+            this, nor are there many static executable tests, so those tests instead
+            override their minSdkVersion rather than letting the test builder infer it
+            from APP_PLATFORM.
+            """
+            return None
+
         # pylint: enable=unused-argument
 
     def __init__(self, test_config_py: Path) -> None:
@@ -165,6 +179,15 @@ class TestConfig:
             ] = self.module.is_negative_test  # type: ignore
         except AttributeError:
             self.is_negative_test = self.NullTestConfig.is_negative_test
+
+        try:
+            self.override_runtime_minsdkversion: Callable[
+                [Test], int | None
+            ] = self.module.override_runtime_minsdkversion  # type: ignore
+        except AttributeError:
+            self.override_runtime_minsdkversion = (
+                self.NullTestConfig.override_runtime_minsdkversion
+            )
 
     @classmethod
     def from_test_dir(cls, test_dir: Path) -> "TestConfig":
