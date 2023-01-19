@@ -28,9 +28,8 @@ directly, see the [build system maintainers guide].
   `LOCAL_ALLOW_UNDEFINED_VERSION_SCRIPT_SYMBOLS := true` in your `Android.mk`
   file. For other build systems, see the secion titled "Version script
   validation" in the [build system maintainers guide].
-
-* Weak symbols for API additions is supported. Provide `__ANDROID_UNAVAILABLE_SYMBOLS_ARE_WEAK__`
-as an option. See [Issue 837] for details.
+* [Issue 873]: Weak symbols for API additions is supported. Provide
+  `__ANDROID_UNAVAILABLE_SYMBOLS_ARE_WEAK__` as an option.
 
 [Issue 837]: https://github.com/android/ndk/issues/837
 
