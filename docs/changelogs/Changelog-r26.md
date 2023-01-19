@@ -30,8 +30,12 @@ directly, see the [build system maintainers guide].
   validation" in the [build system maintainers guide].
 * [Issue 873]: Weak symbols for API additions is supported. Provide
   `__ANDROID_UNAVAILABLE_SYMBOLS_ARE_WEAK__` as an option.
+* [Issue 1803]: Removed useless `strtoq` and `strtouq` from the libc stub
+  libraries. These were never exposed in the header files, but could confuse
+  some autoconf like systems.
 
 [Issue 837]: https://github.com/android/ndk/issues/837
+[Issue 1803]: https://github.com/android/ndk/issues/1803
 
 ## Known Issues
 
