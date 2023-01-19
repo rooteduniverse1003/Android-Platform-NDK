@@ -1,5 +1,15 @@
-def extra_cmake_flags():
-    # Match the ndk-build test. Using libc++ here would require us to target a
-    # newer API level since static executables and libandroid_support don't
-    # mix.
-    return ["-DANDROID_STL=system"]
+from typing import Union
+
+import ndk.abis
+from ndk.test.buildtest.case import Test
+
+
+def extra_cmake_flags() -> list[str]:
+    # Required for static executables.
+    return ["-DANDROID_PLATFORM=latest"]
+
+
+def override_runtime_minsdkversion(test: Test) -> Union[int, None]:
+    # We build as latest because static executables require that, but static executables
+    # are compatible with old OS versions.
+    return ndk.abis.min_api_for_abi(test.config.abi)
