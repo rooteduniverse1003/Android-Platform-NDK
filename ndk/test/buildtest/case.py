@@ -174,7 +174,7 @@ class BuildTest(Test):
     def get_extra_ndk_build_flags(self) -> List[str]:
         return self.get_test_config().extra_ndk_build_flags()
 
-    def get_overridden_runtime_minsdkversion(self) -> int | None:
+    def get_overridden_runtime_minsdkversion(self) -> Union[int, None]:
         return self.get_test_config().override_runtime_minsdkversion(self)
 
 
@@ -323,7 +323,7 @@ def _platform_from_application_mk(test_dir: Path) -> Optional[int]:
 
 
 def _get_or_infer_app_platform(
-    overridden_runtime_minsdkversion: int | None,
+    overridden_runtime_minsdkversion: Union[int, None],
     test_dir: Path,
     abi: Abi,
 ) -> int:

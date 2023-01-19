@@ -117,7 +117,7 @@ class TestConfig:
             return False
 
         @staticmethod
-        def override_runtime_minsdkversion(test: Test) -> int | None:
+        def override_runtime_minsdkversion(test: Test) -> Union[int, None]:
             """Overrides the minSdkVersion that will be used for determining OS compat.
 
             Static executables have the unusual build requirement that they always be
@@ -182,7 +182,7 @@ class TestConfig:
 
         try:
             self.override_runtime_minsdkversion: Callable[
-                [Test], int | None
+                [Test], Union[int, None]
             ] = self.module.override_runtime_minsdkversion  # type: ignore
         except AttributeError:
             self.override_runtime_minsdkversion = (
