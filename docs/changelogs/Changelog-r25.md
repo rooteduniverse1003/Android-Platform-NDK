@@ -22,6 +22,10 @@ directly, see the [build system maintainers guide].
 
 ## r25c
 
+* Updated LLVM to clang-r450784d1, based on LLVM 14 development.
+  * [Issue 1797]: Fixed LLDB handling of forward slashes in absolute paths on
+    Windows.
+  * [Issue 1832]: Improvements to aarch64 vector code generation.
 * [Issue 1813]: `-Wl,--gc-sections` is no longer set by default for debug
   builds. This behavior was removed because it could cause the linker to remove
   functions that may be useful to evaluate during debugging. The new CMake
@@ -34,9 +38,11 @@ directly, see the [build system maintainers guide].
 * [Issue 1757]: Updated simpleperf. Includes fix for signing denial when run on
   macOS.
 
+[Issue 1797]: https://github.com/android/ndk/issues/1797
 [Issue 1803]: https://github.com/android/ndk/issues/1803
 [Issue 1813]: https://github.com/android/ndk/issues/1813
 [Issue 1829]: https://github.com/android/ndk/issues/1829
+[Issue 1832]: https://github.com/android/ndk/issues/1832
 
 ## r25b
 
