@@ -106,6 +106,13 @@ class BuildConfiguration:
     """
 
     abi: Abi
+    # This is always None for the global config while building. Each test will fill in
+    # the appropriate value for the test (based on `APP_PLATFORM` or similar). It is
+    # still a part of the BuildConfiguration class because we do not have separate
+    # classes for build config *input* (the BuildConfiguration created by
+    # TestBuilder.find_tests) and build config *output* (the result decided and
+    # serialized by the test, which needs to be read when the test is later run by
+    # run_tests.py).
     api: Optional[int]
     toolchain_file: CMakeToolchainFile
     weak_symbol: WeakSymbolsConfig

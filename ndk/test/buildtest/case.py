@@ -15,6 +15,7 @@
 #
 """Build test cases."""
 
+from abc import ABC, abstractmethod
 import fnmatch
 from importlib.abc import Loader
 import importlib.util
@@ -65,7 +66,7 @@ def _prep_build_dir(src_dir: Path, out_dir: Path) -> None:
     shutil.copytree(src_dir, out_dir, ignore=shutil.ignore_patterns("__pycache__"))
 
 
-class Test:
+class Test(ABC):
     def __init__(
         self, name: str, test_dir: Path, config: BuildConfiguration, ndk_path: Path
     ) -> None:
@@ -73,6 +74,11 @@ class Test:
         self.test_dir = test_dir
         self.config = config
         self.ndk_path = ndk_path
+        self.config = self.config.with_api(self.determine_api_level_for_config())
+
+    @abstractmethod
+    def determine_api_level_for_config(self) -> int:
+        ...
 
     def get_test_config(self) -> TestConfig:
         return TestConfig.from_test_dir(self.test_dir)
@@ -168,6 +174,9 @@ class BuildTest(Test):
     def get_extra_ndk_build_flags(self) -> List[str]:
         return self.get_test_config().extra_ndk_build_flags()
 
+    def get_overridden_runtime_minsdkversion(self) -> int | None:
+        return self.get_test_config().override_runtime_minsdkversion(self)
+
 
 class PythonBuildTest(BuildTest):
     """A test that is implemented by test.py.
@@ -190,8 +199,6 @@ class PythonBuildTest(BuildTest):
     def __init__(
         self, name: str, test_dir: Path, config: BuildConfiguration, ndk_path: Path
     ) -> None:
-        if config.api is None:
-            config = config.with_api(ndk.abis.min_api_for_abi(config.abi))
         super().__init__(name, test_dir, config, ndk_path)
 
         if self.abi not in ndk.abis.ALL_ABIS:
@@ -202,6 +209,9 @@ class PythonBuildTest(BuildTest):
             int(self.api)
         except ValueError as ex:
             raise ValueError(f"{self.api} is not a valid API number") from ex
+
+    def determine_api_level_for_config(self) -> int:
+        return ndk.abis.min_api_for_abi(self.config.abi)
 
     def get_build_dir(self, out_dir: Path) -> Path:
         return out_dir / str(self.config) / "test.py" / self.name
@@ -228,12 +238,8 @@ class PythonBuildTest(BuildTest):
 
 
 class ShellBuildTest(BuildTest):
-    def __init__(
-        self, name: str, test_dir: Path, config: BuildConfiguration, ndk_path: Path
-    ) -> None:
-        if config.api is None:
-            config = config.with_api(ndk.abis.min_api_for_abi(config.abi))
-        super().__init__(name, test_dir, config, ndk_path)
+    def determine_api_level_for_config(self) -> int:
+        return ndk.abis.min_api_for_abi(self.config.abi)
 
     def get_build_dir(self, out_dir: Path) -> Path:
         return out_dir / str(self.config) / "build.sh" / self.name
@@ -317,25 +323,29 @@ def _platform_from_application_mk(test_dir: Path) -> Optional[int]:
 
 
 def _get_or_infer_app_platform(
-    platform_from_user: Optional[int], test_dir: Path, abi: Abi
+    overridden_runtime_minsdkversion: int | None,
+    test_dir: Path,
+    abi: Abi,
 ) -> int:
     """Determines the platform level to use for a test using ndk-build.
 
     Choose the platform level from, in order of preference:
-    1. Value given as argument.
+    1. The value forced by the test_config.py using override_runtime_minsdkversion.
     2. APP_PLATFORM from jni/Application.mk.
     3. Default value for the target ABI.
 
     Args:
-        platform_from_user: A user provided platform level or None.
+        overridden_runtime_minsdkversion: The test's forced runtime minSdkVersion. Might
+            differ from the build API level. This is rare (probably only static
+            executables).
         test_dir: The directory containing the ndk-build project.
         abi: The ABI being targeted.
 
     Returns:
         The platform version the test should build against.
     """
-    if platform_from_user is not None:
-        return platform_from_user
+    if overridden_runtime_minsdkversion is not None:
+        return overridden_runtime_minsdkversion
 
     minimum_version = ndk.abis.min_api_for_abi(abi)
     platform_from_application_mk = _platform_from_application_mk(test_dir)
@@ -355,12 +365,15 @@ class NdkBuildTest(BuildTest):
         ndk_path: Path,
         dist: bool,
     ) -> None:
-        if config.api is None:
-            config = config.with_api(
-                _get_or_infer_app_platform(config.api, test_dir, config.abi)
-            )
         super().__init__(name, test_dir, config, ndk_path)
         self.dist = dist
+
+    def determine_api_level_for_config(self) -> int:
+        return _get_or_infer_app_platform(
+            self.get_overridden_runtime_minsdkversion(),
+            self.test_dir,
+            self.config.abi,
+        )
 
     def get_dist_dir(self, obj_dir: Path, dist_dir: Path) -> Path:
         if self.dist:
@@ -419,12 +432,15 @@ class CMakeBuildTest(BuildTest):
         ndk_path: Path,
         dist: bool,
     ) -> None:
-        if config.api is None:
-            config = config.with_api(
-                _get_or_infer_app_platform(config.api, test_dir, config.abi)
-            )
         super().__init__(name, test_dir, config, ndk_path)
         self.dist = dist
+
+    def determine_api_level_for_config(self) -> int:
+        return _get_or_infer_app_platform(
+            self.get_overridden_runtime_minsdkversion(),
+            self.test_dir,
+            self.config.abi,
+        )
 
     def get_dist_dir(self, obj_dir: Path, dist_dir: Path) -> Path:
         if self.dist:
@@ -491,7 +507,7 @@ def _run_cmake_build_test(
     else:
         args.append("-DANDROID_USE_LEGACY_TOOLCHAIN_FILE=OFF")
     proc = subprocess.run(
-        [str(cmake_bin)] + cmake_flags + args,
+        [str(cmake_bin)] + args + cmake_flags,
         check=False,
         stdout=subprocess.PIPE,
         stderr=subprocess.STDOUT,
@@ -615,12 +631,8 @@ def find_original_libcxx_test(name: str) -> List[str]:
 
 
 class LibcxxTest(Test):
-    def __init__(
-        self, name: str, test_dir: Path, config: BuildConfiguration, ndk_path: Path
-    ) -> None:
-        if config.api is None:
-            config = config.with_api(ndk.abis.min_api_for_abi(config.abi))
-        super().__init__(name, test_dir, config, ndk_path)
+    def determine_api_level_for_config(self) -> int:
+        return ndk.abis.min_api_for_abi(self.config.abi)
 
     @property
     def abi(self) -> Abi:
@@ -813,6 +825,13 @@ class XunitResult(Test):
     ) -> None:
         super().__init__(name, test_dir, config, ndk_path)
         self.test_base_dir = test_base_dir
+
+    def determine_api_level_for_config(self) -> int:
+        # This type of test is the rare one where the API level is already determined
+        # because this test is an odd synthetic test created for the benefit of the UI,
+        # rather than reporting all libc++ test status under a single test report.
+        assert self.config.api is not None
+        return self.config.api
 
     @property
     def case_name(self) -> str:

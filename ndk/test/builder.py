@@ -162,7 +162,9 @@ class TestBuilder:
         libcxx_scanner = ndk.test.buildtest.scanner.LibcxxTestScanner(
             self.test_options.ndk_path
         )
-        build_api_level = None  # Always use the default.
+        # This is always None for the global config while building. See the comment in
+        # the definition of BuildConfiguration.
+        build_api_level = None
         for abi in self.test_spec.abis:
             for toolchain_file in ndk.test.spec.CMakeToolchainFile:
                 for weak_symbols in ndk.test.spec.WeakSymbolsConfig:
