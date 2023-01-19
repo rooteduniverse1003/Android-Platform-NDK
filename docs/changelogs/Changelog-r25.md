@@ -27,6 +27,8 @@ directly, see the [build system maintainers guide].
   functions that may be useful to evaluate during debugging. The new CMake
   toolchain file (`-DANDROID_USE_LEGACY_TOOLCHAIN_FILE=OFF`, not the default
   behavior) does not include this fix because it requires a CMake fix first.
+* [Issue 1757]: Updated simpleperf. Includes fix for signing denial when run on
+  macOS.
 
 [Issue 1813]: https://github.com/android/ndk/issues/1813
 
