@@ -31,6 +31,8 @@ directly, see the [build system maintainers guide].
   * [Issue 1803]: Removed useless `strtoq` and `strtouq` from the libc stub
     libraries. These were never exposed in the header files, but could confuse
     some autoconf like systems.
+* [Issue 1757]: Updated simpleperf. Includes fix for signing denial when run on
+  macOS.
 
 [Issue 1803]: https://github.com/android/ndk/issues/1803
 [Issue 1813]: https://github.com/android/ndk/issues/1813
