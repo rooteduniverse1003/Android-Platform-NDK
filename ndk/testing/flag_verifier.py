@@ -36,9 +36,15 @@ class FlagVerifierResult:
         """Returns True if verification failed."""
         raise NotImplementedError
 
-    def make_test_result_tuple(self) -> tuple[bool, Optional[str]]:
+    def make_test_result_tuple(
+        self, message_prefix: str | None = None
+    ) -> tuple[bool, Optional[str]]:
         """Creates a test result tuple in the format expect by run_test."""
-        return not self.failed(), self.error_message
+        if message_prefix is None:
+            message = self.error_message
+        else:
+            message = f"{message_prefix}\n{self.error_message}"
+        return not self.failed(), message
 
 
 class FlagVerifierSuccess(FlagVerifierResult):
@@ -77,9 +83,21 @@ class FlagVerifier:
             self.toolchain_mode = "OFF"
         self.expected_flags: list[str] = []
         self.not_expected_flags: list[str] = []
+        self.ndk_build_flags: list[str] = []
+        self.cmake_flags: list[str] = []
 
     def with_api(self, api: int) -> FlagVerifier:
         self.api = api
+        return self
+
+    def with_ndk_build_flag(self, flag: str) -> FlagVerifier:
+        """Appends a flag to the list of arguments that will be passed to ndk-build."""
+        self.ndk_build_flags.append(flag)
+        return self
+
+    def with_cmake_flag(self, flag: str) -> FlagVerifier:
+        """Appends a flag to the list of arguments that will be passed to CMake."""
+        self.cmake_flags.append(flag)
         return self
 
     def expect_flag(self, flag: str) -> None:
@@ -169,20 +187,15 @@ class FlagVerifier:
                 "V=1",
                 f"APP_ABI={self.abi}",
                 f"APP_PLATFORM=android-{self.api}",
-            ]
+            ] + self.ndk_build_flags
         )
 
-    def verify_cmake(
-        self, cmake_flags: Optional[list[str]] = None
-    ) -> FlagVerifierResult:
+    def verify_cmake(self) -> FlagVerifierResult:
         """Verifies that CMake behaves as specified.
 
         Returns:
             A FlagVerifierResult object describing the verification result.
         """
-        if cmake_flags is None:
-            cmake_flags = []
-
         host = Host.current()
         if host == Host.Windows64:
             tag = "windows-x86"
@@ -211,7 +224,7 @@ class FlagVerifier:
             f"-DANDROID_USE_LEGACY_TOOLCHAIN_FILE={self.toolchain_mode}",
             "-GNinja",
             f"-DCMAKE_MAKE_PROGRAM={ninja}",
-        ] + cmake_flags
+        ] + self.cmake_flags
         result = subprocess.run(
             cmd,
             check=False,
