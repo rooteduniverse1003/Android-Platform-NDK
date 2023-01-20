@@ -22,7 +22,7 @@ from typing import Any, List
 
 from ndk.ansi import AnsiConsole, Console, font_bold, font_faint, font_reset
 from ndk.ui import Ui, UiRenderer, AnsiUiRenderer, NonAnsiUiRenderer, columnate
-from ndk.test.devices import DeviceShardingGroup
+from ndk.test.devices import Device
 from ndk.workqueue import LoadRestrictingWorkQueue, ShardingWorkQueue, Worker
 
 
@@ -34,7 +34,7 @@ class TestProgressUi(Ui):
         ui_renderer: UiRenderer,
         show_worker_status: bool,
         show_device_groups: bool,
-        workqueue: ShardingWorkQueue[Any, DeviceShardingGroup],
+        workqueue: ShardingWorkQueue[Any, Device],
     ) -> None:
         super().__init__(ui_renderer)
         self.show_worker_status = show_worker_status
@@ -64,9 +64,10 @@ class TestProgressUi(Ui):
         )
 
         if self.show_device_groups:
-            for group in sorted(self.workqueue.task_queues.keys()):
-                assert isinstance(group, DeviceShardingGroup)
-                group_id = f"{len(group.devices)} devices {group}"
+            for group in sorted(
+                self.workqueue.task_queues.keys(), key=lambda x: str(x)
+            ):
+                group_id = f"{len(group.shards)} devices {group}"
                 lines.append(
                     "{: >{width}} {}".format(
                         self.workqueue.task_queues[group].qsize(),
@@ -79,7 +80,7 @@ class TestProgressUi(Ui):
 
 
 def get_test_progress_ui(
-    console: Console, workqueue: ShardingWorkQueue[Any, DeviceShardingGroup]
+    console: Console, workqueue: ShardingWorkQueue[Any, Device]
 ) -> TestProgressUi:
     ui_renderer: UiRenderer
     if console.smart_console:

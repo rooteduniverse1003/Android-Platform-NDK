@@ -180,7 +180,7 @@ class Device(adb.AndroidDevice):
         return hash(self.serial)
 
 
-class DeviceShardingGroup(ShardingGroup):
+class DeviceShardingGroup(ShardingGroup[Device]):
     """A collection of devices that should be identical for testing purposes.
 
     For the moment, devices are only identical for testing purposes if they are
@@ -218,7 +218,7 @@ class DeviceShardingGroup(ShardingGroup):
         return f'android-{self.version} {" ".join(self.abis)}'
 
     @property
-    def shards(self) -> List[Any]:
+    def shards(self) -> list[Device]:
         return self.devices
 
     def add_device(self, device: Device) -> None:
@@ -256,10 +256,6 @@ class DeviceShardingGroup(ShardingGroup):
             print("devices not equal: {}, {}".format(self.devices, other.devices))
             return False
         return True
-
-    def __lt__(self, other: object) -> bool:
-        assert isinstance(other, DeviceShardingGroup)
-        return (self.version, self.abis) < (other.version, other.abis)
 
     def __hash__(self) -> int:
         return hash(
