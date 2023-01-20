@@ -397,7 +397,6 @@ class NdkBuildTest(BuildTest):
             self.ndk_path,
             self.ndk_build_flags,
             self.abi,
-            self.api,
         )
         if (failure := self.verify_no_cruft_in_dist(dist_dir, proc.args)) is not None:
             return failure, []
@@ -411,13 +410,11 @@ def _run_ndk_build_test(
     ndk_path: Path,
     ndk_build_flags: List[str],
     abi: Abi,
-    platform: int,
 ) -> CompletedProcess[str]:
     _prep_build_dir(test_dir, obj_dir)
     with ndk.ext.os.cd(obj_dir):
         args = [
             f"APP_ABI={abi}",
-            f"APP_PLATFORM=android-{platform}",
             f"NDK_LIBS_OUT={dist_dir}",
         ] + _get_jobs_args()
         return ndk.ndkbuild.build(ndk_path, args + ndk_build_flags)
@@ -464,7 +461,6 @@ class CMakeBuildTest(BuildTest):
             self.ndk_path,
             self.cmake_flags,
             self.abi,
-            self.api,
             self.config.toolchain_file == CMakeToolchainFile.Legacy,
         )
         if (failure := self.verify_no_cruft_in_dist(dist_dir, proc.args)) is not None:
@@ -479,7 +475,6 @@ def _run_cmake_build_test(
     ndk_path: Path,
     cmake_flags: List[str],
     abi: str,
-    platform: int,
     use_legacy_toolchain_file: bool,
 ) -> CompletedProcess[str]:
     _prep_build_dir(test_dir, obj_dir)
@@ -500,8 +495,6 @@ def _run_cmake_build_test(
         "-GNinja",
         f"-DCMAKE_MAKE_PROGRAM={ninja_bin}",
     ]
-    if platform is not None:
-        args.append("-DANDROID_PLATFORM=android-{}".format(platform))
     if use_legacy_toolchain_file:
         args.append("-DANDROID_USE_LEGACY_TOOLCHAIN_FILE=ON")
     else:
