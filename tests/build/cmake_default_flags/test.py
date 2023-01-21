@@ -28,12 +28,14 @@ def check_configuration(
     expected_flags: list[str],
     unexpected_flags: list[str],
 ) -> FlagVerifierResult:
-    verifier = FlagVerifier(Path("project"), Path(ndk_path), build_config)
+    verifier = FlagVerifier(
+        Path("project"), Path(ndk_path), build_config
+    ).with_cmake_flag(f"-DCMAKE_BUILD_TYPE={cmake_config}")
     for flag in expected_flags:
         verifier.expect_flag(flag)
     for flag in unexpected_flags:
         verifier.expect_not_flag(flag)
-    return verifier.verify_cmake([f"-DCMAKE_BUILD_TYPE={cmake_config}"])
+    return verifier.verify_cmake()
 
 
 def run_test(ndk_path: str, config: BuildConfiguration) -> tuple[bool, Optional[str]]:
