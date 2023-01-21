@@ -12,6 +12,33 @@ directly, see the [build system maintainers guide].
 [build system maintainers guide]: https://android.googlesource.com/platform/ndk/+/master/docs/BuildSystemMaintainers.md
 
 
+## Announcements
+
+* Support for KitKat (APIs 19 and 20) is planned to be removed in the next NDK
+  release. The minimum OS supported by the NDK for r26 will be Lollipop (API
+  level 21). See [Issue 1751] for details.
+
+[Issue 1751]: https://github.com/android/ndk/issues/1751
+
+## r25c
+
+* Updated LLVM to clang-r450784d1, based on LLVM 14 development.
+  * [Issue 1797]: Fixed LLDB handling of forward slashes in absolute paths on
+    Windows.
+  * [Issue 1832]: Improvements to aarch64 vector code generation.
+* [Issue 1813]: `-Wl,--gc-sections` is no longer set by default for debug
+  builds. This behavior was removed because it could cause the linker to remove
+  functions that may be useful to evaluate during debugging. The new CMake
+  toolchain file (`-DANDROID_USE_LEGACY_TOOLCHAIN_FILE=OFF`, not the default
+  behavior) does not include this fix because it requires a CMake fix first.
+* [Issue 1757]: Updated simpleperf. Includes fix for signing denial when run on
+  macOS.
+
+[Issue 1757]: https://github.com/android/ndk/issues/1757
+[Issue 1797]: https://github.com/android/ndk/issues/1797
+[Issue 1813]: https://github.com/android/ndk/issues/1813
+[Issue 1832]: https://github.com/android/ndk/issues/1832
+
 ## r25b
 
 * [Issue 1739]: Fixed C compatibility issue in `amidi/AMidi.h`.
