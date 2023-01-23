@@ -313,7 +313,7 @@ def report_skipped_tests_for_missing_devices(
 
 def wait_for_results(
     report: Report[DeviceShardingGroup],
-    workqueue: ShardingWorkQueue[TestResult, DeviceShardingGroup],
+    workqueue: ShardingWorkQueue[TestResult, Device],
     printer: Printer,
 ) -> None:
     console = ndk.ansi.get_console()
@@ -356,7 +356,7 @@ def flake_filter(result: TestResult) -> bool:
 
 def restart_flaky_tests(
     report: Report[DeviceShardingGroup],
-    workqueue: ShardingWorkQueue[TestResult, DeviceShardingGroup],
+    workqueue: ShardingWorkQueue[TestResult, Device],
 ) -> None:
     """Finds and restarts any failing flaky tests."""
     rerun_tests = report.remove_all_failing_flaky(flake_filter)
@@ -402,7 +402,7 @@ def get_and_attach_logs_for_failing_tests(
 
     # Have to use max of one worker per re-run to ensure that the logs we collect do not
     # conflate with other tests.
-    queue: ShardingWorkQueue[TestResult, DeviceShardingGroup] = ShardingWorkQueue(
+    queue: ShardingWorkQueue[TestResult, Device] = ShardingWorkQueue(
         fleet.get_unique_device_groups(), 1
     )
     try:
@@ -757,7 +757,7 @@ def run_tests(args: argparse.Namespace) -> Results:
         workqueue.join()
 
     report = Report[DeviceShardingGroup]()
-    shard_queue: ShardingWorkQueue[TestResult, DeviceShardingGroup] = ShardingWorkQueue(
+    shard_queue: ShardingWorkQueue[TestResult, Device] = ShardingWorkQueue(
         fleet.get_unique_device_groups(), 4
     )
     try:

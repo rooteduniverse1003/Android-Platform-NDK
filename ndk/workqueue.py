@@ -18,6 +18,7 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 import collections
+from collections.abc import Hashable
 import itertools
 import logging
 import multiprocessing
@@ -521,24 +522,24 @@ class LoadRestrictingWorkQueue(BaseWorkQueue[ResultT]):
         return self.num_tasks == 0
 
 
-class ShardingGroup:
+ShardT = TypeVar("ShardT")
+
+
+class ShardingGroup(Hashable, Generic[ShardT]):
     @property
-    def shards(self) -> List[Any]:
+    def shards(self) -> list[ShardT]:
         raise NotImplementedError
 
 
-ShardingGroupType = TypeVar("ShardingGroupType", bound=ShardingGroup)
-
-
-class ShardingWorkQueue(BaseWorkQueue[ResultT], Generic[ResultT, ShardingGroupType]):
+class ShardingWorkQueue(BaseWorkQueue[ResultT], Generic[ResultT, ShardT]):
     def __init__(
-        self, device_groups: Iterable[ShardingGroupType], procs_per_device: int
+        self, device_groups: Iterable[ShardingGroup[ShardT]], procs_per_device: int
     ) -> None:
         self.manager = multiprocessing.Manager()
         self.result_queue = self.manager.Queue()
-        self.task_queues: Dict[ShardingGroupType, Queue[Task]] = {}
+        self.task_queues: Dict[ShardingGroup[ShardT], Queue[Task]] = {}
 
-        self.work_queues: Dict[ShardingGroupType, Dict[Any, WorkQueue]] = {}
+        self.work_queues: Dict[ShardingGroup[ShardT], Dict[Any, WorkQueue]] = {}
         self.num_tasks = 0
         for group in device_groups:
             self.work_queues[group] = {}
@@ -553,7 +554,7 @@ class ShardingWorkQueue(BaseWorkQueue[ResultT], Generic[ResultT, ShardingGroupTy
 
     def add_task(
         self,
-        group: ShardingGroupType,
+        group: ShardingGroup[ShardT],
         func: Callable[..., ResultT],
         *args: Any,
         **kwargs: Any,
