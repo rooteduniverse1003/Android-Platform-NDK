@@ -78,6 +78,46 @@ your environment your editor can use it.
 poetry shell
 ```
 
+### macOS workarounds
+
+On macOS you may not be able to use the Python that is in prebuilts because it
+does not support the ssl module (which poetry itself needs). Until the Python
+prebuilt includes that module, do the following to use a different Python:
+
+First time setup: ensure that you have pyenv installed. You may need to install
+homebrew (http://go/homebrew for Googlers, else https://brew.sh/).
+
+```
+$ brew update && brew upgrade pyenv
+```
+
+Then set up your tree to use the correct version of Python. This setting will
+apply to the directory it is run in, so you will need to do it per NDK tree.
+
+```
+# From the //ndk directory of your NDK tree:
+$ ../prebuilts/python/darwin-x86/bin/python3 --version
+Python 3.10.3
+# We don't need to match the version exactly, just the major/minor version.
+$ pyenv install 3.10:latest
+$ pyenv versions
+# pyenv will list the available Python versions. Use the latest version that
+# matches the prebuilt. In my case that's 3.10.6.
+$ pyenv local 3.10.6
+$ python --version
+Python 3.10.6
+$ poetry env use 3.10
+poetry install
+```
+
+Each time the NDK updates to a new version of Python, you'll need to repeat
+those steps. You may also need to remove the old poetry environment
+(`poetry env list` to get the name, `poetry env remove` to remove it).
+
+`checkbuild.py` and `run_tests.py` will complain when you try to use a Python
+that doesn't come from prebuilts by default. To suppress that, pass
+`--permissive-python-environment` when using those tools in this environment.
+
 ## Build
 
 ### For Linux or Darwin
