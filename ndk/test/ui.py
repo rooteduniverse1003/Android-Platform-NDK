@@ -64,9 +64,7 @@ class TestProgressUi(Ui):
         )
 
         if self.show_device_groups:
-            for group in sorted(
-                self.workqueue.task_queues.keys(), key=lambda x: str(x)
-            ):
+            for group in sorted(self.workqueue.task_queues.keys(), key=str):
                 group_id = f"{len(group.shards)} devices {group}"
                 lines.append(
                     "{: >{width}} {}".format(
