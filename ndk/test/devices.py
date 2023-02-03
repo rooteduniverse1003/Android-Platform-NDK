@@ -23,7 +23,7 @@ from pathlib import Path
 import re
 import shutil
 import subprocess
-from typing import Any, Dict, List, Optional, Set
+from typing import Dict, List, Optional, Set
 
 from ndk.abis import Abi
 import ndk.paths
