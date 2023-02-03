@@ -85,7 +85,7 @@ def spawn_child(_worker: Worker, pid_queue: Queue[int]) -> None:
     sleep_until_sigterm(pid_queue)
 
 
-def raise_error() -> None:
+def raise_error(_worker: Worker) -> None:
     """Raises a RuntimeError to be re-raised in the caller."""
     raise RuntimeError("Error in child")
 

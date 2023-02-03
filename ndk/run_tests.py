@@ -24,7 +24,7 @@ from collections.abc import Iterator
 from contextlib import contextmanager
 import datetime
 import logging
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 import random
 import shutil
 import site
@@ -162,7 +162,7 @@ def adb_has_feature(feature: str) -> bool:
 def push_tests_to_device(
     worker: Worker,
     src_dir: Path,
-    dest_dir: Path,
+    dest_dir: PurePosixPath,
     config: BuildConfiguration,
     device: Device,
     use_sync: bool,

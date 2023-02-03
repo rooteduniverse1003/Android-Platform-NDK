@@ -32,13 +32,14 @@ from types import FrameType
 from typing import (
     Any,
     Callable,
+    Concatenate,
     Deque,
     Dict,
     Generic,
     Iterable,
     List,
-    Mapping,
     Optional,
+    ParamSpec,
     TypeVar,
     Union,
 )
@@ -215,11 +216,18 @@ class Worker:
         logger().debug("worker %d exiting", os.getpid())
 
 
+ResultT = TypeVar("ResultT")
+ParamT = ParamSpec("ParamT")
+
+
 class Task:
     """A task to be executed by a worker process."""
 
     def __init__(
-        self, func: Callable[..., Any], args: Iterable[Any], kwargs: Mapping[Any, Any]
+        self,
+        func: Callable[Concatenate[Worker, ParamT], ResultT],
+        *args: ParamT.args,
+        **kwargs: ParamT.kwargs,
     ) -> None:
         """Creates a task.
 
@@ -289,7 +297,12 @@ class ProcessPoolWorkQueue:
         self.num_tasks = 0
         self._spawn_workers(num_workers)
 
-    def add_task(self, func: Callable[..., Any], *args: Any, **kwargs: Any) -> None:
+    def add_task(
+        self,
+        func: Callable[Concatenate[Worker, ParamT], ResultT],
+        *args: ParamT.args,
+        **kwargs: ParamT.kwargs,
+    ) -> None:
         """Queues up a new task for execution.
 
         Tasks are executed in order of insertion as worker processes become
@@ -300,7 +313,7 @@ class ProcessPoolWorkQueue:
             args: Arguments to be passed to the task.
             kwargs: Keyword arguments to be passed to the task.
         """
-        self.task_queue.put(Task(func, args, kwargs))
+        self.task_queue.put(Task(func, *args, **kwargs))
         self.num_tasks += 1
 
     def get_result(self) -> Any:
@@ -354,9 +367,6 @@ class BasicWorker:
         self.data = data
 
 
-ResultT = TypeVar("ResultT")
-
-
 class BaseWorkQueue(ABC, Generic[ResultT]):
     @abstractmethod
     def get_result(self) -> ResultT:
@@ -403,7 +413,12 @@ class BasicWorkQueue(BaseWorkQueue[ResultT]):
 
     # pylint: enable=unused-argument
 
-    def add_task(self, func: Callable[..., ResultT], *args: Any, **kwargs: Any) -> None:
+    def add_task(
+        self,
+        func: Callable[Concatenate[Worker, ParamT], ResultT],
+        *args: ParamT.args,
+        **kwargs: ParamT.kwargs,
+    ) -> None:
         """Queues up a new task for execution.
 
         Tasks are executed when get_result is called.
@@ -413,7 +428,7 @@ class BasicWorkQueue(BaseWorkQueue[ResultT]):
             args: Arguments to be passed to the task.
             kwargs: Keyword arguments to be passed to the task.
         """
-        self.task_queue.append(Task(func, args, kwargs))
+        self.task_queue.append(Task(func, *args, **kwargs))
 
     def get_result(self) -> Any:
         """Executes a task and returns the result."""
@@ -478,14 +493,22 @@ class LoadRestrictingWorkQueue(BaseWorkQueue[ResultT]):
 
         self.num_tasks = 0
 
-    def add_task(self, func: Callable[..., ResultT], *args: Any, **kwargs: Any) -> None:
-        self.main_task_queue.put(Task(func, args, kwargs))
+    def add_task(
+        self,
+        func: Callable[Concatenate[Worker, ParamT], ResultT],
+        *args: ParamT.args,
+        **kwargs: ParamT.kwargs,
+    ) -> None:
+        self.main_task_queue.put(Task(func, *args, **kwargs))
         self.num_tasks += 1
 
     def add_load_restricted_task(
-        self, func: Callable[..., ResultT], *args: Any, **kwargs: Any
+        self,
+        func: Callable[Concatenate[Worker, ParamT], ResultT],
+        *args: ParamT.args,
+        **kwargs: ParamT.kwargs,
     ) -> None:
-        self.restricted_task_queue.put(Task(func, args, kwargs))
+        self.restricted_task_queue.put(Task(func, *args, **kwargs))
         self.num_tasks += 1
 
     def get_result(self) -> Any:
@@ -555,11 +578,11 @@ class ShardingWorkQueue(BaseWorkQueue[ResultT], Generic[ResultT, ShardT]):
     def add_task(
         self,
         group: ShardingGroup[ShardT],
-        func: Callable[..., ResultT],
-        *args: Any,
-        **kwargs: Any,
+        func: Callable[Concatenate[Worker, ParamT], ResultT],
+        *args: ParamT.args,
+        **kwargs: ParamT.kwargs,
     ) -> None:
-        self.task_queues[group].put(Task(func, args, kwargs))
+        self.task_queues[group].put(Task(func, *args, **kwargs))
         self.num_tasks += 1
 
     def get_result(self) -> Any:
