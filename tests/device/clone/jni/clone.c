@@ -1,7 +1,9 @@
+#define _GNU_SOURCE
+
 #include <stdio.h>
 #include <unistd.h>
 #include <fcntl.h>
-#include <linux/sched.h>
+#include <sched.h>
 #include <stdlib.h>
 
 int v, fd;

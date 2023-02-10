@@ -20,6 +20,25 @@ directly, see the [build system maintainers guide].
 
 ## Changes
 
+* Updated LLVM to clang-r487747b, based on LLVM 17 development.
+  * Clang now treats `-Wimplicit-function-declaration` as an error rather than a
+    warning in C11 and newer. Clang's default C standard is 17, so this is a
+    change in default behavior compared to older versions of Clang, but is the
+    behavior defined by C99.
+
+    If you encounter these errors when upgrading, you most likely forgot an
+    `#include`. If you cannot (or do not want to) fix those issues, you can
+    revert to the prior behavior with
+    `-Wno-error=implicit-function-declaration`.
+
+    C++ users are unaffected. This has never been allowed in C++.
+
+    See https://reviews.llvm.org/D122983 for more details.
+  * [Issue 1298]: Fixed seccomp error with ASan on x86_64 devices.
+  * [Issue 1677]: Fixed Clang crash in optimizer.
+  * [Issue 1834]: Fixed Clang crash during SVE conversions.
+  * [Issue 1860]: Fixed miscompilation affecting armv7.
+  * [Issue 1862]: Fixed Clang crash for aarch64 with `-Os`.
 * Version scripts that name public symbols that are not present in the library
   will now emit an error by default for ndk-build and the CMake toolchain file.
   Build failures caused by this error are likely a bug in your library or a
@@ -36,6 +55,11 @@ directly, see the [build system maintainers guide].
 
 [Issue 837]: https://github.com/android/ndk/issues/837
 [Issue 1803]: https://github.com/android/ndk/issues/1803
+[Issue 1298]: https://github.com/android/ndk/issues/1298
+[Issue 1677]: https://github.com/android/ndk/issues/1677
+[Issue 1834]: https://github.com/android/ndk/issues/1834
+[Issue 1860]: https://github.com/android/ndk/issues/1860
+[Issue 1862]: https://github.com/android/ndk/issues/1862
 
 ## Known Issues
 

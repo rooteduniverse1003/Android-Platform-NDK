@@ -1,8 +1,11 @@
+#include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <math.h>
-#include <omp.h>
+#include <sys/time.h>
 #include <unistd.h>
+
+#include <omp.h>
+
 #define MAX 33 //41
 int Fibonacci(int n)
 {   int x, y;
@@ -31,7 +34,7 @@ int main(int argc, char * argv[])
   struct timeval time_start, time_end;
   int i = 0;
   // openmp related print message
-  printf("CPU_ONLN= %d\n", sysconf(_SC_NPROCESSORS_ONLN));
+  printf("CPU_ONLN= %ld\n", sysconf(_SC_NPROCESSORS_ONLN));
   printf("Number of CPUs=%d\n", omp_get_num_procs());
   printf("Number of max threads=%d\n", omp_get_max_threads());
   printf("Number of executing thread=%d\n", omp_get_thread_num());

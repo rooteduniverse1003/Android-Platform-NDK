@@ -469,7 +469,7 @@ class Clang(ndk.builds.Module):
             (bin_dir / f"lld{bin_ext}").unlink()
             (bin_dir / f"lld-link{bin_ext}").unlink()
 
-        install_clanglib = install_path / "lib64/clang"
+        install_clanglib = install_path / "lib/clang"
         linux_prebuilt_path = ClangToolchain.path_for_host(Host.Linux)
 
         # Remove unused python scripts. They are not installed for Windows.
@@ -487,25 +487,18 @@ class Clang(ndk.builds.Module):
                 for pyfile in python_bin_dir.glob(file_pattern):
                     pyfile.unlink()
 
-        # Remove lldb-argdumper in site-packages. libc++ is not available there.
-        # People should use bin/lldb-argdumper instead.
-        for pylib in (install_path / "lib").glob("python*"):
-            (pylib / f"site-packages/lldb/lldb-argdumper{bin_ext}").unlink()
-
         if self.host != Host.Linux:
-            # We don't build target binaries as part of the Darwin or Windows
-            # build. These toolchains need to get these from the Linux
-            # prebuilts.
+            # We don't build target binaries as part of the Darwin or Windows build.
+            # These toolchains need to get these from the Linux prebuilts.
             #
-            # The headers and libraries we care about are all in lib64/clang
-            # for both toolchains, and those two are intended to be identical
-            # between each host, so we can just replace them with the one from
-            # the Linux toolchain.
+            # The headers and libraries we care about are all in lib/clang for both
+            # toolchains, and those two are intended to be identical between each host,
+            # so we can just replace them with the one from the Linux toolchain.
             shutil.rmtree(install_clanglib)
-            shutil.copytree(linux_prebuilt_path / "lib64/clang", install_clanglib)
+            shutil.copytree(linux_prebuilt_path / "lib/clang", install_clanglib)
 
-        # The Clang prebuilts have the platform toolchain libraries in
-        # lib64/clang. The libraries we want are in runtimes_ndk_cxx.
+        # The Clang prebuilts have the platform toolchain libraries in lib/clang. The
+        # libraries we want are in runtimes_ndk_cxx.
         ndk_runtimes = linux_prebuilt_path / "runtimes_ndk_cxx"
         for version_dir in install_clanglib.iterdir():
             dst_lib_dir = version_dir / "lib/linux"
@@ -541,15 +534,15 @@ class Clang(ndk.builds.Module):
         # For some reason the LLVM install includes CMake modules that expose
         # its internal APIs. We want to purge these so apps don't accidentally
         # depend on them. See http://b/142327416 for more info.
-        shutil.rmtree(install_path / "lib64/cmake")
+        shutil.rmtree(install_path / "lib/cmake")
 
         # Remove libc++.a and libc++abi.a on Darwin. Now that these files are
         # universal binaries, they break notarization. Maybe it is possible to
         # fix notarization by using ditto to preserve APFS extended attributes.
         # See https://developer.apple.com/forums/thread/126038.
         if self.host == Host.Darwin:
-            (install_path / "lib64/libc++.a").unlink()
-            (install_path / "lib64/libc++abi.a").unlink()
+            (install_path / "lib/libc++.a").unlink()
+            (install_path / "lib/libc++abi.a").unlink()
 
         # Strip some large binaries and libraries. This is awkward, hand-crafted
         # logic to select most of the biggest offenders, but could be
@@ -577,6 +570,36 @@ class Clang(ndk.builds.Module):
                 or file.name.startswith("liblldb.")
             ):
                 subprocess.check_call([str(strip_cmd), "--strip-unneeded", str(file)])
+
+        for lib in (install_path / "lib").iterdir():
+            broken_symlinks = {
+                "libc++abi.so.1.0",
+                "libc++abi.so",
+                "libc++.so.1.0",
+            }
+
+            if lib.name in broken_symlinks:
+                self._check_and_remove_dangling_symlink(lib)
+
+    def _check_and_remove_dangling_symlink(self, path: Path) -> None:
+        """Removes an expected dangling symlink, or raises an error.
+
+        The latest LLVM prebuilts have some dangling symlinks. It's a bug on the LLVM
+        build side, but rather than wait for a respin we just clean up the problems
+        here. This will raise an error whenever we upgrade to a new toolchain that
+        doesn't have these problems, so we'll know when to remove the workaround.
+        """
+        if not path.is_symlink():
+            raise RuntimeError(
+                f"Expected {path} to be a symlink. Update or remove this workaround."
+            )
+        if (dest := path.readlink()).exists():
+            raise RuntimeError(
+                f"Expected {path} to be a dangling symlink, but {dest} exists. Update "
+                "or remove this workaround."
+            )
+
+        path.unlink()
 
 
 def versioned_so(host: Host, lib: str, version: str) -> str:
@@ -665,7 +688,7 @@ class ShaderTools(ndk.builds.CMakeModule):
 
     @property
     def _libcxx_dir(self) -> Path:
-        return self.get_dep("clang").get_build_host_install() / "lib64"
+        return self.get_dep("clang").get_build_host_install() / "lib"
 
     @property
     def _libcxx(self) -> List[Path]:
