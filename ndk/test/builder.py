@@ -121,7 +121,7 @@ def _run_test(
         result, additional_tests = test.run(obj_dir, dist_dir, test_filters)
         if test.is_negative_test():
             result = _fixup_negative_test(result)
-        config, bug = test.check_broken()
+        config, bug = test.check_broken(result)
         if config is not None:
             # We need to check change each pass/fail to either an
             # ExpectedFailure or an UnexpectedSuccess as necessary.
