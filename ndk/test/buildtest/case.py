@@ -91,7 +91,7 @@ class Test(ABC):
     def is_negative_test(self) -> bool:
         raise NotImplementedError
 
-    def check_broken(self) -> Union[Tuple[None, None], Tuple[str, str]]:
+    def check_broken(self, result: TestResult) -> tuple[None, None] | tuple[str, str]:
         return self.get_test_config().build_broken(self)
 
     def check_unsupported(self) -> Optional[str]:
@@ -159,7 +159,7 @@ class BuildTest(Test):
     ) -> Tuple[TestResult, List[Test]]:
         raise NotImplementedError
 
-    def check_broken(self) -> Union[Tuple[None, None], Tuple[str, str]]:
+    def check_broken(self, result: TestResult) -> tuple[None, None] | tuple[str, str]:
         return self.get_test_config().build_broken(self)
 
     def check_unsupported(self) -> Optional[str]:
@@ -784,7 +784,7 @@ class LibcxxTest(Test):
 
         return Success(self), test_reports
 
-    def check_broken(self) -> Union[Tuple[None, None], Tuple[str, str]]:
+    def check_broken(self, result: TestResult) -> tuple[None, None] | tuple[str, str]:
         # Actual results are reported individually by pulling them out of the
         # xunit output. This just reports the status of the overall test run,
         # which should be passing.
@@ -839,7 +839,7 @@ class XunitResult(Test):
         test_config_dir = self.test_base_dir / self.test_dir
         return LibcxxTestConfig.from_test_dir(test_config_dir)
 
-    def check_broken(self) -> Union[Tuple[None, None], Tuple[str, str]]:
+    def check_broken(self, result: TestResult) -> tuple[None, None] | tuple[str, str]:
         config, bug = self.get_test_config().build_broken(self)
         if config is not None:
             assert bug is not None
@@ -886,3 +886,57 @@ class XunitFailure(XunitResult):
         self, _out_dir: Path, _dist_dir: Path, _test_filters: TestFilter
     ) -> Tuple[TestResult, List[Test]]:
         return Failure(self, self.text), []
+
+    def check_broken(self, result: TestResult) -> tuple[None, None] | tuple[str, str]:
+        config, bug = super().check_broken(result)
+        if config is not None:
+            assert bug is not None
+            return config, bug
+        if self._is_broken_static_assert_test(result):
+            return (
+                "clang vs. libc++ desync",
+                "https://github.com/android/ndk/issues/1530",
+            )
+        return None, None
+
+    def _is_broken_static_assert_test(self, result: TestResult) -> bool:
+        # Clang changed the text of static_assert failures, and some libc++ tests match
+        # against that text. Since our clang and libc++ versions are not in sync, all
+        # those libc++ tests will fail because the text no longer matches.
+        #
+        # We can't easily update libc++ (https://github.com/android/ndk/issues/1530),
+        # and the patches that would fix the tests are not tricky to cherry-pick because
+        # libc++ has also updated the phrasing of the static_assert failures in some
+        # cases.
+        #
+        # We'd typically mark xfail in the test_config.py files, but static_assert is so
+        # widely used that it's extremely time consuming to do that. Since this is all
+        # going in the trash once we're able to update libc++ anyway, just hack around
+        # the problem here.
+        #
+        # https://github.com/llvm/llvm-project/commit/76476efd68951907a94def92b2bb6ba6e32ca5b4
+        # https://github.com/llvm/llvm-project/commit/da1609ad73540978f66111e96ea500b97ca9b39a
+        if not result.failed():
+            return False
+
+        assert isinstance(result, Failure)
+        if not self.case_name.endswith(".fail"):
+            # All tests that have this behavior are .fail tests (upstream's legacy
+            # method for defining compile-time negative tests).
+            return False
+
+        if not self._is_diagnostic_check_failure(result):
+            return False
+
+        return "static assertion" in result.message
+
+    def _is_diagnostic_check_failure(self, failure: Failure[None]) -> bool:
+        # If the expected diagnostics are not seen and the seen diagnostics are
+        # unexpected, that's most likely a mismatch of the expected text. It could also
+        # be two unrelated checks, but this doesn't currently have any false positives,
+        # and we should be able to delete this code (because we'll have updated libc++)
+        # before that becomes a problem.
+        return (
+            "diagnostics expected but not seen" in failure.message
+            and "diagnostics seen but not expected" in failure.message
+        )
