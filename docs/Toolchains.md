@@ -44,7 +44,7 @@ makes the change to migrate to the new toolchain as described below.
 
 ```bash
 # Edit ndk/toolchains.py and update `CLANG_VERSION`.
-$ ./checkbuid.py
+$ ./checkbuild.py
 # ./run_tests.py
 ```
 
