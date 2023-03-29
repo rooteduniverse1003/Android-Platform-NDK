@@ -923,11 +923,6 @@ class Platforms(ndk.builds.Module):
 
     min_supported_api = MIN_API_LEVEL
 
-    # These API levels had no new native APIs. The contents of these platforms
-    # directories would be identical to the previous extant API level, so they
-    # are not included in the NDK to save space.
-    skip_apis = (20, 25)
-
     # Shared with the sysroot, though the sysroot NOTICE actually includes a
     # lot more licenses. Platforms and Sysroot are essentially a single
     # component that is split into two directories only temporarily, so this
@@ -1113,9 +1108,6 @@ class Platforms(ndk.builds.Module):
                 "sysroot but has no alias in meta/platforms.json."
             )
         for api in apis:
-            if api in self.skip_apis:
-                continue
-
             platform = "android-{}".format(api)
             for arch in self.get_arches(api):
                 arch_name = "arch-{}".format(arch)
@@ -1133,9 +1125,6 @@ class Platforms(ndk.builds.Module):
         install_dir.mkdir(parents=True)
 
         for api in self.get_apis():
-            if api in self.skip_apis:
-                continue
-
             # Copy shared libraries from prebuilts/ndk/platform/platforms.
             platform = "android-{}".format(api)
             platform_src = self.prebuilts_path / "platforms" / platform
@@ -1588,9 +1577,6 @@ class BaseToolchain(ndk.builds.Module):
         platforms = self.get_dep("platforms")
         assert isinstance(platforms, Platforms)
         for api in platforms.get_apis():
-            if api in Platforms.skip_apis:
-                continue
-
             platform = "android-{}".format(api)
             for arch in platforms.get_arches(api):
                 triple = ndk.abis.arch_to_triple(arch)
@@ -1713,9 +1699,6 @@ class Toolchain(ndk.builds.Module):
         assert isinstance(platforms, Platforms)
         # Also install a libc++.so and libc++.a linker script per API level.
         for api in platforms.get_apis():
-            if api in Platforms.skip_apis:
-                continue
-
             for arch in platforms.get_arches(api):
                 triple = ndk.abis.arch_to_triple(arch)
                 dst_dir = install_dir / "sysroot/usr/lib" / triple / str(api)
