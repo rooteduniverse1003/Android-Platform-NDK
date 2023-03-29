@@ -942,8 +942,8 @@ class Platforms(ndk.builds.Module):
         return path / f"bin/{tool}"
 
     @staticmethod
-    def libdir_name(arch: ndk.abis.Arch) -> str:
-        if arch == "x86_64":
+    def libdir_name(abi: ndk.abis.Abi) -> str:
+        if abi == ndk.abis.Abi("x86_64"):
             return "lib64"
         return "lib"
 
@@ -972,20 +972,12 @@ class Platforms(ndk.builds.Module):
 
         return sorted(apis)
 
-    @staticmethod
-    def get_arches(api: Union[int, str]) -> list[ndk.abis.Arch]:
-        arches = [ndk.abis.Arch("arm"), ndk.abis.Arch("x86")]
-        # All codenamed APIs are at 64-bit capable.
-        if isinstance(api, str) or api >= 21:
-            arches.extend([ndk.abis.Arch("arm64"), ndk.abis.Arch("x86_64")])
-        return arches
-
     def get_build_cmd(
         self,
         dst: Path,
         srcs: List[Path],
         api: int,
-        arch: ndk.abis.Arch,
+        abi: ndk.abis.Abi,
         build_number: Union[int, str],
     ) -> List[str]:
         libc_includes = ndk.paths.ANDROID_DIR / "bionic/libc"
@@ -996,7 +988,7 @@ class Platforms(ndk.builds.Module):
         args = [
             str(cc),
             "-target",
-            ndk.abis.clang_target(arch, api),
+            ndk.abis.clang_target(abi, api),
             "--sysroot",
             str(self.prebuilts_path / "sysroot"),
             "-fuse-ld=lld",
@@ -1016,7 +1008,7 @@ class Platforms(ndk.builds.Module):
             str(dst),
         ] + [str(src) for src in srcs]
 
-        if arch == ndk.abis.Arch("arm64"):
+        if abi == ndk.abis.Abi("arm64-v8a"):
             args.append("-mbranch-protection=standard")
 
         return args
@@ -1033,11 +1025,11 @@ class Platforms(ndk.builds.Module):
         dst: Path,
         srcs: List[Path],
         api: int,
-        arch: ndk.abis.Arch,
+        abi: ndk.abis.Abi,
         build_number: Union[int, str],
         defines: List[str],
     ) -> None:
-        cc_args = self.get_build_cmd(dst, srcs, api, arch, build_number)
+        cc_args = self.get_build_cmd(dst, srcs, api, abi, build_number)
         cc_args.extend(defines)
 
         print("Running: " + " ".join([pipes.quote(arg) for arg in cc_args]))
@@ -1047,7 +1039,7 @@ class Platforms(ndk.builds.Module):
         self,
         dst_dir: Path,
         api: int,
-        arch: ndk.abis.Arch,
+        abi: ndk.abis.Abi,
         build_number: Union[int, str],
     ) -> None:
         src_dir = ndk.paths.android_path("bionic/libc/arch-common/bionic")
@@ -1081,7 +1073,7 @@ class Platforms(ndk.builds.Module):
                 # libc.a is always the latest version, so ignore the API level
                 # setting for crtbegin_static.
                 defs.append("-D_FORCE_CRT_ATFORK")
-            self.build_crt_object(dst_path, srcs, api, arch, build_number, defs)
+            self.build_crt_object(dst_path, srcs, api, abi, build_number, defs)
             if name.startswith("crtbegin"):
                 self.check_elf_note(dst_path)
 
@@ -1109,12 +1101,11 @@ class Platforms(ndk.builds.Module):
             )
         for api in apis:
             platform = "android-{}".format(api)
-            for arch in self.get_arches(api):
-                arch_name = "arch-{}".format(arch)
-                dst_dir = build_dir / platform / arch_name
+            for abi in ndk.abis.iter_abis_for_api(api):
+                dst_dir = build_dir / platform / f"arch-{ndk.abis.abi_to_arch(abi)}"
                 dst_dir.mkdir(parents=True)
                 assert self.context is not None
-                self.build_crt_objects(dst_dir, api, arch, self.context.build_number)
+                self.build_crt_objects(dst_dir, api, abi, self.context.build_number)
 
     def install(self) -> None:
         build_dir = self.out_dir / self.install_path
@@ -1131,16 +1122,16 @@ class Platforms(ndk.builds.Module):
             platform_dst = install_dir / "android-{}".format(api)
             shutil.copytree(platform_src, platform_dst)
 
-            for arch in self.get_arches(api):
-                arch_name = "arch-{}".format(arch)
-                triple = ndk.abis.arch_to_triple(arch)
+            for abi in ndk.abis.iter_abis_for_api(api):
+                arch_name = f"arch-{ndk.abis.abi_to_arch(abi)}"
+                triple = ndk.abis.abi_to_triple(abi)
 
                 # Install static libraries from prebuilts/ndk/platform/sysroot.
                 # TODO: Determine if we can change the build system to use the
                 # libraries directly from the sysroot directory rather than
                 # duplicating all the libraries in platforms.
                 lib_dir = self.prebuilts_path / "sysroot/usr/lib" / triple
-                libdir_name = self.libdir_name(arch)
+                libdir_name = self.libdir_name(abi)
                 lib_dir_dst = install_dir / platform / arch_name / "usr" / libdir_name
                 for name in os.listdir(lib_dir):
                     lib_src = lib_dir / name
@@ -1578,11 +1569,16 @@ class BaseToolchain(ndk.builds.Module):
         assert isinstance(platforms, Platforms)
         for api in platforms.get_apis():
             platform = "android-{}".format(api)
-            for arch in platforms.get_arches(api):
-                triple = ndk.abis.arch_to_triple(arch)
-                arch_name = "arch-{}".format(arch)
-                lib_dir = "lib64" if arch == "x86_64" else "lib"
-                src_dir = platforms_dir / platform / arch_name / "usr" / lib_dir
+            for abi in ndk.abis.iter_abis_for_api(api):
+                triple = ndk.abis.abi_to_triple(abi)
+                lib_dir = "lib64" if abi == ndk.abis.Abi("x86_64") else "lib"
+                src_dir = (
+                    platforms_dir
+                    / platform
+                    / f"arch-{ndk.abis.abi_to_arch(abi)}"
+                    / "usr"
+                    / lib_dir
+                )
                 dst_dir = install_dir / "sysroot/usr/lib" / triple / str(api)
                 shutil.copytree(src_dir, dst_dir, ignore=shutil.ignore_patterns("*.a"))
 
@@ -1699,8 +1695,8 @@ class Toolchain(ndk.builds.Module):
         assert isinstance(platforms, Platforms)
         # Also install a libc++.so and libc++.a linker script per API level.
         for api in platforms.get_apis():
-            for arch in platforms.get_arches(api):
-                triple = ndk.abis.arch_to_triple(arch)
+            for abi in ndk.abis.iter_abis_for_api(api):
+                triple = ndk.abis.abi_to_triple(abi)
                 dst_dir = install_dir / "sysroot/usr/lib" / triple / str(api)
 
                 static_script = ["-lc++_static", "-lc++abi"]

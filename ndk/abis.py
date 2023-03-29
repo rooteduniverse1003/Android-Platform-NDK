@@ -14,6 +14,7 @@
 # limitations under the License.
 #
 """Constants and helper functions for NDK ABIs."""
+from collections.abc import Iterator
 from typing import List, NewType, Optional
 
 from .platforms import FIRST_LP64_API_LEVEL, MIN_API_LEVEL
@@ -63,9 +64,9 @@ ALL_TRIPLES = (
 )
 
 
-def arch_to_toolchain(arch: Arch) -> Toolchain:
-    """Returns the NDK toolchain name for the given architecture."""
-    return dict(zip(ALL_ARCHITECTURES, ALL_TOOLCHAINS))[arch]
+def abi_to_toolchain(abi: Abi) -> Toolchain:
+    """Returns the NDK toolchain name for the given ABI."""
+    return dict(zip(ALL_ARCHITECTURES, ALL_TOOLCHAINS))[abi_to_arch(abi)]
 
 
 def arch_to_triple(arch: Arch) -> str:
@@ -98,22 +99,23 @@ def abi_to_arch(abi: Abi) -> Arch:
     }[abi]
 
 
-def clang_target(arch: Arch, api: Optional[int] = None) -> str:
-    """Returns the Clang target to be used for the given arch/API combo.
+def abi_to_triple(abi: Abi) -> str:
+    """Returns the triple for the given ABI."""
+    return arch_to_triple(abi_to_arch(abi))
+
+
+def clang_target(abi: Abi, api: Optional[int] = None) -> str:
+    """Returns the Clang target to be used for the given ABI/API combo.
 
     Args:
-        arch: Architecture to compile for. 'arm' will target ARMv7.
+        abi: ABI to compile for.
         api: API level to compile for. Defaults to the lowest supported API
             level for the architecture if None.
     """
     if api is None:
-        # Currently there is only one ABI per arch.
-        abis = arch_to_abis(arch)
-        assert len(abis) == 1
-        abi = abis[0]
         api = min_api_for_abi(abi)
-    triple = arch_to_triple(arch)
-    if arch == "arm":
+    triple = abi_to_triple(abi)
+    if abi == Abi("armeabi-v7a"):
         triple = "armv7a-linux-androideabi"
     return f"{triple}{api}"
 
@@ -137,3 +139,10 @@ def min_api_for_abi(abi: Abi) -> int:
     if abi in LP32_ABIS:
         return MIN_API_LEVEL
     raise ValueError("Invalid ABI: {}".format(abi))
+
+
+def iter_abis_for_api(api: int) -> Iterator[Abi]:
+    """Returns an Iterator over ABIs available at the given API level."""
+    for abi in ALL_ABIS:
+        if min_api_for_abi(abi) <= api:
+            yield abi
