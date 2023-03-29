@@ -649,8 +649,8 @@ class LibcxxTest(Test):
     ) -> None:
         arch = ndk.abis.abi_to_arch(self.abi)
         host_tag = ndk.hosts.get_host_tag()
-        target = ndk.abis.clang_target(arch, self.api)
-        toolchain = ndk.abis.arch_to_toolchain(arch)
+        target = ndk.abis.clang_target(self.abi, self.api)
+        toolchain = ndk.abis.abi_to_toolchain(self.abi)
 
         replacements = [
             ("abi", self.abi),
