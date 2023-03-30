@@ -20,6 +20,7 @@ import shutil
 import subprocess
 
 import ndk.config
+from ndk.platforms import ALL_API_LEVELS
 from .abis import ALL_ABIS, Abi, abi_to_triple, clang_target, min_api_for_abi
 from .paths import ANDROID_DIR, NDK_DIR
 
@@ -149,12 +150,12 @@ class CrtObjectBuilder:
                 self.check_elf_note(dst_path)
             self.artifacts.append((abi, api, dst_path))
 
-    def build(self, apis: list[int]) -> None:
+    def build(self) -> None:
         self.artifacts = []
         if self.build_dir.exists():
             shutil.rmtree(self.build_dir)
 
-        for api in apis:
+        for api in ALL_API_LEVELS:
             for abi in ALL_ABIS:
                 if min_api_for_abi(abi) > api:
                     continue

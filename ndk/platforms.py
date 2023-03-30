@@ -19,12 +19,13 @@ import json
 from .paths import NDK_DIR
 
 
-def _load_data() -> tuple[int, int]:
+def _load_data() -> tuple[int, int, dict[str, int]]:
     """Loads and returns the min and max supported versions."""
     with (NDK_DIR / "meta/platforms.json").open() as platforms:
         data = json.load(platforms)
-    return data["min"], data["max"]
+    return data["min"], data["max"], data["aliases"]
 
 
-MIN_API_LEVEL, MAX_API_LEVEL = _load_data()
+MIN_API_LEVEL, MAX_API_LEVEL, API_LEVEL_ALIASES = _load_data()
+ALL_API_LEVELS = list(range(MIN_API_LEVEL, MAX_API_LEVEL + 1))
 FIRST_LP64_API_LEVEL = 21
