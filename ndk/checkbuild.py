@@ -60,6 +60,7 @@ import ndk.autoconf
 import ndk.builds
 import ndk.cmake
 import ndk.config
+from ndk.crtobjectbuilder import CrtObjectBuilder
 import ndk.deps
 import ndk.file
 from ndk.hosts import Host
@@ -933,13 +934,9 @@ class Platforms(ndk.builds.Module):
 
     prebuilts_path = ANDROID_DIR / "prebuilts/ndk/platform"
 
-    @staticmethod
-    def src_path(*args: str) -> Path:
-        return ndk.paths.android_path("development/ndk/platforms", *args)
-
-    def llvm_tool(self, tool: str) -> Path:
-        path = Path(self.get_dep("clang").get_build_host_install())
-        return path / f"bin/{tool}"
+    def __init__(self) -> None:
+        super().__init__()
+        self.crt_builder: CrtObjectBuilder | None = None
 
     @staticmethod
     def libdir_name(abi: ndk.abis.Abi) -> str:
@@ -972,111 +969,6 @@ class Platforms(ndk.builds.Module):
 
         return sorted(apis)
 
-    def get_build_cmd(
-        self,
-        dst: Path,
-        srcs: List[Path],
-        api: int,
-        abi: ndk.abis.Abi,
-        build_number: Union[int, str],
-    ) -> List[str]:
-        libc_includes = ndk.paths.ANDROID_DIR / "bionic/libc"
-        arch_common_includes = libc_includes / "arch-common/bionic"
-
-        cc = self.llvm_tool("clang")
-
-        args = [
-            str(cc),
-            "-target",
-            ndk.abis.clang_target(abi, api),
-            "--sysroot",
-            str(self.prebuilts_path / "sysroot"),
-            "-fuse-ld=lld",
-            f"-I{libc_includes}",
-            f"-I{arch_common_includes}",
-            f"-DPLATFORM_SDK_VERSION={api}",
-            f'-DABI_NDK_VERSION="{ndk.config.release}"',
-            f'-DABI_NDK_BUILD_NUMBER="{build_number}"',
-            "-O2",
-            "-fpic",
-            "-Wl,-r",
-            "-no-pie",
-            "-nostdlib",
-            "-Wa,--noexecstack",
-            "-Wl,-z,noexecstack",
-            "-o",
-            str(dst),
-        ] + [str(src) for src in srcs]
-
-        if abi == ndk.abis.Abi("arm64-v8a"):
-            args.append("-mbranch-protection=standard")
-
-        return args
-
-    def check_elf_note(self, obj_file: Path) -> None:
-        # readelf is a cross platform tool, so arch doesn't matter.
-        readelf = self.llvm_tool("llvm-readelf")
-        out = subprocess.check_output([str(readelf), "--notes", str(obj_file)])
-        if "Android" not in out.decode("utf-8"):
-            raise RuntimeError("{} does not contain NDK ELF note".format(obj_file))
-
-    def build_crt_object(
-        self,
-        dst: Path,
-        srcs: List[Path],
-        api: int,
-        abi: ndk.abis.Abi,
-        build_number: Union[int, str],
-        defines: List[str],
-    ) -> None:
-        cc_args = self.get_build_cmd(dst, srcs, api, abi, build_number)
-        cc_args.extend(defines)
-
-        print("Running: " + " ".join([pipes.quote(arg) for arg in cc_args]))
-        subprocess.check_call(cc_args)
-
-    def build_crt_objects(
-        self,
-        dst_dir: Path,
-        api: int,
-        abi: ndk.abis.Abi,
-        build_number: Union[int, str],
-    ) -> None:
-        src_dir = ndk.paths.android_path("bionic/libc/arch-common/bionic")
-        crt_brand = ndk.paths.ndk_path("sources/crt/crtbrand.S")
-
-        objects = {
-            "crtbegin_dynamic.o": [
-                src_dir / "crtbegin.c",
-                crt_brand,
-            ],
-            "crtbegin_so.o": [
-                src_dir / "crtbegin_so.c",
-                crt_brand,
-            ],
-            "crtbegin_static.o": [
-                src_dir / "crtbegin.c",
-                crt_brand,
-            ],
-            "crtend_android.o": [
-                src_dir / "crtend.S",
-            ],
-            "crtend_so.o": [
-                src_dir / "crtend_so.S",
-            ],
-        }
-
-        for name, srcs in objects.items():
-            dst_path = dst_dir / name
-            defs = []
-            if name == "crtbegin_static.o":
-                # libc.a is always the latest version, so ignore the API level
-                # setting for crtbegin_static.
-                defs.append("-D_FORCE_CRT_ATFORK")
-            self.build_crt_object(dst_path, srcs, api, abi, build_number, defs)
-            if name.startswith("crtbegin"):
-                self.check_elf_note(dst_path)
-
     def build(self) -> None:
         build_dir = self.out_dir / self.install_path
         if build_dir.exists():
@@ -1099,16 +991,16 @@ class Platforms(ndk.builds.Module):
                 f"API {max_sysroot_api} is the newest API level in the "
                 "sysroot but has no alias in meta/platforms.json."
             )
-        for api in apis:
-            platform = "android-{}".format(api)
-            for abi in ndk.abis.iter_abis_for_api(api):
-                dst_dir = build_dir / platform / f"arch-{ndk.abis.abi_to_arch(abi)}"
-                dst_dir.mkdir(parents=True)
-                assert self.context is not None
-                self.build_crt_objects(dst_dir, api, abi, self.context.build_number)
+
+        assert self.context is not None
+        self.crt_builder = CrtObjectBuilder(
+            self.get_dep("clang").get_build_host_install(),
+            build_dir,
+            self.context.build_number,
+        )
+        self.crt_builder.build(apis)
 
     def install(self) -> None:
-        build_dir = self.out_dir / self.install_path
         install_dir = self.get_install_path()
 
         if install_dir.exists():
@@ -1143,12 +1035,18 @@ class Platforms(ndk.builds.Module):
                     # only a lib64. An empty lib dir is enough to convince it.
                     (install_dir / platform / arch_name / "usr/lib").mkdir(parents=True)
 
-                # Install the CRT objects that we just built.
-                obj_dir = build_dir / platform / arch_name
-                for name in os.listdir(obj_dir):
-                    obj_src = obj_dir / name
-                    obj_dst = lib_dir_dst / name
-                    shutil.copy2(obj_src, obj_dst)
+        # Install the CRT objects that we just built.
+        assert self.crt_builder is not None
+        for abi, api, path in self.crt_builder.artifacts:
+            lib_dir_dst = (
+                install_dir
+                / "android-{}".format(api)
+                / f"arch-{ndk.abis.abi_to_arch(abi)}"
+                / "usr"
+                / self.libdir_name(abi)
+            )
+            obj_dst = lib_dir_dst / path.name
+            shutil.copy2(path, obj_dst)
 
         # https://github.com/android-ndk/ndk/issues/372
         for root, dirs, files in os.walk(install_dir):
