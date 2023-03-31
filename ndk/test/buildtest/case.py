@@ -27,6 +27,7 @@ import shlex
 import shutil
 import subprocess
 from subprocess import CompletedProcess
+import sys
 from typing import (
     List,
     Optional,
@@ -580,7 +581,7 @@ def get_lit_cmd() -> Optional[List[str]]:
     # source location if possible.
     lit_path = ndk.paths.android_path("toolchain/llvm-project/llvm/utils/lit/lit.py")
     if lit_path.exists():
-        return ["python", str(lit_path)]
+        return [sys.executable, str(lit_path)]
     if shutil.which("lit"):
         return ["lit"]
     return None
