@@ -50,7 +50,6 @@ from typing import (
     Set,
     TextIO,
     Tuple,
-    Union,
 )
 
 import ndk.abis
@@ -67,7 +66,7 @@ from ndk.hosts import Host
 import ndk.notify
 import ndk.paths
 from ndk.paths import ANDROID_DIR, NDK_DIR
-from ndk.platforms import MIN_API_LEVEL
+from ndk.platforms import ALL_API_LEVELS, API_LEVEL_ALIASES, MAX_API_LEVEL
 import ndk.test.builder
 import ndk.test.printers
 import ndk.test.spec
@@ -914,148 +913,6 @@ class Libcxx(ndk.builds.Module):
 
 
 @register
-class Platforms(ndk.builds.Module):
-    name = "platforms"
-    install_path = Path("platforms")
-
-    deps = {
-        "clang",
-    }
-
-    min_supported_api = MIN_API_LEVEL
-
-    # Shared with the sysroot, though the sysroot NOTICE actually includes a
-    # lot more licenses. Platforms and Sysroot are essentially a single
-    # component that is split into two directories only temporarily, so this
-    # will be the end state when we merge the two anyway.
-    notice = ANDROID_DIR / "prebuilts/ndk/platform/sysroot/NOTICE"
-
-    intermediate_module = True
-
-    prebuilts_path = ANDROID_DIR / "prebuilts/ndk/platform"
-
-    def __init__(self) -> None:
-        super().__init__()
-        self.crt_builder: CrtObjectBuilder | None = None
-
-    @staticmethod
-    def libdir_name(abi: ndk.abis.Abi) -> str:
-        if abi == ndk.abis.Abi("x86_64"):
-            return "lib64"
-        return "lib"
-
-    def get_apis(self) -> List[int]:
-        apis: List[int] = []
-        for path in (self.prebuilts_path / "platforms").iterdir():
-            name = path.name
-            if not name.startswith("android-"):
-                continue
-
-            _, api_str = name.split("-")
-            try:
-                api = int(api_str)
-                if api >= self.min_supported_api:
-                    apis.append(api)
-            except ValueError as ex:
-                # Codenamed release like android-O, android-O-MR1, etc.
-                # Codenamed APIs are not supported, since having
-                # non-integer API directories breaks all kinds of tools, we
-                # rename them when we check them in.
-                raise ValueError(
-                    f"No codenamed API is allowed: {api_str}\n"
-                    "Use the update_platform.py tool from the "
-                    "platform/prebuilts/ndk dev branch to remove or rename it."
-                ) from ex
-
-        return sorted(apis)
-
-    def build(self) -> None:
-        build_dir = self.out_dir / self.install_path
-        if build_dir.exists():
-            shutil.rmtree(build_dir)
-
-        apis = self.get_apis()
-        platforms_meta = json.loads(
-            ndk.file.read_file(ndk.paths.ndk_path("meta/platforms.json"))
-        )
-        max_sysroot_api = apis[-1]
-        max_meta_api = platforms_meta["max"]
-        if max_sysroot_api != max_meta_api:
-            raise RuntimeError(
-                f"API {max_sysroot_api} is the newest API level in the "
-                "sysroot but does not match meta/platforms.json max of "
-                f"{max_meta_api}"
-            )
-        if max_sysroot_api not in platforms_meta["aliases"].values():
-            raise RuntimeError(
-                f"API {max_sysroot_api} is the newest API level in the "
-                "sysroot but has no alias in meta/platforms.json."
-            )
-
-        assert self.context is not None
-        self.crt_builder = CrtObjectBuilder(
-            self.get_dep("clang").get_build_host_install(),
-            build_dir,
-            self.context.build_number,
-        )
-        self.crt_builder.build(apis)
-
-    def install(self) -> None:
-        install_dir = self.get_install_path()
-
-        if install_dir.exists():
-            shutil.rmtree(install_dir)
-        install_dir.mkdir(parents=True)
-
-        for api in self.get_apis():
-            # Copy shared libraries from prebuilts/ndk/platform/platforms.
-            platform = "android-{}".format(api)
-            platform_src = self.prebuilts_path / "platforms" / platform
-            platform_dst = install_dir / "android-{}".format(api)
-            shutil.copytree(platform_src, platform_dst)
-
-            for abi in ndk.abis.iter_abis_for_api(api):
-                arch_name = f"arch-{ndk.abis.abi_to_arch(abi)}"
-                triple = ndk.abis.abi_to_triple(abi)
-
-                # Install static libraries from prebuilts/ndk/platform/sysroot.
-                # TODO: Determine if we can change the build system to use the
-                # libraries directly from the sysroot directory rather than
-                # duplicating all the libraries in platforms.
-                lib_dir = self.prebuilts_path / "sysroot/usr/lib" / triple
-                libdir_name = self.libdir_name(abi)
-                lib_dir_dst = install_dir / platform / arch_name / "usr" / libdir_name
-                for name in os.listdir(lib_dir):
-                    lib_src = lib_dir / name
-                    lib_dst = lib_dir_dst / name
-                    shutil.copy2(lib_src, lib_dst)
-
-                if libdir_name == "lib64":
-                    # The Clang driver won't accept a sysroot that contains
-                    # only a lib64. An empty lib dir is enough to convince it.
-                    (install_dir / platform / arch_name / "usr/lib").mkdir(parents=True)
-
-        # Install the CRT objects that we just built.
-        assert self.crt_builder is not None
-        for abi, api, path in self.crt_builder.artifacts:
-            lib_dir_dst = (
-                install_dir
-                / "android-{}".format(api)
-                / f"arch-{ndk.abis.abi_to_arch(abi)}"
-                / "usr"
-                / self.libdir_name(abi)
-            )
-            obj_dst = lib_dir_dst / path.name
-            shutil.copy2(path, obj_dst)
-
-        # https://github.com/android-ndk/ndk/issues/372
-        for root, dirs, files in os.walk(install_dir):
-            if not files and not dirs:
-                with open(Path(root) / ".keep_dir", "w") as keep_file:
-                    keep_file.write("This file forces git to keep the directory.")
-
-
-@register
 class LibShaderc(ndk.builds.Module):
     name = "libshaderc"
     install_path = Path("sources/third_party/shaderc")
@@ -1215,9 +1072,24 @@ class Sysroot(ndk.builds.Module):
     install_path = Path("sysroot")
     notice = ANDROID_DIR / "prebuilts/ndk/platform/sysroot/NOTICE"
     intermediate_module = True
+    deps = {"clang"}
+
+    def __init__(self) -> None:
+        super().__init__()
+        self.crt_builder: CrtObjectBuilder | None = None
 
     def build(self) -> None:
-        pass
+        build_dir = self.out_dir / self.install_path
+        if build_dir.exists():
+            shutil.rmtree(build_dir)
+
+        assert self.context is not None
+        self.crt_builder = CrtObjectBuilder(
+            self.get_dep("clang").get_build_host_install(),
+            build_dir,
+            self.context.build_number,
+        )
+        self.crt_builder.build()
 
     def install(self) -> None:
         install_path = self.get_install_path()
@@ -1301,6 +1173,15 @@ class Sysroot(ndk.builds.Module):
                 """
                 )
             )
+
+        # Install the CRT objects that we just built.
+        assert self.crt_builder is not None
+        for abi, api, path in self.crt_builder.artifacts:
+            lib_dir_dst = (
+                install_path / "usr/lib" / ndk.abis.abi_to_triple(abi) / str(api)
+            )
+            obj_dst = lib_dir_dst / path.name
+            shutil.copy2(path, obj_dst)
 
 
 def write_clang_shell_script(
@@ -1420,7 +1301,6 @@ class BaseToolchain(ndk.builds.Module):
     deps = {
         "clang",
         "make",
-        "platforms",
         "sysroot",
         "system-stl",
         "yasm",
@@ -1430,7 +1310,6 @@ class BaseToolchain(ndk.builds.Module):
     def notices(self) -> Iterator[Path]:
         yield from Clang().notices
         yield from Yasm().notices
-        yield from Platforms().notices
         yield from Sysroot().notices
         yield from SystemStl().notices
 
@@ -1440,7 +1319,6 @@ class BaseToolchain(ndk.builds.Module):
     def install(self) -> None:
         install_dir = self.get_install_path()
         yasm_dir = self.get_dep("yasm").get_install_path()
-        platforms_dir = self.get_dep("platforms").get_install_path()
         sysroot_dir = self.get_dep("sysroot").get_install_path()
         system_stl_dir = self.get_dep("system-stl").get_install_path()
 
@@ -1463,23 +1341,9 @@ class BaseToolchain(ndk.builds.Module):
             # This reduces the size of the NDK by 60M on non-Windows.
             os.symlink(lld.name, new_bin_ld)
 
-        platforms = self.get_dep("platforms")
-        assert isinstance(platforms, Platforms)
-        for api in platforms.get_apis():
-            platform = "android-{}".format(api)
+        for api in ALL_API_LEVELS:
             for abi in ndk.abis.iter_abis_for_api(api):
                 triple = ndk.abis.abi_to_triple(abi)
-                lib_dir = "lib64" if abi == ndk.abis.Abi("x86_64") else "lib"
-                src_dir = (
-                    platforms_dir
-                    / platform
-                    / f"arch-{ndk.abis.abi_to_arch(abi)}"
-                    / "usr"
-                    / lib_dir
-                )
-                dst_dir = install_dir / "sysroot/usr/lib" / triple / str(api)
-                shutil.copytree(src_dir, dst_dir, ignore=shutil.ignore_patterns("*.a"))
-
                 write_clang_wrapper(
                     install_dir / "bin", api, triple, self.host.is_windows
                 )
@@ -1546,7 +1410,6 @@ class Toolchain(ndk.builds.Module):
         "base-toolchain",
         "libc++",
         "libc++abi",
-        "platforms",
     }
 
     @property
@@ -1589,10 +1452,8 @@ class Toolchain(ndk.builds.Module):
                     self.out_dir / "libcxx" / "obj" / "local" / abi / lib, sysroot_dst
                 )
 
-        platforms = self.get_dep("platforms")
-        assert isinstance(platforms, Platforms)
         # Also install a libc++.so and libc++.a linker script per API level.
-        for api in platforms.get_apis():
+        for api in ALL_API_LEVELS:
             for abi in ndk.abis.iter_abis_for_api(api):
                 triple = ndk.abis.abi_to_triple(abi)
                 dst_dir = install_dir / "sysroot/usr/lib" / triple / str(api)
@@ -1977,6 +1838,46 @@ class Meta(ndk.builds.PackageModule):
     deps = {
         "base-toolchain",
     }
+
+    @staticmethod
+    def find_max_api_level_in_prebuilts() -> int:
+        max_api = 0
+        prebuilts = ANDROID_DIR / "prebuilts/ndk/platform"
+        for path in prebuilts.glob("sysroot/usr/lib/*/*"):
+            if not path.is_dir():
+                continue
+
+            try:
+                api = int(path.name)
+                max_api = max(max_api, api)
+            except ValueError as ex:
+                # Codenamed release like android-O, android-O-MR1, etc.
+                # Codenamed APIs are not supported, since having
+                # non-integer API directories breaks all kinds of tools, we
+                # rename them when we check them in.
+                raise ValueError(
+                    f"Codenamed APIs are not allowed: {path}\n"
+                    "Use the update_platform.py tool from the "
+                    "platform/prebuilts/ndk dev branch to remove or rename it."
+                ) from ex
+
+        return max_api
+
+    def validate(self) -> None:
+        super().validate()
+
+        max_sysroot_api = self.find_max_api_level_in_prebuilts()
+        if max_sysroot_api != MAX_API_LEVEL:
+            raise RuntimeError(
+                f"API {max_sysroot_api} is the newest API level in "
+                f"{self.prebuilts_path} sysroot but does not match meta/platforms.json "
+                f"max of {MAX_API_LEVEL}"
+            )
+        if max_sysroot_api not in API_LEVEL_ALIASES.values():
+            raise RuntimeError(
+                f"API {max_sysroot_api} is the newest API level in "
+                f"{self.prebuilts_path} but has no alias in meta/platforms.json."
+            )
 
     def install(self) -> None:
         super().install()
