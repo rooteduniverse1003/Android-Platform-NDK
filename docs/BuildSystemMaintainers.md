@@ -23,10 +23,8 @@ executables and scripts will differ.
 
 The NDK uses the [LLVM] family of tools for building C/C++ code. These include
 [Clang] for compilation, [LLD] for linking, and other [LLVM tools] for other
-tasks. Historically [Binutils] was used and remains available during the
-transition but is deprecated and will soon be removed from the NDK.
+tasks.
 
-[Binutils]: https://www.gnu.org/software/binutils
 [Clang]: https://clang.llvm.org/
 [LLD]: https://lld.llvm.org/
 [LLVM tools]: https://llvm.org/docs/CommandGuide/
@@ -168,6 +166,11 @@ the binary being linked contains no C++ code (i.e. none of the object files
 being linked were generated from C++ files) and `clang++` should be used
 otherwise. Using `clang++` ensures that the C++ standard library is linked.
 
+When linking a shared library, the `-Wl,-soname,$NAME_OF_LIBRARY` argument is
+required. This is necessary to avoid the problems described in [this stack
+overflow post](https://stackoverflow.com/a/48291044/632035). For example, when
+building `libapp.so`, `-Wl,-soname,libapp.so` must be used.
+
 ### Target Selection
 
 [Cross-compilation] targets can be selected in one of two ways: by using
@@ -203,35 +206,15 @@ Versions] sections.
 
 ## Linkers
 
-LLD is the default linker.
-
-Gold is the fallback linker for most architectures, but BFD is used for AArch64
-as Gold previously emitted broken debug information for that architecture (see
-[Issue 70838247] for more details).
-
-The linker used by Clang can be selected with the `-fuse-ld=<linker>` argument,
-passed during linking. For example, to use gold instead of LLD, pass
-`-fuse-ld=gold` when linking. No argument is required to use LLD.
-
-The default linkers are installed to
-`<NDK>/toolchains/llvm/prebuilt/<host-tag>/bin/<triple>-ld` and
-`<NDK>/toolchains/llvm/prebuilt/<host-tag>/<triple>/bin/ld`. BFD and gold are
-installed as `ld.bfd` or `ld.gold` in the same locations. The triple-prefixed
-executables in the common bin directory should be preferred to the
-triple-specific bin directory because the triple-specific directory will be
-removed when binutils is removed from the NDK.
+The NDK uses LLD for linking. The linker is installed to
+`<NDK>/toolchains/llvm/prebuilt/<host-tag>/bin/<triple>-ld`.
 
 Note: It is usually not necessary to invoke the linkers directly since Clang
 will do so automatically. Clang will also automatically link CRT objects and
 default libraries and set up other target-specific options, so it is generally
 better to use Clang for linking.
 
-Warning: Using LLD with GNU `strip` or `objcopy` breaks RelRO. LLVM `strip` and
-`objcopy` must be used with LLD. See [Issue 843] and the [Binutils] section of
-this document for more information.
-
 [Issue 70838247]: https://issuetracker.google.com/70838247
-[Issue 843]: https://github.com/android-ndk/ndk/issues/843
 
 ## Binutils
 
@@ -249,14 +232,6 @@ Note that `llvm-as` is **not** an equivalent of GNU `as`, but rather a tool for
 assembling LLVM IR. If you are currently using `as` directly, you will need to
 migrate to using `clang` as a driver for building assembly.  See [Clang
 Migration Notes] for advice on fixing assembly to be LLVM compatible.
-
-GNU Binutils remains available up to and including r22. All binutils tools with
-the exception of the assembler (GAS) were removed in r23. GAS was removed in
-r24.
-
-In r22 or earlier, GNU binutils tools are installed to
-`<NDK>/toolchains/llvm/prebuilt/<host-tag>/bin/<triple>-<tool>` and
-`<NDK>/toolchains/llvm/prebuilt/<host-tag>/<triple>/bin/<tool>`.
 
 Note that by default `/usr/bin/as` is used by Clang if the
 `-fno-integrated-as` argument is used, which is almost certainly not
