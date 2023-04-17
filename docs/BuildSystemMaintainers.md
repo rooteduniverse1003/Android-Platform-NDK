@@ -166,6 +166,11 @@ the binary being linked contains no C++ code (i.e. none of the object files
 being linked were generated from C++ files) and `clang++` should be used
 otherwise. Using `clang++` ensures that the C++ standard library is linked.
 
+When linking a shared library, the `-Wl,-soname,$NAME_OF_LIBRARY` argument is
+required. This is necessary to avoid the problems described in [this stack
+overflow post](https://stackoverflow.com/a/48291044/632035). For example, when
+building `libapp.so`, `-Wl,-soname,libapp.so` must be used.
+
 ### Target Selection
 
 [Cross-compilation] targets can be selected in one of two ways: by using
