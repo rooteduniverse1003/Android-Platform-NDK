@@ -443,6 +443,8 @@ class ScriptShortcutModule(Module):
     # These are all trivial shell scripts that we generated. No notice needed.
     no_notice = True
 
+    disallow_windows_install_path_with_spaces: bool = False
+
     def validate(self) -> None:
         super().validate()
 
@@ -463,14 +465,19 @@ class ScriptShortcutModule(Module):
         script = self.get_script_path().with_suffix(self.windows_ext)
 
         install_path = self.get_install_path().with_suffix(".cmd")
-        install_path.write_text(
-            textwrap.dedent(
-                f"""\
-                @echo off
-                %~dp0{PureWindowsPath(script)} %*
+        text = "@echo off\n"
+        if self.disallow_windows_install_path_with_spaces:
+            text += textwrap.dedent(
+                """\
+                rem https://stackoverflow.com/a/29057742/632035
+                for /f "tokens=2" %%a in ("%~dp0") do (
+                    echo ERROR: NDK path cannot contain spaces
+                    exit /b 1
+                )
                 """
             )
-        )
+        text += f"%~dp0{PureWindowsPath(script)} %*"
+        install_path.write_text(text)
 
     def make_sh_helper(self) -> None:
         """Makes a bash helper script for POSIX systems."""
