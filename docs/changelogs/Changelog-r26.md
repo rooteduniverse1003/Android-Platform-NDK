@@ -52,12 +52,14 @@ directly, see the [build system maintainers guide].
 * [Issue 1803]: Removed useless `strtoq` and `strtouq` from the libc stub
   libraries. These were never exposed in the header files, but could confuse
   some autoconf like systems.
+* [Issue 1852]: Fixed ODR issue in linux/time.h.
 
 [Issue 837]: https://github.com/android/ndk/issues/837
 [Issue 1803]: https://github.com/android/ndk/issues/1803
 [Issue 1298]: https://github.com/android/ndk/issues/1298
 [Issue 1677]: https://github.com/android/ndk/issues/1677
 [Issue 1834]: https://github.com/android/ndk/issues/1834
+[Issue 1852]: https://github.com/android/ndk/issues/1852
 [Issue 1860]: https://github.com/android/ndk/issues/1860
 [Issue 1862]: https://github.com/android/ndk/issues/1862
 
