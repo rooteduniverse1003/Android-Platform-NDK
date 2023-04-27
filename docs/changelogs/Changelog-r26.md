@@ -21,6 +21,7 @@ directly, see the [build system maintainers guide].
 ## Changes
 
 * Updated LLVM to clang-r487747b, based on LLVM 17 development.
+  * This does **not** include a libc++ update. That work is still ongoing.
   * Clang now treats `-Wimplicit-function-declaration` as an error rather than a
     warning in C11 and newer. Clang's default C standard is 17, so this is a
     change in default behavior compared to older versions of Clang, but is the
@@ -52,12 +53,14 @@ directly, see the [build system maintainers guide].
 * [Issue 1803]: Removed useless `strtoq` and `strtouq` from the libc stub
   libraries. These were never exposed in the header files, but could confuse
   some autoconf like systems.
+* [Issue 1852]: Fixed ODR issue in linux/time.h.
 
 [Issue 837]: https://github.com/android/ndk/issues/837
 [Issue 1803]: https://github.com/android/ndk/issues/1803
 [Issue 1298]: https://github.com/android/ndk/issues/1298
 [Issue 1677]: https://github.com/android/ndk/issues/1677
 [Issue 1834]: https://github.com/android/ndk/issues/1834
+[Issue 1852]: https://github.com/android/ndk/issues/1852
 [Issue 1860]: https://github.com/android/ndk/issues/1860
 [Issue 1862]: https://github.com/android/ndk/issues/1862
 
