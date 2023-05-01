@@ -29,6 +29,37 @@ aiohttp = "^3.8.4"
 [tool.isort]
 profile = "black"
 
+[tool.mypy]
+check_untyped_defs = true
+# TODO: Investigate fixing type signatures for mocks.
+# disallow_any_decorated = True
+# This flags a *lot* of things since things like json.load return Any.
+# disallow_any_expr = True
+disallow_any_generics = true
+disallow_untyped_decorators = true
+disallow_untyped_defs = true
+follow_imports = "silent"
+implicit_reexport = false
+namespace_packages = true
+no_implicit_optional = true
+show_error_codes = true
+strict_equality = true
+warn_redundant_casts = true
+warn_return_any = true
+warn_unreachable = true
+warn_unused_configs = true
+warn_unused_ignores = true
+disallow_any_unimported = true
+disallow_subclassing_any = true
+exclude = [
+  "^tests/",
+  "^build/tools/make_standalone_toolchain.py$",
+  "^parse_elfnote.py$",
+  "^scripts/update_dac.py$",
+  "^scripts/gen_release_table.py$",
+  "^scripts/create_windows_instance.py$",
+]
+
 [build-system]
 requires = ["poetry-core>=1.0.0"]
 build-backend = "poetry.core.masonry.api"

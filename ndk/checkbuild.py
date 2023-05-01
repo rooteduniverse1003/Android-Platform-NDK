@@ -805,7 +805,7 @@ class Mypy(ndk.builds.LintModule):
             logging.warning("Skipping type-checking. mypy was not found on your path.")
             return
         subprocess.check_call(
-            ["mypy", "--config-file", str(ANDROID_DIR / "ndk/mypy.ini"), "ndk"]
+            ["mypy", "--config-file", str(ANDROID_DIR / "ndk/pyproject.toml"), "ndk"]
         )
 
 
