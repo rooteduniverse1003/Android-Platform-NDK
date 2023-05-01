@@ -14,8 +14,8 @@
 # limitations under the License.
 #
 """Test for ndk.graph."""
-from typing import cast, List, Optional
 import unittest
+from typing import List, Optional, cast
 
 import ndk.graph
 

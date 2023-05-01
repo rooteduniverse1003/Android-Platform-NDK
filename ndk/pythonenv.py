@@ -14,15 +14,14 @@
 # limitations under the License.
 #
 """Tools for verifying and fixing our Python environment."""
-from pathlib import Path
 import shutil
 import site
 import sys
 import textwrap
+from pathlib import Path
 
 from .hosts import Host
 from .paths import ANDROID_DIR
-
 
 PYTHON_DOCS = "https://android.googlesource.com/platform/ndk/+/master/docs/Building.md#python-environment-setup"
 

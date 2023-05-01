@@ -16,8 +16,8 @@
 """Performs dependency tracking for ndk.builds modules."""
 from typing import Dict, Iterable, List, Set
 
-from ndk.builds import Module
 import ndk.graph
+from ndk.builds import Module
 
 
 class CyclicDependencyError(RuntimeError):

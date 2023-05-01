@@ -16,18 +16,17 @@
 """APIs for dealing with autoconf scripts."""
 import multiprocessing
 import os
-from pathlib import Path
 import pipes
 import pprint
 import shutil
 import subprocess
+from pathlib import Path
 from typing import ContextManager, Dict, List, Optional
 
 import ndk.ext.os
-from ndk.hosts import Host, get_default_host
 import ndk.paths
 import ndk.toolchains
-
+from ndk.hosts import Host, get_default_host
 
 HOST_TRIPLE_MAP = {
     Host.Darwin: "x86_64-apple-darwin",

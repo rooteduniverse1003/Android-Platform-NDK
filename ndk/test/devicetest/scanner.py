@@ -19,7 +19,7 @@ from pathlib import Path, PurePosixPath
 from typing import Callable, Dict, List
 
 import ndk.test.builder
-from ndk.test.devicetest.case import TestCase, BasicTestCase, LibcxxTestCase
+from ndk.test.devicetest.case import BasicTestCase, LibcxxTestCase, TestCase
 from ndk.test.filters import TestFilter
 from ndk.test.spec import BuildConfiguration
 

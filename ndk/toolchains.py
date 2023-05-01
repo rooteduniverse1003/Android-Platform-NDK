@@ -14,12 +14,12 @@
 # limitations under the License.
 #
 """APIs for accessing toolchains."""
-from pathlib import Path
 import subprocess
+from pathlib import Path
 from typing import List
 
-from ndk.hosts import Host, get_default_host
 import ndk.paths
+from ndk.hosts import Host, get_default_host
 
 CLANG_VERSION = "clang-r487747b"
 

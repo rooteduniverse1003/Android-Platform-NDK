@@ -14,13 +14,14 @@
 # limitations under the License.
 #
 """Helper class for building CRT objects."""
-from pathlib import Path
 import shlex
 import shutil
 import subprocess
+from pathlib import Path
 
 import ndk.config
 from ndk.platforms import ALL_API_LEVELS
+
 from .abis import ALL_ABIS, Abi, abi_to_triple, clang_target, min_api_for_abi
 from .paths import ANDROID_DIR, NDK_DIR
 

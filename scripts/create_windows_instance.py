@@ -21,9 +21,9 @@ import os
 import subprocess
 import textwrap
 import time
+
 import winrm  # pylint:disable=import-error
 import yaml
-
 
 THIS_DIR = os.path.dirname(os.path.realpath(__file__))
 GCE_IMAGE = "windows-server-2016-dc-v20171010"

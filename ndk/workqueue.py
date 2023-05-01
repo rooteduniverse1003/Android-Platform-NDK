@@ -16,18 +16,18 @@
 """Defines WorkQueue for delegating asynchronous work to subprocesses."""
 from __future__ import annotations
 
-from abc import ABC, abstractmethod
 import collections
-from collections.abc import Hashable
 import itertools
 import logging
 import multiprocessing
 import multiprocessing.managers
 import os
-from queue import Queue
 import signal
 import sys
 import traceback
+from abc import ABC, abstractmethod
+from collections.abc import Hashable
+from queue import Queue
 from types import FrameType
 from typing import (
     Any,
@@ -43,7 +43,6 @@ from typing import (
     TypeVar,
     Union,
 )
-
 
 IS_WINDOWS = sys.platform == "win32"
 

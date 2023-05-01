@@ -22,7 +22,6 @@ import os.path
 import sys
 import textwrap
 import unittest
-
 from unittest import mock
 from unittest.mock import patch
 

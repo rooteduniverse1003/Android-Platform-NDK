@@ -15,18 +15,18 @@
 #
 """APIs for dealing with cmake scripts."""
 
-from functools import cached_property
 import os
-from pathlib import Path
 import pprint
 import shlex
 import shutil
 import subprocess
+from functools import cached_property
+from pathlib import Path
 from typing import Dict, List, Optional
 
-from ndk.hosts import Host
 import ndk.paths
 import ndk.toolchains
+from ndk.hosts import Host
 
 SYSTEM_NAME_MAP = {
     Host.Darwin: "Darwin",

@@ -14,12 +14,11 @@
 # limitations under the License.
 #
 """Test for ndk.deps."""
-from typing import Set
 import unittest
+from typing import Set
 
-from ndk.deps import CyclicDependencyError
-from ndk.deps import DependencyManager
 from ndk.builds import Module
+from ndk.deps import CyclicDependencyError, DependencyManager
 
 
 class MockModule(Module):

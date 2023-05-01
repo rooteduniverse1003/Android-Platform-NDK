@@ -15,11 +15,10 @@
 #
 """Python interfaces for win32 APIs."""
 from __future__ import absolute_import
-from typing import Optional
 
 import ctypes
 import ctypes.wintypes
-
+from typing import Optional
 
 # From winnt.h
 JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE = 0x00002000

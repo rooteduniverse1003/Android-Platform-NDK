@@ -14,20 +14,15 @@
 # limitations under the License.
 #
 import logging
-from pathlib import Path, PurePosixPath
 import os
 import shlex
 import traceback
-from typing import (
-    Optional,
-    Tuple,
-    Union,
-)
+from pathlib import Path, PurePosixPath
+from typing import Optional, Tuple, Union
 
 from ndk.test.config import DeviceTestConfig, LibcxxTestConfig
 from ndk.test.devices import Device, DeviceConfig
 from ndk.test.spec import BuildConfiguration
-
 
 AdbResult = tuple[int, str, str, str]
 

@@ -15,34 +15,34 @@
 #
 """Build test cases."""
 
-from abc import ABC, abstractmethod
 import fnmatch
-from importlib.abc import Loader
 import importlib.util
 import logging
 import multiprocessing
 import os
-from pathlib import Path, PurePosixPath
 import shlex
 import shutil
 import subprocess
-from subprocess import CompletedProcess
 import sys
-from typing import List, Optional, TextIO, Tuple
 import xml.etree.ElementTree
+from abc import ABC, abstractmethod
+from importlib.abc import Loader
+from pathlib import Path, PurePosixPath
+from subprocess import CompletedProcess
+from typing import List, Optional, TextIO, Tuple
 
-from ndk.abis import Abi
 import ndk.ansi
-from ndk.cmake import find_cmake, find_ninja
 import ndk.ext.os
 import ndk.ext.subprocess
 import ndk.hosts
 import ndk.ndkbuild
 import ndk.paths
+from ndk.abis import Abi
+from ndk.cmake import find_cmake, find_ninja
 from ndk.test.config import LibcxxTestConfig, TestConfig
 from ndk.test.filters import TestFilter
-from ndk.test.spec import BuildConfiguration, CMakeToolchainFile
 from ndk.test.result import Failure, Skipped, Success, TestResult
+from ndk.test.spec import BuildConfiguration, CMakeToolchainFile
 
 
 def logger() -> logging.Logger:

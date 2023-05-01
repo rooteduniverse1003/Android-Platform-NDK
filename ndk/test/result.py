@@ -19,7 +19,6 @@ from typing import Any, Generic, TypeVar
 
 import ndk.termcolor
 
-
 # TODO: Need to resolve the circular import between this and ndk.test.types.
 Test = Any
 

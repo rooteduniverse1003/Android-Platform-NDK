@@ -19,18 +19,18 @@ Note: this isn't the ndk-build API, but the API for building the NDK itself.
 """
 from __future__ import annotations
 
-from enum import auto, Enum, unique
-from pathlib import Path, PureWindowsPath
 import shutil
 import stat
 import subprocess
 import textwrap
+from enum import Enum, auto, unique
+from pathlib import Path, PureWindowsPath
 from typing import Any, Dict, Iterator, List, Optional, Set
 
+import ndk.paths
 from ndk.autoconf import AutoconfBuilder
 from ndk.cmake import CMakeBuilder
 from ndk.hosts import Host
-import ndk.paths
 
 
 class ModuleValidateError(RuntimeError):

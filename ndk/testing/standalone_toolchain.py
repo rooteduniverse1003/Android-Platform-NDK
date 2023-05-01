@@ -15,16 +15,16 @@
 #
 import logging
 import os
-from pathlib import Path
 import shutil
 import subprocess
 import tempfile
 import time
+from pathlib import Path
 from typing import Any
 
 import ndk.abis
-from ndk.hosts import Host
 import ndk.paths
+from ndk.hosts import Host
 from ndk.test.spec import BuildConfiguration
 
 

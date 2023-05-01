@@ -15,13 +15,13 @@
 #
 """Helper functions for reading and writing .zip and .tar.bz2 archives."""
 import os
-from pathlib import Path
 import shutil
 import subprocess
+from pathlib import Path
 from typing import List
 
-from ndk.hosts import Host
 import ndk.paths
+from ndk.hosts import Host
 
 
 def make_bztar(base_name: Path, root_dir: Path, base_dir: Path) -> None:

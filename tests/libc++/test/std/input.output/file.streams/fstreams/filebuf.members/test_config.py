@@ -1,7 +1,7 @@
 from typing import Optional
 
-from ndk.test.devices import DeviceConfig
 from ndk.test.buildtest.case import Test
+from ndk.test.devices import DeviceConfig
 
 
 def run_broken(test: Test, device: DeviceConfig) -> tuple[Optional[str], Optional[str]]:

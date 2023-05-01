@@ -15,46 +15,41 @@
 # limitations under the License.
 #
 """Runs the tests built by make_tests.py."""
-from __future__ import absolute_import
-from __future__ import print_function
+from __future__ import absolute_import, print_function
 
 import argparse
 import collections
-from collections.abc import Iterator
-from contextlib import contextmanager
 import datetime
 import logging
-from pathlib import Path, PurePosixPath
 import random
 import shutil
 import site
 import subprocess
 import sys
 import time
-from typing import (
-    Dict,
-    Iterable,
-    List,
-    Mapping,
-    Optional,
-)
+from collections.abc import Iterator
+from contextlib import contextmanager
+from pathlib import Path, PurePosixPath
+from typing import Dict, Iterable, List, Mapping, Optional
 
 import ndk.ansi
 import ndk.archive
 import ndk.ext.subprocess
 import ndk.notify
 import ndk.paths
-import ndk.test.buildtest.case
 import ndk.test.builder
-from ndk.test.devicetest.case import TestCase
-from ndk.test.devicetest.scanner import ConfigFilter, enumerate_tests
+import ndk.test.buildtest.case
+import ndk.test.ui
+import ndk.ui
 from ndk.test.devices import (
     Device,
+    DeviceConfig,
     DeviceFleet,
     DeviceShardingGroup,
     find_devices,
-    DeviceConfig,
 )
+from ndk.test.devicetest.case import TestCase
+from ndk.test.devicetest.scanner import ConfigFilter, enumerate_tests
 from ndk.test.filters import TestFilter
 from ndk.test.printers import Printer, StdoutPrinter
 from ndk.test.report import Report
@@ -68,12 +63,10 @@ from ndk.test.result import (
     UnexpectedSuccess,
 )
 from ndk.test.spec import BuildConfiguration, TestSpec
-import ndk.test.ui
 from ndk.timer import Timer
-import ndk.ui
 from ndk.workqueue import ShardingWorkQueue, Worker, WorkQueue
-from .pythonenv import ensure_python_environment
 
+from .pythonenv import ensure_python_environment
 
 AdbResult = tuple[int, str, str, str]
 

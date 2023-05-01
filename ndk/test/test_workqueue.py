@@ -16,14 +16,14 @@
 """Tests for ndk.workqueue."""
 import multiprocessing
 import os
-from queue import Queue
 import signal
 import sys
+import time
+import unittest
+from queue import Queue
 from threading import Event
 from types import FrameType
 from typing import Optional
-import time
-import unittest
 
 from ndk.workqueue import BasicWorkQueue, TaskError, Worker, WorkQueue
 

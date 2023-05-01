@@ -16,11 +16,11 @@
 """Tests for ndk.test.devices."""
 from __future__ import absolute_import
 
-from typing import List, Optional
 import unittest
+from typing import List, Optional
 
-from ndk.abis import Abi
 import ndk.test.devices
+from ndk.abis import Abi
 from ndk.test.spec import BuildConfiguration, CMakeToolchainFile, WeakSymbolsConfig
 
 
