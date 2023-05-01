@@ -778,6 +778,17 @@ class Black(ndk.builds.LintModule):
 
 
 @register
+class Isort(ndk.builds.LintModule):
+    name = "isort"
+
+    def run(self) -> None:
+        if not shutil.which("isort"):
+            logging.warning("Skipping isort. isort was not found on your path.")
+            return
+        subprocess.check_call(["isort", "--check", "."])
+
+
+@register
 class Pylint(ndk.builds.LintModule):
     name = "pylint"
 
@@ -823,7 +834,7 @@ class Pytest(ndk.builds.LintModule):
 @register
 class PythonLint(ndk.builds.MetaModule):
     name = "pythonlint"
-    deps = {"black", "mypy", "pylint", "pytest"}
+    deps = {"black", "isort", "mypy", "pylint", "pytest"}
 
 
 @register
