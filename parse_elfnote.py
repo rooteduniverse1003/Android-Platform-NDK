@@ -176,7 +176,7 @@ def main():
         print("----------ABI INFO----------")
         if len(sec_data) == 0:
             logger().warning("%s section is empty", SEC_NAME)
-        for (name, kind, desc) in iterate_notes(sec_data):
+        for name, kind, desc in iterate_notes(sec_data):
             if (name, kind) == (b"Android", 1):
                 dump_android_ident_note(desc)
             else:

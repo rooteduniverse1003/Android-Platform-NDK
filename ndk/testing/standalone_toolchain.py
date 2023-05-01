@@ -97,7 +97,6 @@ def run_test(
     extra_args: list[str],
     flags: list[str],
 ) -> tuple[bool, str]:
-
     # On Windows, the default directory for temporary files may have a different
     # (slow) configuration for security controls, indexing, etc. So we create
     # temporary directories directly in "out".
