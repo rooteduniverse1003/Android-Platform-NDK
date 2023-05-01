@@ -60,6 +60,33 @@ exclude = [
   "^scripts/create_windows_instance.py$",
 ]
 
+[tool.pylint]
+jobs = 0
+disable = [
+    "assignment-from-none",
+    "consider-using-f-string",
+    "consider-using-with",
+    "duplicate-code",
+    "fixme,design",
+    "invalid-name",
+    "line-too-long",  # black handles this
+    "locally-disabled",
+    "missing-docstring",
+    "too-many-lines",
+    "unspecified-encoding",
+]
+ignore = "ndk-gdb.py"
+good-names = [
+    "i",
+    "j",
+    "k",
+    "ex",
+    "Run",
+    "_",
+]
+dummy-variables-rgx = "_"
+ignore-imports = true
+
 [build-system]
 requires = ["poetry-core>=1.0.0"]
 build-backend = "poetry.core.masonry.api"

@@ -787,7 +787,7 @@ class Pylint(ndk.builds.LintModule):
             return
         pylint = [
             "pylint",
-            "--rcfile=" + str(ANDROID_DIR / "ndk/pylintrc"),
+            "--rcfile=" + str(ANDROID_DIR / "ndk/pyproject.toml"),
             "--score=n",
             "build",
             "ndk",
