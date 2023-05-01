@@ -28,13 +28,7 @@ import shutil
 import subprocess
 from subprocess import CompletedProcess
 import sys
-from typing import (
-    List,
-    Optional,
-    TextIO,
-    Tuple,
-    Union,
-)
+from typing import List, Optional, TextIO, Tuple
 import xml.etree.ElementTree
 
 from ndk.abis import Abi
@@ -92,7 +86,12 @@ class Test(ABC):
     def is_negative_test(self) -> bool:
         raise NotImplementedError
 
-    def check_broken(self, result: TestResult) -> tuple[None, None] | tuple[str, str]:
+    def check_broken(
+        self,
+        # pylint is wrong about this. It's not used here, but it is used in
+        # XunitFailure, which overrides this.
+        result: TestResult,  # pylint: disable=unused-argument
+    ) -> tuple[None, None] | tuple[str, str]:
         return self.get_test_config().build_broken(self)
 
     def check_unsupported(self) -> Optional[str]:
@@ -847,14 +846,11 @@ class XunitResult(Test):
             return config, bug
         return None, None
 
-    # pylint: disable=no-self-use
     def check_unsupported(self) -> Optional[str]:
         return None
 
     def is_negative_test(self) -> bool:
         return False
-
-    # pylint: enable=no-self-use
 
 
 class XunitSuccess(XunitResult):
