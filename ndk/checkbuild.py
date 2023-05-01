@@ -810,9 +810,20 @@ class Mypy(ndk.builds.LintModule):
 
 
 @register
+class Pytest(ndk.builds.LintModule):
+    name = "pytest"
+
+    def run(self) -> None:
+        if not shutil.which("pytest"):
+            logging.warning("Skipping pytest. pytest was not found on your path.")
+            return
+        subprocess.check_call(["pytest", "ndk"])
+
+
+@register
 class PythonLint(ndk.builds.MetaModule):
     name = "pythonlint"
-    deps = {"black", "mypy", "pylint"}
+    deps = {"black", "mypy", "pylint", "pytest"}
 
 
 @register
