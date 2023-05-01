@@ -1816,6 +1816,7 @@ class NdkBuildShortcut(ndk.builds.ScriptShortcutModule):
     install_path = Path("ndk-build")
     script = Path("build/ndk-build")
     windows_ext = ".cmd"
+    disallow_windows_install_path_with_spaces = True
 
 
 @register
