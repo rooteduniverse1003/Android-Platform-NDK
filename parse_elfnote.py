@@ -26,12 +26,12 @@
 #
 
 from __future__ import division, print_function
+
 import argparse
 import logging
 import struct
 import subprocess
 import sys
-
 
 SEC_NAME = ".note.android.ident"
 NDK_RESERVED_SIZE = 64

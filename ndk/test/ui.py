@@ -14,15 +14,14 @@
 # limitations under the License.
 #
 """UI classes for test output."""
-from __future__ import absolute_import
-from __future__ import print_function
+from __future__ import absolute_import, print_function
 
 import os
 from typing import Any, List
 
 from ndk.ansi import AnsiConsole, Console, font_bold, font_faint, font_reset
-from ndk.ui import Ui, UiRenderer, AnsiUiRenderer, NonAnsiUiRenderer, columnate
 from ndk.test.devices import Device
+from ndk.ui import AnsiUiRenderer, NonAnsiUiRenderer, Ui, UiRenderer, columnate
 from ndk.workqueue import LoadRestrictingWorkQueue, ShardingWorkQueue, Worker
 
 

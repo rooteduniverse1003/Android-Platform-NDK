@@ -19,28 +19,28 @@ from __future__ import absolute_import
 import json
 import logging
 import os
-from pathlib import Path
 import pickle
 import random
 import shutil
 import sys
 import traceback
+from pathlib import Path
 from typing import Dict, List, Tuple
 
 import ndk.abis
 import ndk.archive
 import ndk.paths
-from ndk.test.buildtest.case import Test
-from ndk.test.buildtest.scanner import TestScanner
 import ndk.test.devicetest.scanner
-from ndk.test.devices import DeviceConfig
-from ndk.test.filters import TestFilter
-from ndk.test.printers import Printer
-from ndk.test.report import Report
 import ndk.test.spec
 import ndk.test.suites
 import ndk.test.ui
 import ndk.ui
+from ndk.test.buildtest.case import Test
+from ndk.test.buildtest.scanner import TestScanner
+from ndk.test.devices import DeviceConfig
+from ndk.test.filters import TestFilter
+from ndk.test.printers import Printer
+from ndk.test.report import Report
 from ndk.workqueue import LoadRestrictingWorkQueue, Worker
 
 

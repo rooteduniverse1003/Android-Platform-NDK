@@ -19,7 +19,6 @@ from typing import List, NewType, Optional
 
 from .platforms import FIRST_LP64_API_LEVEL, MIN_API_LEVEL
 
-
 Arch = NewType("Arch", str)
 Abi = NewType("Abi", str)
 Toolchain = NewType("Toolchain", str)

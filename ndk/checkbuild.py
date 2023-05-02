@@ -23,13 +23,11 @@ import argparse
 import collections
 import contextlib
 import copy
-
 import inspect
 import json
 import logging
 import multiprocessing
 import os
-from pathlib import Path
 import pipes
 import re
 import shutil
@@ -39,6 +37,7 @@ import subprocess
 import sys
 import textwrap
 import traceback
+from pathlib import Path
 from typing import (
     Any,
     Callable,
@@ -59,21 +58,22 @@ import ndk.autoconf
 import ndk.builds
 import ndk.cmake
 import ndk.config
-from ndk.crtobjectbuilder import CrtObjectBuilder
 import ndk.deps
 import ndk.file
-from ndk.hosts import Host
 import ndk.notify
 import ndk.paths
-from ndk.paths import ANDROID_DIR, NDK_DIR
-from ndk.platforms import ALL_API_LEVELS, API_LEVEL_ALIASES, MAX_API_LEVEL
 import ndk.test.builder
 import ndk.test.printers
 import ndk.test.spec
 import ndk.timer
-from ndk.toolchains import ClangToolchain, CLANG_VERSION
 import ndk.ui
 import ndk.workqueue
+from ndk.crtobjectbuilder import CrtObjectBuilder
+from ndk.hosts import Host
+from ndk.paths import ANDROID_DIR, NDK_DIR
+from ndk.platforms import ALL_API_LEVELS, API_LEVEL_ALIASES, MAX_API_LEVEL
+from ndk.toolchains import CLANG_VERSION, ClangToolchain
+
 from .pythonenv import ensure_python_environment
 
 

@@ -33,21 +33,20 @@ updating two hosts to different versions.
 """
 
 import argparse
-from dataclasses import dataclass
 import glob
 import logging
 import os
-from pathlib import Path
 import re
 import shlex
 import shutil
 import subprocess
 import sys
 import textwrap
+from dataclasses import dataclass
+from pathlib import Path
 from typing import Sequence
 from uuid import UUID
 from xml.etree import ElementTree
-
 
 THIS_DIR = Path(__file__).resolve().parent
 REPO_ROOT = THIS_DIR.parent.parent

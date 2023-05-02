@@ -1,6 +1,5 @@
 from __future__ import print_function
 
-
 major = 26
 hotfix = 0
 hotfix_str = chr(ord("a") + hotfix) if hotfix else ""

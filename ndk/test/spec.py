@@ -16,14 +16,14 @@
 """Configuration objects for describing test runs."""
 from __future__ import annotations
 
-from dataclasses import dataclass
 import enum
 import json
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Dict, Iterable, List, Optional
 
-from ndk.abis import Abi, LP32_ABIS, LP64_ABIS
 import ndk.test.suites
+from ndk.abis import LP32_ABIS, LP64_ABIS, Abi
 
 
 @enum.unique

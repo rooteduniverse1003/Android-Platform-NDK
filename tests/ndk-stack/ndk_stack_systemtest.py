@@ -18,10 +18,10 @@
 
 from __future__ import print_function
 
-from io import StringIO
 import os.path
 import sys
 import unittest
+from io import StringIO
 from unittest.mock import patch
 
 sys.path.insert(0, "../..")

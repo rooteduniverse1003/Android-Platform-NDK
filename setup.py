@@ -17,8 +17,8 @@
 from __future__ import absolute_import
 
 import os
-import setuptools  # type: ignore
 
+import setuptools  # type: ignore
 
 THIS_DIR = os.path.dirname(os.path.realpath(__file__))
 

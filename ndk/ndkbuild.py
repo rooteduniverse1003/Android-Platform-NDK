@@ -17,8 +17,8 @@
 from __future__ import absolute_import
 
 import os
-from pathlib import Path
 import subprocess
+from pathlib import Path
 from subprocess import CompletedProcess
 
 

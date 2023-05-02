@@ -13,14 +13,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-from importlib.abc import Loader
 import importlib.util
+from importlib.abc import Loader
 from pathlib import Path
 from types import ModuleType
 from typing import Any, Callable, List, Optional, Tuple, Union
 
 from ndk.test.devices import DeviceConfig
-
 
 # Need to refactor to resolve the circular import between this module and
 # ndk.test.types.

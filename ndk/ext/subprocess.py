@@ -21,7 +21,6 @@ import subprocess
 import sys
 from typing import Any, Sequence, Tuple
 
-
 # TODO: Remove in favor of subprocess.run.
 
 

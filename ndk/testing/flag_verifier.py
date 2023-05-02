@@ -16,13 +16,13 @@
 """Tools for verifying the presence or absence of flags in builds."""
 from __future__ import annotations
 
-from pathlib import Path
 import shutil
 import subprocess
+from pathlib import Path
 from typing import Optional
 
-from ndk.hosts import Host
 import ndk.paths
+from ndk.hosts import Host
 from ndk.test.spec import BuildConfiguration, CMakeToolchainFile
 
 

@@ -21,7 +21,6 @@ from typing import Callable, Iterator, Optional
 import ndk.config
 import ndk.hosts
 
-
 ANDROID_DIR = Path(__file__).resolve().parents[2]
 NDK_DIR = ANDROID_DIR / "ndk"
 DEVICE_TEST_BASE_DIR = PurePosixPath("/data/local/tmp/tests")

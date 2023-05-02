@@ -31,7 +31,6 @@ import os
 import shutil
 import subprocess
 
-
 THIS_DIR = os.path.realpath(os.path.dirname(__file__))
 NDK_DIR = os.path.dirname(THIS_DIR)
 

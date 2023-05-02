@@ -19,16 +19,15 @@ from __future__ import print_function
 
 import argparse
 import contextlib
-import os
+import logging
 import operator
+import os
 import posixpath
 import signal
 import subprocess
 import sys
 import time
 import xml.etree.cElementTree as ElementTree
-
-import logging
 
 # Shared functions across gdbclient.py and ndk-gdb.py.
 # ndk-gdb is installed to $NDK/prebuilt/<platform>/bin
