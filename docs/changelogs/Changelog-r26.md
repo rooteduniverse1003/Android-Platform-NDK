@@ -65,10 +65,10 @@ directly, see the [build system maintainers guide].
   more closely match CMake and other build systems.
 
 [Issue 837]: https://github.com/android/ndk/issues/837
-[Issue 1400]: https://github.com/android/ndk/issues/1400
-[Issue 1803]: https://github.com/android/ndk/issues/1803
 [Issue 1298]: https://github.com/android/ndk/issues/1298
+[Issue 1400]: https://github.com/android/ndk/issues/1400
 [Issue 1677]: https://github.com/android/ndk/issues/1677
+[Issue 1803]: https://github.com/android/ndk/issues/1803
 [Issue 1834]: https://github.com/android/ndk/issues/1834
 [Issue 1852]: https://github.com/android/ndk/issues/1852
 [Issue 1860]: https://github.com/android/ndk/issues/1860
