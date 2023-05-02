@@ -15,27 +15,31 @@
 #
 import unittest
 
-from ndk.test.spec import BuildConfiguration, CMakeToolchainFile
+from ndk.test.spec import BuildConfiguration, CMakeToolchainFile, WeakSymbolsConfig
 
 
 class BuildConfigurationTest(unittest.TestCase):
     def test_from_string(self) -> None:
-        config = BuildConfiguration.from_string("armeabi-v7a-16-legacy")
+        config = BuildConfiguration.from_string("armeabi-v7a-16-legacy-strictapi")
         self.assertEqual("armeabi-v7a", config.abi)
         self.assertEqual(16, config.api)
         self.assertEqual(CMakeToolchainFile.Legacy, config.toolchain_file)
+        self.assertEqual(WeakSymbolsConfig.StrictAPI, config.weak_symbol)
 
-        config = BuildConfiguration.from_string("arm64-v8a-21-new")
+        config = BuildConfiguration.from_string("arm64-v8a-21-new-strictapi")
         self.assertEqual("arm64-v8a", config.abi)
         self.assertEqual(21, config.api)
         self.assertEqual(CMakeToolchainFile.Default, config.toolchain_file)
+        self.assertEqual(WeakSymbolsConfig.StrictAPI, config.weak_symbol)
 
-        config = BuildConfiguration.from_string("x86-16-new")
+        config = BuildConfiguration.from_string("x86-16-new-strictapi")
         self.assertEqual("x86", config.abi)
         self.assertEqual(16, config.api)
         self.assertEqual(CMakeToolchainFile.Default, config.toolchain_file)
+        self.assertEqual(WeakSymbolsConfig.StrictAPI, config.weak_symbol)
 
-        config = BuildConfiguration.from_string("x86_64-21-new")
+        config = BuildConfiguration.from_string("x86_64-21-new-weakapi")
         self.assertEqual("x86_64", config.abi)
         self.assertEqual(21, config.api)
         self.assertEqual(CMakeToolchainFile.Default, config.toolchain_file)
+        self.assertEqual(WeakSymbolsConfig.WeakAPI, config.weak_symbol)

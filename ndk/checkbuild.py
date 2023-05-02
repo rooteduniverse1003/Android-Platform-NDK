@@ -787,7 +787,7 @@ class Pylint(ndk.builds.LintModule):
             return
         pylint = [
             "pylint",
-            "--rcfile=" + str(ANDROID_DIR / "ndk/pylintrc"),
+            "--rcfile=" + str(ANDROID_DIR / "ndk/pyproject.toml"),
             "--score=n",
             "build",
             "ndk",
@@ -805,14 +805,25 @@ class Mypy(ndk.builds.LintModule):
             logging.warning("Skipping type-checking. mypy was not found on your path.")
             return
         subprocess.check_call(
-            ["mypy", "--config-file", str(ANDROID_DIR / "ndk/mypy.ini"), "ndk"]
+            ["mypy", "--config-file", str(ANDROID_DIR / "ndk/pyproject.toml"), "ndk"]
         )
+
+
+@register
+class Pytest(ndk.builds.LintModule):
+    name = "pytest"
+
+    def run(self) -> None:
+        if not shutil.which("pytest"):
+            logging.warning("Skipping pytest. pytest was not found on your path.")
+            return
+        subprocess.check_call(["pytest", "ndk"])
 
 
 @register
 class PythonLint(ndk.builds.MetaModule):
     name = "pythonlint"
-    deps = {"black", "mypy", "pylint"}
+    deps = {"black", "mypy", "pylint", "pytest"}
 
 
 @register
