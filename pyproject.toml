@@ -12,7 +12,6 @@ update-prebuilt-ndk = "ndk.tools.ndkgitprebuilts:App.main"
 python = "^3.10"
 
 [tool.poetry.dev-dependencies]
-black = "^22.6.0"
 adb = {path = "../development/python-packages/adb"}
 
 [tool.poetry.group.dev.dependencies]
@@ -22,6 +21,7 @@ aiohttp = "^3.8.4"
 mypy = "^1.2.0"
 pylint = "^2.17.3"
 pytest = "^7.3.1"
+black = "^23.3.0"
 
 [tool.isort]
 profile = "black"
