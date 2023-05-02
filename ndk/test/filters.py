@@ -26,6 +26,9 @@ class FilterFunc:
 
 
 class TestFilter:
+    # Needed to shut up warnings about `Test*` looking like a unittest test case.
+    __test__ = False
+
     def __init__(self, patterns: List[str]) -> None:
         self.early_filters: List[FilterFunc] = []
         self.late_filters: List[FilterFunc] = []
