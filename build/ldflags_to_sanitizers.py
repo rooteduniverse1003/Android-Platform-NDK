@@ -25,12 +25,12 @@ def sanitizers_from_args(args: list[str]) -> list[str]:
     """Returns the sanitizers enabled by a given set of ldflags."""
     sanitizers = set()
     for arg in args:
-        if arg.startswith('-fsanitize='):
-            sanitizer_list = arg.partition('=')[2]
-            sanitizers |= set(sanitizer_list.split(','))
-        elif arg.startswith('-fno-sanitize='):
-            sanitizer_list = arg.partition('=')[2]
-            sanitizers -= set(sanitizer_list.split(','))
+        if arg.startswith("-fsanitize="):
+            sanitizer_list = arg.partition("=")[2]
+            sanitizers |= set(sanitizer_list.split(","))
+        elif arg.startswith("-fno-sanitize="):
+            sanitizer_list = arg.partition("=")[2]
+            sanitizers -= set(sanitizer_list.split(","))
     return sorted(list(sanitizers))
 
 
@@ -46,7 +46,7 @@ def argv_to_module_arg_lists(args: list[str]) -> tuple[list[str], list[list[str]
     """
     modules: list[list[str]] = [[]]
     for arg in args:
-        if arg == '--module':
+        if arg == "--module":
             modules.append([])
         else:
             modules[-1].append(arg)
@@ -60,15 +60,16 @@ def main(argv: list[str], stream: TextIO = sys.stdout) -> None:
     # MODULE_FLAGS sections.
     if len(argv) < 2:
         sys.exit(
-            'usage: ldflags_to_sanitizers.py [GLOBAL_FLAGS] '
-            '--module [MODULE_FLAGS] [--module [MODULE_FLAGS]...]')
+            "usage: ldflags_to_sanitizers.py [GLOBAL_FLAGS] "
+            "--module [MODULE_FLAGS] [--module [MODULE_FLAGS]...]"
+        )
 
     global_flags, modules_flags = argv_to_module_arg_lists(argv[1:])
     all_sanitizers = list(sanitizers_from_args(global_flags))
     for module_flags in modules_flags:
         all_sanitizers.extend(sanitizers_from_args(module_flags))
-    print(' '.join(sorted(set(all_sanitizers))), file=stream)
+    print(" ".join(sorted(set(all_sanitizers))), file=stream)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main(sys.argv)

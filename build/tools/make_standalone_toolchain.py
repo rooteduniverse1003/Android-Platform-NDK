@@ -33,7 +33,7 @@ import textwrap
 
 
 THIS_DIR = os.path.realpath(os.path.dirname(__file__))
-NDK_DIR = os.path.realpath(os.path.join(THIS_DIR, '../..'))
+NDK_DIR = os.path.realpath(os.path.join(THIS_DIR, "../.."))
 
 
 def logger():
@@ -44,54 +44,53 @@ def logger():
 def check_ndk_or_die():
     """Verify that our NDK installation is somewhat present or die."""
     checks = [
-        'build/core',
-        'prebuilt',
-        'toolchains',
+        "build/core",
+        "prebuilt",
+        "toolchains",
     ]
 
     for check in checks:
         check_path = os.path.join(NDK_DIR, check)
         if not os.path.exists(check_path):
-            sys.exit('Missing {}'.format(check_path))
+            sys.exit("Missing {}".format(check_path))
 
 
 def get_triple(arch):
     """Return the triple for the given architecture."""
     return {
-        'arm': 'arm-linux-androideabi',
-        'arm64': 'aarch64-linux-android',
-        'x86': 'i686-linux-android',
-        'x86_64': 'x86_64-linux-android',
+        "arm": "arm-linux-androideabi",
+        "arm64": "aarch64-linux-android",
+        "x86": "i686-linux-android",
+        "x86_64": "x86_64-linux-android",
     }[arch]
 
 
 def get_host_tag_or_die():
     """Return the host tag for this platform. Die if not supported."""
-    if sys.platform.startswith('linux'):
-        return 'linux-x86_64'
-    elif sys.platform == 'darwin':
-        return 'darwin-x86_64'
-    elif sys.platform == 'win32' or sys.platform == 'cygwin':
-        return 'windows-x86_64'
-    sys.exit('Unsupported platform: ' + sys.platform)
+    if sys.platform.startswith("linux"):
+        return "linux-x86_64"
+    elif sys.platform == "darwin":
+        return "darwin-x86_64"
+    elif sys.platform == "win32" or sys.platform == "cygwin":
+        return "windows-x86_64"
+    sys.exit("Unsupported platform: " + sys.platform)
 
 
 def get_toolchain_path_or_die(host_tag):
     """Return the toolchain path or die."""
-    toolchain_path = os.path.join(NDK_DIR, 'toolchains/llvm/prebuilt',
-                                  host_tag)
+    toolchain_path = os.path.join(NDK_DIR, "toolchains/llvm/prebuilt", host_tag)
     if not os.path.exists(toolchain_path):
-        sys.exit('Could not find toolchain: {}'.format(toolchain_path))
+        sys.exit("Could not find toolchain: {}".format(toolchain_path))
     return toolchain_path
 
 
 def make_clang_target(triple, api):
     """Returns the Clang target for the given GNU triple and API combo."""
-    arch, os_name, env = triple.split('-')
-    if arch == 'arm':
-        arch = 'armv7a'  # Target armv7, not armv5.
+    arch, os_name, env = triple.split("-")
+    if arch == "arm":
+        arch = "armv7a"  # Target armv7, not armv5.
 
-    return '{}-{}-{}{}'.format(arch, os_name, env, api)
+    return "{}-{}-{}{}".format(arch, os_name, env, api)
 
 
 def make_clang_scripts(install_dir, arch, api, windows):
@@ -106,39 +105,44 @@ def make_clang_scripts(install_dir, arch, api, windows):
     Create wrapper scripts that invoke Clang with `-target` and `--sysroot`
     preset.
     """
-    with open(os.path.join(install_dir, 'AndroidVersion.txt')) as version_file:
+    with open(os.path.join(install_dir, "AndroidVersion.txt")) as version_file:
         first_line = version_file.read().strip().splitlines()[0]
-        major, minor, _build = first_line.split('.')
+        major, minor, _build = first_line.split(".")
 
     version_number = major + minor
 
-    exe = ''
+    exe = ""
     if windows:
-        exe = '.exe'
+        exe = ".exe"
 
-    bin_dir = os.path.join(install_dir, 'bin')
-    shutil.move(os.path.join(bin_dir, 'clang' + exe),
-                os.path.join(bin_dir, 'clang{}'.format(version_number) + exe))
-    shutil.move(os.path.join(bin_dir, 'clang++' + exe),
-                os.path.join(bin_dir, 'clang{}++'.format(
-                    version_number) + exe))
+    bin_dir = os.path.join(install_dir, "bin")
+    shutil.move(
+        os.path.join(bin_dir, "clang" + exe),
+        os.path.join(bin_dir, "clang{}".format(version_number) + exe),
+    )
+    shutil.move(
+        os.path.join(bin_dir, "clang++" + exe),
+        os.path.join(bin_dir, "clang{}++".format(version_number) + exe),
+    )
 
     triple = get_triple(arch)
     target = make_clang_target(triple, api)
-    flags = '-target {}'.format(target)
+    flags = "-target {}".format(target)
 
     # We only need mstackrealign to fix issues on 32-bit x86 pre-24. After 24,
     # this consumes an extra register unnecessarily, which can cause issues for
     # inline asm.
     # https://github.com/android-ndk/ndk/issues/693
-    if arch == 'i686' and api < 24:
-        flags += ' -mstackrealign'
+    if arch == "i686" and api < 24:
+        flags += " -mstackrealign"
 
     cxx_flags = str(flags)
 
-    clang_path = os.path.join(install_dir, 'bin/clang')
-    with open(clang_path, 'w') as clang:
-        clang.write(textwrap.dedent("""\
+    clang_path = os.path.join(install_dir, "bin/clang")
+    with open(clang_path, "w") as clang:
+        clang.write(
+            textwrap.dedent(
+                """\
             #!/usr/bin/env bash
             bin_dir=`dirname "$0"`
             if [ "$1" != "-cc1" ]; then
@@ -147,14 +151,20 @@ def make_clang_scripts(install_dir, arch, api, windows):
                 # target/triple already spelled out.
                 "$bin_dir/clang{version}" "$@"
             fi
-        """.format(version=version_number, flags=flags)))
+        """.format(
+                    version=version_number, flags=flags
+                )
+            )
+        )
 
     mode = os.stat(clang_path).st_mode
     os.chmod(clang_path, mode | stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH)
 
-    clangpp_path = os.path.join(install_dir, 'bin/clang++')
-    with open(clangpp_path, 'w') as clangpp:
-        clangpp.write(textwrap.dedent("""\
+    clangpp_path = os.path.join(install_dir, "bin/clang++")
+    with open(clangpp_path, "w") as clangpp:
+        clangpp.write(
+            textwrap.dedent(
+                """\
             #!/usr/bin/env bash
             bin_dir=`dirname "$0"`
             if [ "$1" != "-cc1" ]; then
@@ -163,21 +173,30 @@ def make_clang_scripts(install_dir, arch, api, windows):
                 # target/triple already spelled out.
                 "$bin_dir/clang{version}++" "$@"
             fi
-        """.format(version=version_number, flags=cxx_flags)))
+        """.format(
+                    version=version_number, flags=cxx_flags
+                )
+            )
+        )
 
     mode = os.stat(clangpp_path).st_mode
     os.chmod(clangpp_path, mode | stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH)
 
-    shutil.copy2(os.path.join(install_dir, 'bin/clang'),
-                 os.path.join(install_dir, 'bin', triple + '-clang'))
-    shutil.copy2(os.path.join(install_dir, 'bin/clang++'),
-                 os.path.join(install_dir, 'bin', triple + '-clang++'))
+    shutil.copy2(
+        os.path.join(install_dir, "bin/clang"),
+        os.path.join(install_dir, "bin", triple + "-clang"),
+    )
+    shutil.copy2(
+        os.path.join(install_dir, "bin/clang++"),
+        os.path.join(install_dir, "bin", triple + "-clang++"),
+    )
 
     if windows:
-        for pp_suffix in ('', '++'):
-            is_cpp = pp_suffix == '++'
-            exe_name = 'clang{}{}.exe'.format(version_number, pp_suffix)
-            clangbat_text = textwrap.dedent("""\
+        for pp_suffix in ("", "++"):
+            is_cpp = pp_suffix == "++"
+            exe_name = "clang{}{}.exe".format(version_number, pp_suffix)
+            clangbat_text = textwrap.dedent(
+                """\
                 @echo off
                 setlocal
                 call :find_bin
@@ -200,25 +219,28 @@ def make_clang_scripts(install_dir, arch, api, windows):
                 exit /b
 
                 :done
-            """.format(exe=exe_name, flags=cxx_flags if is_cpp else flags))
+            """.format(
+                    exe=exe_name, flags=cxx_flags if is_cpp else flags
+                )
+            )
 
-            for triple_prefix in ('', triple + '-'):
+            for triple_prefix in ("", triple + "-"):
                 clangbat_path = os.path.join(
-                    install_dir, 'bin',
-                    '{}clang{}.cmd'.format(triple_prefix, pp_suffix))
-                with open(clangbat_path, 'w') as clangbat:
+                    install_dir, "bin", "{}clang{}.cmd".format(triple_prefix, pp_suffix)
+                )
+                with open(clangbat_path, "w") as clangbat:
                     clangbat.write(clangbat_text)
 
 
 def replace_gcc_wrappers(install_path, triple, is_windows):
-    cmd = '.cmd' if is_windows else ''
+    cmd = ".cmd" if is_windows else ""
 
-    gcc = os.path.join(install_path, 'bin', triple + '-gcc' + cmd)
-    clang = os.path.join(install_path, 'bin', 'clang' + cmd)
+    gcc = os.path.join(install_path, "bin", triple + "-gcc" + cmd)
+    clang = os.path.join(install_path, "bin", "clang" + cmd)
     shutil.copy2(clang, gcc)
 
-    gpp = os.path.join(install_path, 'bin', triple + '-g++' + cmd)
-    clangpp = os.path.join(install_path, 'bin', 'clang++' + cmd)
+    gpp = os.path.join(install_path, "bin", triple + "-g++" + cmd)
+    clangpp = os.path.join(install_path, "bin", "clang++" + cmd)
     shutil.copy2(clangpp, gpp)
 
 
@@ -226,40 +248,44 @@ def copytree(src, dst):
     # A Python invocation running concurrently with make_standalone_toolchain.py
     # can create a __pycache__ directory inside the src dir. Avoid copying it,
     # because it can be in an inconsistent state.
-    shutil.copytree(src, dst, ignore=shutil.ignore_patterns("__pycache__"),
-                    dirs_exist_ok=True)
+    shutil.copytree(
+        src, dst, ignore=shutil.ignore_patterns("__pycache__"), dirs_exist_ok=True
+    )
 
 
 def create_toolchain(install_path, arch, api, toolchain_path, host_tag):
     """Create a standalone toolchain."""
     copytree(toolchain_path, install_path)
     triple = get_triple(arch)
-    make_clang_scripts(install_path, arch, api, host_tag == 'windows-x86_64')
-    replace_gcc_wrappers(install_path, triple, host_tag == 'windows-x86_64')
+    make_clang_scripts(install_path, arch, api, host_tag == "windows-x86_64")
+    replace_gcc_wrappers(install_path, triple, host_tag == "windows-x86_64")
 
-    prebuilt_path = os.path.join(NDK_DIR, 'prebuilt', host_tag)
+    prebuilt_path = os.path.join(NDK_DIR, "prebuilt", host_tag)
     copytree(prebuilt_path, install_path)
 
 
 def warn_unnecessary(arch, api, host_tag):
     """Emits a warning that this script is no longer needed."""
-    if host_tag == 'windows-x86_64':
-        ndk_var = '%NDK%'
-        prompt = 'C:\\>'
+    if host_tag == "windows-x86_64":
+        ndk_var = "%NDK%"
+        prompt = "C:\\>"
     else:
-        ndk_var = '$NDK'
-        prompt = '$ '
+        ndk_var = "$NDK"
+        prompt = "$ "
 
     target = make_clang_target(get_triple(arch), api)
-    standalone_toolchain = os.path.join(ndk_var, 'build', 'tools',
-                                        'make_standalone_toolchain.py')
-    toolchain_dir = os.path.join(ndk_var, 'toolchains', 'llvm', 'prebuilt',
-                                 host_tag, 'bin')
-    old_clang = os.path.join('toolchain', 'bin', 'clang++')
-    new_clang = os.path.join(toolchain_dir, target + '-clang++')
+    standalone_toolchain = os.path.join(
+        ndk_var, "build", "tools", "make_standalone_toolchain.py"
+    )
+    toolchain_dir = os.path.join(
+        ndk_var, "toolchains", "llvm", "prebuilt", host_tag, "bin"
+    )
+    old_clang = os.path.join("toolchain", "bin", "clang++")
+    new_clang = os.path.join(toolchain_dir, target + "-clang++")
 
     logger().warning(
-        textwrap.dedent("""\
+        textwrap.dedent(
+            """\
         make_standalone_toolchain.py is no longer necessary. The
         {toolchain_dir} directory contains target-specific scripts that perform
         the same task. For example, instead of:
@@ -272,13 +298,16 @@ def warn_unnecessary(arch, api, host_tag):
 
             {prompt}{new_clang} src.cpp
         """.format(
-            toolchain_dir=toolchain_dir,
-            prompt=prompt,
-            standalone_toolchain=standalone_toolchain,
-            arch=arch,
-            api=api,
-            old_clang=old_clang,
-            new_clang=new_clang)))
+                toolchain_dir=toolchain_dir,
+                prompt=prompt,
+                standalone_toolchain=standalone_toolchain,
+                arch=arch,
+                api=api,
+                old_clang=old_clang,
+                new_clang=new_clang,
+            )
+        )
+    )
 
 
 def get_min_supported_api_level():
@@ -289,37 +318,47 @@ def get_min_supported_api_level():
 
 def parse_args():
     """Parse command line arguments from sys.argv."""
-    parser = argparse.ArgumentParser(
-        description=inspect.getdoc(sys.modules[__name__]))
+    parser = argparse.ArgumentParser(description=inspect.getdoc(sys.modules[__name__]))
 
     parser.add_argument(
-        '--arch', required=True,
-        choices=('arm', 'arm64', 'x86', 'x86_64'))
+        "--arch", required=True, choices=("arm", "arm64", "x86", "x86_64")
+    )
     parser.add_argument(
-        '--api', type=int,
-        help='Target the given API version (example: "--api 24").')
+        "--api", type=int, help='Target the given API version (example: "--api 24").'
+    )
     parser.add_argument(
-        '--stl', help='Ignored. Retained for compatibility until NDK r19.')
+        "--stl", help="Ignored. Retained for compatibility until NDK r19."
+    )
 
     parser.add_argument(
-        '--force', action='store_true',
-        help='Remove existing installation directory if it exists.')
+        "--force",
+        action="store_true",
+        help="Remove existing installation directory if it exists.",
+    )
     parser.add_argument(
-        '-v', '--verbose', action='count', help='Increase output verbosity.')
+        "-v", "--verbose", action="count", help="Increase output verbosity."
+    )
 
     def path_arg(arg):
         return os.path.realpath(os.path.expanduser(arg))
 
     output_group = parser.add_mutually_exclusive_group()
     output_group.add_argument(
-        '--package-dir', type=path_arg, default=os.getcwd(),
-        help=('Build a tarball and install it to the given directory. If '
-              'neither --package-dir nor --install-dir is specified, a '
-              'tarball will be created and installed to the current '
-              'directory.'))
+        "--package-dir",
+        type=path_arg,
+        default=os.getcwd(),
+        help=(
+            "Build a tarball and install it to the given directory. If "
+            "neither --package-dir nor --install-dir is specified, a "
+            "tarball will be created and installed to the current "
+            "directory."
+        ),
+    )
     output_group.add_argument(
-        '--install-dir', type=path_arg,
-        help='Install toolchain to the given directory instead of packaging.')
+        "--install-dir",
+        type=path_arg,
+        help="Install toolchain to the given directory instead of packaging.",
+    )
 
     return parser.parse_args()
 
@@ -341,17 +380,22 @@ def main():
 
     check_ndk_or_die()
 
-    lp32 = args.arch in ('arm', 'x86')
+    lp32 = args.arch in ("arm", "x86")
     min_api = get_min_supported_api_level() if lp32 else 21
     api = args.api
     if api is None:
         logger().warning(
-            'Defaulting to target API %d (minimum supported target for %s)',
-            min_api, args.arch)
+            "Defaulting to target API %d (minimum supported target for %s)",
+            min_api,
+            args.arch,
+        )
         api = min_api
     elif api < min_api:
-        sys.exit('{} is less than minimum platform for {} ({})'.format(
-            api, args.arch, min_api))
+        sys.exit(
+            "{} is less than minimum platform for {} ({})".format(
+                api, args.arch, min_api
+            )
+        )
 
     triple = get_triple(args.arch)
     toolchain_path = get_toolchain_path_or_die(host_tag)
@@ -360,11 +404,10 @@ def main():
         install_path = args.install_dir
         if os.path.exists(install_path):
             if args.force:
-                logger().info('Cleaning installation directory %s',
-                              install_path)
+                logger().info("Cleaning installation directory %s", install_path)
                 shutil.rmtree(install_path)
             else:
-                sys.exit('Installation directory already exists. Use --force.')
+                sys.exit("Installation directory already exists. Use --force.")
     else:
         tempdir = tempfile.mkdtemp()
         atexit.register(shutil.rmtree, tempdir)
@@ -373,17 +416,19 @@ def main():
     create_toolchain(install_path, args.arch, api, toolchain_path, host_tag)
 
     if args.install_dir is None:
-        if host_tag == 'windows-x86_64':
-            package_format = 'zip'
+        if host_tag == "windows-x86_64":
+            package_format = "zip"
         else:
-            package_format = 'bztar'
+            package_format = "bztar"
 
         package_basename = os.path.join(args.package_dir, triple)
         shutil.make_archive(
-            package_basename, package_format,
+            package_basename,
+            package_format,
             root_dir=os.path.dirname(install_path),
-            base_dir=os.path.basename(install_path))
+            base_dir=os.path.basename(install_path),
+        )
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

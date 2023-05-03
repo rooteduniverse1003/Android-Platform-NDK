@@ -6,4 +6,4 @@ libandroid_support. If we're not linking it, we'll fail to build.
 
 
 def extra_cmake_flags():  # pylint: disable=missing-docstring
-    return ['-DANDROID_STL=c++_shared']
+    return ["-DANDROID_STL=c++_shared"]

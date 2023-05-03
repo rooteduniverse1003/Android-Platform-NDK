@@ -23,57 +23,63 @@ from typing import Optional
 from ndk.test.spec import BuildConfiguration
 
 
-PROJECT_PATH = Path('project')
+PROJECT_PATH = Path("project")
 
 
-def ndk_build(ndk_path: str, config: BuildConfiguration,
-              sync_only: bool = False) -> tuple[bool, str]:
-    ndk_build_path = os.path.join(ndk_path, 'ndk-build')
-    if sys.platform == 'win32':
-        ndk_build_path += '.cmd'
+def ndk_build(
+    ndk_path: str, config: BuildConfiguration, sync_only: bool = False
+) -> tuple[bool, str]:
+    ndk_build_path = os.path.join(ndk_path, "ndk-build")
+    if sys.platform == "win32":
+        ndk_build_path += ".cmd"
     ndk_args = [
-        f'APP_ABI={config.abi}',
-        f'APP_PLATFORM=android-{config.api}',
+        f"APP_ABI={config.abi}",
+        f"APP_PLATFORM=android-{config.api}",
     ]
     if sync_only:
-        ndk_args.append('-n')
-    proc = subprocess.run([ndk_build_path, '-C', str(PROJECT_PATH)] + ndk_args,
-                          check=False,
-                          stdout=subprocess.PIPE,
-                          stderr=subprocess.STDOUT,
-                          encoding='utf-8')
+        ndk_args.append("-n")
+    proc = subprocess.run(
+        [ndk_build_path, "-C", str(PROJECT_PATH)] + ndk_args,
+        check=False,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+        encoding="utf-8",
+    )
     return proc.returncode == 0, proc.stdout
 
 
-def check_build_fail_if_missing(ndk_path: str,
-                                 config: BuildConfiguration) -> Optional[str]:
+def check_build_fail_if_missing(
+    ndk_path: str, config: BuildConfiguration
+) -> Optional[str]:
     """Checks that the build fails if the libraries are missing."""
     success, output = ndk_build(ndk_path, config)
     if not success:
         return None
-    return f'Build should have failed because prebuilts are missing:\n{output}'
+    return f"Build should have failed because prebuilts are missing:\n{output}"
 
 
-def check_sync_pass_if_missing(ndk_path: str,
-                               config: BuildConfiguration) -> Optional[str]:
+def check_sync_pass_if_missing(
+    ndk_path: str, config: BuildConfiguration
+) -> Optional[str]:
     """Checks that the build fails if the libraries are missing."""
     success, output = ndk_build(ndk_path, config, sync_only=True)
     if success:
         return None
-    return f'Build should have passed because ran with -n:\n{output}'
+    return f"Build should have passed because ran with -n:\n{output}"
 
 
-def check_build_pass_if_present(ndk_path: str,
-                                config: BuildConfiguration) -> Optional[str]:
+def check_build_pass_if_present(
+    ndk_path: str, config: BuildConfiguration
+) -> Optional[str]:
     """Checks that the build fails if the libraries are missing."""
-    prebuilt_dir = PROJECT_PATH / 'jni' / config.abi
+    prebuilt_dir = PROJECT_PATH / "jni" / config.abi
     prebuilt_dir.mkdir(parents=True)
-    (prebuilt_dir / 'libfoo.a').touch()
-    (prebuilt_dir / 'libfoo.so').touch()
+    (prebuilt_dir / "libfoo.a").touch()
+    (prebuilt_dir / "libfoo.so").touch()
     success, output = ndk_build(ndk_path, config)
     if success:
         return None
-    return f'Build should have passed because prebuilts are present:\n{output}'
+    return f"Build should have passed because prebuilts are present:\n{output}"
 
 
 def run_test(ndk_path: str, config: BuildConfiguration) -> tuple[bool, str]:
@@ -93,4 +99,4 @@ def run_test(ndk_path: str, config: BuildConfiguration) -> tuple[bool, str]:
         return False, error
     if (error := check_build_pass_if_present(ndk_path, config)) is not None:
         return False, error
-    return True, ''
+    return True, ""

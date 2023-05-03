@@ -29,13 +29,13 @@ from ndk.test.spec import BuildConfiguration
 
 def is_linked_item(arg: str) -> bool:
     """Returns True if the argument is an object or library to be linked."""
-    if arg.endswith('.a'):
+    if arg.endswith(".a"):
         return True
-    if arg.endswith('.o'):
+    if arg.endswith(".o"):
         return True
-    if arg.endswith('.so'):
+    if arg.endswith(".so"):
         return True
-    if arg.startswith('-l'):
+    if arg.startswith("-l"):
         return True
     return False
 
@@ -55,7 +55,7 @@ def find_link_args(link_line: str) -> list[str]:
         if skip_next:
             skip_next = False
             continue
-        if word in ('-o', '-soname', '--exclude-libs'):
+        if word in ("-o", "-soname", "--exclude-libs"):
             skip_next = True
             continue
 
@@ -70,17 +70,17 @@ def find_link_args(link_line: str) -> list[str]:
 
 def builtins_basename(abi: Abi) -> str:
     runtimes_arch = {
-        'armeabi-v7a': 'arm',
-        'arm64-v8a': 'aarch64',
-        'x86': 'i686',
-        'x86_64': 'x86_64',
+        "armeabi-v7a": "arm",
+        "arm64-v8a": "aarch64",
+        "x86": "i686",
+        "x86_64": "x86_64",
     }[abi]
-    return 'libclang_rt.builtins-' + runtimes_arch + '-android.a'
+    return "libclang_rt.builtins-" + runtimes_arch + "-android.a"
 
 
 def check_link_order(
-        link_line: str,
-        config: BuildConfiguration) -> tuple[bool, Optional[Iterator[str]]]:
+    link_line: str, config: BuildConfiguration
+) -> tuple[bool, Optional[Iterator[str]]]:
     """Determines if a given link command has the correct ordering.
 
     Args:
@@ -95,61 +95,63 @@ def check_link_order(
     """
     assert config.api is not None
     expected = [
-        'crtbegin_so.o',
-        'foo.o',
+        "crtbegin_so.o",
+        "foo.o",
         # The most important part of this test is checking that libunwind.a
         # comes *before* the shared libraries so we can be sure we're actually
         # getting libunwind.a symbols rather than getting them from some shared
         # library dependency that's re-exporting them.
-        'libunwind.a',
-        '-latomic',
-        'libc++_shared.so',
-        '-lc',
-        '-lm',
-        '-lm',
+        "libunwind.a",
+        "-latomic",
+        "libc++_shared.so",
+        "-lc",
+        "-lm",
+        "-lm",
         builtins_basename(config.abi),
-        '-l:libunwind.a',
-        '-ldl',
-        '-lc',
+        "-l:libunwind.a",
+        "-ldl",
+        "-lc",
         builtins_basename(config.abi),
-        '-l:libunwind.a',
-        '-ldl',
-        'crtend_so.o',
+        "-l:libunwind.a",
+        "-ldl",
+        "crtend_so.o",
     ]
     link_args = find_link_args(link_line)
     if link_args == expected:
         return True, None
-    return False, difflib.unified_diff(expected, link_args, lineterm='')
+    return False, difflib.unified_diff(expected, link_args, lineterm="")
 
 
 def run_test(ndk_path: str, config: BuildConfiguration) -> tuple[bool, str]:
     """Checks clang's -v output for proper link ordering."""
-    ndk_build = os.path.join(ndk_path, 'ndk-build')
-    if sys.platform == 'win32':
-        ndk_build += '.cmd'
-    project_path = 'project'
+    ndk_build = os.path.join(ndk_path, "ndk-build")
+    if sys.platform == "win32":
+        ndk_build += ".cmd"
+    project_path = "project"
     ndk_args = [
-        f'APP_ABI={config.abi}',
-        f'APP_PLATFORM=android-{config.api}',
+        f"APP_ABI={config.abi}",
+        f"APP_PLATFORM=android-{config.api}",
     ]
-    proc = subprocess.Popen([ndk_build, '-C', project_path] + ndk_args,
-                            stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
-                            encoding='utf-8')
+    proc = subprocess.Popen(
+        [ndk_build, "-C", project_path] + ndk_args,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+        encoding="utf-8",
+    )
     out, _ = proc.communicate()
     if proc.returncode != 0:
         return proc.returncode == 0, out
 
     link_line: Optional[str] = None
     for line in out.splitlines():
-        if 'bin/ld' in re.sub(r'[/\\]+', '/', line):
+        if "bin/ld" in re.sub(r"[/\\]+", "/", line):
             if link_line is not None:
-                err_msg = 'Found duplicate link lines:\n{}\n{}'.format(
-                    link_line, line)
+                err_msg = "Found duplicate link lines:\n{}\n{}".format(link_line, line)
                 return False, err_msg
             link_line = line
 
     if link_line is None:
-        return False, 'Did not find link line in out:\n{}'.format(out)
+        return False, "Did not find link line in out:\n{}".format(out)
 
     result, diff = check_link_order(link_line, config)
-    return result, '' if diff is None else os.linesep.join(diff)
+    return result, "" if diff is None else os.linesep.join(diff)

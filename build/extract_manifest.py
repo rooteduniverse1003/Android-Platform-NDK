@@ -26,19 +26,28 @@ def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser()
 
     parser.add_argument(
-        'property', metavar='PROPERTY',
-        choices=('minSdkVersion', 'debuggable'),
-        help='Property to extract from the manifest file.')
+        "property",
+        metavar="PROPERTY",
+        choices=("minSdkVersion", "debuggable"),
+        help="Property to extract from the manifest file.",
+    )
 
     parser.add_argument(
-        'manifest_file', metavar='MANIFEST_FILE', type=os.path.abspath,  # type: ignore
-        help='Path to the AndroidManifest.xml file.')
+        "manifest_file",
+        metavar="MANIFEST_FILE",
+        type=os.path.abspath,  # type: ignore
+        help="Path to the AndroidManifest.xml file.",
+    )
 
     return parser.parse_args()
 
 
-def get_rpath_attribute(root: xml.etree.ElementTree.Element, element_path: str,
-                        attribute: str, default: str = '') -> str:
+def get_rpath_attribute(
+    root: xml.etree.ElementTree.Element,
+    element_path: str,
+    attribute: str,
+    default: str = "",
+) -> str:
     """Returns the value of an attribute at an rpath.
 
     If more than one element exists with the same name, only the first is
@@ -53,17 +62,17 @@ def get_rpath_attribute(root: xml.etree.ElementTree.Element, element_path: str,
         The attribute's value as a string if found, else the value of
         `default`.
     """
-    ns_url = 'http://schemas.android.com/apk/res/android'
+    ns_url = "http://schemas.android.com/apk/res/android"
     ns = {
-        'android': ns_url,
+        "android": ns_url,
     }
 
     elem = root.find(element_path, ns)
     if elem is None:
-        return ''
+        return ""
     # ElementTree elements don't have the same helpful namespace parameter that
     # the find family does :(
-    attrib_name = attribute.replace('android:', '{' + ns_url + '}')
+    attrib_name = attribute.replace("android:", "{" + ns_url + "}")
     return str(elem.get(attrib_name, default))
 
 
@@ -73,7 +82,7 @@ def get_minsdkversion(root: xml.etree.ElementTree.Element) -> str:
     Returns:
         String form of android:minSdkVersion if found, else the empty string.
     """
-    return get_rpath_attribute(root, './uses-sdk', 'android:minSdkVersion', '')
+    return get_rpath_attribute(root, "./uses-sdk", "android:minSdkVersion", "")
 
 
 def get_debuggable(root: xml.etree.ElementTree.Element) -> str:
@@ -82,13 +91,12 @@ def get_debuggable(root: xml.etree.ElementTree.Element) -> str:
     Returns:
         String form of android:debuggable if found, else the empty string.
     """
-    debuggable = get_rpath_attribute(
-        root, './application', 'android:debuggable', '')
+    debuggable = get_rpath_attribute(root, "./application", "android:debuggable", "")
 
     # Though any such manifest would be invalid, the awk script rewrote bogus
     # values to false. Missing attributes should also be false.
-    if debuggable != 'true':
-        debuggable = 'false'
+    if debuggable != "true":
+        debuggable = "false"
 
     return debuggable
 
@@ -97,13 +105,13 @@ def main() -> None:
     args = parse_args()
 
     tree = xml.etree.ElementTree.parse(args.manifest_file)
-    if args.property == 'minSdkVersion':
+    if args.property == "minSdkVersion":
         print(get_minsdkversion(tree.getroot()))
-    elif args.property == 'debuggable':
+    elif args.property == "debuggable":
         print(get_debuggable(tree.getroot()))
     else:
         raise ValueError
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

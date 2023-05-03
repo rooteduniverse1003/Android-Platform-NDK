@@ -25,31 +25,36 @@ from ndk.test.spec import BuildConfiguration
 
 def run_test(ndk_path: str, config: BuildConfiguration) -> tuple[bool, str]:
     """Checks that the proper wrap.sh scripts were installed."""
-    ndk_build = os.path.join(ndk_path, 'ndk-build')
-    if sys.platform == 'win32':
-        ndk_build += '.cmd'
-    project_path = 'project'
+    ndk_build = os.path.join(ndk_path, "ndk-build")
+    if sys.platform == "win32":
+        ndk_build += ".cmd"
+    project_path = "project"
     ndk_args = [
-        f'APP_ABI={config.abi}',
-        f'APP_PLATFORM=android-{config.api}',
+        f"APP_ABI={config.abi}",
+        f"APP_PLATFORM=android-{config.api}",
     ]
-    proc = subprocess.Popen([ndk_build, '-C', project_path] + ndk_args,
-                            stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
-                            encoding='utf-8')
+    proc = subprocess.Popen(
+        [ndk_build, "-C", project_path] + ndk_args,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+        encoding="utf-8",
+    )
     out, _ = proc.communicate()
     if proc.returncode != 0:
         return proc.returncode == 0, out
 
-    wrap_sh = os.path.join(project_path, 'libs', config.abi, 'wrap.sh')
+    wrap_sh = os.path.join(project_path, "libs", config.abi, "wrap.sh")
     if not os.path.exists(wrap_sh):
-        return False, '{} does not exist'.format(wrap_sh)
+        return False, "{} does not exist".format(wrap_sh)
 
     with open(wrap_sh) as wrap_sh_file:
         contents = wrap_sh_file.read().strip()
-    if contents != 'generic':
-        return False, textwrap.dedent(f"""\
+    if contents != "generic":
+        return False, textwrap.dedent(
+            f"""\
             {config.abi} wrap.sh file had wrong contents:
             Expected: generic
-            Actual: {contents}""")
+            Actual: {contents}"""
+        )
 
-    return True, ''
+    return True, ""

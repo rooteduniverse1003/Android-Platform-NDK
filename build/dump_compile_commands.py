@@ -26,36 +26,41 @@ import os
 
 from shlex import join
 
+
 def get_argument_parser() -> argparse.ArgumentParser:
     """Parses and returns command line arguments."""
     parser = argparse.ArgumentParser()
 
     parser.add_argument(
-        '-o',
-        '--output',
+        "-o",
+        "--output",
         type=os.path.realpath,  # type: ignore
         required=True,
-        help='Path to output file')
+        help="Path to output file",
+    )
 
     parser.add_argument(
-        '-d',
-        '--directory',
+        "-d",
+        "--directory",
         type=os.path.realpath,  # type: ignore
-        help='Working directory for the compile command.')
+        help="Working directory for the compile command.",
+    )
 
-    parser.add_argument('-f', '--file', help='Source file.')
-    parser.add_argument('--object-file', help='Object file.')
+    parser.add_argument("-f", "--file", help="Source file.")
+    parser.add_argument("--object-file", help="Object file.")
 
     parser.add_argument(
-        '--command-file',
+        "--command-file",
         type=os.path.realpath,  # type: ignore
-        help='Compilation command list file.')
+        help="Compilation command list file.",
+    )
 
     parser.add_argument(
-        'compile_command',
-        metavar='COMPILE_COMMAND',
+        "compile_command",
+        metavar="COMPILE_COMMAND",
         nargs=argparse.REMAINDER,
-        help='Compilation command.')
+        help="Compilation command.",
+    )
 
     return parser
 
@@ -66,25 +71,27 @@ def main() -> None:
     args = parser.parse_args()
 
     if args.command_file and args.compile_command:
-        parser.error(
-            '--command-file and COMPILE_COMMAND are mutually exclusive')
+        parser.error("--command-file and COMPILE_COMMAND are mutually exclusive")
 
     if not args.command_file and not args.compile_command:
-        parser.error('Either --command-file or COMPILE_COMMAND is required.')
+        parser.error("Either --command-file or COMPILE_COMMAND is required.")
 
     command = join(args.compile_command)
     if args.command_file:
         with open(args.command_file) as command_file:
             command = command_file.read().strip()
 
-    with open(args.output, 'w') as out_file:
-        json.dump({
-            'directory': args.directory,
-            'file': args.file,
-            'output': args.object_file,
-            'command': command,
-        }, out_file)
+    with open(args.output, "w") as out_file:
+        json.dump(
+            {
+                "directory": args.directory,
+                "file": args.file,
+                "output": args.object_file,
+                "command": command,
+            },
+            out_file,
+        )
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

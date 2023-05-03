@@ -37,19 +37,22 @@ from ndk.test.spec import BuildConfiguration
 
 
 def build(ndk_dir: str, config: BuildConfiguration) -> tuple[bool, str]:
-    ndk_build = os.path.join(ndk_dir, 'ndk-build')
-    if sys.platform == 'win32':
-        ndk_build += '.cmd'
-    project_path = 'project'
+    ndk_build = os.path.join(ndk_dir, "ndk-build")
+    if sys.platform == "win32":
+        ndk_build += ".cmd"
+    project_path = "project"
     ndk_args = [
-        f'APP_ABI={config.abi}',
-        f'APP_PLATFORM=android-{config.api}',
-        'V=1',
+        f"APP_ABI={config.abi}",
+        f"APP_PLATFORM=android-{config.api}",
+        "V=1",
     ]
-    proc = subprocess.Popen([ndk_build, '-C', project_path] + ndk_args,
-                            stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+    proc = subprocess.Popen(
+        [ndk_build, "-C", project_path] + ndk_args,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+    )
     out, _ = proc.communicate()
-    return proc.returncode == 0, out.decode('utf-8')
+    return proc.returncode == 0, out.decode("utf-8")
 
 
 def run_test(ndk_path: str, config: BuildConfiguration) -> tuple[bool, str]:
@@ -59,8 +62,8 @@ def run_test(ndk_path: str, config: BuildConfiguration) -> tuple[bool, str]:
     apis = []
     host = Host.current().tag
     triple = ndk.abis.arch_to_triple(ndk.abis.abi_to_arch(config.abi))
-    toolchain_dir = Path(ndk_path) / f'toolchains/llvm/prebuilt/{host}'
-    lib_dir = toolchain_dir / f'sysroot/usr/lib/{triple}'
+    toolchain_dir = Path(ndk_path) / f"toolchains/llvm/prebuilt/{host}"
+    lib_dir = toolchain_dir / f"sysroot/usr/lib/{triple}"
     for path in lib_dir.iterdir():
         if not path.is_dir():
             continue
@@ -86,4 +89,4 @@ def run_test(ndk_path: str, config: BuildConfiguration) -> tuple[bool, str]:
         if not result:
             return result, out
 
-    return True, ''
+    return True, ""

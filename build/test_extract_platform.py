@@ -24,40 +24,51 @@ import build.extract_platform
 
 class ExtractPlatformTest(unittest.TestCase):
     def testNumericVersion(self) -> None:
-        props_file = StringIO(textwrap.dedent("""\
+        props_file = StringIO(
+            textwrap.dedent(
+                """\
             some
             # other
             junk
             target=android-9
             foo
-            """))
+            """
+            )
+        )
 
-        self.assertEqual(
-            'android-9', build.extract_platform.get_platform(props_file))
+        self.assertEqual("android-9", build.extract_platform.get_platform(props_file))
 
     def testNamedVersion(self) -> None:
-        props_file = StringIO(textwrap.dedent("""\
+        props_file = StringIO(
+            textwrap.dedent(
+                """\
             some
             # other
             junk
             target=android-nougat
             foo
-            """))
+            """
+            )
+        )
 
         self.assertEqual(
-            'android-nougat', build.extract_platform.get_platform(props_file))
+            "android-nougat", build.extract_platform.get_platform(props_file)
+        )
 
     def testVendorVersion(self) -> None:
-        props_file = StringIO(textwrap.dedent("""\
+        props_file = StringIO(
+            textwrap.dedent(
+                """\
             some
             # other
             junk
             target=vendor:something:21
             foo
-            """))
+            """
+            )
+        )
 
-        self.assertEqual(
-            'android-21', build.extract_platform.get_platform(props_file))
+        self.assertEqual("android-21", build.extract_platform.get_platform(props_file))
 
     def testNoVersion(self) -> None:
-        self.assertEqual('unknown', build.extract_platform.get_platform(StringIO('')))
+        self.assertEqual("unknown", build.extract_platform.get_platform(StringIO("")))

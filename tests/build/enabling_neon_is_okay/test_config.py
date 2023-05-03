@@ -5,10 +5,10 @@ from ndk.test.buildtest.case import Test
 
 
 def build_unsupported(test: Test) -> Optional[str]:
-    if test.config.abi != Abi('armeabi-v7a'):
+    if test.config.abi != Abi("armeabi-v7a"):
         return test.config.abi
     return None
 
 
 def extra_cmake_flags() -> list[str]:
-    return ['-DANDROID_ARM_NEON=ON']
+    return ["-DANDROID_ARM_NEON=ON"]
