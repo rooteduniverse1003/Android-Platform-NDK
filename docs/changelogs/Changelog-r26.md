@@ -57,6 +57,9 @@ directly, see the [build system maintainers guide].
   libraries. These were never exposed in the header files, but could confuse
   some autoconf like systems.
 * [Issue 1852]: Fixed ODR issue in linux/time.h.
+* ndk-build now uses clang rather than clang++ when linking modules that do not
+  have C++ sources. There should not be any observable behavior differences
+  because ndk-build previously handled the C/C++ linking differences itself.
 
 [Issue 837]: https://github.com/android/ndk/issues/837
 [Issue 1400]: https://github.com/android/ndk/issues/1400

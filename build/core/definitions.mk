@@ -690,8 +690,7 @@ module-get-c++-sources = \
     $(eval __extensions := $(call module-get-c++-extensions,$1))\
     $(filter $(foreach __extension,$(__extensions),%$(__extension)),$(__files))
 
-# Returns true if a module has C++ sources
-#
+# Returns a non-empty string if a module has C++ sources
 module-has-c++-sources = $(strip $(call module-get-c++-sources,$1) \
                                  $(filter true,$(__ndk_modules.$1.HAS_CPP)))
 
@@ -786,6 +785,21 @@ module-has-c++-features = $(strip \
     $(if $(filter $2,$(__cxxflags)),true,)\
     )
 
+# Returns a non-empty string if the module should be linked with clang++ rather
+# than clang.
+#
+# A module should use clang++ iff it has C++ sources itself or if it depends on
+# a static library with C++ sources. We do not need to use clang++ for shared
+# library dependencies.
+module_needs_clangxx = $(strip \
+  $(call module-has-c++-sources,$1)\
+  $(foreach __dep,$(call module-get-all-dependencies,$1),\
+    $(if $(call module-is-static-library,$(__dep)),\
+      $(call module-has-c++-sources,$(__dep))\
+    )\
+  )\
+)
+
 # Add standard C++ dependencies to a given module
 #
 # $1: module name
@@ -800,7 +814,6 @@ module-add-c++-deps = \
     $(eval __ndk_modules.$1.SHARED_LIBRARIES += $(3))\
     $(if $(call strip,$4),$(call ndk_log,Add dependency '$(call strip,$4)' to module '$1'))\
     $(eval __ndk_modules.$1.LDLIBS += $(4))
-
 
 # =============================================================================
 #
