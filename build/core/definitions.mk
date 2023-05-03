@@ -694,26 +694,6 @@ module-get-c++-sources = \
 module-has-c++-sources = $(strip $(call module-get-c++-sources,$1) \
                                  $(filter true,$(__ndk_modules.$1.HAS_CPP)))
 
-
-# Add C++ dependencies to any module that has C++ sources.
-# $1: list of C++ runtime static libraries (if any)
-# $2: list of C++ runtime shared libraries (if any)
-# $3: list of C++ runtime ldlibs (if any)
-modules-add-c++-dependencies = \
-    $(foreach __module,$(__ndk_modules),\
-        $(if $(call module-has-c++-sources,$(__module)),\
-            $(call ndk_log,Module '$(__module)' has C++ sources)\
-            $(call module-add-c++-deps,$(__module),$1,$2,$3),\
-        )\
-        $(if $(call module-has-c++-features,$(__module),rtti exceptions),\
-            $(if $(filter system,$(NDK_APP_STL)),\
-                $(call ndk_log,Module '$(__module)' uses C++ features and the system STL)\
-                $(call import-module,cxx-stl/llvm-libc++)\
-                $(call import-module,cxx-stl/llvm-libc++abi)\
-                $(call module-add-c++-deps,$(__module),c++abi)))\
-    )
-
-
 # Return the compiler flags used to compile a C++ module
 # Order matters and should match the one used by the build command
 module-get-c++-flags = $(strip \
@@ -799,21 +779,6 @@ module_needs_clangxx = $(strip \
     )\
   )\
 )
-
-# Add standard C++ dependencies to a given module
-#
-# $1: module name
-# $2: list of C++ runtime static libraries (if any)
-# $3: list of C++ runtime shared libraries (if any)
-# $4: list of C++ runtime ldlibs (if any)
-#
-module-add-c++-deps = \
-    $(if $(call strip,$2),$(call ndk_log,Add dependency '$(call strip,$2)' to module '$1'))\
-    $(eval __ndk_modules.$1.STATIC_LIBRARIES += $(2))\
-    $(if $(call strip,$3),$(call ndk_log,Add dependency '$(call strip,$3)' to module '$1'))\
-    $(eval __ndk_modules.$1.SHARED_LIBRARIES += $(3))\
-    $(if $(call strip,$4),$(call ndk_log,Add dependency '$(call strip,$4)' to module '$1'))\
-    $(eval __ndk_modules.$1.LDLIBS += $(4))
 
 # =============================================================================
 #
@@ -1899,21 +1864,8 @@ $(call module-class-register,PREBUILT_STATIC_LIBRARY,,)
 #
 
 # The list of registered STL implementations we support
-NDK_STL_LIST :=
+NDK_STL_LIST := c++_shared c++_static system none
 
-# Used internally to register a given STL implementation, see below.
-#
-# $1: STL name as it appears in APP_STL (e.g. system)
-# $2: STL module path (e.g. cxx-stl/system)
-# $3: list of static libraries all modules will depend on
-# $4: list of shared libraries all modules will depend on
-#
-ndk-stl-register = \
-    $(eval __ndk_stl := $(strip $1)) \
-    $(eval NDK_STL_LIST += $(__ndk_stl)) \
-    $(eval NDK_STL.$(__ndk_stl).IMPORT_MODULE := $(strip $2)) \
-    $(eval NDK_STL.$(__ndk_stl).STATIC_LIBS := $(strip $(call strip-lib-prefix,$3))) \
-    $(eval NDK_STL.$(__ndk_stl).SHARED_LIBS := $(strip $(call strip-lib-prefix,$4))) \
 
 # Called to check that the value of APP_STL is a valid one.
 # $1: STL name as it apperas in APP_STL (e.g. 'system')
@@ -1924,42 +1876,6 @@ ndk-stl-check = \
         $(call __ndk_info,Please use one of the following instead: $(NDK_STL_LIST))\
         $(call __ndk_error,Aborting))
 
-# Called before the top-level Android.mk is parsed to
-# select the STL implementation.
-# $1: STL name as it appears in APP_STL (e.g. system)
-#
-ndk-stl-select = \
-    $(if $(filter none,$1),,\
-        $(if $(NDK_STL.$1.IMPORT_MODULE),\
-            $(call import-module,$(NDK_STL.$1.IMPORT_MODULE)) \
-        )\
-    )
-
-# Called after all Android.mk files are parsed to add
-# proper STL dependencies to every C++ module.
-# $1: STL name as it appears in APP_STL (e.g. system)
-#
-ndk-stl-add-dependencies = \
-    $(call modules-add-c++-dependencies,\
-        $(NDK_STL.$1.STATIC_LIBS),\
-        $(NDK_STL.$1.SHARED_LIBS),\
-        $(NDK_STL.$1.LDLIBS))
-
-$(call ndk-stl-register,none)
-$(call ndk-stl-register,system)
-
-$(call ndk-stl-register,\
-    c++_static,\
-    cxx-stl/llvm-libc++,\
-    c++_static\
-    )
-
-$(call ndk-stl-register,\
-    c++_shared,\
-    cxx-stl/llvm-libc++,\
-    ,\
-    c++_shared\
-    )
 
 ifneq (,$(NDK_UNIT_TESTS))
 $(call ndk-run-all-tests)

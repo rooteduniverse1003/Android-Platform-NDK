@@ -111,8 +111,6 @@ clean-installed-binaries::
 # free the dictionary of LOCAL_MODULE definitions
 $(call modules-clear)
 
-$(call ndk-stl-select,$(NDK_APP_STL))
-
 # now parse the Android.mk for the application, this records all
 # module declarations, but does not populate the dependency graph yet.
 include $(NDK_APP_BUILD_SCRIPT)
@@ -126,13 +124,12 @@ ifeq (,$(DUMP_VAR))
     # has -fsanitize in its ldflags.
     include $(BUILD_SYSTEM)/sanitizers.mk
     include $(BUILD_SYSTEM)/openmp.mk
+    include $(BUILD_SYSTEM)/install_stl.mk
 
     ifneq ($(NDK_APP_WRAP_SH_$(TARGET_ARCH_ABI)),)
         include $(BUILD_SYSTEM)/install_wrap_sh.mk
     endif
 endif
-
-$(call ndk-stl-add-dependencies,$(NDK_APP_STL))
 
 # recompute all dependencies between modules
 $(call modules-compute-dependencies)

@@ -155,20 +155,7 @@ ifeq ($(LOCAL_CPP_EXTENSION),)
   LOCAL_CPP_EXTENSION := $(default-c++-extensions)
 endif
 
-ifneq ($(NDK_APP_STL),system)
-    LOCAL_CFLAGS += -nostdinc++
-    LOCAL_LDFLAGS += -nostdlib++
-else
-    # TODO: Remove when https://reviews.llvm.org/D55856 is merged.
-    #
-    # The system STL Android.mk will export -lstdc++, but the Clang driver will
-    # helpfully rewrite -lstdc++ to whatever the default C++ stdlib linker
-    # arguments are, except in the presence of -nostdlib and -nodefaultlibs.
-    # That part of the driver does not account for -nostdlib++. We can fix the
-    # behavior by using -stdlib=libstdc++ so it rewrites -lstdc++ to -lstdc++
-    # instead of -lc++.
-    LOCAL_LDFLAGS += -stdlib=libstdc++
-endif
+include $(BUILD_SYSTEM)/stl.mk
 
 #
 # If LOCAL_ALLOW_UNDEFINED_SYMBOLS is not true, the linker will allow the generation
