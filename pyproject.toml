@@ -22,6 +22,17 @@ black = "^23.3.0"
 adb = {path = "../development/python-packages/adb", develop = true}
 isort = "^5.12.0"
 
+[tool.black]
+# The default includes "build", which excludes both build/ and tests/build.
+exclude = """
+/(
+  |.git
+  |.venv
+  |venv
+  |.mypy_cache
+)/
+"""
+
 [tool.isort]
 profile = "black"
 
