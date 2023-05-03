@@ -23,63 +23,66 @@ import build.gen_cygpath
 
 class GetMountsTest(unittest.TestCase):
     def testSingleMount(self) -> None:
-        mount_output = 'C:/cygwin on / type ntfs (binary,auto)'
+        mount_output = "C:/cygwin on / type ntfs (binary,auto)"
         self.assertEqual(
-            [('/', 'C:/cygwin')], build.gen_cygpath.get_mounts(mount_output))
+            [("/", "C:/cygwin")], build.gen_cygpath.get_mounts(mount_output)
+        )
 
     def testCaseInsensitiveMount(self) -> None:
-        mount_output = 'C: on /cygdrive/c type ntfs'
+        mount_output = "C: on /cygdrive/c type ntfs"
         expected_output = [
-            ('/cygdrive/c', 'C:'),
-            ('/cygdrive/C', 'C:'),
+            ("/cygdrive/c", "C:"),
+            ("/cygdrive/C", "C:"),
         ]
 
-        self.assertEqual(
-            expected_output, build.gen_cygpath.get_mounts(mount_output))
+        self.assertEqual(expected_output, build.gen_cygpath.get_mounts(mount_output))
 
     def testManyMounts(self) -> None:
-        mount_output = textwrap.dedent("""\
+        mount_output = textwrap.dedent(
+            """\
             C:/cygwin/bin on /usr/bin type ntfs (binary,auto)
             C:/cygwin/lib on /usr/lib type ntfs (binary,auto)
             C:/cygwin on / type ntfs (binary,auto)
             C: on /cygdrive/c type ntfs (binary,posix=0,user,noumount,auto)
             D: on /cygdrive/d type udf (binary,posix=0,user,noumount,auto)
-            """)
+            """
+        )
 
         expected_output = [
-            ('/', 'C:/cygwin'),
-            ('/usr/bin', 'C:/cygwin/bin'),
-            ('/usr/lib', 'C:/cygwin/lib'),
-            ('/cygdrive/c', 'C:'),
-            ('/cygdrive/C', 'C:'),
-            ('/cygdrive/d', 'D:'),
-            ('/cygdrive/D', 'D:'),
+            ("/", "C:/cygwin"),
+            ("/usr/bin", "C:/cygwin/bin"),
+            ("/usr/lib", "C:/cygwin/lib"),
+            ("/cygdrive/c", "C:"),
+            ("/cygdrive/C", "C:"),
+            ("/cygdrive/d", "D:"),
+            ("/cygdrive/D", "D:"),
         ]
 
-        self.assertEqual(
-            expected_output, build.gen_cygpath.get_mounts(mount_output))
+        self.assertEqual(expected_output, build.gen_cygpath.get_mounts(mount_output))
 
 
 class MakeCygpathFunctionTest(unittest.TestCase):
     def testSingleMount(self) -> None:
-        mounts = [('/', 'C:/cygwin')]
-        expected_output = '$(patsubst /%,C:/cygwin/%,\n$1)'
+        mounts = [("/", "C:/cygwin")]
+        expected_output = "$(patsubst /%,C:/cygwin/%,\n$1)"
 
         self.assertEqual(
-            expected_output, build.gen_cygpath.make_cygpath_function(mounts))
+            expected_output, build.gen_cygpath.make_cygpath_function(mounts)
+        )
 
     def testManyMounts(self) -> None:
         mounts = [
-            ('/', 'C:/cygwin'),
-            ('/usr/bin', 'C:/cygwin/bin'),
-            ('/usr/lib', 'C:/cygwin/lib'),
-            ('/cygdrive/c', 'C:'),
-            ('/cygdrive/C', 'C:'),
-            ('/cygdrive/d', 'D:'),
-            ('/cygdrive/D', 'D:'),
+            ("/", "C:/cygwin"),
+            ("/usr/bin", "C:/cygwin/bin"),
+            ("/usr/lib", "C:/cygwin/lib"),
+            ("/cygdrive/c", "C:"),
+            ("/cygdrive/C", "C:"),
+            ("/cygdrive/d", "D:"),
+            ("/cygdrive/D", "D:"),
         ]
 
-        expected_output = textwrap.dedent("""\
+        expected_output = textwrap.dedent(
+            """\
             $(patsubst /%,C:/cygwin/%,
             $(patsubst /usr/bin/%,C:/cygwin/bin/%,
             $(patsubst /usr/lib/%,C:/cygwin/lib/%,
@@ -87,7 +90,9 @@ class MakeCygpathFunctionTest(unittest.TestCase):
             $(patsubst /cygdrive/C/%,C:/%,
             $(patsubst /cygdrive/d/%,D:/%,
             $(patsubst /cygdrive/D/%,D:/%,
-            $1)))))))""")
+            $1)))))))"""
+        )
 
         self.assertEqual(
-            expected_output, build.gen_cygpath.make_cygpath_function(mounts))
+            expected_output, build.gen_cygpath.make_cygpath_function(mounts)
+        )

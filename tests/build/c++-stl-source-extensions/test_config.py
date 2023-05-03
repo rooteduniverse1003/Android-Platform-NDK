@@ -4,7 +4,7 @@ import platform
 
 
 def build_unsupported(_test):
-    if platform.system() == 'Windows':
+    if platform.system() == "Windows":
         # This test is specifically checking that we can handle all the
         # different C++ source extensions, including those that differ only by
         # case. Windows is case insensitive, so this test fails hard.

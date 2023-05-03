@@ -30,22 +30,20 @@ def run_test(ndk_path: str, config: BuildConfiguration) -> tuple[bool, str]:
     """
     cmake = find_cmake()
     ninja = find_ninja()
-    toolchain_path = Path(ndk_path) / 'build/cmake/android.toolchain.cmake'
-    project_path = 'project'
+    toolchain_path = Path(ndk_path) / "build/cmake/android.toolchain.cmake"
+    project_path = "project"
     if config.toolchain_file is CMakeToolchainFile.Legacy:
-        toolchain_mode = 'ON'
+        toolchain_mode = "ON"
     else:
-        toolchain_mode = 'OFF'
+        toolchain_mode = "OFF"
     cmake_cmd = [
         str(cmake),
-        f'-DCMAKE_TOOLCHAIN_FILE={toolchain_path}',
-        f'-DCMAKE_MAKE_PROGRAM={ninja}',
-        f'-DANDROID_USE_LEGACY_TOOLCHAIN_FILE={toolchain_mode}',
-        '-GNinja',
+        f"-DCMAKE_TOOLCHAIN_FILE={toolchain_path}",
+        f"-DCMAKE_MAKE_PROGRAM={ninja}",
+        f"-DANDROID_USE_LEGACY_TOOLCHAIN_FILE={toolchain_mode}",
+        "-GNinja",
     ]
-    result = subprocess.run(cmake_cmd,
-                            check=False,
-                            cwd=project_path,
-                            capture_output=True,
-                            text=True)
+    result = subprocess.run(
+        cmake_cmd, check=False, cwd=project_path, capture_output=True, text=True
+    )
     return result.returncode == 0, result.stdout

@@ -3,4 +3,4 @@ def is_negative_test():
 
 
 def extra_cmake_flags():
-    return ['-DANDROID_STL=system']
+    return ["-DANDROID_STL=system"]

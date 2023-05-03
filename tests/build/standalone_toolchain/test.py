@@ -18,6 +18,6 @@ import ndk.testing.standalone_toolchain
 
 
 def run_test(ndk_path: str, config: BuildConfiguration) -> tuple[bool, str]:
-    return ndk.testing.standalone_toolchain.run_test(ndk_path, config,
-                                                     'foo.cpp',
-                                                     ['--stl=libc++'], [])
+    return ndk.testing.standalone_toolchain.run_test(
+        ndk_path, config, "foo.cpp", ["--stl=libc++"], []
+    )

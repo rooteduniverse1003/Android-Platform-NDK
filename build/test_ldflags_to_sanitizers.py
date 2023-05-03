@@ -32,73 +32,105 @@ class LdflagsToSanitizersTest(unittest.TestCase):
     def test_sanitizers_from_args_no_sanitize_args(self) -> None:
         """Tests that we don't identify sanitizers when there are none."""
         self.assertListEqual([], sanitizers_from_args([]))
-        self.assertListEqual([], sanitizers_from_args(['foo', 'bar']))
+        self.assertListEqual([], sanitizers_from_args(["foo", "bar"]))
 
     def test_sanitizers_from_args_enabled_sanitizers(self) -> None:
         """Tests that we find enabled sanitizers."""
+        self.assertListEqual(["address"], sanitizers_from_args(["-fsanitize=address"]))
         self.assertListEqual(
-            ['address'], sanitizers_from_args(['-fsanitize=address']))
+            ["address"], sanitizers_from_args(["-fsanitize=address", "foo"])
+        )
         self.assertListEqual(
-            ['address'], sanitizers_from_args(['-fsanitize=address', 'foo']))
+            ["address", "undefined"],
+            sanitizers_from_args(["-fsanitize=address", "-fsanitize=undefined"]),
+        )
         self.assertListEqual(
-            ['address', 'undefined'],
-            sanitizers_from_args(
-                ['-fsanitize=address', '-fsanitize=undefined']))
+            ["address", "undefined"],
+            sanitizers_from_args(["-fsanitize=address,undefined"]),
+        )
         self.assertListEqual(
-            ['address', 'undefined'],
-            sanitizers_from_args(['-fsanitize=address,undefined']))
-        self.assertListEqual(
-            ['address', 'undefined'],
-            sanitizers_from_args(['-fsanitize=address,undefined', 'foo']))
+            ["address", "undefined"],
+            sanitizers_from_args(["-fsanitize=address,undefined", "foo"]),
+        )
 
     def test_sanitizers_from_args_disabled_sanitizers(self) -> None:
         """Tests that we don't find disabled sanitizers."""
-        self.assertListEqual([], sanitizers_from_args(
-            ['-fno-sanitize=address']))
-        self.assertListEqual([], sanitizers_from_args(
-            ['-fno-sanitize=address', 'foo']))
-        self.assertListEqual([], sanitizers_from_args(
-            ['-fno-sanitize=address', '-fno-sanitize=undefined']))
-        self.assertListEqual([], sanitizers_from_args(
-            ['-fno-sanitize=address,undefined']))
-        self.assertListEqual([], sanitizers_from_args(
-            ['-fno-sanitize=address,undefined', 'foo']))
+        self.assertListEqual([], sanitizers_from_args(["-fno-sanitize=address"]))
+        self.assertListEqual([], sanitizers_from_args(["-fno-sanitize=address", "foo"]))
+        self.assertListEqual(
+            [],
+            sanitizers_from_args(["-fno-sanitize=address", "-fno-sanitize=undefined"]),
+        )
+        self.assertListEqual(
+            [], sanitizers_from_args(["-fno-sanitize=address,undefined"])
+        )
+        self.assertListEqual(
+            [], sanitizers_from_args(["-fno-sanitize=address,undefined", "foo"])
+        )
 
     def test_sanitizers_from_args_enabled_disabled_sanitizers(self) -> None:
         """Tests that we correctly identify only enabled sanitizers."""
-        self.assertListEqual([], sanitizers_from_args(
-            ['-fsanitize=address', '-fno-sanitize=address']))
-        self.assertListEqual(['address'], sanitizers_from_args(
-            ['-fsanitize=address', '-fno-sanitize=address',
-             '-fsanitize=address']))
-        self.assertListEqual([], sanitizers_from_args(
-            ['-fsanitize=address', '-fno-sanitize=address',
-             '-fsanitize=address', '-fno-sanitize=address']))
-        self.assertListEqual(['undefined'], sanitizers_from_args(
-            ['-fsanitize=address,undefined', '-fno-sanitize=address']))
-        self.assertListEqual(['undefined'], sanitizers_from_args(
-            ['-fsanitize=address', '-fsanitize=undefined',
-             '-fno-sanitize=address']))
+        self.assertListEqual(
+            [], sanitizers_from_args(["-fsanitize=address", "-fno-sanitize=address"])
+        )
+        self.assertListEqual(
+            ["address"],
+            sanitizers_from_args(
+                ["-fsanitize=address", "-fno-sanitize=address", "-fsanitize=address"]
+            ),
+        )
+        self.assertListEqual(
+            [],
+            sanitizers_from_args(
+                [
+                    "-fsanitize=address",
+                    "-fno-sanitize=address",
+                    "-fsanitize=address",
+                    "-fno-sanitize=address",
+                ]
+            ),
+        )
+        self.assertListEqual(
+            ["undefined"],
+            sanitizers_from_args(
+                ["-fsanitize=address,undefined", "-fno-sanitize=address"]
+            ),
+        )
+        self.assertListEqual(
+            ["undefined"],
+            sanitizers_from_args(
+                ["-fsanitize=address", "-fsanitize=undefined", "-fno-sanitize=address"]
+            ),
+        )
 
     def test_argv_to_module_arg_lists(self) -> None:
         """Tests that modules' arguments are properly identified."""
         self.assertTupleEqual(([], []), argv_to_module_arg_lists([]))
-        self.assertTupleEqual((['foo'], []), argv_to_module_arg_lists(['foo']))
+        self.assertTupleEqual((["foo"], []), argv_to_module_arg_lists(["foo"]))
 
         self.assertTupleEqual(
-            ([], [['foo', 'bar'], ['baz']]),
-            argv_to_module_arg_lists(
-                ['--module', 'foo', 'bar', '--module', 'baz']))
+            ([], [["foo", "bar"], ["baz"]]),
+            argv_to_module_arg_lists(["--module", "foo", "bar", "--module", "baz"]),
+        )
 
         self.assertTupleEqual(
-            (['foo', 'bar'], [['baz']]),
-            argv_to_module_arg_lists(['foo', 'bar', '--module', 'baz']))
+            (["foo", "bar"], [["baz"]]),
+            argv_to_module_arg_lists(["foo", "bar", "--module", "baz"]),
+        )
 
     def test_main(self) -> None:
         """Test that the program itself works."""
         sio = StringIO()
         ldflags_main(
-            ['ldflags_to_sanitizers.py', '-fsanitize=undefined', '--module',
-             '-fsanitize=address,thread', '-fno-sanitize=thread',
-             '--module', '-fsanitize=undefined'], sio)
-        self.assertEqual('address undefined', sio.getvalue().strip())
+            [
+                "ldflags_to_sanitizers.py",
+                "-fsanitize=undefined",
+                "--module",
+                "-fsanitize=address,thread",
+                "-fno-sanitize=thread",
+                "--module",
+                "-fsanitize=undefined",
+            ],
+            sio,
+        )
+        self.assertEqual("address undefined", sio.getvalue().strip())

@@ -30,21 +30,25 @@ def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser()
 
     parser.add_argument(
-        '-o', '--output', type=os.path.realpath, help='Path to output file')  # type: ignore
+        "-o", "--output", type=os.path.realpath, help="Path to output file"
+    )  # type: ignore
 
     def maybe_list_file(arg: str) -> str:
-        if arg.startswith('@'):
-            return '@' + os.path.realpath(arg[1:])
+        if arg.startswith("@"):
+            return "@" + os.path.realpath(arg[1:])
         return os.path.realpath(arg)
 
     parser.add_argument(
-        'command_files',
-        metavar='FILE',
+        "command_files",
+        metavar="FILE",
         type=maybe_list_file,
-        nargs='+',
-        help=('Path to the compilation database for a single object. If the '
-              'argument begins with @ it will be treated as a list file '
-              'containing paths to the one or more JSON files.'))
+        nargs="+",
+        help=(
+            "Path to the compilation database for a single object. If the "
+            "argument begins with @ it will be treated as a list file "
+            "containing paths to the one or more JSON files."
+        ),
+    )
 
     return parser.parse_args()
 
@@ -56,7 +60,7 @@ def main() -> None:
     all_commands = []
     command_files = []
     for command_file in args.command_files:
-        if command_file.startswith('@'):
+        if command_file.startswith("@"):
             with open(command_file[1:]) as list_file:
                 command_files.extend(list_file.read().split())
         else:
@@ -66,14 +70,11 @@ def main() -> None:
         with open(command_file_path) as command_file:
             all_commands.append(json.load(command_file))
 
-    with open(args.output, 'w') as out_file:
+    with open(args.output, "w") as out_file:
         json.dump(
-            all_commands,
-            out_file,
-            sort_keys=True,
-            indent=4,
-            separators=(',', ': '))
+            all_commands, out_file, sort_keys=True, indent=4, separators=(",", ": ")
+        )
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

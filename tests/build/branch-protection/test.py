@@ -21,12 +21,11 @@ from ndk.test.spec import BuildConfiguration
 from ndk.testing.flag_verifier import FlagVerifier
 
 
-def run_test(ndk_path: str,
-             config: BuildConfiguration) -> tuple[bool, Optional[str]]:
+def run_test(ndk_path: str, config: BuildConfiguration) -> tuple[bool, Optional[str]]:
     """Checks LOCAL_BRANCH_PROTECTION is propagated for arm64-v8a."""
-    verifier = FlagVerifier(Path('project'), Path(ndk_path), config)
-    if config.abi == 'arm64-v8a':
-        verifier.expect_flag('-mbranch-protection=standard')
+    verifier = FlagVerifier(Path("project"), Path(ndk_path), config)
+    if config.abi == "arm64-v8a":
+        verifier.expect_flag("-mbranch-protection=standard")
     else:
-        verifier.expect_not_flag('-mbranch-protection=standard')
+        verifier.expect_not_flag("-mbranch-protection=standard")
     return verifier.verify_ndk_build().make_test_result_tuple()

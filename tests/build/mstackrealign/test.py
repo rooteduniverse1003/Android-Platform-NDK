@@ -26,13 +26,12 @@ from ndk.test.spec import BuildConfiguration
 from ndk.testing.flag_verifier import FlagVerifier
 
 
-def run_test(ndk_path: str,
-             config: BuildConfiguration) -> tuple[bool, Optional[str]]:
+def run_test(ndk_path: str, config: BuildConfiguration) -> tuple[bool, Optional[str]]:
     """Checks ndk-build V=1 output for mstackrealign flag."""
-    verifier = FlagVerifier(Path('project'), Path(ndk_path), config)
+    verifier = FlagVerifier(Path("project"), Path(ndk_path), config)
     assert config.api is not None
-    if config.abi == Abi('x86') and config.api < 24:
-        verifier.expect_flag('-mstackrealign')
+    if config.abi == Abi("x86") and config.api < 24:
+        verifier.expect_flag("-mstackrealign")
     else:
-        verifier.expect_not_flag('-mstackrealign')
+        verifier.expect_not_flag("-mstackrealign")
     return verifier.verify_ndk_build().make_test_result_tuple()

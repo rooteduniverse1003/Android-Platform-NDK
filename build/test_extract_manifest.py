@@ -24,7 +24,8 @@ import build.extract_manifest
 
 class ExtractMinSdkVersionTest(unittest.TestCase):
     def testMinSdkVersion(self) -> None:
-        xml_str = textwrap.dedent("""\
+        xml_str = textwrap.dedent(
+            """\
             <?xml version="1.0" encoding="utf-8"?>
             <manifest
                 xmlns:android="http://schemas.android.com/apk/res/android"
@@ -41,14 +42,15 @@ class ExtractMinSdkVersionTest(unittest.TestCase):
               </application>
               <uses-sdk android:minSdkVersion="9"/>
             </manifest>
-            """)
+            """
+        )
         root = xml.etree.ElementTree.fromstring(xml_str)
 
-        self.assertEqual(
-            '9', build.extract_manifest.get_minsdkversion(root))
+        self.assertEqual("9", build.extract_manifest.get_minsdkversion(root))
 
     def testUsesSdkMissingMinSdkVersion(self) -> None:
-        xml_str = textwrap.dedent("""\
+        xml_str = textwrap.dedent(
+            """\
             <?xml version="1.0" encoding="utf-8"?>
             <manifest
                 xmlns:android="http://schemas.android.com/apk/res/android"
@@ -65,14 +67,15 @@ class ExtractMinSdkVersionTest(unittest.TestCase):
               </application>
               <uses-sdk android:maxSdkVersion="21"/>
             </manifest>
-            """)
+            """
+        )
         root = xml.etree.ElementTree.fromstring(xml_str)
 
-        self.assertEqual(
-            '', build.extract_manifest.get_minsdkversion(root))
+        self.assertEqual("", build.extract_manifest.get_minsdkversion(root))
 
     def testNoUsesSdk(self) -> None:
-        xml_str = textwrap.dedent("""\
+        xml_str = textwrap.dedent(
+            """\
             <?xml version="1.0" encoding="utf-8"?>
             <manifest
                 xmlns:android="http://schemas.android.com/apk/res/android"
@@ -88,16 +91,17 @@ class ExtractMinSdkVersionTest(unittest.TestCase):
                 </activity>
               </application>
             </manifest>
-            """)
+            """
+        )
         root = xml.etree.ElementTree.fromstring(xml_str)
 
-        self.assertEqual(
-            '', build.extract_manifest.get_minsdkversion(root))
+        self.assertEqual("", build.extract_manifest.get_minsdkversion(root))
 
 
 class ExtractDebuggableTest(unittest.TestCase):
     def testIsDebuggable(self) -> None:
-        xml_str = textwrap.dedent("""\
+        xml_str = textwrap.dedent(
+            """\
             <?xml version="1.0" encoding="utf-8"?>
             <manifest
                 xmlns:android="http://schemas.android.com/apk/res/android"
@@ -109,14 +113,15 @@ class ExtractDebuggableTest(unittest.TestCase):
                 android:debuggable="true">
               </application>
             </manifest>
-            """)
+            """
+        )
         root = xml.etree.ElementTree.fromstring(xml_str)
 
-        self.assertEqual(
-            'true', build.extract_manifest.get_debuggable(root))
+        self.assertEqual("true", build.extract_manifest.get_debuggable(root))
 
     def testIsNotDebuggable(self) -> None:
-        xml_str = textwrap.dedent("""\
+        xml_str = textwrap.dedent(
+            """\
             <?xml version="1.0" encoding="utf-8"?>
             <manifest
                 xmlns:android="http://schemas.android.com/apk/res/android"
@@ -128,14 +133,15 @@ class ExtractDebuggableTest(unittest.TestCase):
                 android:debuggable="false">
               </application>
             </manifest>
-            """)
+            """
+        )
         root = xml.etree.ElementTree.fromstring(xml_str)
 
-        self.assertEqual(
-            'false', build.extract_manifest.get_debuggable(root))
+        self.assertEqual("false", build.extract_manifest.get_debuggable(root))
 
     def testBogusValue(self) -> None:
-        xml_str = textwrap.dedent("""\
+        xml_str = textwrap.dedent(
+            """\
             <?xml version="1.0" encoding="utf-8"?>
             <manifest
                 xmlns:android="http://schemas.android.com/apk/res/android"
@@ -147,14 +153,15 @@ class ExtractDebuggableTest(unittest.TestCase):
                 android:debuggable="bogus">
               </application>
             </manifest>
-            """)
+            """
+        )
         root = xml.etree.ElementTree.fromstring(xml_str)
 
-        self.assertEqual(
-            'false', build.extract_manifest.get_debuggable(root))
+        self.assertEqual("false", build.extract_manifest.get_debuggable(root))
 
     def testNotSet(self) -> None:
-        xml_str = textwrap.dedent("""\
+        xml_str = textwrap.dedent(
+            """\
             <?xml version="1.0" encoding="utf-8"?>
             <manifest
                 xmlns:android="http://schemas.android.com/apk/res/android"
@@ -169,8 +176,8 @@ class ExtractDebuggableTest(unittest.TestCase):
               </application>
               <uses-sdk android:maxSdkVersion="21"/>
             </manifest>
-            """)
+            """
+        )
         root = xml.etree.ElementTree.fromstring(xml_str)
 
-        self.assertEqual(
-            'false', build.extract_manifest.get_debuggable(root))
+        self.assertEqual("false", build.extract_manifest.get_debuggable(root))
