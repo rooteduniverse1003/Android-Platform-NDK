@@ -338,12 +338,6 @@ def flake_filter(result: TestResult) -> bool:
     if "Could not find exit status in shell output." in result.message:
         return True
 
-    # These libc++ tests expect to complete in a specific amount of time,
-    # and commonly fail under high load.
-    name = result.test.name
-    if "libc++.libcxx/thread" in name or "libc++.std/thread" in name:
-        return True
-
     return False
 
 

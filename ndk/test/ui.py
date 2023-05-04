@@ -19,10 +19,10 @@ from __future__ import absolute_import, print_function
 import os
 from typing import Any, List
 
-from ndk.ansi import AnsiConsole, Console, font_bold, font_faint, font_reset
+from ndk.ansi import Console, font_bold, font_faint, font_reset
 from ndk.test.devices import Device
-from ndk.ui import AnsiUiRenderer, NonAnsiUiRenderer, Ui, UiRenderer, columnate
-from ndk.workqueue import LoadRestrictingWorkQueue, ShardingWorkQueue, Worker
+from ndk.ui import AnsiUiRenderer, NonAnsiUiRenderer, Ui, UiRenderer
+from ndk.workqueue import ShardingWorkQueue, Worker
 
 
 class TestProgressUi(Ui):
@@ -95,53 +95,3 @@ def get_test_progress_ui(
     return TestProgressUi(
         ui_renderer, show_worker_status, show_device_groups, workqueue
     )
-
-
-class TestBuildProgressUi(Ui):
-    NUM_TESTS_DIGITS = 6
-
-    def __init__(
-        self,
-        ui_renderer: UiRenderer,
-        show_worker_status: bool,
-        workqueue: LoadRestrictingWorkQueue[Any],
-    ):
-        super().__init__(ui_renderer)
-        self.show_worker_status = show_worker_status
-        self.workqueue = workqueue
-
-    def get_ui_lines(self) -> List[str]:
-        lines = []
-
-        if self.show_worker_status:
-            for worker in self.workqueue.main_work_queue.workers:
-                lines.append(worker.status)
-            for worker in self.workqueue.restricted_work_queue.workers:
-                lines.append(worker.status)
-
-        if self.ui_renderer.console.smart_console:
-            assert isinstance(self.ui_renderer.console, AnsiConsole)
-            # Keep some space at the top of the UI so we can see messages.
-            ui_height = self.ui_renderer.console.height - 10
-            if ui_height > 0:
-                lines = columnate(lines, self.ui_renderer.console.width, ui_height)
-
-        lines.append(
-            "{: >{width}} tests remaining".format(
-                self.workqueue.num_tasks, width=self.NUM_TESTS_DIGITS
-            )
-        )
-        return lines
-
-
-def get_test_build_progress_ui(
-    console: Console, workqueue: LoadRestrictingWorkQueue[Any]
-) -> TestBuildProgressUi:
-    ui_renderer: UiRenderer
-    if console.smart_console:
-        ui_renderer = AnsiUiRenderer(console)
-        show_worker_status = True
-    else:
-        ui_renderer = NonAnsiUiRenderer(console)
-        show_worker_status = False
-    return TestBuildProgressUi(ui_renderer, show_worker_status, workqueue)

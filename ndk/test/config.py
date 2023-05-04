@@ -262,33 +262,3 @@ class DeviceTestConfig(TestConfig):
     @classmethod
     def from_test_dir(cls, test_dir: Path) -> "DeviceTestConfig":
         return cls(test_dir / "test_config.py")
-
-
-class LibcxxTestConfig(DeviceTestConfig):
-    """Specialization of test_config.py for libc++.
-
-    The libc++ tests have multiple tests in a single directory, so we need to
-    pass the test name for build_broken too.
-    """
-
-    class NullTestConfig(TestConfig.NullTestConfig):
-        # pylint: disable=unused-argument,arguments-differ
-        @staticmethod
-        def build_unsupported(test: Test) -> Optional[str]:
-            return None
-
-        @staticmethod
-        def build_broken(test: Test) -> Union[Tuple[None, None], Tuple[str, str]]:
-            return None, None
-
-        @staticmethod
-        def run_unsupported(test: Test, device: DeviceConfig) -> Optional[str]:
-            return None
-
-        @staticmethod
-        def run_broken(
-            test: Test, device: DeviceConfig
-        ) -> Union[Tuple[None, None], Tuple[str, str]]:
-            return None, None
-
-        # pylint: enable=unused-argument,arguments-differ

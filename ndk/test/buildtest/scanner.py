@@ -16,20 +16,17 @@
 from __future__ import absolute_import
 
 import glob
-import os
-from pathlib import Path, PurePosixPath
+from pathlib import Path
 from typing import List, Set
 
-import ndk.paths
 from ndk.test.buildtest.case import (
     CMakeBuildTest,
-    LibcxxTest,
     NdkBuildTest,
     PythonBuildTest,
     ShellBuildTest,
     Test,
 )
-from ndk.test.spec import BuildConfiguration, CMakeToolchainFile, WeakSymbolsConfig
+from ndk.test.spec import BuildConfiguration, CMakeToolchainFile
 
 
 class TestScanner:
@@ -111,44 +108,3 @@ class BuildTestScanner(TestScanner):
             CMakeBuildTest(name, path, config, self.ndk_path, self.dist)
             for config in self.build_configurations
         ]
-
-
-class LibcxxTestScanner(TestScanner):
-    ALL_TESTS: List[str] = []
-    LIBCXX_SRC = ndk.paths.ANDROID_DIR / "toolchain/llvm-project/libcxx"
-
-    def __init__(self, ndk_path: Path) -> None:
-        self.ndk_path = ndk_path
-        self.build_configurations: Set[BuildConfiguration] = set()
-        LibcxxTestScanner.find_all_libcxx_tests()
-
-    def add_build_configuration(self, spec: BuildConfiguration) -> None:
-        self.build_configurations.add(spec)
-
-    def find_tests(self, path: Path, name: str) -> List[Test]:
-        return [
-            LibcxxTest("libc++", path, config, self.ndk_path)
-            for config in self.build_configurations
-            if config.toolchain_file == CMakeToolchainFile.Default
-            and config.weak_symbol == WeakSymbolsConfig.StrictAPI
-        ]
-
-    @classmethod
-    def find_all_libcxx_tests(cls) -> None:
-        # If we instantiate multiple LibcxxTestScanners, we still only need to
-        # initialize this once. We only create these in the main thread, so
-        # there's no risk of race.
-        if cls.ALL_TESTS:
-            return
-
-        test_base_dir = cls.LIBCXX_SRC / "test"
-
-        for root, _dirs, files in os.walk(test_base_dir, followlinks=True):
-            for test_file in files:
-                if test_file.endswith(".cpp") or test_file.endswith(".mm"):
-                    test_path = str(
-                        PurePosixPath(
-                            os.path.relpath(Path(root) / test_file, test_base_dir)
-                        )
-                    )
-                    cls.ALL_TESTS.append(test_path)

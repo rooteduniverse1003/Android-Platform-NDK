@@ -18,5 +18,4 @@
 ALL_SUITES = (
     "build",
     "device",
-    "libc++",
 )

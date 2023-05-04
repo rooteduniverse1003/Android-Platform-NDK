@@ -14,13 +14,12 @@
 # limitations under the License.
 #
 import logging
-import os
 import shlex
 import traceback
 from pathlib import Path, PurePosixPath
 from typing import Optional, Tuple, Union
 
-from ndk.test.config import DeviceTestConfig, LibcxxTestConfig
+from ndk.test.config import DeviceTestConfig
 from ndk.test.devices import Device, DeviceConfig
 from ndk.test.spec import BuildConfiguration
 
@@ -118,9 +117,8 @@ class BasicTestCase(TestCase):
         self.executable = executable
 
     def get_test_config(self) -> DeviceTestConfig:
-        # We don't run anything in tests/build, and the libc++ tests are
-        # handled by a different LibcxxTest. We can safely assume that anything
-        # here is in tests/device.
+        # We don't run anything in tests/build. We can safely assume that anything here
+        # is in tests/device.
         test_dir = self.test_src_dir / "device" / self.suite
         return DeviceTestConfig.from_test_dir(test_dir)
 
@@ -136,70 +134,4 @@ class BasicTestCase(TestCase):
     def cmd(self) -> str:
         return "cd {} && LD_LIBRARY_PATH={} ./{} 2>&1".format(
             self.device_dir, self.device_dir, self.executable
-        )
-
-
-class LibcxxTestCase(TestCase):
-    """A libc++ test case built by LIT.
-
-    LIT's test structure doesn't map cleanly to ours; they have a hierarchical
-    test structure. The top level contains a single "libc++" directory. In that
-    directory is where shared libraries common to all tests are placed. That
-    directory and any under it may contain test executables (always suffixed
-    with ".exe") or test data (always suffixed with ".dat").
-    """
-
-    def __init__(
-        self,
-        suite: str,
-        executable: str,
-        test_src_dir: Path,
-        config: BuildConfiguration,
-        device_dir: PurePosixPath,
-        device_base_dir: PurePosixPath,
-    ) -> None:
-        # Tests in the top level don't need any mangling to match the filters.
-        if suite == "libc++":
-            filter_name = executable
-        else:
-            filter_name = os.path.join(suite[len("libc++/") :], executable)
-
-        # The executable name ends with .exe. Remove that so it matches the
-        # filter that would be used to build the test.
-        name = ".".join(["libc++", filter_name[:-4]])
-        super().__init__(name, test_src_dir, config, "libc++", device_dir)
-        self.suite = suite
-        self.executable = executable
-        self.device_base_dir = device_base_dir
-
-    @property
-    def case_name(self) -> str:
-        # Executable is foo.pass.cpp.exe, we want foo.pass.
-        return os.path.splitext(os.path.splitext(self.executable)[0])[0]
-
-    def get_test_config(self) -> DeviceTestConfig:
-        _, _, test_subdir = self.suite.partition("/")
-        test_dir = self.test_src_dir / "libc++/test" / test_subdir
-        return LibcxxTestConfig.from_test_dir(test_dir)
-
-    def check_unsupported(self, device: DeviceConfig) -> Optional[str]:
-        config = self.get_test_config().run_unsupported(self, device)
-        if config is not None:
-            return config
-        return None
-
-    def check_broken(
-        self, device: DeviceConfig
-    ) -> Union[Tuple[None, None], Tuple[str, str]]:
-        config, bug = self.get_test_config().run_broken(self, device)
-        if config is not None:
-            assert bug is not None
-            return config, bug
-        return None, None
-
-    @property
-    def cmd(self) -> str:
-        libcxx_so_dir = self.device_base_dir / str(self.config) / "libcxx" / "libc++"
-        return "cd {} && LD_LIBRARY_PATH={} ./{} 2>&1".format(
-            self.device_dir, libcxx_so_dir, self.executable
         )
