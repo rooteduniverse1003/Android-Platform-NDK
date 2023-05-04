@@ -29,9 +29,11 @@ from __future__ import division, print_function
 
 import argparse
 import logging
+import shutil
 import struct
 import subprocess
 import sys
+from pathlib import Path
 
 SEC_NAME = ".note.android.ident"
 NDK_RESERVED_SIZE = 64
@@ -112,8 +114,8 @@ def dump_android_ident_note(note):
 
 
 # Get the offset to a section from the output of readelf
-def get_section_pos(sec_name, file_path):
-    cmd = ["readelf", "--sections", "-W", file_path]
+def get_section_pos(readelf: Path, sec_name: str, file_path: str) -> tuple[int, int]:
+    cmd = [readelf, "--sections", "-W", file_path]
     output = subprocess.check_output(cmd)
     lines = output.decode("utf-8").splitlines()
     for line in lines:
@@ -139,6 +141,51 @@ def get_section_pos(sec_name, file_path):
     sys.exit("error: failed to find section: {}".format(sec_name))
 
 
+def get_ndk_install_path() -> Path | None:
+    try:
+        import ndk.paths  # pylint: disable=import-outside-toplevel
+
+        path = ndk.paths.get_install_path()
+        if path.exists():
+            return path
+        return None
+    except ImportError:
+        return None
+
+
+def readelf_from_ndk(ndk: Path) -> Path:
+    if not ndk.exists():
+        raise ValueError(f"--ndk is {ndk} but that path does not exist")
+    prebuilt_dir = ndk / "toolchains/llvm/prebuilt"
+    bins = list(prebuilt_dir.glob("*/bin"))
+    if not bins:
+        raise RuntimeError(f"{prebuilt_dir} contains no */bin")
+    if len(bins) != 1:
+        raise RuntimeError(f"{prebuilt_dir} contains more than one */bin")
+    bin_dir = bins[0]
+
+    readelf = (bin_dir / "llvm-readelf").with_suffix(
+        ".exe" if sys.platform == "win32" else ""
+    )
+    if not readelf.exists():
+        raise RuntimeError(f"{readelf} does not exist")
+    return readelf
+
+
+def find_readelf(ndk: Path | None) -> Path:
+    if ndk is not None:
+        return readelf_from_ndk(ndk)
+    if (install_path := get_ndk_install_path()) is not None:
+        return readelf_from_ndk(install_path)
+    if (readelf := shutil.which("llvm-readelf")) is not None:
+        return Path(readelf)
+    if (readelf := shutil.which("readelf")) is not None:
+        return Path(readelf)
+    raise RuntimeError(
+        "Could not find llvm-readelf or readelf in PATH and could find find any NDK"
+    )
+
+
 def parse_args():
     """Parses command line arguments."""
     parser = argparse.ArgumentParser()
@@ -150,6 +197,11 @@ def parse_args():
         action="count",
         default=0,
         help="Increase logging verbosity.",
+    )
+    parser.add_argument(
+        "--ndk",
+        type=Path,
+        help="Path to the NDK. If given, the NDK's llvm-readelf will be used.",
     )
     return parser.parse_args()
 
@@ -165,8 +217,10 @@ def main():
 
     file_path = args.file_path
 
+    readelf = find_readelf(args.ndk)
+
     with open(file_path, "rb") as obj_file:
-        (sec_off, sec_size) = get_section_pos(SEC_NAME, file_path)
+        (sec_off, sec_size) = get_section_pos(readelf, SEC_NAME, file_path)
 
         obj_file.seek(sec_off)
         sec_data = obj_file.read(sec_size)
