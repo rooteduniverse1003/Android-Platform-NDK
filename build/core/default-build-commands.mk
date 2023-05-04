@@ -42,7 +42,7 @@ TARGET_FORMAT_STRING_CFLAGS := -Wformat -Werror=format-security
 TARGET_DISABLE_FORMAT_STRING_CFLAGS := -Wno-error=format-security
 
 define cmd-build-shared-library
-$(PRIVATE_CXX) \
+$(PRIVATE_LD_DRIVER) \
     -Wl,-soname,$(notdir $(LOCAL_BUILT_MODULE)) \
     -shared \
     $(PRIVATE_LINKER_OBJECTS_AND_LIBRARIES) \
@@ -57,7 +57,7 @@ endef
 # directly needed. ld.gold (default for all other architectures) doesn't emulate
 # this buggy behavior.
 define cmd-build-executable
-$(PRIVATE_CXX) \
+$(PRIVATE_LD_DRIVER) \
     -Wl,-rpath-link=$(call host-path,$(PRIVATE_SYSROOT_API_LIB_DIR)) \
     -Wl,-rpath-link=$(call host-path,$(TARGET_OUT)) \
     $(PRIVATE_LINKER_OBJECTS_AND_LIBRARIES) \
