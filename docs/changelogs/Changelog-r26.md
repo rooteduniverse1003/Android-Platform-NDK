@@ -60,6 +60,9 @@ directly, see the [build system maintainers guide].
 * ndk-build now uses clang rather than clang++ when linking modules that do not
   have C++ sources. There should not be any observable behavior differences
   because ndk-build previously handled the C/C++ linking differences itself.
+* ndk-build now delegates C++ stdlib linking to the Clang driver. It is unlikely
+  that this will cause any observable behavior change, but any new behavior will
+  more closely match CMake and other build systems.
 
 [Issue 837]: https://github.com/android/ndk/issues/837
 [Issue 1400]: https://github.com/android/ndk/issues/1400

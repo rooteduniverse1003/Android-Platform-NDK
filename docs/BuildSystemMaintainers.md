@@ -584,15 +584,19 @@ case those libraries can prevent the correct unwinder from being used by your
 build, resulting in crashes or incorrect behavior at runtime.
 
 The best way to avoid this problem is to ensure all libraries in the application
-were built with NDK r23 or newer.
+were built with NDK r23 or newer, but even libraries built by older NDKs are
+unlikely to have this problem.
 
-For cases where that is not an option, build systems can ensure that shared
-libraries are always linked **after** static libraries, and explicitly link the
-unwinder between each group. The linker will prefer definitions that appear
-sooner in the link order, so libunwind appearing **before** the shared libraries
-will prevent the linker from considering the incompatible unwinder provided by
-the broken library. libunwind must be linked after other static libraries to
-provide the unwind interface to those static libraries.
+For build systems that want to protect their users against improperly built
+libraries, read on. **Neither ndk-build nor CMake make this effort.**
+
+To protect against improperly built libraries, build systems can ensure that
+shared libraries are always linked **after** static libraries, and explicitly
+link the unwinder between each group. The linker will prefer definitions that
+appear sooner in the link order, so libunwind appearing **before** the shared
+libraries will prevent the linker from considering the incompatible unwinder
+provided by the broken library. libunwind must be linked after other static
+libraries to provide the unwind interface to those static libraries.
 
 The following link order will protect against incorrectly built dependencies:
 
