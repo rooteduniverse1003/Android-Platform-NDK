@@ -875,7 +875,7 @@ def main():
         kill_pids = gdbrunner.get_pids(device, debugger_server_path)
         if args.launch:
             kill_pids += gdbrunner.get_pids(device, pkg_name)
-        kill_pids = map(str, kill_pids)
+        kill_pids = [str(pid) for pid in kill_pids]
         if kill_pids:
             log("Killing processes: {}".format(", ".join(kill_pids)))
             device.shell_nocheck(["run-as", pkg_name, "kill", "-9"] + kill_pids)
