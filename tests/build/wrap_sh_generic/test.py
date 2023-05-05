@@ -19,6 +19,7 @@ import os
 import subprocess
 import sys
 import textwrap
+from pathlib import Path
 
 from ndk.test.spec import BuildConfiguration
 
@@ -28,13 +29,13 @@ def run_test(ndk_path: str, config: BuildConfiguration) -> tuple[bool, str]:
     ndk_build = os.path.join(ndk_path, "ndk-build")
     if sys.platform == "win32":
         ndk_build += ".cmd"
-    project_path = "project"
+    project_path = Path("project")
     ndk_args = [
         f"APP_ABI={config.abi}",
         f"APP_PLATFORM=android-{config.api}",
     ]
     proc = subprocess.Popen(
-        [ndk_build, "-C", project_path] + ndk_args,
+        [ndk_build, "-C", str(project_path)] + ndk_args,
         stdout=subprocess.PIPE,
         stderr=subprocess.STDOUT,
         encoding="utf-8",
@@ -43,12 +44,11 @@ def run_test(ndk_path: str, config: BuildConfiguration) -> tuple[bool, str]:
     if proc.returncode != 0:
         return proc.returncode == 0, out
 
-    wrap_sh = os.path.join(project_path, "libs", config.abi, "wrap.sh")
-    if not os.path.exists(wrap_sh):
+    wrap_sh = project_path / "libs" / config.abi / "wrap.sh"
+    if not wrap_sh.exists():
         return False, "{} does not exist".format(wrap_sh)
 
-    with open(wrap_sh) as wrap_sh_file:
-        contents = wrap_sh_file.read().strip()
+    contents = wrap_sh.read_text(encoding="utf-8").strip()
     if contents != "generic":
         return False, textwrap.dedent(
             f"""\

@@ -54,7 +54,7 @@ def run_test(ndk_path: str, config: BuildConfiguration) -> tuple[bool, str]:
     if not os.path.exists(cc_json):
         return False, "{} does not exist".format(cc_json)
 
-    with open(cc_json) as cc_json_file:
+    with open(cc_json, encoding="utf-8") as cc_json_file:
         contents = json.load(cc_json_file)
     command_default = contents[0]["command"]
     command_short_local = contents[1]["command"]

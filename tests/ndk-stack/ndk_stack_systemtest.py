@@ -70,7 +70,7 @@ class SystemTests(unittest.TestCase):
 
         # Read the expected output.
         file_name = os.path.join(symbol_dir, expected_file)
-        with open(mode="r", file=file_name) as exp_file:
+        with open(file_name, "r", encoding="utf-8") as exp_file:
             expected = exp_file.read()
         expected = expected.replace("SYMBOL_DIR", symbol_dir)
         self.maxDiff = None

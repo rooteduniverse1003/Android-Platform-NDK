@@ -298,7 +298,7 @@ def _platform_from_application_mk(test_dir: Path) -> Optional[int]:
     if not application_mk.exists():
         return None
 
-    with open(application_mk) as application_mk_file:
+    with application_mk.open(encoding="utf-8") as application_mk_file:
         for line in application_mk_file:
             if line.startswith("APP_PLATFORM"):
                 _, platform_str = line.split(":=")
