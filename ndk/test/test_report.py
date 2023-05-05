@@ -56,13 +56,5 @@ class ReportTest(unittest.TestCase):
             ),
         )
 
-        # Flaky libc++ tests. Filtered.
-        report.add_result(
-            "build", ndk.test.result.Failure(MockTest("libc++.libcxx/thread/foo"), "")
-        )
-        report.add_result(
-            "build", ndk.test.result.Failure(MockTest("libc++.std/thread/foo"), "")
-        )
-
         results = report.remove_all_failing_flaky(ndk.run_tests.flake_filter)
-        self.assertEqual(3, len(results))
+        self.assertEqual(1, len(results))

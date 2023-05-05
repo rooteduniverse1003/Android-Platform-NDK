@@ -28,7 +28,6 @@ import json
 import logging
 import multiprocessing
 import os
-import pipes
 import re
 import shutil
 import site
@@ -68,6 +67,7 @@ import ndk.test.spec
 import ndk.timer
 import ndk.ui
 import ndk.workqueue
+from ndk.abis import ALL_ABIS, Abi
 from ndk.crtobjectbuilder import CrtObjectBuilder
 from ndk.hosts import Host
 from ndk.paths import ANDROID_DIR, NDK_DIR
@@ -525,10 +525,13 @@ class Clang(ndk.builds.Module):
                     )
                 )
 
-        # Also remove the other libraries that we installed, but they were only
-        # installed on Linux.
+        # Remove duplicate install locations of some runtime libraries. The toolchain
+        # artifacts install these to a location the driver doesn't search. We relocate
+        # these as necessary (either in this class or in Toolchain), so clean up the
+        # excess. The Android runtimes are only packaged in the Linux toolchain.
         if self.host == Host.Linux:
             shutil.rmtree(install_path / "runtimes_ndk_cxx")
+            shutil.rmtree(install_path / "android_libc++")
 
         # Remove CMake package files that should not be exposed.
         # For some reason the LLVM install includes CMake modules that expose
@@ -890,71 +893,6 @@ def install_exe(out_dir: Path, install_dir: Path, name: str, host: Host) -> None
 
 def make_linker_script(path: Path, libs: List[str]) -> None:
     ndk.file.write_file(path, "INPUT({})\n".format(" ".join(libs)))
-
-
-@register
-class Libcxx(ndk.builds.Module):
-    name = "libc++"
-    src = ANDROID_DIR / "toolchain/llvm-project/libcxx"
-    install_path = Path("sources/cxx-stl/llvm-libc++")
-    notice = src / "LICENSE.TXT"
-    notice_group = ndk.builds.NoticeGroup.TOOLCHAIN
-    deps = {
-        "base-toolchain",
-        "ndk-build",
-        "ndk-build-shortcut",
-    }
-
-    @property
-    def obj_out(self) -> Path:
-        return self.out_dir / "libcxx" / "obj"
-
-    @property
-    def lib_out(self) -> Path:
-        return self.out_dir / "libcxx" / "libs"
-
-    def build(self) -> None:
-        ndk_build = self.get_dep("ndk-build").get_build_host_install() / "ndk-build"
-
-        android_mk = self.src / "Android.mk"
-        application_mk = self.src / "Application.mk"
-
-        build_cmd = [
-            "bash",
-            str(ndk_build),
-            f"-j{multiprocessing.cpu_count()}",
-            "V=1",
-            # Since nothing in this build depends on libc++_static, we need to
-            # name it to force it to build.
-            "APP_MODULES=c++_shared c++_static",
-            # Tell ndk-build where all of our makefiles are and where outputs
-            # should go. The defaults in ndk-build are only valid if we have a
-            # typical ndk-build layout with a jni/{Android,Application}.mk.
-            "NDK_PROJECT_PATH=null",
-            f"APP_BUILD_SCRIPT={android_mk}",
-            f"NDK_APPLICATION_MK={application_mk}",
-            f"NDK_OUT={self.obj_out}",
-            f"NDK_LIBS_OUT={self.lib_out}",
-            # Make sure we don't pick up a cached copy.
-            "LIBCXX_FORCE_REBUILD=true",
-        ]
-
-        print("Running: " + " ".join([pipes.quote(arg) for arg in build_cmd]))
-        subprocess.check_call(build_cmd)
-
-    def install(self) -> None:
-        """Installs headers and makefiles.
-
-        The libraries are installed separately, by the Toolchain module."""
-        install_root = self.get_install_path()
-
-        if install_root.exists():
-            shutil.rmtree(install_root)
-        install_root.mkdir(parents=True)
-
-        shutil.copy2(self.src / "Android.mk", install_root)
-        # TODO: Use the includes from sysroot.
-        shutil.copytree(self.src / "include", install_root / "include")
 
 
 @register
@@ -1331,15 +1269,13 @@ def write_clang_wrapper(
 
 
 @register
-class BaseToolchain(ndk.builds.Module):
-    """The subset of the toolchain needed to build other toolchain components.
+class Toolchain(ndk.builds.Module):
+    """The LLVM toolchain.
 
-    libc++ is built using this toolchain, and the full toolchain requires
-    libc++. The toolchain is split into BaseToolchain and Toolchain to break
-    the cyclic dependency.
+    The toolchain includes Clang, LLD, libc++, and LLVM's binutils.
     """
 
-    name = "base-toolchain"
+    name = "toolchain"
     # This is installed to the Clang location to avoid migration pain.
     install_path = Path("toolchains/llvm/prebuilt/{host}")
     notice_group = ndk.builds.NoticeGroup.TOOLCHAIN
@@ -1358,6 +1294,31 @@ class BaseToolchain(ndk.builds.Module):
         yield from Sysroot().notices
         yield from SystemStl().notices
 
+    @property
+    def sysroot_install_path(self) -> Path:
+        return self.get_install_path() / "sysroot"
+
+    def toolchain_libcxx_path_for(self, abi: Abi) -> Path:
+        """Returns the path to the toolchain's NDK libc++ artifacts.
+
+        The toolchain artifacts install all the libc++ artifacts to the android_libc++
+        subdirectory rather than anywhere that the driver can find them (because that's
+        still WIP). These are only included in the Linux artifacts.
+        """
+        # The libc++ directories in the toolchain artifacts use yet another spelling of
+        # each ABI.
+        libcxx_arch_name = {
+            Abi("armeabi-v7a"): "arm",
+            Abi("arm64-v8a"): "aarch64",
+            Abi("x86"): "i386",
+            Abi("x86_64"): "x86_64",
+        }[abi]
+        return (
+            ClangToolchain.path_for_host(Host.Linux)
+            / "android_libc++/ndk"
+            / libcxx_arch_name
+        )
+
     def build(self) -> None:
         pass
 
@@ -1367,7 +1328,7 @@ class BaseToolchain(ndk.builds.Module):
         sysroot_dir = self.get_dep("sysroot").get_install_path()
         system_stl_dir = self.get_dep("system-stl").get_install_path()
 
-        shutil.copytree(sysroot_dir, install_dir / "sysroot", dirs_exist_ok=True)
+        shutil.copytree(sysroot_dir, self.sysroot_install_path, dirs_exist_ok=True)
 
         exe = ".exe" if self.host.is_windows else ""
         shutil.copy2(
@@ -1402,6 +1363,105 @@ class BaseToolchain(ndk.builds.Module):
         system_stl_inc_src = system_stl_dir / "include"
         system_stl_inc_dst = system_stl_hdr_dir / "4.9.x"
         shutil.copytree(system_stl_inc_src, system_stl_inc_dst)
+        self.relocate_libcxx()
+        self.create_libcxx_linker_scripts()
+
+    def relocate_libcxx(self) -> None:
+        """Relocate libc++ so its discoverable by the Clang driver.
+
+        The NDK libc++ in the toolchain prebuilts is not installed to a location that
+        the driver is able to find by default. Move it to a driver searched directory.
+        """
+        # The Clang driver automatically uses the following library search directories
+        # (relative to the LLVM install root, for an aarch64-linux-android21 target and
+        # LLVM 17):
+        #
+        # 1. lib/clang/17/lib/linux/aarch64
+        # 2. bin/../sysroot/usr/lib/aarch64-linux-android/21
+        # 3. bin/../sysroot/usr/lib/aarch64-linux-android
+        # 4. bin/../sysroot/usr/lib
+        #
+        # The sysroot directory comes from the platform's sysroot artifact, so it's best
+        # to avoid installing to that (if we install there, the platform's artifact
+        # can't be used directly; it needs to have NDK components installed to it).
+        #
+        # However, AGP (and probably other systems) expect to find libc++_shared.so in
+        # sysroot/usr/lib/$TRIPLE, so we should continue using that path for the time
+        # being. At some point we should move all the libc++ details into the
+        # toolchain's directories so it's easier to use an arbitrary sysroot (e.g. for
+        # previewing Android APIs without needing a whole new NDK), but we can't do that
+        # for the headers yet anyway (see below). Keep compatible for now.
+        usr_lib = self.sysroot_install_path / "usr/lib"
+        for abi in ALL_ABIS:
+            dest = usr_lib / ndk.abis.abi_to_triple(abi)
+            src = self.toolchain_libcxx_path_for(abi) / "lib"
+            for lib in src.iterdir():
+                shutil.copy2(lib, dest / lib.name)
+
+        # libc++ headers for Android will currently only be found in the sysroot:
+        # https://github.com/llvm/llvm-project/blob/c64f10bfe20308ebc7d5d18912cd0ba82a44eaa1/clang/lib/Driver/ToolChains/Gnu.cpp#L3080-L3084
+        #
+        # We ought to revert that driver behavior (which shouldn't be contentious, since
+        # it's our patch in the first place), but for now we'll continue installing the
+        # libc++ headers to the sysroot.
+        src = ClangToolchain.path_for_host(Host.Linux) / "include/c++/v1"
+        dest = self.sysroot_install_path / "usr/include/c++/v1"
+        if dest.exists():
+            shutil.rmtree(dest)
+        dest.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copytree(src, dest)
+
+        # There's also an Android-specific __config_site header that we need to install.
+        shutil.copy2(self.find_libcxx_config_site(), dest / "__config_site")
+
+    def find_libcxx_config_site(self) -> Path:
+        """Finds the __config_site file for the NDK libc++.
+
+        That header exists per-ABI in the android_libc++ directory, but they should all
+        be identical and the driver doesn't search per-ABI include directories for
+        libc++. Verify that they are actually identical and return one of them
+        arbitrarily.
+        """
+        config_sites: list[Path] = []
+        for abi in ALL_ABIS:
+            includes = self.toolchain_libcxx_path_for(abi) / "include"
+            config_sites.extend(includes.glob("**/__config_site"))
+        first = config_sites[0]
+        contents = first.read_bytes()
+        for config_site in config_sites[1:]:
+            if config_site.read_bytes() != contents:
+                raise RuntimeError(
+                    f"Expected all NDK __config_site files to be identical. {first} "
+                    f"and {config_site} have different contents."
+                )
+        return first
+
+    def create_libcxx_linker_scripts(self) -> None:
+        """Install per-target linker scripts for libc++.so and libc++.a.
+
+        Clang is going to try to use `-lc++`, not `-lc++_shared` or
+        `-lc++_static -lc++abi`. Linker scripts paper over those details.
+
+        These are per-target for historical reasons (pre-21 needed libandroid_support,
+        arm32 needed libunwind). These could probably be reduced to a single linker
+        script now.
+        """
+        install_dir = self.get_install_path()
+        for api in ALL_API_LEVELS:
+            for abi in ndk.abis.iter_abis_for_api(api):
+                triple = ndk.abis.abi_to_triple(abi)
+                dst_dir = install_dir / "sysroot/usr/lib" / triple / str(api)
+
+                static_script = ["-lc++_static", "-lc++abi"]
+                shared_script = ["-lc++_shared"]
+
+                libcxx_so_path = dst_dir / "libc++.so"
+                with open(libcxx_so_path, "w") as script:
+                    script.write("INPUT({})".format(" ".join(shared_script)))
+
+                libcxx_a_path = dst_dir / "libc++.a"
+                with open(libcxx_a_path, "w") as script:
+                    script.write("INPUT({})".format(" ".join(static_script)))
 
 
 @register
@@ -1437,82 +1497,6 @@ class Vulkan(ndk.builds.Module):
             """
             )
         )
-
-
-@register
-class Toolchain(ndk.builds.Module):
-    """The complete toolchain.
-
-    BaseToolchain installs the core of the toolchain. This module installs the
-    STL to that toolchain.
-    """
-
-    name = "toolchain"
-    # This is installed to the Clang location to avoid migration pain.
-    install_path = Path("toolchains/llvm/prebuilt/{host}")
-    notice_group = ndk.builds.NoticeGroup.TOOLCHAIN
-    deps = {
-        "base-toolchain",
-        "libc++",
-        "libc++abi",
-    }
-
-    @property
-    def notices(self) -> Iterator[Path]:
-        yield from Libcxx().notices
-        yield from Libcxxabi().notices
-
-    def build(self) -> None:
-        pass
-
-    def install(self) -> None:
-        install_dir = self.get_install_path()
-        libcxx_dir = self.get_dep("libc++").get_install_path()
-        libcxxabi_dir = self.get_dep("libc++abi").get_install_path()
-
-        libcxx_hdr_dir = install_dir / "sysroot/usr/include/c++"
-        libcxx_hdr_dir.mkdir(parents=True)
-        libcxx_inc_src = libcxx_dir / "include"
-        libcxx_inc_dst = libcxx_hdr_dir / "v1"
-        shutil.copytree(libcxx_inc_src, libcxx_inc_dst)
-
-        libcxxabi_inc_src = libcxxabi_dir / "include"
-        shutil.copytree(libcxxabi_inc_src, libcxx_inc_dst, dirs_exist_ok=True)
-
-        for arch in ndk.abis.ALL_ARCHITECTURES:
-            triple = ndk.abis.arch_to_triple(arch)
-            (abi,) = ndk.abis.arch_to_abis(arch)
-            sysroot_dst = install_dir / "sysroot/usr/lib" / triple
-
-            shutil.copy2(
-                self.out_dir / "libcxx" / "libs" / abi / "libc++_shared.so", sysroot_dst
-            )
-            static_libs = [
-                "libc++_static.a",
-                "libc++abi.a",
-            ]
-
-            for lib in static_libs:
-                shutil.copy2(
-                    self.out_dir / "libcxx" / "obj" / "local" / abi / lib, sysroot_dst
-                )
-
-        # Also install a libc++.so and libc++.a linker script per API level.
-        for api in ALL_API_LEVELS:
-            for abi in ndk.abis.iter_abis_for_api(api):
-                triple = ndk.abis.abi_to_triple(abi)
-                dst_dir = install_dir / "sysroot/usr/lib" / triple / str(api)
-
-                static_script = ["-lc++_static", "-lc++abi"]
-                shared_script = ["-lc++_shared"]
-
-                libcxx_so_path = dst_dir / "libc++.so"
-                with open(libcxx_so_path, "w") as script:
-                    script.write("INPUT({})".format(" ".join(shared_script)))
-
-                libcxx_a_path = dst_dir / "libc++.a"
-                with open(libcxx_a_path, "w") as script:
-                    script.write("INPUT({})".format(" ".join(static_script)))
 
 
 def make_format_value(value: Any) -> Any:
@@ -1710,13 +1694,6 @@ class SystemStl(ndk.builds.PackageModule):
 
 
 @register
-class Libcxxabi(ndk.builds.PackageModule):
-    name = "libc++abi"
-    install_path = Path("sources/cxx-stl/llvm-libc++abi")
-    src = ANDROID_DIR / "toolchain/llvm-project/libcxxabi"
-
-
-@register
 class SimplePerf(ndk.builds.Module):
     name = "simpleperf"
     install_path = Path("simpleperf")
@@ -1882,7 +1859,7 @@ class Meta(ndk.builds.PackageModule):
     no_notice = True
 
     deps = {
-        "base-toolchain",
+        "toolchain",
     }
 
     @staticmethod
@@ -1934,7 +1911,7 @@ class Meta(ndk.builds.PackageModule):
         # only need to scan a single 32-bit architecture since these libraries
         # do not vary in availability across architectures.
         sysroot_base = (
-            self.get_dep("base-toolchain").get_install_path()
+            self.get_dep("toolchain").get_install_path()
             / "sysroot/usr/lib/arm-linux-androideabi"
         )
 

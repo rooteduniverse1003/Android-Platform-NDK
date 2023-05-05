@@ -19,7 +19,7 @@ from pathlib import Path, PurePosixPath
 from typing import Callable, Dict, List
 
 import ndk.test.builder
-from ndk.test.devicetest.case import BasicTestCase, LibcxxTestCase, TestCase
+from ndk.test.devicetest.case import BasicTestCase, TestCase
 from ndk.test.filters import TestFilter
 from ndk.test.spec import BuildConfiguration
 
@@ -77,61 +77,6 @@ def _enumerate_basic_tests(
     return tests
 
 
-def _enumerate_libcxx_tests(
-    out_dir_base: Path,
-    test_src_dir: Path,
-    device_base_dir: PurePosixPath,
-    build_cfg: BuildConfiguration,
-    build_system: str,
-    test_filter: TestFilter,
-) -> List[TestCase]:
-    tests: List[TestCase] = []
-    tests_dir = out_dir_base / str(build_cfg) / build_system
-    if not tests_dir.exists():
-        return tests
-
-    for root, _, files in os.walk(tests_dir):
-        for test_file in files:
-            if not test_file.endswith(".exe"):
-                continue
-            test_relpath = Path(root).relative_to(out_dir_base)
-            device_dir = device_base_dir / test_relpath
-            suite_name = str(PurePosixPath(Path(os.path.relpath(root, tests_dir))))
-
-            # Our file has a .exe extension, but the name should match the
-            # source file for the filters to work.
-            test_name = test_file[:-4]
-
-            # Tests in the top level don't need any mangling to match the
-            # filters.
-            if suite_name != "libc++":
-                if not suite_name.startswith("libc++/"):
-                    raise ValueError(suite_name)
-                # According to the test runner, these are all part of the
-                # "libc++" test, and the rest of the data is the subtest name.
-                # i.e.  libc++/foo/bar/baz.cpp.exe is actually
-                # libc++.foo/bar/baz.cpp.  Matching this expectation here
-                # allows us to use the same filter string for running the tests
-                # as for building the tests.
-                test_path = suite_name[len("libc++/") :]
-                test_name = "/".join([test_path, test_name])
-
-            filter_name = ".".join(["libc++", test_name])
-            if not test_filter.filter(filter_name):
-                continue
-            tests.append(
-                LibcxxTestCase(
-                    suite_name,
-                    test_file,
-                    test_src_dir,
-                    build_cfg,
-                    device_dir,
-                    device_base_dir,
-                )
-            )
-    return tests
-
-
 class ConfigFilter:
     def __init__(self, test_spec: ndk.test.spec.TestSpec) -> None:
         self.spec = test_spec
@@ -153,14 +98,11 @@ def enumerate_tests(
     #
     #  * build.sh
     #  * cmake
-    #  * libcxx
     #  * ndk-build
     #  * test.py
     #
     # We need to handle some of these differently. The test.py and build.sh
-    # type tests are build only, so we don't need to run them. The libc++ tests
-    # are built by a test runner we don't control, so its output doesn't quite
-    # match what we expect.
+    # type tests are build only, so we don't need to run them.
     test_subdir_class_map: Dict[
         str,
         Callable[
@@ -169,7 +111,6 @@ def enumerate_tests(
         ],
     ] = {
         "cmake": _enumerate_basic_tests,
-        "libcxx": _enumerate_libcxx_tests,
         "ndk-build": _enumerate_basic_tests,
     }
 

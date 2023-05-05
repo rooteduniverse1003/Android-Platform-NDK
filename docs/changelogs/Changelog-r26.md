@@ -15,13 +15,15 @@ directly, see the [build system maintainers guide].
 
 * KitKat (APIs 19 and 20) is no longer supported. The minimum OS supported by
   the NDK is Lollipop (API level 21). See [Issue 1751] for details.
+* libc++ has been updated. The NDK's libc++ now comes directly from our LLVM
+  toolchain, so every future LLVM update is also a libc++ update. Future
+  changelogs will not explicitly mention libc++ updates.
 
 [Issue 1751]: https://github.com/android/ndk/issues/1751
 
 ## Changes
 
 * Updated LLVM to clang-r487747b, based on LLVM 17 development.
-  * This does **not** include a libc++ update. That work is still ongoing.
   * Clang now treats `-Wimplicit-function-declaration` as an error rather than a
     warning in C11 and newer. Clang's default C standard is 17, so this is a
     change in default behavior compared to older versions of Clang, but is the
@@ -36,6 +38,7 @@ directly, see the [build system maintainers guide].
 
     See https://reviews.llvm.org/D122983 for more details.
   * [Issue 1298]: Fixed seccomp error with ASan on x86_64 devices.
+  * [Issue 1530]: Updated libc++ to match LLVM version.
   * [Issue 1677]: Fixed Clang crash in optimizer.
   * [Issue 1834]: Fixed Clang crash during SVE conversions.
   * [Issue 1860]: Fixed miscompilation affecting armv7.
@@ -67,6 +70,7 @@ directly, see the [build system maintainers guide].
 [Issue 837]: https://github.com/android/ndk/issues/837
 [Issue 1298]: https://github.com/android/ndk/issues/1298
 [Issue 1400]: https://github.com/android/ndk/issues/1400
+[Issue 1530]: https://github.com/android/ndk/issues/1530
 [Issue 1677]: https://github.com/android/ndk/issues/1677
 [Issue 1803]: https://github.com/android/ndk/issues/1803
 [Issue 1834]: https://github.com/android/ndk/issues/1834

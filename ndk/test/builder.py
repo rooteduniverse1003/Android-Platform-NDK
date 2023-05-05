@@ -41,7 +41,7 @@ from ndk.test.devices import DeviceConfig
 from ndk.test.filters import TestFilter
 from ndk.test.printers import Printer
 from ndk.test.report import Report
-from ndk.workqueue import LoadRestrictingWorkQueue, Worker
+from ndk.workqueue import AnyWorkQueue, Worker, WorkQueue
 
 
 def logger() -> logging.Logger:
@@ -121,7 +121,7 @@ def _run_test(
         result, additional_tests = test.run(obj_dir, dist_dir, test_filters)
         if test.is_negative_test():
             result = _fixup_negative_test(result)
-        config, bug = test.check_broken(result)
+        config, bug = test.check_broken()
         if config is not None:
             # We need to check change each pass/fail to either an
             # ExpectedFailure or an UnexpectedSuccess as necessary.
@@ -159,9 +159,6 @@ class TestBuilder:
         nodist_scanner = ndk.test.buildtest.scanner.BuildTestScanner(
             self.test_options.ndk_path, dist=False
         )
-        libcxx_scanner = ndk.test.buildtest.scanner.LibcxxTestScanner(
-            self.test_options.ndk_path
-        )
         # This is always None for the global config while building. See the comment in
         # the definition of BuildConfiguration.
         build_api_level = None
@@ -173,7 +170,6 @@ class TestBuilder:
                     )
                     scanner.add_build_configuration(config)
                     nodist_scanner.add_build_configuration(config)
-                    libcxx_scanner.add_build_configuration(config)
 
         if "build" in self.test_spec.suites:
             test_src = self.test_options.src_dir / "build"
@@ -181,9 +177,6 @@ class TestBuilder:
         if "device" in self.test_spec.suites:
             test_src = self.test_options.src_dir / "device"
             self.add_suite("device", test_src, scanner)
-        if "libc++" in self.test_spec.suites:
-            test_src = self.test_options.src_dir / "libc++"
-            self.add_suite("libc++", test_src, libcxx_scanner)
 
     def add_suite(self, name: str, path: Path, test_scanner: TestScanner) -> None:
         if name in self.tests:
@@ -230,7 +223,7 @@ class TestBuilder:
         return result
 
     def do_build(self, test_filters: TestFilter) -> Report[None]:
-        workqueue: LoadRestrictingWorkQueue[RunTestResult] = LoadRestrictingWorkQueue()
+        workqueue = WorkQueue()
         try:
             for suite, tests in self.tests.items():
                 # Each test configuration was expanded when each test was
@@ -241,25 +234,14 @@ class TestBuilder:
                 for test in tests:
                     if not test_filters.filter(test.name):
                         continue
-
-                    if test.name == "libc++":
-                        workqueue.add_load_restricted_task(
-                            _run_test,
-                            suite,
-                            test,
-                            self.obj_dir,
-                            self.dist_dir,
-                            test_filters,
-                        )
-                    else:
-                        workqueue.add_task(
-                            _run_test,
-                            suite,
-                            test,
-                            self.obj_dir,
-                            self.dist_dir,
-                            test_filters,
-                        )
+                    workqueue.add_task(
+                        _run_test,
+                        suite,
+                        test,
+                        self.obj_dir,
+                        self.dist_dir,
+                        test_filters,
+                    )
 
             report = Report[None]()
             self.wait_for_results(report, workqueue, test_filters)
@@ -272,11 +254,11 @@ class TestBuilder:
     def wait_for_results(
         self,
         report: Report[None],
-        workqueue: LoadRestrictingWorkQueue[RunTestResult],
+        workqueue: AnyWorkQueue,
         test_filters: TestFilter,
     ) -> None:
         console = ndk.ansi.get_console()
-        ui = ndk.test.ui.get_test_build_progress_ui(console, workqueue)
+        ui = ndk.ui.get_work_queue_ui(console, workqueue)
         with ndk.ansi.disable_terminal_echo(sys.stdin):
             with console.cursor_hide_context():
                 while not workqueue.finished():
