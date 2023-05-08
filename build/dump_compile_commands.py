@@ -23,6 +23,7 @@ from __future__ import print_function
 import argparse
 import json
 import os
+from pathlib import Path
 
 from shlex import join
 
@@ -78,10 +79,9 @@ def main() -> None:
 
     command = join(args.compile_command)
     if args.command_file:
-        with open(args.command_file) as command_file:
-            command = command_file.read().strip()
+        command = Path(args.command_file).read_text(encoding="utf-8").strip()
 
-    with open(args.output, "w") as out_file:
+    with open(args.output, "w", encoding="utf-8") as out_file:
         json.dump(
             {
                 "directory": args.directory,

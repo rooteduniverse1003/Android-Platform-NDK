@@ -23,6 +23,7 @@ from __future__ import print_function
 import argparse
 import json
 import os
+from pathlib import Path
 
 
 def parse_args() -> argparse.Namespace:
@@ -61,16 +62,16 @@ def main() -> None:
     command_files = []
     for command_file in args.command_files:
         if command_file.startswith("@"):
-            with open(command_file[1:]) as list_file:
-                command_files.extend(list_file.read().split())
+            list_file = Path(command_file[1:])
+            command_files.extend(list_file.read_text(encoding="utf-8").split())
         else:
             command_files.append(command_file)
 
     for command_file_path in command_files:
-        with open(command_file_path) as command_file:
+        with open(command_file_path, encoding="utf-8") as command_file:
             all_commands.append(json.load(command_file))
 
-    with open(args.output, "w") as out_file:
+    with open(args.output, "w", encoding="utf-8") as out_file:
         json.dump(
             all_commands, out_file, sort_keys=True, indent=4, separators=(",", ": ")
         )

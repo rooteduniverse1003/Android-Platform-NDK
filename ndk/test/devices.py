@@ -425,7 +425,7 @@ def exclude_device(device: Device) -> bool:
     exclusion_list_env = os.getenv("NDK_DEVICE_EXCLUSION_LIST")
     if exclusion_list_env is None:
         return False
-    exclusion_list = Path(exclusion_list_env).read_text().splitlines()
+    exclusion_list = Path(exclusion_list_env).read_text(encoding="utf-8").splitlines()
     return device.serial in exclusion_list
 
 

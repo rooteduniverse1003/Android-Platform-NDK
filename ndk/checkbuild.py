@@ -58,7 +58,6 @@ import ndk.builds
 import ndk.cmake
 import ndk.config
 import ndk.deps
-import ndk.file
 import ndk.notify
 import ndk.paths
 import ndk.test.builder
@@ -343,7 +342,7 @@ def build_ndk_tests(out_dir: Path, dist_dir: Path, args: argparse.Namespace) -> 
         # Write out the result to logs/build_error.log so we can find the
         # failure easily on the build server.
         log_path = dist_dir / "logs" / "build_error.log"
-        with open(log_path, "a") as error_log:
+        with log_path.open("a", encoding="utf-8") as error_log:
             error_log_printer = ndk.test.printers.FilePrinter(error_log)
             error_log_printer.print_summary(report)
 
@@ -892,7 +891,7 @@ def install_exe(out_dir: Path, install_dir: Path, name: str, host: Host) -> None
 
 
 def make_linker_script(path: Path, libs: List[str]) -> None:
-    ndk.file.write_file(path, "INPUT({})\n".format(" ".join(libs)))
+    path.write_text(f"INPUT({' '.join(libs)})\n")
 
 
 @register
@@ -1103,17 +1102,15 @@ class Sysroot(ndk.builds.Module):
             for remove_path in remove_paths:
                 os.remove(install_path / remove_path)
 
-        ndk_version_h_path = install_path / "usr/include/android/ndk-version.h"
-        with open(ndk_version_h_path, "w") as ndk_version_h:
-            major = ndk.config.major
-            minor = ndk.config.hotfix
-            beta = ndk.config.beta
-            canary = "1" if ndk.config.canary else "0"
-            assert self.context is not None
+        major = ndk.config.major
+        minor = ndk.config.hotfix
+        beta = ndk.config.beta
+        canary = "1" if ndk.config.canary else "0"
+        assert self.context is not None
 
-            ndk_version_h.write(
-                textwrap.dedent(
-                    f"""\
+        (install_path / "usr/include/android/ndk-version.h").write_text(
+            textwrap.dedent(
+                f"""\
                 #pragma once
 
                 /**
@@ -1154,8 +1151,8 @@ class Sysroot(ndk.builds.Module):
                  */
                 #define __NDK_CANARY__ {canary}
                 """
-                )
             )
+        )
 
         # Install the CRT objects that we just built.
         assert self.crt_builder is not None
@@ -1170,23 +1167,20 @@ class Sysroot(ndk.builds.Module):
 def write_clang_shell_script(
     wrapper_path: Path, clang_name: str, flags: List[str]
 ) -> None:
-    with open(wrapper_path, "w") as wrapper:
-        wrapper.write(
-            textwrap.dedent(
-                """\
+    wrapper_path.write_text(
+        textwrap.dedent(
+            f"""\
             #!/usr/bin/env bash
             bin_dir=`dirname "$0"`
             if [ "$1" != "-cc1" ]; then
-                "$bin_dir/{clang}" {flags} "$@"
+                "$bin_dir/{clang_name}" {' '.join(flags)} "$@"
             else
                 # Target is already an argument.
-                "$bin_dir/{clang}" "$@"
+                "$bin_dir/{clang_name}" "$@"
             fi
-        """.format(
-                    clang=clang_name, flags=" ".join(flags)
-                )
-            )
+            """
         )
+    )
 
     mode = os.stat(wrapper_path).st_mode
     os.chmod(wrapper_path, mode | stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH)
@@ -1195,22 +1189,21 @@ def write_clang_shell_script(
 def write_clang_batch_script(
     wrapper_path: Path, clang_name: str, flags: List[str]
 ) -> None:
-    with open(wrapper_path, "w") as wrapper:
-        wrapper.write(
-            textwrap.dedent(
-                """\
+    wrapper_path.write_text(
+        textwrap.dedent(
+            f"""\
             @echo off
             setlocal
             call :find_bin
             if "%1" == "-cc1" goto :L
 
-            set "_BIN_DIR=" && "%_BIN_DIR%{clang}" {flags} %*
+            set "_BIN_DIR=" && "%_BIN_DIR%{clang_name}" {' '.join(flags)} %*
             if ERRORLEVEL 1 exit /b 1
             goto :done
 
             :L
             rem Target is already an argument.
-            set "_BIN_DIR=" && "%_BIN_DIR%{clang}" %*
+            set "_BIN_DIR=" && "%_BIN_DIR%{clang_name}" %*
             if ERRORLEVEL 1 exit /b 1
             goto :done
 
@@ -1221,11 +1214,9 @@ def write_clang_batch_script(
             exit /b
 
             :done
-        """.format(
-                    clang=clang_name, flags=" ".join(flags)
-                )
-            )
+            """
         )
+    )
 
 
 def write_clang_wrapper(
@@ -1452,16 +1443,8 @@ class Toolchain(ndk.builds.Module):
                 triple = ndk.abis.abi_to_triple(abi)
                 dst_dir = install_dir / "sysroot/usr/lib" / triple / str(api)
 
-                static_script = ["-lc++_static", "-lc++abi"]
-                shared_script = ["-lc++_shared"]
-
-                libcxx_so_path = dst_dir / "libc++.so"
-                with open(libcxx_so_path, "w") as script:
-                    script.write("INPUT({})".format(" ".join(shared_script)))
-
-                libcxx_a_path = dst_dir / "libc++.a"
-                with open(libcxx_a_path, "w") as script:
-                    script.write("INPUT({})".format(" ".join(static_script)))
+                (dst_dir / "libc++.so").write_text("INPUT(-lc++_shared)")
+                (dst_dir / "libc++.a").write_text("INPUT(-lc++_static -lc++abi)")
 
 
 @register
@@ -1666,17 +1649,12 @@ class NdkBuild(ndk.builds.PackageModule):
     ) -> None:
         install_path = self.get_install_path()
         json_path = self.get_dep("meta").get_install_path() / (name + ".json")
-        meta = json.loads(ndk.file.read_file(json_path))
+        with json_path.open(encoding="utf-8") as json_file:
+            meta = json.load(json_file)
         meta_vars = func(meta)
 
-        ndk.file.write_file(
-            install_path / "core/{}.mk".format(name),
-            var_dict_to_make(meta_vars),
-        )
-        ndk.file.write_file(
-            install_path / "cmake/{}.cmake".format(name),
-            var_dict_to_cmake(meta_vars),
-        )
+        (install_path / f"core/{name}.mk").write_text(var_dict_to_make(meta_vars))
+        (install_path / f"cmake/{name}.cmake").write_text(var_dict_to_cmake(meta_vars))
 
 
 @register
@@ -1948,7 +1926,7 @@ class Meta(ndk.builds.PackageModule):
         system_libs = collections.OrderedDict(sorted(system_libs.items()))
 
         json_path = self.get_install_path() / "system_libs.json"
-        with open(json_path, "w") as json_file:
+        with json_path.open("w", encoding="utf-8") as json_file:
             json.dump(system_libs, json_file, indent=2, separators=(",", ": "))
 
 
@@ -1971,14 +1949,18 @@ class SourceProperties(ndk.builds.Module):
 
     def install(self) -> None:
         path = self.get_install_path()
-        with open(path, "w") as source_properties:
-            assert self.context is not None
-            version = get_version_string(self.context.build_number)
-            if ndk.config.beta > 0:
-                version += "-beta{}".format(ndk.config.beta)
-            source_properties.writelines(
-                ["Pkg.Desc = Android NDK\n", "Pkg.Revision = {}\n".format(version)]
+        assert self.context is not None
+        version = get_version_string(self.context.build_number)
+        if ndk.config.beta > 0:
+            version += "-beta{}".format(ndk.config.beta)
+        path.write_text(
+            textwrap.dedent(
+                f"""\
+                Pkg.Desc = Android NDK
+                Pkg.Revision = {version}
+                """
             )
+        )
 
 
 def create_notice_file(path: Path, for_group: ndk.builds.NoticeGroup) -> None:
@@ -2270,17 +2252,16 @@ def parse_args() -> Tuple[argparse.Namespace, List[str]]:
 
 
 def log_build_failure(log_path: Path, dist_dir: Path) -> None:
-    with open(log_path, "r") as log_file:
-        contents = log_file.read()
-        print(contents)
+    contents = log_path.read_text()
+    print(contents)
 
-        # The build server has a build_error.log file that is supposed to be
-        # the short log of the failure that stopped the build. Append our
-        # failing log to that.
-        build_error_log = dist_dir / "logs/build_error.log"
-        with open(build_error_log, "a") as error_log:
-            error_log.write("\n")
-            error_log.write(contents)
+    # The build server has a build_error.log file that is supposed to be
+    # the short log of the failure that stopped the build. Append our
+    # failing log to that.
+    build_error_log = dist_dir / "logs/build_error.log"
+    with build_error_log.open("a", encoding="utf-8") as error_log:
+        error_log.write("\n")
+        error_log.write(contents)
 
 
 def launch_buildable(

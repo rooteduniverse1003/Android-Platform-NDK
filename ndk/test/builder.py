@@ -327,7 +327,7 @@ class TestBuilder:
                 testlist.append(testobj)
             tests_json[str(config)] = testlist
         json_config_path = self.test_options.out_dir / "dist" / "tests.json"
-        with open(json_config_path, "w") as outfile:
+        with json_config_path.open("w", encoding="utf-8") as outfile:
             json.dump(tests_json, outfile, indent=2)
         shutil.copy2(json_config_path, self.test_options.package_path.parent)
         shutil.copy2(

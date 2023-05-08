@@ -69,7 +69,7 @@ def main() -> None:
     # android- may be followed by either the numeric API level or the named
     # platform. Note that while we can parse any name, ndk-build only support a
     # small handful.
-    with open(args.properties_file) as properties_file:
+    with open(args.properties_file, encoding="utf-8") as properties_file:
         print(get_platform(properties_file))
 
 

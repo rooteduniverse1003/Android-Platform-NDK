@@ -80,7 +80,6 @@ disable = [
     "locally-disabled",
     "missing-docstring",
     "too-many-lines",
-    "unspecified-encoding",
 ]
 ignore = "ndk-gdb.py"
 good-names = [

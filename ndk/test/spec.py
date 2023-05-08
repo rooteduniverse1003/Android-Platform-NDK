@@ -83,7 +83,7 @@ class TestSpec:
 
     @classmethod
     def load(cls, path: Path, abis: Optional[Iterable[Abi]] = None) -> TestSpec:
-        with open(path) as config_file:
+        with path.open(encoding="utf-8") as config_file:
             test_config: dict[str, Any] = json.load(config_file)
         if abis is None:
             abis = test_config.get("abis", ndk.abis.ALL_ABIS)
