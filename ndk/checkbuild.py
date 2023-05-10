@@ -1726,18 +1726,18 @@ class Changelog(ndk.builds.FileModule):
 
 
 @register
-class NdkGdb(ndk.builds.MultiFileModule):
+class NdkGdb(ndk.builds.PythonApplication):
     name = "ndk-gdb"
-    install_path = Path("prebuilt/{host}/bin")
+    install_path = Path("prebuilt/{host}/bin/ndkgdb.pyz")
     notice = NDK_DIR / "NOTICE"
-
-    @property
-    def files(self) -> Iterator[Path]:
-        yield NDK_DIR / "ndk-gdb"
-        yield NDK_DIR / "ndk-gdb.py"
-
-        if self.host.is_windows:
-            yield NDK_DIR / "ndk-gdb.cmd"
+    package = NDK_DIR / "ndkgdb.py"
+    main = "ndkgdb:main"
+    pip_dependencies = [
+        ANDROID_DIR / "development/python-packages/adb",
+    ]
+    copy_to_python_path = [
+        ANDROID_DIR / "development/python-packages/gdbrunner",
+    ]
 
 
 @register
