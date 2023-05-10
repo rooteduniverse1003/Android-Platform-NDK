@@ -405,28 +405,6 @@ class FileModule(Module):
         shutil.copy2(self.src, install_path)
 
 
-class MultiFileModule(Module):
-    """A module that installs multiple files to the NDK.
-
-    This is similar to FileModule, but allows multiple files to be installed
-    with a single module.
-    """
-
-    @property
-    def files(self) -> Iterator[Path]:
-        """List of absolute paths to files to be installed."""
-        yield from []
-
-    def build(self) -> None:
-        pass
-
-    def install(self) -> None:
-        install_dir = self.get_install_path()
-        install_dir.mkdir(parents=True, exist_ok=True)
-        for file_path in self.files:
-            shutil.copy2(file_path, install_dir)
-
-
 class ScriptShortcutModule(Module):
     """A module that installs a shortcut to another script in the NDK.
 
