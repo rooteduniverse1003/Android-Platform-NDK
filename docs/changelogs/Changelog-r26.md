@@ -42,7 +42,9 @@ directly, see the [build system maintainers guide].
   * [Issue 1677]: Fixed Clang crash in optimizer.
   * [Issue 1834]: Fixed Clang crash during SVE conversions.
   * [Issue 1860]: Fixed miscompilation affecting armv7.
+  * [Issue 1861]: Fixed front end crash in Clang.
   * [Issue 1862]: Fixed Clang crash for aarch64 with `-Os`.
+  * [Issue 1880]: Fixed crash in clang-format.
 * Version scripts that name public symbols that are not present in the library
   will now emit an error by default for ndk-build and the CMake toolchain file.
   Build failures caused by this error are likely a bug in your library or a
@@ -76,7 +78,9 @@ directly, see the [build system maintainers guide].
 [Issue 1834]: https://github.com/android/ndk/issues/1834
 [Issue 1852]: https://github.com/android/ndk/issues/1852
 [Issue 1860]: https://github.com/android/ndk/issues/1860
+[Issue 1861]: https://github.com/android/ndk/issues/1861
 [Issue 1862]: https://github.com/android/ndk/issues/1862
+[Issue 1880]: https://github.com/android/ndk/issues/1880
 
 ## Known Issues
 
