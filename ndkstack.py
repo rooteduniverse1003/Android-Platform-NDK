@@ -315,7 +315,7 @@ class FrameInfo:
         return None
 
 
-def main(argv):
+def main(argv=None):
     """ "Program entry point."""
     parser = argparse.ArgumentParser(
         description="Symbolizes Android crashes.",
@@ -425,4 +425,4 @@ def main(argv):
 
 
 if __name__ == "__main__":
-    main(sys.argv[1:])
+    main()

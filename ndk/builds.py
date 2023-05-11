@@ -22,7 +22,9 @@ from __future__ import annotations
 import shutil
 import stat
 import subprocess
+import sys
 import textwrap
+import zipapp
 from enum import Enum, auto, unique
 from pathlib import Path, PureWindowsPath
 from typing import Any, Dict, Iterator, List, Optional, Set
@@ -403,28 +405,6 @@ class FileModule(Module):
         shutil.copy2(self.src, install_path)
 
 
-class MultiFileModule(Module):
-    """A module that installs multiple files to the NDK.
-
-    This is similar to FileModule, but allows multiple files to be installed
-    with a single module.
-    """
-
-    @property
-    def files(self) -> Iterator[Path]:
-        """List of absolute paths to files to be installed."""
-        yield from []
-
-    def build(self) -> None:
-        pass
-
-    def install(self) -> None:
-        install_dir = self.get_install_path()
-        install_dir.mkdir(parents=True, exist_ok=True)
-        for file_path in self.files:
-            shutil.copy2(file_path, install_dir)
-
-
 class ScriptShortcutModule(Module):
     """A module that installs a shortcut to another script in the NDK.
 
@@ -524,6 +504,126 @@ class PythonPackage(Module):
 
     def install(self) -> None:
         pass
+
+
+class PythonApplication(Module):
+    """A PEP 441 Python Zip Application.
+
+    https://peps.python.org/pep-0441/
+
+    A Python Zip Application is a zipfile of a Python package with an entry point that
+    is runnable by the Python interpreter. PythonApplication will create a the pyz
+    application with its bundled dependencies and a launcher script that will invoke it
+    using the NDK's bundled Python interpreter.
+    """
+
+    package: Path
+    pip_dependencies: list[Path] = []
+    copy_to_python_path: list[Path] = []
+    main: str
+
+    def build(self) -> None:
+        if self._staging.exists():
+            shutil.rmtree(self._staging)
+        self._staging.mkdir(parents=True)
+
+        if self.package.is_file():
+            shutil.copy(self.package, self._staging / self.package.name)
+            (self._staging / "__init__.py").touch()
+        else:
+            shutil.copytree(self.package, self._staging / self.package.name)
+
+        for path in self.copy_to_python_path:
+            if path.is_file():
+                shutil.copy(path, self._staging / path.name)
+            else:
+                shutil.copytree(path, self._staging / path.name)
+
+        if self.pip_dependencies:
+            # Apparently pip doesn't want us to use it as a library.
+            # https://pip.pypa.io/en/latest/user_guide/#using-pip-from-your-program
+            subprocess.run(
+                [
+                    sys.executable,
+                    "-m",
+                    "pip",
+                    "install",
+                    "--target",
+                    self._staging,
+                    *self.pip_dependencies,
+                ],
+                check=True,
+            )
+
+        zipapp.create_archive(
+            source=self._staging,
+            target=self._pyz_build_location,
+            main=self.main,
+            filter=self.zipapp_file_filter,
+        )
+
+    @staticmethod
+    def zipapp_file_filter(path: Path) -> bool:
+        if ".git" in path.parts:
+            return False
+        if "__pycache__" in path.parts:
+            return False
+        if ".mypy_cache" in path.parts:
+            return False
+        if ".pytest_cache" in path.parts:
+            return False
+        if path.suffix in {".pyc", ".pyo"}:
+            return False
+        return True
+
+    def install(self) -> None:
+        install_path = self.get_install_path()
+        install_path.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy(self._pyz_build_location, install_path)
+        self.create_launcher()
+
+    def create_launcher(self) -> None:
+        if self.host is Host.Windows64:
+            self.create_cmd_launcher()
+        else:
+            self.create_bash_launcher()
+
+    def create_cmd_launcher(self) -> None:
+        self.get_install_path().with_name(f"{self.name}.cmd").write_text(
+            textwrap.dedent(
+                f"""\
+                @echo off
+                setlocal
+                set ANDROID_NDK_PYTHON=%~dp0..\\..\\..\\toolchains\\llvm\\prebuilt\\windows-x86_64\\python3\\python.exe
+                set SHELL=cmd
+                "%ANDROID_NDK_PYTHON%" -u "%~dp0{self.get_install_path().name}" %*
+                """
+            )
+        )
+
+    def create_bash_launcher(self) -> None:
+        launcher = self.get_install_path().with_name(self.name)
+        launcher.write_text(
+            textwrap.dedent(
+                f"""\
+                #!/usr/bin/env bash
+                THIS_DIR=$(cd "$(dirname "$0")" && pwd)
+                ANDROID_NDK_ROOT=$(cd "$THIS_DIR/../../.." && pwd)
+                . "$ANDROID_NDK_ROOT/build/tools/ndk_bin_common.sh"
+                "$ANDROID_NDK_PYTHON" "$THIS_DIR/{self.get_install_path().name}" "$@"
+                """
+            )
+        )
+        mode = launcher.stat().st_mode
+        launcher.chmod(mode | stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH)
+
+    @property
+    def _staging(self) -> Path:
+        return self.intermediate_out_dir / self.name
+
+    @property
+    def _pyz_build_location(self) -> Path:
+        return self.intermediate_out_dir / self.get_install_path().name
 
 
 class LintModule(Module):

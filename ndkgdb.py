@@ -29,10 +29,6 @@ import sys
 import time
 import xml.etree.cElementTree as ElementTree
 
-# Shared functions across gdbclient.py and ndk-gdb.py.
-# ndk-gdb is installed to $NDK/prebuilt/<platform>/bin
-NDK_PATH = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../.."))
-sys.path.append(os.path.join(NDK_PATH, "python-packages"))
 import adb
 import gdbrunner
 
