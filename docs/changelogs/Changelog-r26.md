@@ -23,7 +23,7 @@ directly, see the [build system maintainers guide].
 
 ## Changes
 
-* Updated LLVM to clang-r487747b, based on LLVM 17 development.
+* Updated LLVM to clang-r487747c, based on LLVM 17 development.
   * Clang now treats `-Wimplicit-function-declaration` as an error rather than a
     warning in C11 and newer. Clang's default C standard is 17, so this is a
     change in default behavior compared to older versions of Clang, but is the
