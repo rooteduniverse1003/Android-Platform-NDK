@@ -297,8 +297,14 @@ ndk-tests.tar.bz2 artifact in the same directory as the NDK zip. Extract the
 tests somewhere, and then run:
 
 ```bash
-$ ./run_tests.py path/to/extracted/tests
+$ ./run_tests.py --clean-device path/to/extracted/tests
 ```
+
+`--clean-device` is necessary to ensure that the new tests do get pushed to the
+device even if the timestamps on the tests are older than what's currently
+there. If you need to re-run those tests (say, to debug a failing test), you
+will want to omit `--clean-device` for each subsequent run of the same test
+package or each test run will take a very long time.
 
 The ndk-tests.tar.bz2 artifact will exist for each of the "linux", "darwin_mac",
 and "win64_tests" targets. All of them must be downloaded and run. Running only
