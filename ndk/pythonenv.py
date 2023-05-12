@@ -43,6 +43,11 @@ def check_python_is_prebuilt() -> None:
         # actually is the one from prebuilts. We still want to verify this when we're
         # running on a machine without Poetry because that's probably a build server.
         return
+    if Host.current() is Host.Darwin and shutil.which("poetry") is not None:
+        # On macOS the prebuilt python can't be used for the poetry environment because
+        # our python doesn't have support for the ssl module, and for whatever reason
+        # that's consistently required on macOS but not on other platforms.
+        return
     prebuilt = python_path()
     if interp != prebuilt:
         sys.exit(
