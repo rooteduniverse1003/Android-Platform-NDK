@@ -36,6 +36,7 @@ import subprocess
 import sys
 import textwrap
 import traceback
+from collections.abc import Sequence
 from pathlib import Path
 from typing import (
     Any,
@@ -766,6 +767,14 @@ class NdkWhich(ndk.builds.FileModule):
     src = NDK_DIR / "ndk-which"
 
 
+def iter_python_lint_paths() -> Iterator[Path]:
+    ndk_package_path = Path("ndk")
+    yield ndk_package_path
+    for app in iter_python_app_modules():
+        if ndk_package_path not in app.package.parents:
+            yield app.package
+
+
 @register
 class Black(ndk.builds.LintModule):
     name = "black"
@@ -798,13 +807,13 @@ class Pylint(ndk.builds.LintModule):
         if not shutil.which("pylint"):
             logging.warning("Skipping linting. pylint was not found on your path.")
             return
-        pylint = [
+        pylint: Sequence[str | Path] = [
             "pylint",
             "--rcfile=" + str(ANDROID_DIR / "ndk/pyproject.toml"),
             "--score=n",
             "build",
-            "ndk",
             "tests",
+            *iter_python_lint_paths(),
         ]
         subprocess.check_call(pylint)
 
@@ -818,7 +827,12 @@ class Mypy(ndk.builds.LintModule):
             logging.warning("Skipping type-checking. mypy was not found on your path.")
             return
         subprocess.check_call(
-            ["mypy", "--config-file", str(ANDROID_DIR / "ndk/pyproject.toml"), "ndk"]
+            [
+                "mypy",
+                "--config-file",
+                str(ANDROID_DIR / "ndk/pyproject.toml"),
+                *iter_python_lint_paths(),
+            ]
         )
 
 
@@ -2105,6 +2119,13 @@ def get_modules_to_build(
 
 ALL_MODULES = [t() for t in ALL_MODULE_TYPES]
 NAMES_TO_MODULES = {m.name: m for m in ALL_MODULES}
+
+
+def iter_python_app_modules() -> Iterator[ndk.builds.PythonApplication]:
+    """Returns an Iterator over all python applications."""
+    for module in ALL_MODULES:
+        if isinstance(module, ndk.builds.PythonApplication):
+            yield module
 
 
 def get_all_module_names() -> List[str]:
