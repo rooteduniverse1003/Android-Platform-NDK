@@ -81,7 +81,6 @@ disable = [
     "missing-docstring",
     "too-many-lines",
 ]
-ignore = "ndk-gdb.py"
 good-names = [
     "i",
     "j",
