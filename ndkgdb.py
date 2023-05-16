@@ -32,6 +32,7 @@ import xml.etree.cElementTree as ElementTree
 import adb
 import gdbrunner
 
+NDK_PATH = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../.."))
 
 def log(msg):
     logger = logging.getLogger(__name__)
