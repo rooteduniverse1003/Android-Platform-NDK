@@ -27,19 +27,23 @@ import signal
 import subprocess
 import sys
 import time
-import xml.etree.ElementTree as ElementTree
+from collections.abc import Iterator
+from typing import NoReturn
+from xml.etree import ElementTree
+from xml.etree.ElementTree import Element
 
 import adb
 import gdbrunner
 
 NDK_PATH = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../.."))
 
-def log(msg):
+
+def log(msg: str) -> None:
     logger = logging.getLogger(__name__)
     logger.info(msg)
 
 
-def enable_verbose_logging():
+def enable_verbose_logging() -> None:
     logger = logging.getLogger(__name__)
     handler = logging.StreamHandler(sys.stdout)
     formatter = logging.Formatter()
@@ -51,12 +55,12 @@ def enable_verbose_logging():
     logger.setLevel(logging.INFO)
 
 
-def error(msg):
+def error(msg: str) -> NoReturn:
     sys.exit("ERROR: {}".format(msg))
 
 
 class ArgumentParser(gdbrunner.ArgumentParser):
-    def __init__(self):
+    def __init__(self) -> None:
         super(ArgumentParser, self).__init__()
         self.add_argument(
             "--verbose", "-v", action="store_true", help="enable verbose mode"
@@ -149,7 +153,7 @@ class ArgumentParser(gdbrunner.ArgumentParser):
         )
 
 
-def extract_package_name(xmlroot):
+def extract_package_name(xmlroot: Element) -> str:
     if "package" in xmlroot.attrib:
         return xmlroot.attrib["package"]
     error("Failed to find package name in AndroidManifest.xml")
@@ -158,7 +162,7 @@ def extract_package_name(xmlroot):
 ANDROID_XMLNS = "{http://schemas.android.com/apk/res/android}"
 
 
-def extract_launchable(xmlroot):
+def extract_launchable(xmlroot: Element) -> list[str]:
     """
     A given application can have several activities, and each activity
     can have several intent filters. We want to only list, in the final
@@ -196,12 +200,12 @@ def extract_launchable(xmlroot):
     return launchable_activities
 
 
-def ndk_bin_path():
+def ndk_bin_path() -> str:
     return os.path.dirname(os.path.realpath(__file__))
 
 
-def handle_args():
-    def find_program(program, paths):
+def handle_args() -> argparse.Namespace:
+    def find_program(program: str, paths: list[str]) -> str | None:
         """Find a binary in paths"""
         exts = [""]
         if sys.platform.startswith("win"):
@@ -217,7 +221,7 @@ def handle_args():
     # FIXME: This is broken for PATH that contains quoted colons.
     paths = os.environ["PATH"].replace('"', "").split(os.pathsep)
 
-    args = ArgumentParser().parse_args()
+    args: argparse.Namespace = ArgumentParser().parse_args()
 
     if args.tui and sys.platform.startswith("win"):
         error("TUI is unsupported on Windows.")
@@ -237,9 +241,10 @@ def handle_args():
     return args
 
 
-def find_project(args):
+def find_project(args: argparse.Namespace) -> str:
     manifest_name = "AndroidManifest.xml"
-    if args.project is not None:
+    project: str | None = args.project
+    if project is not None:
         log("Using project directory: {}".format(args.project))
         args.project = os.path.realpath(os.path.expanduser(args.project))
         if not os.path.exists(os.path.join(args.project, manifest_name)):
@@ -260,17 +265,19 @@ def find_project(args):
             current_dir = parent_dir
         args.project = current_dir
         log("Using project directory: {} ".format(args.project))
-    args.manifest_path = os.path.join(args.project, manifest_name)
-    return args.project
+    assert project is not None
+    args.manifest_path = os.path.join(project, manifest_name)
+    args.project = project
+    return project
 
 
-def canonicalize_activity(package_name, activity_name):
+def canonicalize_activity(package_name: str, activity_name: str) -> str:
     if activity_name.startswith("."):
         return "{}{}".format(package_name, activity_name)
     return activity_name
 
 
-def parse_manifest(args):
+def parse_manifest(args: argparse.Namespace) -> None:
     manifest = ElementTree.parse(args.manifest_path)
     manifest_root = manifest.getroot()
     package_name = extract_package_name(manifest_root)
@@ -287,12 +294,13 @@ def parse_manifest(args):
     args.package_name = package_name
 
 
-def select_target(args):
+def select_target(args: argparse.Namespace) -> str:
     assert args.launch != False
 
     if len(args.activities) == 0:
         error("No launchable activities found.")
 
+    target: str
     if args.launch is None:
         target = args.activities[0]
 
@@ -312,7 +320,7 @@ def select_target(args):
 
 
 @contextlib.contextmanager
-def cd(path):
+def cd(path: str) -> Iterator[None]:
     curdir = os.getcwd()
     os.chdir(path)
     os.environ["PWD"] = path
@@ -323,7 +331,7 @@ def cd(path):
         os.chdir(curdir)
 
 
-def dump_var(args, variable, abi=None):
+def dump_var(args: argparse.Namespace, variable: str, abi: str | None = None) -> str:
     make_args = [
         args.make_cmd,
         "--no-print-dir",
@@ -345,11 +353,14 @@ def dump_var(args, variable, abi=None):
     return make_output.splitlines()[-1].decode()
 
 
-def get_api_level(device):
+def get_api_level(device: adb.AndroidDevice) -> int:
     # Check the device API level
     try:
-        api_level = int(device.get_prop("ro.build.version.sdk"))
-    except (TypeError, ValueError):
+        api_str = device.get_prop("ro.build.version.sdk")
+        if api_str is None:
+            raise KeyError
+        api_level = int()
+    except (ValueError, KeyError):
         error(
             "Failed to find target device's supported API level.\n"
             "ndk-gdb only supports devices running Android 2.2 or higher."
@@ -363,7 +374,7 @@ def get_api_level(device):
     return api_level
 
 
-def fetch_abi(args):
+def fetch_abi(args: argparse.Namespace) -> str:
     """
     Figure out the intersection of which ABIs the application is built for and
     which ones the device supports, then pick the one preferred by the device,
@@ -382,7 +393,7 @@ def fetch_abi(args):
     if args.device.get_prop("ro.product.cpu.abilist") is None:
         abi_props = old_abi_props
 
-    device_abis = []
+    device_abis: list[str] = []
     for key in abi_props:
         value = args.device.get_prop(key)
         if value is not None:
@@ -406,14 +417,15 @@ def fetch_abi(args):
     error(msg)
 
 
-def get_run_as_cmd(user, cmd):
+def get_run_as_cmd(user: str, cmd: list[str]) -> list[str]:
     return ["run-as", user] + cmd
 
 
-def get_app_data_dir(args, package_name):
+def get_app_data_dir(args: argparse.Namespace, package_name: str) -> str:
     cmd = ["/system/bin/sh", "-c", "pwd", "2>/dev/null"]
     cmd = get_run_as_cmd(package_name, cmd)
-    (rc, stdout, _) = args.device.shell_nocheck(cmd)
+    device: adb.AndroidDevice = args.device
+    (rc, stdout, _) = device.shell_nocheck(cmd)
     if rc != 0:
         error(
             "Could not find application's data directory. Are you sure that "
@@ -436,7 +448,7 @@ def get_app_data_dir(args, package_name):
     return data_dir
 
 
-def abi_to_arch(abi):
+def abi_to_arch(abi: str) -> str:
     if abi.startswith("armeabi"):
         return "arm"
     elif abi == "arm64-v8a":
@@ -445,7 +457,7 @@ def abi_to_arch(abi):
         return abi
 
 
-def abi_to_llvm_arch(abi):
+def abi_to_llvm_arch(abi: str) -> str:
     if abi.startswith("armeabi"):
         return "arm"
     elif abi == "arm64-v8a":
@@ -456,7 +468,7 @@ def abi_to_llvm_arch(abi):
         return "x86_64"
 
 
-def get_llvm_host_name():
+def get_llvm_host_name() -> str:
     platform = sys.platform
     if platform.startswith("win"):
         return "windows-x86_64"
@@ -466,14 +478,14 @@ def get_llvm_host_name():
         return "linux-x86_64"
 
 
-def get_python_executable(toolchain_path):
+def get_python_executable(toolchain_path: str) -> str:
     if sys.platform.startswith("win"):
         return os.path.join(toolchain_path, "python3", "python.exe")
     else:
         return os.path.join(toolchain_path, "python3", "bin", "python3")
 
 
-def get_lldb_path(toolchain_path):
+def get_lldb_path(toolchain_path: str) -> str | None:
     for lldb_name in ["lldb.sh", "lldb.cmd", "lldb", "lldb.exe"]:
         debugger_path = os.path.join(toolchain_path, "bin", lldb_name)
         if os.path.isfile(debugger_path):
@@ -481,7 +493,7 @@ def get_lldb_path(toolchain_path):
     return None
 
 
-def get_llvm_package_version(llvm_toolchain_dir):
+def get_llvm_package_version(llvm_toolchain_dir: str) -> str:
     version_file_path = os.path.join(llvm_toolchain_dir, "AndroidVersion.txt")
     try:
         version_file = open(version_file_path, "r")
@@ -495,8 +507,13 @@ def get_llvm_package_version(llvm_toolchain_dir):
 
 
 def get_debugger_server_path(
-    args, package_name, app_data_dir, arch, server_name, local_path
-):
+    args: argparse.Namespace,
+    package_name: str,
+    app_data_dir: str,
+    arch: str,
+    server_name: str,
+    local_path: str,
+) -> str:
     app_debugger_server_path = "{}/lib/{}".format(app_data_dir, server_name)
     cmd = ["ls", app_debugger_server_path, "2>/dev/null"]
     cmd = get_run_as_cmd(package_name, cmd)
@@ -544,7 +561,7 @@ def get_debugger_server_path(
     return remote_path
 
 
-def pull_binaries(device, out_dir, app_64bit):
+def pull_binaries(device: adb.AndroidDevice, out_dir: str, app_64bit: bool) -> None:
     required_files = []
     libraries = ["libc.so", "libm.so", "libdl.so"]
 
@@ -579,8 +596,13 @@ def pull_binaries(device, out_dir, app_64bit):
 
 
 def generate_lldb_script(
-    args, sysroot, binary_path, app_64bit, jdb_pid, llvm_toolchain_dir
-):
+    args: argparse.Namespace,
+    sysroot: str,
+    binary_path: str,
+    app_64bit: bool,
+    jdb_pid: int,
+    llvm_toolchain_dir: str,
+) -> str:
     lldb_commands = []
     solib_search_paths = [
         "{}/system/bin".format(sysroot),
@@ -642,8 +664,13 @@ exit()
 
 
 def generate_gdb_script(
-    args, sysroot, binary_path, app_64bit, jdb_pid, connect_timeout=5
-):
+    args: argparse.Namespace,
+    sysroot: str,
+    binary_path: str,
+    app_64bit: bool,
+    jdb_pid: int,
+    connect_timeout: int = 5,
+) -> str:
     if sys.platform.startswith("win"):
         # GDB expects paths to use forward slashes.
         sysroot = sysroot.replace("\\", "/")
@@ -652,12 +679,12 @@ def generate_gdb_script(
     gdb_commands = "set osabi GNU/Linux\n"
     gdb_commands += "file '{}'\n".format(binary_path)
 
-    solib_search_path = [sysroot, "{}/system/bin".format(sysroot)]
+    solib_search_paths = [sysroot, "{}/system/bin".format(sysroot)]
     if app_64bit:
-        solib_search_path.append("{}/system/lib64".format(sysroot))
+        solib_search_paths.append("{}/system/lib64".format(sysroot))
     else:
-        solib_search_path.append("{}/system/lib".format(sysroot))
-    solib_search_path = os.pathsep.join(solib_search_path)
+        solib_search_paths.append("{}/system/lib".format(sysroot))
+    solib_search_path = os.pathsep.join(solib_search_paths)
     gdb_commands += "set solib-absolute-prefix {}\n".format(sysroot)
     gdb_commands += "set solib-search-path {}\n".format(solib_search_path)
 
@@ -725,8 +752,10 @@ end
     return gdb_commands
 
 
-def start_jdb(adb_path, serial, jdb_cmd, pid, verbose):
-    pid = int(pid)
+def start_jdb(
+    adb_path: str, serial: str, jdb_cmd: str, pid_str: str, verbose: str
+) -> None:
+    pid = int(pid_str)
     device = adb.get_device(serial, adb_path=adb_path)
     if verbose == "True":
         enable_verbose_logging()
@@ -741,26 +770,32 @@ def start_jdb(adb_path, serial, jdb_cmd, pid, verbose):
 
     jdb_port = 65534
     device.forward("tcp:{}".format(jdb_port), "jdwp:{}".format(pid))
-    jdb_cmd = [
+    jdb_args = [
         jdb_cmd,
         "-connect",
         "com.sun.jdi.SocketAttach:hostname=localhost,port={}".format(jdb_port),
     ]
 
-    flags = subprocess.CREATE_NEW_PROCESS_GROUP if windows else 0
+    if sys.platform == "win32":
+        flags = subprocess.CREATE_NEW_PROCESS_GROUP
+    else:
+        flags = 0
     jdb = subprocess.Popen(
-        jdb_cmd,
+        jdb_args,
         stdin=subprocess.PIPE,
         stdout=subprocess.PIPE,
         stderr=subprocess.STDOUT,
         creationflags=flags,
+        text=True,
     )
 
+    assert jdb.stdin is not None
+    assert jdb.stdout is not None
     # Wait until jdb can communicate with the app. Once it can, the app will
     # start polling for a Java debugger (e.g. every 200ms). We need to wait
     # a while longer then so that the app notices jdb.
     jdb_magic = "__verify_jdb_has_started__"
-    jdb.stdin.write('print "{}"\n'.format(jdb_magic).encode("utf-8"))
+    jdb.stdin.write('print "{}"\n'.format(jdb_magic))
     saw_magic_str = False
     while True:
         line = jdb.stdout.readline()
@@ -778,7 +813,7 @@ def start_jdb(adb_path, serial, jdb_cmd, pid, verbose):
         log("error: did not find magic string in JDB output.")
 
 
-def main():
+def main() -> None:
     if sys.argv[1:2] == ["--internal-wakeup-pid-with-jdb"]:
         return start_jdb(*sys.argv[2:])
 
