@@ -20,7 +20,6 @@ from __future__ import print_function
 import argparse
 import contextlib
 import logging
-import operator
 import os
 import posixpath
 import signal
@@ -61,7 +60,7 @@ def error(msg: str) -> NoReturn:
 
 class ArgumentParser(gdbrunner.ArgumentParser):
     def __init__(self) -> None:
-        super(ArgumentParser, self).__init__()
+        super().__init__()
         self.add_argument(
             "--verbose", "-v", action="store_true", help="enable verbose mode"
         )
@@ -179,6 +178,7 @@ def extract_launchable(xmlroot: Element) -> list[str]:
     launcher_category = "android.intent.category.LAUNCHER"
     name_attrib = "{}name".format(ANDROID_XMLNS)
 
+    # pylint: disable=too-many-nested-blocks
     for activity in application.iter("activity"):
         if name_attrib not in activity.attrib:
             continue
@@ -232,7 +232,7 @@ def handle_args() -> argparse.Namespace:
     if args.make_cmd is None:
         error("Failed to find make in '{}'".format(ndk_bin))
     if args.jdb_cmd is None:
-        print("WARNING: Failed to find jdb on your path, defaulting to " "--nowait")
+        print("WARNING: Failed to find jdb on your path, defaulting to --nowait")
         args.nowait = True
 
     if args.verbose:
@@ -295,7 +295,7 @@ def parse_manifest(args: argparse.Namespace) -> None:
 
 
 def select_target(args: argparse.Namespace) -> str:
-    assert args.launch != False
+    assert args.launch
 
     if len(args.activities) == 0:
         error("No launchable activities found.")
@@ -451,38 +451,34 @@ def get_app_data_dir(args: argparse.Namespace, package_name: str) -> str:
 def abi_to_arch(abi: str) -> str:
     if abi.startswith("armeabi"):
         return "arm"
-    elif abi == "arm64-v8a":
+    if abi == "arm64-v8a":
         return "arm64"
-    else:
-        return abi
+    return abi
 
 
 def abi_to_llvm_arch(abi: str) -> str:
     if abi.startswith("armeabi"):
         return "arm"
-    elif abi == "arm64-v8a":
+    if abi == "arm64-v8a":
         return "aarch64"
-    elif abi == "x86":
+    if abi == "x86":
         return "i386"
-    else:
-        return "x86_64"
+    return "x86_64"
 
 
 def get_llvm_host_name() -> str:
     platform = sys.platform
     if platform.startswith("win"):
         return "windows-x86_64"
-    elif platform.startswith("darwin"):
+    if platform.startswith("darwin"):
         return "darwin-x86_64"
-    else:
-        return "linux-x86_64"
+    return "linux-x86_64"
 
 
 def get_python_executable(toolchain_path: str) -> str:
     if sys.platform.startswith("win"):
         return os.path.join(toolchain_path, "python3", "python.exe")
-    else:
-        return os.path.join(toolchain_path, "python3", "bin", "python3")
+    return os.path.join(toolchain_path, "python3", "bin", "python3")
 
 
 def get_lldb_path(toolchain_path: str) -> str | None:
@@ -496,7 +492,7 @@ def get_lldb_path(toolchain_path: str) -> str | None:
 def get_llvm_package_version(llvm_toolchain_dir: str) -> str:
     version_file_path = os.path.join(llvm_toolchain_dir, "AndroidVersion.txt")
     try:
-        version_file = open(version_file_path, "r")
+        version_file = open(version_file_path, "r", encoding="utf-8")
     except IOError:
         error(
             "Failed to open llvm package version file: '{}'.".format(version_file_path)
@@ -591,7 +587,7 @@ def pull_binaries(device: adb.AndroidDevice, out_dir: str, app_64bit: bool) -> N
         destination = os.path.realpath(out_dir + "/system/bin/app_process")
         try:
             device.pull("/system/bin/app_process32", destination)
-        except:
+        except subprocess.CalledProcessError:
             device.pull("/system/bin/app_process", destination)
 
 
@@ -653,7 +649,7 @@ exit()
 
     if args.exec_file is not None:
         try:
-            exec_file = open(args.exec_file, "r")
+            exec_file = open(args.exec_file, "r", encoding="utf-8")
         except IOError:
             error("Failed to open lldb exec file: '{}'.".format(args.exec_file))
 
@@ -742,7 +738,7 @@ end
 
     if args.exec_file is not None:
         try:
-            exec_file = open(args.exec_file, "r")
+            exec_file = open(args.exec_file, "r", encoding="utf-8")
         except IOError:
             error("Failed to open GDB exec file: '{}'.".format(args.exec_file))
 
@@ -752,9 +748,8 @@ end
     return gdb_commands
 
 
-def start_jdb(
-    adb_path: str, serial: str, jdb_cmd: str, pid_str: str, verbose: str
-) -> None:
+def start_jdb(argv_subset: list[str]) -> None:
+    adb_path, serial, jdb_cmd, pid_str, verbose = argv_subset
     pid = int(pid_str)
     device = adb.get_device(serial, adb_path=adb_path)
     if verbose == "True":
@@ -815,7 +810,8 @@ def start_jdb(
 
 def main() -> None:
     if sys.argv[1:2] == ["--internal-wakeup-pid-with-jdb"]:
-        return start_jdb(*sys.argv[2:])
+        start_jdb(sys.argv[2:])
+        return
 
     args = handle_args()
     device = args.device
