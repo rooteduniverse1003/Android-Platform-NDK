@@ -18,7 +18,7 @@
 See https://developer.android.com/ndk/guides/ndk-stack for more information.
 """
 
-from __future__ import print_function
+from __future__ import annotations
 
 import argparse
 import os
@@ -35,20 +35,20 @@ EXE_SUFFIX = ".exe" if os.name == "nt" else ""
 class TmpDir:
     """Manage temporary directory creation."""
 
-    def __init__(self):
-        self._tmp_dir = None
+    def __init__(self) -> None:
+        self._tmp_dir: str | None = None
 
-    def delete(self):
+    def delete(self) -> None:
         if self._tmp_dir:
             shutil.rmtree(self._tmp_dir)
 
-    def get_directory(self):
+    def get_directory(self) -> str:
         if not self._tmp_dir:
             self._tmp_dir = tempfile.mkdtemp()
         return self._tmp_dir
 
 
-def get_ndk_paths():
+def get_ndk_paths() -> tuple[str, str, str]:
     """Parse and find all of the paths of the ndk
 
     Returns: Three values:
@@ -67,7 +67,7 @@ def get_ndk_paths():
     return (ndk_root, ndk_bin, ndk_host_tag)
 
 
-def find_llvm_symbolizer(ndk_root, ndk_bin, ndk_host_tag):
+def find_llvm_symbolizer(ndk_root: str, ndk_bin: str, ndk_host_tag: str) -> str:
     """Finds the NDK llvm-symbolizer(1) binary.
 
     Returns: An absolute path to llvm-symbolizer(1).
@@ -89,7 +89,7 @@ def find_llvm_symbolizer(ndk_root, ndk_bin, ndk_host_tag):
     raise OSError("Unable to find llvm-symbolizer")
 
 
-def find_readelf(ndk_root, ndk_bin, ndk_host_tag):
+def find_readelf(ndk_root: str, ndk_bin: str, ndk_host_tag: str) -> str | None:
     """Finds the NDK readelf(1) binary.
 
     Returns: An absolute path to readelf(1).
@@ -112,7 +112,7 @@ def find_readelf(ndk_root, ndk_bin, ndk_host_tag):
     return None
 
 
-def get_build_id(readelf_path, elf_file):
+def get_build_id(readelf_path: str, elf_file: str) -> str | None:
     """Get the GNU build id note from an elf file.
 
     Returns: The build id found or None if there is no build id or the
@@ -129,12 +129,15 @@ def get_build_id(readelf_path, elf_file):
         return None
 
 
-def get_zip_info_from_offset(zip_file, offset):
+def get_zip_info_from_offset(
+    zip_file: zipfile.ZipFile, offset: int
+) -> zipfile.ZipInfo | None:
     """Get the ZipInfo object from a zip file.
 
     Returns: A ZipInfo object found at the 'offset' into the zip file.
              Returns None if no file can be found at the given 'offset'.
     """
+    assert zip_file.filename is not None
 
     file_size = os.stat(zip_file.filename).st_size
     if offset >= file_size:
@@ -189,16 +192,20 @@ class FrameInfo:
     _build_id_re = re.compile(r"\(BuildId:\s+([0-9a-f]+)\)")
 
     @classmethod
-    def from_line(cls, line):
+    def from_line(cls, line: str) -> FrameInfo | None:
         m = FrameInfo._line_re.match(line)
         if m:
-            return cls(*m.group(1, 2, 3, 4))
+            num, pc, tail, elf_file = m.group(1, 2, 3, 4)
+            return cls(num, pc, tail, elf_file)
         m = FrameInfo._sanitizer_line_re.match(line)
         if m:
-            return cls(*m.group(1, 3, 2, 2), sanitizer=True)
+            num, pc, tail, elf_file = m.group(1, 3, 2, 2)
+            return cls(num, pc, tail, elf_file, sanitizer=True)
         return None
 
-    def __init__(self, num, pc, tail, elf_file, sanitizer=False):
+    def __init__(
+        self, num: str, pc: str, tail: str, elf_file: str, sanitizer: bool = False
+    ) -> None:
         self.num = num
         self.pc = pc
         self.tail = tail
@@ -218,7 +225,7 @@ class FrameInfo:
             self.container_file = None
         m = FrameInfo._offset_re.search(self.tail)
         if m:
-            self.offset = int(m.group(1), 16)
+            self.offset: int | None = int(m.group(1), 16)
         else:
             self.offset = None
         m = FrameInfo._build_id_re.search(self.tail)
@@ -227,7 +234,9 @@ class FrameInfo:
         else:
             self.build_id = None
 
-    def verify_elf_file(self, readelf_path, elf_file_path, display_elf_path):
+    def verify_elf_file(
+        self, readelf_path: str | None, elf_file_path: str, display_elf_path: str
+    ) -> bool:
         """Verify if the elf file is valid.
 
         Returns: True if the elf file exists and build id matches (if it exists).
@@ -244,7 +253,9 @@ class FrameInfo:
                 return False
         return True
 
-    def get_elf_file(self, symbol_dir, readelf_path, tmp_dir):
+    def get_elf_file(
+        self, symbol_dir: str, readelf_path: str | None, tmp_dir: TmpDir
+    ) -> str | None:
         """Get the path to the elf file represented by this frame.
 
         Returns: The path to the elf file if it is valid, or None if
@@ -265,6 +276,7 @@ class FrameInfo:
                 symbol_dir, os.path.basename(self.container_file)
             )
             with zipfile.ZipFile(apk_file_path) as zip_file:
+                assert self.offset is not None
                 zip_info = get_zip_info_from_offset(zip_file, self.offset)
                 if not zip_info:
                     return None
@@ -280,6 +292,7 @@ class FrameInfo:
             #   #08 pc 00cbed9c  GoogleCamera.apk (offset 0x6e32000)
             apk_file_path = os.path.join(symbol_dir, elf_file)
             with zipfile.ZipFile(apk_file_path) as zip_file:
+                assert self.offset is not None
                 zip_info = get_zip_info_from_offset(zip_file, self.offset)
                 if not zip_info:
                     return None
@@ -315,7 +328,7 @@ class FrameInfo:
         return None
 
 
-def main(argv=None):
+def main(argv: list[str] | None = None) -> None:
     """ "Program entry point."""
     parser = argparse.ArgumentParser(
         description="Symbolizes Android crashes.",
@@ -357,6 +370,8 @@ def main(argv=None):
         symbolize_proc = subprocess.Popen(
             symbolize_cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE
         )
+        assert symbolize_proc.stdin is not None
+        assert symbolize_proc.stdout is not None
         banner = "*** *** *** *** *** *** *** *** *** *** *** *** *** *** *** ***"
         in_crash = False
         saw_frame = False
@@ -418,6 +433,8 @@ def main(argv=None):
         args.input.close()
         tmp_dir.delete()
         if symbolize_proc:
+            assert symbolize_proc.stdin is not None
+            assert symbolize_proc.stdout is not None
             symbolize_proc.stdin.close()
             symbolize_proc.stdout.close()
             symbolize_proc.kill()
