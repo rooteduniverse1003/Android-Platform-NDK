@@ -27,7 +27,7 @@ import signal
 import subprocess
 import sys
 import time
-import xml.etree.cElementTree as ElementTree
+import xml.etree.ElementTree as ElementTree
 
 import adb
 import gdbrunner
