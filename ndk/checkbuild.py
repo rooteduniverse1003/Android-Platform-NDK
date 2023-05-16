@@ -1734,8 +1734,6 @@ class NdkGdb(ndk.builds.PythonApplication):
     main = "ndkgdb:main"
     pip_dependencies = [
         ANDROID_DIR / "development/python-packages/adb",
-    ]
-    copy_to_python_path = [
         ANDROID_DIR / "development/python-packages/gdbrunner",
     ]
 
