@@ -21,6 +21,7 @@ pytest = "^7.3.1"
 black = "^23.3.0"
 adb = {path = "../development/python-packages/adb", develop = true}
 isort = "^5.12.0"
+gdbrunner = {path = "../development/python-packages/gdbrunner"}
 
 [tool.black]
 # The default includes "build", which excludes both build/ and tests/build.

@@ -478,6 +478,20 @@ files = [
 ]
 
 [[package]]
+name = "gdbrunner"
+version = "0.0.1"
+description = "Common helpers of ndk-gdb and gdbclient."
+category = "dev"
+optional = false
+python-versions = "*"
+files = []
+develop = false
+
+[package.source]
+type = "directory"
+url = "../development/python-packages/gdbrunner"
+
+[[package]]
 name = "idna"
 version = "3.4"
 description = "Internationalized Domain Names in Applications (IDNA)"
@@ -1040,4 +1054,4 @@ multidict = ">=4.0"
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.10"
-content-hash = "2c494663488f0a1cbc0aba82a3c1ca8dd8b283459e3f5ed9db41c1126cc7f566"
+content-hash = "fc927e481e19240eaf5f9762bf0aa5a0276c2fd2f7a6d198bdd94484ded5bbda"
