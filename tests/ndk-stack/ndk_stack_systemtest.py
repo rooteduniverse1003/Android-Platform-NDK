@@ -19,16 +19,13 @@
 from __future__ import print_function
 
 import os.path
-import sys
 import unittest
 from io import StringIO
 from unittest.mock import patch
 
-sys.path.insert(0, "../..")
-ndk_stack = __import__("ndk-stack")
-
-import ndk.hosts  # pylint:disable=wrong-import-position
-import ndk.toolchains  # pylint:disable=wrong-import-position
+import ndk.hosts
+import ndk.toolchains
+import ndkstack
 
 
 class SystemTests(unittest.TestCase):
@@ -40,22 +37,22 @@ class SystemTests(unittest.TestCase):
 
         # First try and use the normal functions, and if they fail, then
         # use hard-coded paths from the development locations.
-        ndk_paths = ndk_stack.get_ndk_paths()
-        self.readelf = ndk_stack.find_readelf(*ndk_paths)
+        ndk_paths = ndkstack.get_ndk_paths()
+        self.readelf = ndkstack.find_readelf(*ndk_paths)
         if not self.readelf:
             self.readelf = clang_toolchain.clang_tool("llvm-readelf")
         self.assertTrue(self.readelf)
         self.assertTrue(os.path.exists(self.readelf))
 
         try:
-            self.llvm_symbolizer = ndk_stack.find_llvm_symbolizer(*ndk_paths)
+            self.llvm_symbolizer = ndkstack.find_llvm_symbolizer(*ndk_paths)
         except OSError:
             self.llvm_symbolizer = str(clang_toolchain.clang_tool("llvm-symbolizer"))
         self.assertTrue(self.llvm_symbolizer)
         self.assertTrue(os.path.exists(self.llvm_symbolizer))
 
-    @patch.object(ndk_stack, "find_llvm_symbolizer")
-    @patch.object(ndk_stack, "find_readelf")
+    @patch.object(ndkstack, "find_llvm_symbolizer")
+    @patch.object(ndkstack, "find_readelf")
     def system_test(
         self, backtrace_file, expected_file, mock_readelf, mock_llvm_symbolizer
     ):
@@ -64,7 +61,7 @@ class SystemTests(unittest.TestCase):
 
         symbol_dir = os.path.join(os.path.dirname(os.path.realpath(__file__)), "files")
         with patch("sys.stdout", new_callable=StringIO) as mock_stdout:
-            ndk_stack.main(
+            ndkstack.main(
                 ["-s", symbol_dir, "-i", os.path.join(symbol_dir, backtrace_file)]
             )
 
