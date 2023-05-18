@@ -1,9 +1,9 @@
 ********** Crash dump: **********
 #00 0x0000e4fc test.apk!libbase.so (offset 0x1000)
-                                    android::base::RemoveFileIfExists(std::__1::basic_string<char, std::__1::char_traits<char>, std::__1::allocator<char> > const&, std::__1::basic_string<char, std::__1::char_traits<char>, std::__1::allocator<char> >*)
+                                    android::base::RemoveFileIfExists(std::__1::basic_string<char, std::__1::char_traits<char>, std::__1::allocator<char>> const&, std::__1::basic_string<char, std::__1::char_traits<char>, std::__1::allocator<char>>*)
                                     system/core/base/file.cpp:365:0
 #01 0x0000e4fc test.apk!libbase.so (offset 0x1000)
-                                    android::base::RemoveFileIfExists(std::__1::basic_string<char, std::__1::char_traits<char>, std::__1::allocator<char> > const&, std::__1::basic_string<char, std::__1::char_traits<char>, std::__1::allocator<char> >*)
+                                    android::base::RemoveFileIfExists(std::__1::basic_string<char, std::__1::char_traits<char>, std::__1::allocator<char>> const&, std::__1::basic_string<char, std::__1::char_traits<char>, std::__1::allocator<char>>*)
                                     system/core/base/file.cpp:365:0
 #02 0x00057250 test.apk!libc.so (offset 0x14000)
                                  __memcpy_a15

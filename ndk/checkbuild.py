@@ -844,7 +844,7 @@ class Pytest(ndk.builds.LintModule):
         if not shutil.which("pytest"):
             logging.warning("Skipping pytest. pytest was not found on your path.")
             return
-        subprocess.check_call(["pytest", "ndk"])
+        subprocess.check_call(["pytest", "ndk", "tests/pytest"])
 
 
 @register

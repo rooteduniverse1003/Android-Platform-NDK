@@ -93,6 +93,13 @@ good-names = [
 dummy-variables-rgx = "_"
 ignore-imports = true
 
+[tool.pytest.ini_options]
+# Required for testing ndkstack.py and ndkgdb.py, since the default import mode
+# prepends the directory of the test (which in those cases would be named
+# ndkstack or ndkgdb...) to sys.path, so `import ndkstack` finds the test
+# package rather than the module under test.
+addopts = "--import-mode=importlib"
+
 [build-system]
 requires = ["poetry-core>=1.0.0"]
 build-backend = "poetry.core.masonry.api"
