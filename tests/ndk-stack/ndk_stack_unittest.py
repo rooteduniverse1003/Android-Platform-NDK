@@ -19,7 +19,6 @@
 from __future__ import print_function
 
 import os.path
-import sys
 import textwrap
 import unittest
 from unittest import mock
@@ -32,8 +31,7 @@ except ModuleNotFoundError:  # pylint:disable=undefined-variable
     # Python 3
     from io import StringIO
 
-sys.path.insert(0, "../..")
-ndk_stack = __import__("ndk-stack")
+import ndkstack
 
 
 @patch("os.path.exists")
@@ -57,7 +55,7 @@ class PathTests(unittest.TestCase):
             self.llvm_symbolizer,
         )
         mock_exists.return_value = True
-        self.assertEqual(expected_path, ndk_stack.find_llvm_symbolizer(*self.ndk_paths))
+        self.assertEqual(expected_path, ndkstack.find_llvm_symbolizer(*self.ndk_paths))
         mock_exists.assert_called_once_with(expected_path)
 
     def test_find_llvm_symbolizer_in_standalone_toolchain(self, mock_exists):
@@ -72,7 +70,7 @@ class PathTests(unittest.TestCase):
         )
         expected_path = os.path.join("/ndk_fake", "bin", self.llvm_symbolizer)
         mock_exists.side_effect = [False, True]
-        self.assertEqual(expected_path, ndk_stack.find_llvm_symbolizer(*self.ndk_paths))
+        self.assertEqual(expected_path, ndkstack.find_llvm_symbolizer(*self.ndk_paths))
         mock_exists.assert_has_calls(
             [mock.call(prebuilt_path), mock.call(expected_path)]
         )
@@ -80,7 +78,7 @@ class PathTests(unittest.TestCase):
     def test_llvm_symbolizer_not_found(self, mock_exists):
         mock_exists.return_value = False
         with self.assertRaises(OSError) as cm:
-            ndk_stack.find_llvm_symbolizer(*self.ndk_paths)
+            ndkstack.find_llvm_symbolizer(*self.ndk_paths)
         self.assertEqual("Unable to find llvm-symbolizer", str(cm.exception))
 
     def test_find_readelf_in_prebuilt(self, mock_exists):
@@ -94,7 +92,7 @@ class PathTests(unittest.TestCase):
             self.readelf,
         )
         mock_exists.return_value = True
-        self.assertEqual(expected_path, ndk_stack.find_readelf(*self.ndk_paths))
+        self.assertEqual(expected_path, ndkstack.find_readelf(*self.ndk_paths))
         mock_exists.assert_called_once_with(expected_path)
 
     def test_find_readelf_in_prebuilt_arm(self, mock_exists):
@@ -110,7 +108,7 @@ class PathTests(unittest.TestCase):
         mock_exists.return_value = True
         self.assertEqual(
             expected_path,
-            ndk_stack.find_readelf("/ndk_fake", "/ndk_fake/bin", "linux-arm"),
+            ndkstack.find_readelf("/ndk_fake", "/ndk_fake/bin", "linux-arm"),
         )
         mock_exists.assert_called_once_with(expected_path)
 
@@ -119,11 +117,11 @@ class PathTests(unittest.TestCase):
         expected_path = os.path.join("/ndk_fake", "bin", self.readelf)
         mock_exists.side_effect = [False, True]
         os.path.exists = lambda path, exp=expected_path: path == exp
-        self.assertEqual(expected_path, ndk_stack.find_readelf(*self.ndk_paths))
+        self.assertEqual(expected_path, ndkstack.find_readelf(*self.ndk_paths))
 
     def test_readelf_not_found(self, mock_exists):
         mock_exists.return_value = False
-        self.assertFalse(ndk_stack.find_readelf(*self.ndk_paths))
+        self.assertFalse(ndkstack.find_readelf(*self.ndk_paths))
 
 
 class FrameTests(unittest.TestCase):
@@ -131,7 +129,7 @@ class FrameTests(unittest.TestCase):
 
     def test_line_with_map_name(self):
         line = "  #14 pc 00001000  /fake/libfake.so"
-        frame_info = ndk_stack.FrameInfo.from_line(line)
+        frame_info = ndkstack.FrameInfo.from_line(line)
         self.assertTrue(frame_info)
         self.assertEqual("#14", frame_info.num)
         self.assertEqual("00001000", frame_info.pc)
@@ -143,7 +141,7 @@ class FrameTests(unittest.TestCase):
 
     def test_line_with_function(self):
         line = "  #08 pc 00001040  /fake/libfake.so (func())"
-        frame_info = ndk_stack.FrameInfo.from_line(line)
+        frame_info = ndkstack.FrameInfo.from_line(line)
         self.assertTrue(frame_info)
         self.assertEqual("#08", frame_info.num)
         self.assertEqual("00001040", frame_info.pc)
@@ -155,7 +153,7 @@ class FrameTests(unittest.TestCase):
 
     def test_line_with_offset(self):
         line = "  #04 pc 00002050  /fake/libfake.so (offset 0x2000)"
-        frame_info = ndk_stack.FrameInfo.from_line(line)
+        frame_info = ndkstack.FrameInfo.from_line(line)
         self.assertTrue(frame_info)
         self.assertEqual("#04", frame_info.num)
         self.assertEqual("00002050", frame_info.pc)
@@ -167,7 +165,7 @@ class FrameTests(unittest.TestCase):
 
     def test_line_with_build_id(self):
         line = "  #03 pc 00002050  /fake/libfake.so (BuildId: d1d420a58366bf29f1312ec826f16564)"
-        frame_info = ndk_stack.FrameInfo.from_line(line)
+        frame_info = ndkstack.FrameInfo.from_line(line)
         self.assertTrue(frame_info)
         self.assertEqual("#03", frame_info.num)
         self.assertEqual("00002050", frame_info.pc)
@@ -182,7 +180,7 @@ class FrameTests(unittest.TestCase):
 
     def test_line_with_container_file(self):
         line = "  #10 pc 00003050  /fake/fake.apk!libc.so"
-        frame_info = ndk_stack.FrameInfo.from_line(line)
+        frame_info = ndkstack.FrameInfo.from_line(line)
         self.assertTrue(frame_info)
         self.assertEqual("#10", frame_info.num)
         self.assertEqual("00003050", frame_info.pc)
@@ -194,7 +192,7 @@ class FrameTests(unittest.TestCase):
 
     def test_line_with_container_and_elf_equal(self):
         line = "  #12 pc 00004050  /fake/libc.so!lib/libc.so"
-        frame_info = ndk_stack.FrameInfo.from_line(line)
+        frame_info = ndkstack.FrameInfo.from_line(line)
         self.assertTrue(frame_info)
         self.assertEqual("#12", frame_info.num)
         self.assertEqual("00004050", frame_info.pc)
@@ -209,7 +207,7 @@ class FrameTests(unittest.TestCase):
             "  #07 pc 00823fc  /fake/fake.apk!libc.so (__start_thread+64) "
             "(offset 0x1000) (BuildId: 6a0c10d19d5bf39a5a78fa514371dab3)"
         )
-        frame_info = ndk_stack.FrameInfo.from_line(line)
+        frame_info = ndkstack.FrameInfo.from_line(line)
         self.assertTrue(frame_info)
         self.assertEqual("#07", frame_info.num)
         self.assertEqual("00823fc", frame_info.pc)
@@ -224,14 +222,14 @@ class FrameTests(unittest.TestCase):
         self.assertEqual("6a0c10d19d5bf39a5a78fa514371dab3", frame_info.build_id)
 
 
-@patch.object(ndk_stack, "get_build_id")
+@patch.object(ndkstack, "get_build_id")
 @patch("os.path.exists")
 class VerifyElfFileTests(unittest.TestCase):
     """Tests of verify_elf_file()."""
 
     def create_frame_info(self):
         line = "  #03 pc 00002050  /fake/libfake.so"
-        frame_info = ndk_stack.FrameInfo.from_line(line)
+        frame_info = ndkstack.FrameInfo.from_line(line)
         self.assertTrue(frame_info)
         return frame_info
 
@@ -296,18 +294,18 @@ class GetZipInfoFromOffsetTests(unittest.TestCase):
 
     def test_file_does_not_exist(self):
         with self.assertRaises(IOError):
-            _ = ndk_stack.get_zip_info_from_offset(self.mock_zip, 0x1000)
+            _ = ndkstack.get_zip_info_from_offset(self.mock_zip, 0x1000)
 
     @patch("os.stat")
     def test_offset_ge_file_size(self, mock_stat):
         mock_stat.return_value.st_size = 0x1000
-        self.assertFalse(ndk_stack.get_zip_info_from_offset(self.mock_zip, 0x1000))
-        self.assertFalse(ndk_stack.get_zip_info_from_offset(self.mock_zip, 0x1100))
+        self.assertFalse(ndkstack.get_zip_info_from_offset(self.mock_zip, 0x1000))
+        self.assertFalse(ndkstack.get_zip_info_from_offset(self.mock_zip, 0x1100))
 
     @patch("os.stat")
     def test_empty_infolist(self, mock_stat):
         mock_stat.return_value.st_size = 0x1000
-        self.assertFalse(ndk_stack.get_zip_info_from_offset(self.mock_zip, 0x900))
+        self.assertFalse(ndkstack.get_zip_info_from_offset(self.mock_zip, 0x900))
 
     @patch("os.stat")
     def test_zip_info_single_element(self, mock_stat):
@@ -317,11 +315,11 @@ class GetZipInfoFromOffsetTests(unittest.TestCase):
         mock_zip_info.header_offset = 0x100
         self.mock_zip.infolist.return_value = [mock_zip_info]
 
-        self.assertFalse(ndk_stack.get_zip_info_from_offset(self.mock_zip, 0x50))
+        self.assertFalse(ndkstack.get_zip_info_from_offset(self.mock_zip, 0x50))
 
-        self.assertFalse(ndk_stack.get_zip_info_from_offset(self.mock_zip, 0x2000))
+        self.assertFalse(ndkstack.get_zip_info_from_offset(self.mock_zip, 0x2000))
 
-        zip_info = ndk_stack.get_zip_info_from_offset(self.mock_zip, 0x200)
+        zip_info = ndkstack.get_zip_info_from_offset(self.mock_zip, 0x200)
         self.assertEqual(0x100, zip_info.header_offset)
 
     @patch("os.stat")
@@ -334,15 +332,15 @@ class GetZipInfoFromOffsetTests(unittest.TestCase):
         mock_zip_info2.header_offset = 0x1000
         self.mock_zip.infolist.return_value = [mock_zip_info1, mock_zip_info2]
 
-        self.assertFalse(ndk_stack.get_zip_info_from_offset(self.mock_zip, 0x50))
+        self.assertFalse(ndkstack.get_zip_info_from_offset(self.mock_zip, 0x50))
 
-        zip_info = ndk_stack.get_zip_info_from_offset(self.mock_zip, 0x200)
+        zip_info = ndkstack.get_zip_info_from_offset(self.mock_zip, 0x200)
         self.assertEqual(0x100, zip_info.header_offset)
 
-        zip_info = ndk_stack.get_zip_info_from_offset(self.mock_zip, 0x100)
+        zip_info = ndkstack.get_zip_info_from_offset(self.mock_zip, 0x100)
         self.assertEqual(0x100, zip_info.header_offset)
 
-        zip_info = ndk_stack.get_zip_info_from_offset(self.mock_zip, 0x1000)
+        zip_info = ndkstack.get_zip_info_from_offset(self.mock_zip, 0x1000)
         self.assertEqual(0x1000, zip_info.header_offset)
 
 
@@ -359,7 +357,7 @@ class GetElfFileTests(unittest.TestCase):
 
     def create_frame_info(self, tail):
         line = "  #03 pc 00002050  " + tail
-        frame_info = ndk_stack.FrameInfo.from_line(line)
+        frame_info = ndkstack.FrameInfo.from_line(line)
         self.assertTrue(frame_info)
         frame_info.verify_elf_file = mock.MagicMock()
         return frame_info
@@ -394,32 +392,32 @@ class GetElfFileTests(unittest.TestCase):
             frame_info.get_elf_file("/fake_dir/symbols", None, self.mock_tmp)
         self.assertEqual("/fake/fake.apk!libtest.so", frame_info.tail)
 
-    @patch.object(ndk_stack, "get_zip_info_from_offset")
+    @patch.object(ndkstack, "get_zip_info_from_offset")
     @patch("zipfile.ZipFile")
     def test_container_set_elf_not_in_apk(self, _, mock_get_zip_info):
         mock_get_zip_info.return_value = None
-        frame_info = self.create_frame_info("/fake/fake.apk!libtest.so")
+        frame_info = self.create_frame_info("/fake/fake.apk!libtest.so (offset 0x2000)")
         frame_info.verify_elf_file.return_value = False
         self.assertFalse(
             frame_info.get_elf_file("/fake_dir/symbols", None, self.mock_tmp)
         )
-        self.assertEqual("/fake/fake.apk!libtest.so", frame_info.tail)
+        self.assertEqual("/fake/fake.apk!libtest.so (offset 0x2000)", frame_info.tail)
 
-    @patch.object(ndk_stack, "get_zip_info_from_offset")
+    @patch.object(ndkstack, "get_zip_info_from_offset")
     @patch("zipfile.ZipFile")
     def test_container_set_elf_in_apk(self, mock_zipclass, mock_get_zip_info):
         mock_zipclass.return_value = self.mock_zipfile
         mock_get_zip_info.return_value.filename = "libtest.so"
 
-        frame_info = self.create_frame_info("/fake/fake.apk!libtest.so")
+        frame_info = self.create_frame_info("/fake/fake.apk!libtest.so (offset 0x2000)")
         frame_info.verify_elf_file.side_effect = [False, True]
         self.assertEqual(
             "/fake_tmp/libtest.so",
             frame_info.get_elf_file("/fake_dir/symbols", None, self.mock_tmp),
         )
-        self.assertEqual("/fake/fake.apk!libtest.so", frame_info.tail)
+        self.assertEqual("/fake/fake.apk!libtest.so (offset 0x2000)", frame_info.tail)
 
-    @patch.object(ndk_stack, "get_zip_info_from_offset")
+    @patch.object(ndkstack, "get_zip_info_from_offset")
     @patch("zipfile.ZipFile")
     def test_container_set_elf_in_apk_verify_fails(
         self, mock_zipclass, mock_get_zip_info
@@ -427,12 +425,12 @@ class GetElfFileTests(unittest.TestCase):
         mock_zipclass.return_value = self.mock_zipfile
         mock_get_zip_info.return_value.filename = "libtest.so"
 
-        frame_info = self.create_frame_info("/fake/fake.apk!libtest.so")
+        frame_info = self.create_frame_info("/fake/fake.apk!libtest.so (offset 0x2000)")
         frame_info.verify_elf_file.side_effect = [False, False]
         self.assertFalse(
             frame_info.get_elf_file("/fake_dir/symbols", None, self.mock_tmp)
         )
-        self.assertEqual("/fake/fake.apk!libtest.so", frame_info.tail)
+        self.assertEqual("/fake/fake.apk!libtest.so (offset 0x2000)", frame_info.tail)
 
     def test_in_apk_file_does_not_exist(self):
         frame_info = self.create_frame_info("/fake/fake.apk")
@@ -441,56 +439,56 @@ class GetElfFileTests(unittest.TestCase):
             frame_info.get_elf_file("/fake_dir/symbols", None, self.mock_tmp)
         self.assertEqual("/fake/fake.apk", frame_info.tail)
 
-    @patch.object(ndk_stack, "get_zip_info_from_offset")
+    @patch.object(ndkstack, "get_zip_info_from_offset")
     @patch("zipfile.ZipFile")
     def test_in_apk_elf_not_in_apk(self, _, mock_get_zip_info):
         mock_get_zip_info.return_value = None
-        frame_info = self.create_frame_info("/fake/fake.apk")
+        frame_info = self.create_frame_info("/fake/fake.apk (offset 0x2000)")
         self.assertFalse(
             frame_info.get_elf_file("/fake_dir/symbols", None, self.mock_tmp)
         )
-        self.assertEqual("/fake/fake.apk", frame_info.tail)
+        self.assertEqual("/fake/fake.apk (offset 0x2000)", frame_info.tail)
 
-    @patch.object(ndk_stack, "get_zip_info_from_offset")
+    @patch.object(ndkstack, "get_zip_info_from_offset")
     @patch("zipfile.ZipFile")
     def test_in_apk_elf_in_symbol_dir(self, mock_zipclass, mock_get_zip_info):
         mock_zipclass.return_value = self.mock_zipfile
         mock_get_zip_info.return_value.filename = "libtest.so"
 
-        frame_info = self.create_frame_info("/fake/fake.apk")
+        frame_info = self.create_frame_info("/fake/fake.apk (offset 0x2000)")
         frame_info.verify_elf_file.return_value = True
         self.assertEqual(
             "/fake_dir/symbols/libtest.so",
             frame_info.get_elf_file("/fake_dir/symbols", None, self.mock_tmp),
         )
-        self.assertEqual("/fake/fake.apk!libtest.so", frame_info.tail)
+        self.assertEqual("/fake/fake.apk!libtest.so (offset 0x2000)", frame_info.tail)
 
-    @patch.object(ndk_stack, "get_zip_info_from_offset")
+    @patch.object(ndkstack, "get_zip_info_from_offset")
     @patch("zipfile.ZipFile")
     def test_in_apk_elf_in_apk(self, mock_zipclass, mock_get_zip_info):
         mock_zipclass.return_value = self.mock_zipfile
         mock_get_zip_info.return_value.filename = "libtest.so"
 
-        frame_info = self.create_frame_info("/fake/fake.apk")
+        frame_info = self.create_frame_info("/fake/fake.apk (offset 0x2000)")
         frame_info.verify_elf_file.side_effect = [False, True]
         self.assertEqual(
             "/fake_tmp/libtest.so",
             frame_info.get_elf_file("/fake_dir/symbols", None, self.mock_tmp),
         )
-        self.assertEqual("/fake/fake.apk!libtest.so", frame_info.tail)
+        self.assertEqual("/fake/fake.apk!libtest.so (offset 0x2000)", frame_info.tail)
 
-    @patch.object(ndk_stack, "get_zip_info_from_offset")
+    @patch.object(ndkstack, "get_zip_info_from_offset")
     @patch("zipfile.ZipFile")
     def test_in_apk_elf_in_apk_verify_fails(self, mock_zipclass, mock_get_zip_info):
         mock_zipclass.return_value = self.mock_zipfile
         mock_get_zip_info.return_value.filename = "libtest.so"
 
-        frame_info = self.create_frame_info("/fake/fake.apk")
+        frame_info = self.create_frame_info("/fake/fake.apk (offset 0x2000)")
         frame_info.verify_elf_file.side_effect = [False, False]
         self.assertFalse(
             frame_info.get_elf_file("/fake_dir/symbols", None, self.mock_tmp)
         )
-        self.assertEqual("/fake/fake.apk!libtest.so", frame_info.tail)
+        self.assertEqual("/fake/fake.apk!libtest.so (offset 0x2000)", frame_info.tail)
 
 
 if __name__ == "__main__":
