@@ -1736,6 +1736,7 @@ class NdkGdb(ndk.builds.PythonApplication):
         ANDROID_DIR / "development/python-packages/adb",
         ANDROID_DIR / "development/python-packages/gdbrunner",
     ]
+    deps = {"ndk-gdb-shortcut", "ndk-lldb-shortcut"}
 
 
 @register
@@ -1761,6 +1762,7 @@ class NdkStack(ndk.builds.PythonApplication):
     notice = NDK_DIR / "NOTICE"
     package = NDK_DIR / "ndkstack.py"
     main = "ndkstack:main"
+    deps = {"ndk-stack-shortcut"}
 
 
 @register
