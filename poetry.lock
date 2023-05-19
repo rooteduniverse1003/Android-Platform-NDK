@@ -8,7 +8,7 @@ category = "dev"
 optional = false
 python-versions = "*"
 files = []
-develop = true
+develop = false
 
 [package.source]
 type = "directory"
@@ -1054,4 +1054,4 @@ multidict = ">=4.0"
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.10"
-content-hash = "fc927e481e19240eaf5f9762bf0aa5a0276c2fd2f7a6d198bdd94484ded5bbda"
+content-hash = "8e70767f1a7546a5c59a63750c292b1d79a5db20fe081af70cc038c4f3a0ba2b"
