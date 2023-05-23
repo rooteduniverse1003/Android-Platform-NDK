@@ -39,6 +39,7 @@ directly, see the [build system maintainers guide].
     See https://reviews.llvm.org/D122983 for more details.
   * [Issue 1298]: Fixed seccomp error with ASan on x86_64 devices.
   * [Issue 1530]: Updated libc++ to match LLVM version.
+  * [Issue 1565]: Fixed lldb ncurses issue with terminal database on Darwin.
   * [Issue 1677]: Fixed Clang crash in optimizer.
   * [Issue 1834]: Fixed Clang crash during SVE conversions.
   * [Issue 1860]: Fixed miscompilation affecting armv7.
@@ -74,6 +75,7 @@ directly, see the [build system maintainers guide].
 [Issue 1298]: https://github.com/android/ndk/issues/1298
 [Issue 1400]: https://github.com/android/ndk/issues/1400
 [Issue 1530]: https://github.com/android/ndk/issues/1530
+[Issue 1565]: https://github.com/android/ndk/issues/1565
 [Issue 1677]: https://github.com/android/ndk/issues/1677
 [Issue 1803]: https://github.com/android/ndk/issues/1803
 [Issue 1834]: https://github.com/android/ndk/issues/1834
