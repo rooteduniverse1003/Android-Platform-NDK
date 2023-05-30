@@ -69,6 +69,9 @@ dependencies, install the NDK dependencies to the virtualenv managed by poetry.
 poetry install
 ```
 
+Note: If `poetry install` hangs on Linux, try
+`PYTHON_KEYRING_BACKEND=keyring.backends.null.Keyring poetry install`.
+
 Spawn a new shell using the virtualenv that Poetry created. You could instead
 run NDK commands with the `poetry run` prefix (e.g. `poetry run
 ./checkbuild.py`), but it's simpler to just spawn a new shell. Plus, if it's in
