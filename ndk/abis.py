@@ -15,7 +15,7 @@
 #
 """Constants and helper functions for NDK ABIs."""
 from collections.abc import Iterator
-from typing import List, NewType, Optional
+from typing import NewType, Optional
 
 from .platforms import FIRST_LP64_API_LEVEL, MIN_API_LEVEL
 
@@ -47,14 +47,6 @@ ALL_ARCHITECTURES = (
 )
 
 
-ALL_TOOLCHAINS = (
-    Toolchain("arm-linux-androideabi"),
-    Toolchain("aarch64-linux-android"),
-    Toolchain("x86"),
-    Toolchain("x86_64"),
-)
-
-
 ALL_TRIPLES = (
     "arm-linux-androideabi",
     "aarch64-linux-android",
@@ -63,29 +55,9 @@ ALL_TRIPLES = (
 )
 
 
-def abi_to_toolchain(abi: Abi) -> Toolchain:
-    """Returns the NDK toolchain name for the given ABI."""
-    return dict(zip(ALL_ARCHITECTURES, ALL_TOOLCHAINS))[abi_to_arch(abi)]
-
-
 def arch_to_triple(arch: Arch) -> str:
     """Returns the triple for the given architecture."""
     return dict(zip(ALL_ARCHITECTURES, ALL_TRIPLES))[arch]
-
-
-def toolchain_to_arch(toolchain: Toolchain) -> Arch:
-    """Returns the architecture for the given toolchain."""
-    return dict(zip(ALL_TOOLCHAINS, ALL_ARCHITECTURES))[toolchain]
-
-
-def arch_to_abis(arch: Arch) -> List[Abi]:
-    """Returns the ABIs for the given architecture."""
-    return {
-        Arch("arm"): [Abi("armeabi-v7a")],
-        Arch("arm64"): [Abi("arm64-v8a")],
-        Arch("x86"): [Abi("x86")],
-        Arch("x86_64"): [Abi("x86_64")],
-    }[arch]
 
 
 def abi_to_arch(abi: Abi) -> Arch:
