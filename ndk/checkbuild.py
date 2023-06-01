@@ -1876,14 +1876,13 @@ class Meta(ndk.builds.PackageModule):
         max_sysroot_api = self.find_max_api_level_in_prebuilts()
         if max_sysroot_api != MAX_API_LEVEL:
             raise RuntimeError(
-                f"API {max_sysroot_api} is the newest API level in "
-                f"{self.prebuilts_path} sysroot but does not match meta/platforms.json "
-                f"max of {MAX_API_LEVEL}"
+                f"API {max_sysroot_api} is the newest API level in {PREBUILT_SYSROOT} "
+                f"sysroot but does not match meta/platforms.json max of {MAX_API_LEVEL}"
             )
         if max_sysroot_api not in API_LEVEL_ALIASES.values():
             raise RuntimeError(
-                f"API {max_sysroot_api} is the newest API level in "
-                f"{self.prebuilts_path} but has no alias in meta/platforms.json."
+                f"API {max_sysroot_api} is the newest API level in {PREBUILT_SYSROOT} "
+                "but has no alias in meta/platforms.json."
             )
 
     def install(self) -> None:
