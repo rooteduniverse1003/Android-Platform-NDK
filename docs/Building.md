@@ -18,13 +18,13 @@ Check out the branch `master-ndk`. Do this in a new directory.
 
 ```bash
 # For non-Googlers:
-repo init -u https://android.googlesource.com/platform/manifest -b master-ndk
+repo init -u https://android.googlesource.com/platform/manifest -b master-ndk --partial-clone
 
 # Googlers, follow http://go/repo-init/master-ndk (select AOSP in the Host menu,
 # and uncheck the box for the git superproject). At time of writing, the correct
 # invocation is:
 repo init -u \
-    sso://android.git.corp.google.com/platform/manifest -b master-ndk
+    sso://android.git.corp.google.com/platform/manifest -b master-ndk --partial-clone
 ```
 
 If you wish to rebuild a given release of the NDK, the release branches can also
