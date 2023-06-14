@@ -70,7 +70,7 @@ import ndk.workqueue
 from ndk.abis import ALL_ABIS, Abi
 from ndk.crtobjectbuilder import CrtObjectBuilder
 from ndk.hosts import Host
-from ndk.paths import ANDROID_DIR, NDK_DIR
+from ndk.paths import ANDROID_DIR, NDK_DIR, PREBUILT_SYSROOT
 from ndk.platforms import ALL_API_LEVELS, API_LEVEL_ALIASES, MAX_API_LEVEL
 from ndk.toolchains import CLANG_VERSION, ClangToolchain
 
@@ -1066,7 +1066,7 @@ class Gtest(ndk.builds.PackageModule):
 class Sysroot(ndk.builds.Module):
     name = "sysroot"
     install_path = Path("sysroot")
-    notice = ANDROID_DIR / "prebuilts/ndk/platform/sysroot/NOTICE"
+    notice = PREBUILT_SYSROOT / "NOTICE"
     intermediate_module = True
     deps = {"clang"}
 
@@ -1091,8 +1091,7 @@ class Sysroot(ndk.builds.Module):
         install_path = self.get_install_path()
         if install_path.exists():
             shutil.rmtree(install_path)
-        path = ndk.paths.android_path("prebuilts/ndk/platform/sysroot")
-        shutil.copytree(path, install_path)
+        shutil.copytree(PREBUILT_SYSROOT, install_path)
         if self.host is not Host.Linux:
             # linux/netfilter has some headers with names that differ only
             # by case, which can't be extracted to a case-insensitive
@@ -1851,8 +1850,7 @@ class Meta(ndk.builds.PackageModule):
     @staticmethod
     def find_max_api_level_in_prebuilts() -> int:
         max_api = 0
-        prebuilts = ANDROID_DIR / "prebuilts/ndk/platform"
-        for path in prebuilts.glob("sysroot/usr/lib/*/*"):
+        for path in PREBUILT_SYSROOT.glob("usr/lib/*/*"):
             if not path.is_dir():
                 continue
 
@@ -1878,14 +1876,13 @@ class Meta(ndk.builds.PackageModule):
         max_sysroot_api = self.find_max_api_level_in_prebuilts()
         if max_sysroot_api != MAX_API_LEVEL:
             raise RuntimeError(
-                f"API {max_sysroot_api} is the newest API level in "
-                f"{self.prebuilts_path} sysroot but does not match meta/platforms.json "
-                f"max of {MAX_API_LEVEL}"
+                f"API {max_sysroot_api} is the newest API level in {PREBUILT_SYSROOT} "
+                f"sysroot but does not match meta/platforms.json max of {MAX_API_LEVEL}"
             )
         if max_sysroot_api not in API_LEVEL_ALIASES.values():
             raise RuntimeError(
-                f"API {max_sysroot_api} is the newest API level in "
-                f"{self.prebuilts_path} but has no alias in meta/platforms.json."
+                f"API {max_sysroot_api} is the newest API level in {PREBUILT_SYSROOT} "
+                "but has no alias in meta/platforms.json."
             )
 
     def install(self) -> None:
