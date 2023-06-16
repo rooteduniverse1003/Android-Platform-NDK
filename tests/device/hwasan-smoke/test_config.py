@@ -15,4 +15,12 @@ def run_unsupported(test: TestCase, device: Device) -> str | None:
 
 
 def run_broken(test: TestCase, device: Device) -> tuple[str | None, str | None]:
+    # FIXME: support c++_shared tests for cmake and re-enable
+    # currently the c++ library is not properly pushed so the
+    # test fails to link
+    if test.build_system == "cmake":
+        return f"{test.build_system}", "https://github.com/android/ndk/issues/1942"
     return None, None
+
+def extra_cmake_flags() -> list[str]:
+    return ["-DANDROID_SANITIZE=hwaddress", "-DANDROID_STL=c++_shared"]

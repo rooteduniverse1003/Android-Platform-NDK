@@ -30,6 +30,7 @@
 # ANDROID_ARM_MODE
 # ANDROID_DISABLE_FORMAT_STRING_CHECKS
 # ANDROID_CCACHE
+# ANDROID_SANITIZE
 
 cmake_minimum_required(VERSION 3.6.0)
 
@@ -253,6 +254,11 @@ c++_static. See https://developer.android.com/ndk/guides/cpp-support.html \
 for more information.")
 endif()
 
+if("hwaddress" IN_LIST ANDROID_SANITIZE AND "${CMAKE_ANDROID_STL_TYPE}" STREQUAL "c++_static")
+  message(FATAL_ERROR "\
+  hwaddress does not support c++_static. Use system or c++_shared.")
+endif()
+
 set(ANDROID_PIE TRUE)
 if(NOT ANDROID_ARM_MODE)
   set(ANDROID_ARM_MODE thumb)
@@ -456,6 +462,11 @@ if(ANDROID_WEAK_API_DEFS)
   list(APPEND ANDROID_COMPILER_FLAGS
       -D__ANDROID_UNAVAILABLE_SYMBOLS_ARE_WEAK__
       -Werror=unguarded-availability)
+endif()
+
+if("hwaddress" IN_LIST ANDROID_SANITIZE)
+  list(APPEND ANDROID_COMPILER_FLAGS -fsanitize=hwaddress -fno-omit-frame-pointer)
+  list(APPEND ANDROID_LINKER_FLAGS -fsanitize=hwaddress)
 endif()
 
 # https://github.com/android/ndk/issues/885
