@@ -323,6 +323,7 @@ class ClangToolchain(Toolchain):
 
         if self.target == Host.Darwin:
             flags.extend(self.darwin_sdk.flags)
+            flags.append(f"-L{self.path}/lib")
         else:
             flags.append(f"--sysroot={self.sysroot.sysroot}")
 
