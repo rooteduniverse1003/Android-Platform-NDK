@@ -22,7 +22,7 @@ from pathlib import Path
 import ndk.config
 from ndk.platforms import ALL_API_LEVELS
 
-from .abis import ALL_ABIS, Abi, abi_to_triple, clang_target, min_api_for_abi
+from .abis import Abi, abi_to_triple, clang_target, iter_abis_for_api
 from .paths import ANDROID_DIR, NDK_DIR
 
 
@@ -157,9 +157,7 @@ class CrtObjectBuilder:
             shutil.rmtree(self.build_dir)
 
         for api in ALL_API_LEVELS:
-            for abi in ALL_ABIS:
-                if min_api_for_abi(abi) > api:
-                    continue
+            for abi in iter_abis_for_api(api):
                 dst_dir = self.build_dir / abi_to_triple(abi) / str(api)
                 dst_dir.mkdir(parents=True, exist_ok=True)
                 self.build_crt_objects(dst_dir, api, abi, self.build_id)
