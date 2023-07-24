@@ -402,9 +402,9 @@ that it diagnoses memory bugs in a running application, but ASan is much faster
 than Valgrind (roughly 50% performance compared to an unsanitized application).
 
 To use ASan, pass `-fsanitize=address` when both compiling and linking. The
-sanitizer runtime libraries are installed to
-`<NDK>/toolchains/llvm/prebuilt/<host-tag>/lib64/clang/<clang-version>/lib/linux`.
-The library is named `libclang_rt.asan-<arch>-android.so`. This library must be
+sanitizer runtime libraries are installed to `<clang resource dir>/lib/linux`.
+The Clang resource directory is given by `clang -print-resource-dir`. The
+library is named `libclang_rt.asan-<arch>-android.so`. This library must be
 included in the APK. A [wrap.sh] file must also be included in the APK. A
 premade wrap.sh file for ASan is installed to `<NDK>/wrap.sh`.
 
