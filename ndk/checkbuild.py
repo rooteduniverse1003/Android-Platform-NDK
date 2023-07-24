@@ -495,7 +495,11 @@ class Clang(ndk.builds.Module):
             # toolchains, and those two are intended to be identical between each host,
             # so we can just replace them with the one from the Linux toolchain.
             shutil.rmtree(install_clanglib)
-            shutil.copytree(linux_prebuilt_path / "lib/clang", install_clanglib)
+            shutil.copytree(
+                linux_prebuilt_path / "lib/clang",
+                install_clanglib,
+                symlinks=self.host is not Host.Windows64,
+            )
 
         # The Clang prebuilts have the platform toolchain libraries in lib/clang. The
         # libraries we want are in runtimes_ndk_cxx.
