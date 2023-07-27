@@ -1,6 +1,6 @@
 {
   "min": 21,
-  "max": 34,
+  "max": 35,
   "aliases": {
     "20": 19,
     "25": 24,
@@ -21,6 +21,7 @@
     "S": 31,
     "Sv2": 32,
     "Tiramisu": 33,
-    "UpsideDownCake": 34
+    "UpsideDownCake": 34,
+    "VanillaIceCream": 35
   }
 }

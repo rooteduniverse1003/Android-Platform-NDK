@@ -17,6 +17,15 @@
     "triple": "aarch64-linux-android",
     "llvm_triple": "aarch64-none-linux-android"
   },
+  "riscv64": {
+    "bitness": 64,
+    "default": true,
+    "deprecated": false,
+    "proc": "riscv64",
+    "arch": "riscv64",
+    "triple": "riscv64-linux-android",
+    "llvm_triple": "riscv64-none-linux-android"
+  },
   "x86": {
     "bitness": 32,
     "default": true,

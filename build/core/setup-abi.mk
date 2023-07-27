@@ -36,6 +36,14 @@ ifneq ($(filter $(NDK_KNOWN_DEVICE_ABI64S),$(TARGET_ARCH_ABI)),)
     endif
 endif
 
+# The 'riscv64' ABI was first supported in API 35. Pull up these ABIs if the app
+# has a lower minSdkVersion.
+ifeq ($(TARGET_ARCH_ABI),riscv64)
+    ifneq ($(call lt,$(TARGET_PLATFORM_LEVEL),35),)
+        TARGET_PLATFORM_LEVEL := 35
+    endif
+endif
+
 # Not used by ndk-build, but are documented for use by Android.mk files.
 TARGET_PLATFORM := android-$(TARGET_PLATFORM_LEVEL)
 TARGET_ABI := $(TARGET_PLATFORM)-$(TARGET_ARCH_ABI)
