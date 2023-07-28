@@ -707,7 +707,7 @@ class ShaderTools(ndk.builds.CMakeModule):
     def _libcxx(self) -> List[Path]:
         path = self._libcxx_dir
         if self.host == Host.Linux:
-            return [path / "libc++.so.1"]
+            return [path / "libc++.so"]
         return []
 
     def build(self) -> None:
