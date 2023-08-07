@@ -64,6 +64,7 @@ directly, see the [build system maintainers guide].
   libraries. These were never exposed in the header files, but could confuse
   some autoconf like systems.
 * [Issue 1852]: Fixed ODR issue in linux/time.h.
+* [Issue 1878]: Fixed incorrect definition of `WIFSTOPPED`.
 * ndk-build now uses clang rather than clang++ when linking modules that do not
   have C++ sources. There should not be any observable behavior differences
   because ndk-build previously handled the C/C++ linking differences itself.
@@ -83,6 +84,7 @@ directly, see the [build system maintainers guide].
 [Issue 1860]: https://github.com/android/ndk/issues/1860
 [Issue 1861]: https://github.com/android/ndk/issues/1861
 [Issue 1862]: https://github.com/android/ndk/issues/1862
+[Issue 1878]: https://github.com/android/ndk/issues/1878
 [Issue 1880]: https://github.com/android/ndk/issues/1880
 [Issue 1883]: https://github.com/android/ndk/issues/1883
 
