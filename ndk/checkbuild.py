@@ -1176,7 +1176,7 @@ class Sysroot(ndk.builds.Module):
                 /**
                  * Build number for this NDK.
                  *
-                 * For a local development build of the NDK, this is -1.
+                 * For a local development build of the NDK, this is 0.
                  */
                 #define __NDK_BUILD__ {self.context.build_number}
 
