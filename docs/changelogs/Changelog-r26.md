@@ -47,6 +47,10 @@ directly, see the [build system maintainers guide].
   * [Issue 1862]: Fixed Clang crash for aarch64 with `-Os`.
   * [Issue 1880]: Fixed crash in clang-format.
   * [Issue 1883]: Fixed crash when incorrectly using neon intrinsics.
+  * [Issue 1907]: HWASan linker will be used automatically for
+    `minSdkVersion 34` or higher.
+  * [Issue 1909]: Fixed ABI mismatch between function-multi-versioning and ifunc
+    resolvers.
 * Version scripts that name public symbols that are not present in the library
   will now emit an error by default for ndk-build and the CMake toolchain file.
   Build failures caused by this error are likely a bug in your library or a
@@ -89,6 +93,8 @@ directly, see the [build system maintainers guide].
 [Issue 1878]: https://github.com/android/ndk/issues/1878
 [Issue 1880]: https://github.com/android/ndk/issues/1880
 [Issue 1883]: https://github.com/android/ndk/issues/1883
+[Issue 1907]: https://github.com/android/ndk/issues/1907
+[Issue 1909]: https://github.com/android/ndk/issues/1909
 
 ## Known Issues
 
