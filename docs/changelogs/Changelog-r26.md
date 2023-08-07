@@ -47,6 +47,10 @@ directly, see the [build system maintainers guide].
   * [Issue 1862]: Fixed Clang crash for aarch64 with `-Os`.
   * [Issue 1880]: Fixed crash in clang-format.
   * [Issue 1883]: Fixed crash when incorrectly using neon intrinsics.
+  * [Issue 1907]: HWASan linker will be used automatically for
+    `minSdkVersion 34` or higher.
+  * [Issue 1909]: Fixed ABI mismatch between function-multi-versioning and ifunc
+    resolvers.
 * Version scripts that name public symbols that are not present in the library
   will now emit an error by default for ndk-build and the CMake toolchain file.
   Build failures caused by this error are likely a bug in your library or a
@@ -60,10 +64,12 @@ directly, see the [build system maintainers guide].
 * [Issue 1400]: NDK paths with spaces will now be diagnosed by ndk-build on
   Windows. This has never been supported for any OS, but the error message
   wasn't previously working on Windows either.
+* [Issue 1764]: Fixed Python 3 incompatibility when using `ndk-gdb` with `-f`.
 * [Issue 1803]: Removed useless `strtoq` and `strtouq` from the libc stub
   libraries. These were never exposed in the header files, but could confuse
   some autoconf like systems.
 * [Issue 1852]: Fixed ODR issue in linux/time.h.
+* [Issue 1878]: Fixed incorrect definition of `WIFSTOPPED`.
 * ndk-build now uses clang rather than clang++ when linking modules that do not
   have C++ sources. There should not be any observable behavior differences
   because ndk-build previously handled the C/C++ linking differences itself.
@@ -77,14 +83,18 @@ directly, see the [build system maintainers guide].
 [Issue 1530]: https://github.com/android/ndk/issues/1530
 [Issue 1565]: https://github.com/android/ndk/issues/1565
 [Issue 1677]: https://github.com/android/ndk/issues/1677
+[Issue 1764]: https://github.com/android/ndk/issues/1764
 [Issue 1803]: https://github.com/android/ndk/issues/1803
 [Issue 1834]: https://github.com/android/ndk/issues/1834
 [Issue 1852]: https://github.com/android/ndk/issues/1852
 [Issue 1860]: https://github.com/android/ndk/issues/1860
 [Issue 1861]: https://github.com/android/ndk/issues/1861
 [Issue 1862]: https://github.com/android/ndk/issues/1862
+[Issue 1878]: https://github.com/android/ndk/issues/1878
 [Issue 1880]: https://github.com/android/ndk/issues/1880
 [Issue 1883]: https://github.com/android/ndk/issues/1883
+[Issue 1907]: https://github.com/android/ndk/issues/1907
+[Issue 1909]: https://github.com/android/ndk/issues/1909
 
 ## Known Issues
 
