@@ -77,7 +77,7 @@ from ndk.toolchains import CLANG_VERSION, ClangToolchain
 from .pythonenv import ensure_python_environment
 
 
-def get_version_string(build_number: str) -> str:
+def get_version_string(build_number: int) -> str:
     """Returns the version string for the current build."""
     return f"{ndk.config.major}.{ndk.config.hotfix}.{build_number}"
 
@@ -177,7 +177,7 @@ def make_app_bundle(
     worker: ndk.workqueue.Worker,
     zip_path: Path,
     ndk_dir: Path,
-    build_number: str,
+    build_number: int,
     build_dir: Path,
 ) -> None:
     """Builds a macOS App Bundle of the NDK.
@@ -253,7 +253,7 @@ def make_zip(
 
 
 def package_ndk(
-    ndk_dir: Path, out_dir: Path, dist_dir: Path, host: Host, build_number: str
+    ndk_dir: Path, out_dir: Path, dist_dir: Path, host: Host, build_number: int
 ) -> Path:
     """Packages the built NDK for distribution.
 
@@ -2151,11 +2151,11 @@ def get_all_module_names() -> List[str]:
     return [m.name for m in ALL_MODULES if m.enabled]
 
 
-def build_number_arg(value: str) -> str:
+def build_number_arg(value: str) -> int:
     if value.startswith("P"):
         # Treehugger build. Treat as a local development build.
-        return "0"
-    return value
+        return 0
+    return int(value)
 
 
 def parse_args() -> Tuple[argparse.Namespace, List[str]]:
