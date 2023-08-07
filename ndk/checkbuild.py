@@ -497,6 +497,12 @@ class Clang(ndk.builds.Module):
             shutil.rmtree(install_clanglib)
             shutil.copytree(linux_prebuilt_path / "lib/clang", install_clanglib)
 
+        # The toolchain build creates a symlink to easy migration across versions in the
+        # platform build. It's just confusing and wasted space in the NDK. Purge it.
+        for path in install_clanglib.iterdir():
+            if path.is_symlink():
+                path.unlink()
+
         # The Clang prebuilts have the platform toolchain libraries in lib/clang. The
         # libraries we want are in runtimes_ndk_cxx.
         ndk_runtimes = linux_prebuilt_path / "runtimes_ndk_cxx"
