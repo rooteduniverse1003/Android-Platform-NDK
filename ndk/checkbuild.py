@@ -74,6 +74,7 @@ from ndk.paths import ANDROID_DIR, NDK_DIR, PREBUILT_SYSROOT
 from ndk.platforms import ALL_API_LEVELS, API_LEVEL_ALIASES, MAX_API_LEVEL
 from ndk.toolchains import CLANG_VERSION, ClangToolchain
 
+from .ndkversionheadergenerator import NdkVersionHeaderGenerator
 from .pythonenv import ensure_python_environment
 
 
@@ -1136,57 +1137,14 @@ class Sysroot(ndk.builds.Module):
             for remove_path in remove_paths:
                 os.remove(install_path / remove_path)
 
-        major = ndk.config.major
-        minor = ndk.config.hotfix
-        beta = ndk.config.beta
-        canary = "1" if ndk.config.canary else "0"
         assert self.context is not None
-
-        (install_path / "usr/include/android/ndk-version.h").write_text(
-            textwrap.dedent(
-                f"""\
-                #pragma once
-
-                /**
-                 * Set to 1 if this is an NDK, unset otherwise. See
-                 * https://android.googlesource.com/platform/bionic/+/master/docs/defines.md.
-                 */
-                #define __ANDROID_NDK__ 1
-
-                /**
-                 * Major version of this NDK.
-                 *
-                 * For example: 16 for r16.
-                 */
-                #define __NDK_MAJOR__ {major}
-
-                /**
-                 * Minor version of this NDK.
-                 *
-                 * For example: 0 for r16 and 1 for r16b.
-                 */
-                #define __NDK_MINOR__ {minor}
-
-                /**
-                 * Set to 0 if this is a release build, or 1 for beta 1,
-                 * 2 for beta 2, and so on.
-                 */
-                #define __NDK_BETA__ {beta}
-
-                /**
-                 * Build number for this NDK.
-                 *
-                 * For a local development build of the NDK, this is 0.
-                 */
-                #define __NDK_BUILD__ {self.context.build_number}
-
-                /**
-                 * Set to 1 if this is a canary build, 0 if not.
-                 */
-                #define __NDK_CANARY__ {canary}
-                """
-            )
-        )
+        NdkVersionHeaderGenerator(
+            ndk.config.major,
+            ndk.config.hotfix,
+            ndk.config.beta,
+            self.context.build_number,
+            ndk.config.canary,
+        ).write(install_path / "usr/include/android/ndk-version.h")
 
         # Install the CRT objects that we just built.
         assert self.crt_builder is not None
