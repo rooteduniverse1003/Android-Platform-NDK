@@ -31,7 +31,7 @@ class CrtObjectBuilder:
 
     PREBUILTS_PATH = ANDROID_DIR / "prebuilts/ndk/platform"
 
-    def __init__(self, llvm_path: Path, build_dir: Path, build_id: str) -> None:
+    def __init__(self, llvm_path: Path, build_dir: Path, build_id: int) -> None:
         self.llvm_path = llvm_path
         self.build_dir = build_dir
         self.build_id = build_id
@@ -47,7 +47,7 @@ class CrtObjectBuilder:
         srcs: list[Path],
         api: int,
         abi: Abi,
-        build_number: int | str,
+        build_number: int,
     ) -> list[str]:
         """Returns the build command for creating a CRT object."""
         libc_includes = ANDROID_DIR / "bionic/libc"
@@ -99,7 +99,7 @@ class CrtObjectBuilder:
         srcs: list[Path],
         api: int,
         abi: Abi,
-        build_number: int | str,
+        build_number: int,
         defines: list[str],
     ) -> None:
         cc_args = self.get_build_cmd(dst, srcs, api, abi, build_number)
@@ -113,7 +113,7 @@ class CrtObjectBuilder:
         dst_dir: Path,
         api: int,
         abi: Abi,
-        build_number: int | str,
+        build_number: int,
     ) -> None:
         src_dir = ANDROID_DIR / "bionic/libc/arch-common/bionic"
         crt_brand = NDK_DIR / "sources/crt/crtbrand.S"

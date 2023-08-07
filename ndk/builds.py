@@ -60,7 +60,7 @@ class BuildContext:
         dist_dir: Path,
         modules: List[Module],
         host: Host,
-        build_number: str,
+        build_number: int,
     ) -> None:
         self.out_dir = out_dir
         self.dist_dir = dist_dir
