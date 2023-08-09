@@ -228,6 +228,12 @@ are not limited to:
 * llvm-readelf
 * llvm-strip
 
+All LLVM tools are capable of handling every target architecture. Unlike Clang,
+no `-target` argument is required for these tools, so they should behave
+correctly when used as drop-in replacements for their GNU equivalents. Some
+tools may optionally accept a `-target` argument, but if omitted they will
+select the correct target based on the input files.
+
 Note that `llvm-as` is **not** an equivalent of GNU `as`, but rather a tool for
 assembling LLVM IR. If you are currently using `as` directly, you will need to
 migrate to using `clang` as a driver for building assembly.  See [Clang
