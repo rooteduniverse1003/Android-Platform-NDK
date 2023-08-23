@@ -41,6 +41,8 @@ directly, see the [build system maintainers guide].
   * [Issue 1530]: Updated libc++ to match LLVM version.
   * [Issue 1565]: Fixed lldb ncurses issue with terminal database on Darwin.
   * [Issue 1677]: Fixed Clang crash in optimizer.
+  * [Issue 1679]: Clang will now automatically enable ELF TLS for
+    `minSdkVersion 29` or higher.
   * [Issue 1834]: Fixed Clang crash during SVE conversions.
   * [Issue 1860]: Fixed miscompilation affecting armv7.
   * [Issue 1861]: Fixed front end crash in Clang.
@@ -83,6 +85,7 @@ directly, see the [build system maintainers guide].
 [Issue 1530]: https://github.com/android/ndk/issues/1530
 [Issue 1565]: https://github.com/android/ndk/issues/1565
 [Issue 1677]: https://github.com/android/ndk/issues/1677
+[Issue 1679]: https://github.com/android/ndk/issues/1679
 [Issue 1764]: https://github.com/android/ndk/issues/1764
 [Issue 1803]: https://github.com/android/ndk/issues/1803
 [Issue 1834]: https://github.com/android/ndk/issues/1834
