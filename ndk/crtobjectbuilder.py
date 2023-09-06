@@ -81,6 +81,9 @@ class CrtObjectBuilder:
         if abi == Abi("arm64-v8a"):
             args.append("-mbranch-protection=standard")
 
+        if dst.name == 'crtbegin_static.o':
+            args.append("-DCRTBEGIN_STATIC")
+
         return args
 
     def check_elf_note(self, obj_file: Path) -> None:
