@@ -15,7 +15,7 @@ directly, see the [build system maintainers guide].
 
 ## Changes
 
-* Updated LLVM to clang-r498229, based on LLVM 17 development.
+* Updated LLVM to clang-r498229b, based on LLVM 17 development.
 
 ## Known Issues
 
