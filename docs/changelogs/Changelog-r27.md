@@ -15,7 +15,8 @@ directly, see the [build system maintainers guide].
 
 ## Changes
 
-* Updated LLVM to clang-r498229b, based on LLVM 17 development.
+* Updated LLVM to clang-r498229b. See `AndroidVersion.txt` and
+  `clang_source_info.md` in the toolchain directory for version information.
 
 ## Known Issues
 
