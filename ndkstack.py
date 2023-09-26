@@ -28,6 +28,7 @@ import subprocess
 import sys
 import tempfile
 import zipfile
+from pathlib import Path
 
 EXE_SUFFIX = ".exe" if os.name == "nt" else ""
 
@@ -57,14 +58,22 @@ def get_ndk_paths() -> tuple[str, str, str]:
              The platform name (eg linux-x86_64).
     """
 
+    # ndk-stack is installed as a zipped Python application (created with zipapp). The
+    # behavior of __file__ when Python runs a zip file doesn't appear to be documented,
+    # but experimentally for this case it will be:
+    #
+    #     $NDK/prebuilt/darwin-x86_64/bin/ndkstack.pyz/ndkstack.py
+    #
     # ndk-stack is installed to $NDK/prebuilt/<platform>/bin, so from
     # `android-ndk-r18/prebuilt/linux-x86_64/bin/ndk-stack`...
     # ...get `android-ndk-r18/`:
-    ndk_bin = os.path.dirname(os.path.realpath(__file__))
-    ndk_root = os.path.abspath(os.path.join(ndk_bin, "../../.."))
+    path_in_zipped_app = Path(__file__)
+    zip_root = path_in_zipped_app.parent
+    ndk_bin = zip_root.parent
+    ndk_root = ndk_bin.parent.parent.parent
     # ...get `linux-x86_64`:
-    ndk_host_tag = os.path.basename(os.path.abspath(os.path.join(ndk_bin, "../")))
-    return (ndk_root, ndk_bin, ndk_host_tag)
+    ndk_host_tag = ndk_bin.parent.name
+    return (str(ndk_root), str(ndk_bin), str(ndk_host_tag))
 
 
 def find_llvm_symbolizer(ndk_root: str, ndk_bin: str, ndk_host_tag: str) -> str:
