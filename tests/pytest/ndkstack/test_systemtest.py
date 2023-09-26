@@ -16,54 +16,42 @@
 #
 """System tests for ndk-stack.py"""
 
-from __future__ import print_function
-
 import os.path
+import subprocess
 import unittest
-from io import StringIO
-from unittest.mock import patch
 
-import ndk.hosts
+import ndk.paths
 import ndk.toolchains
-import ndkstack
+from ndk.hosts import Host
 
 
 class SystemTests(unittest.TestCase):
     """Complete system test of ndk-stack.py script."""
 
-    def setUp(self):
-        default_host = ndk.hosts.get_default_host()
-        clang_toolchain = ndk.toolchains.ClangToolchain(default_host)
+    def system_test(self, backtrace_file: str, expected_file: str) -> None:
+        ndk_path = ndk.paths.get_install_path()
+        self.assertTrue(
+            ndk_path.exists(),
+            f"{ndk_path} does not exist. Build the NDK before running this test.",
+        )
 
-        # First try and use the normal functions, and if they fail, then
-        # use hard-coded paths from the development locations.
-        ndk_paths = ndkstack.get_ndk_paths()
-        self.readelf = ndkstack.find_readelf(*ndk_paths)
-        if not self.readelf:
-            self.readelf = clang_toolchain.clang_tool("llvm-readelf")
-        self.assertTrue(self.readelf)
-        self.assertTrue(os.path.exists(self.readelf))
-
-        try:
-            self.llvm_symbolizer = ndkstack.find_llvm_symbolizer(*ndk_paths)
-        except OSError:
-            self.llvm_symbolizer = str(clang_toolchain.clang_tool("llvm-symbolizer"))
-        self.assertTrue(self.llvm_symbolizer)
-        self.assertTrue(os.path.exists(self.llvm_symbolizer))
-
-    @patch.object(ndkstack, "find_llvm_symbolizer")
-    @patch.object(ndkstack, "find_readelf")
-    def system_test(
-        self, backtrace_file, expected_file, mock_readelf, mock_llvm_symbolizer
-    ):
-        mock_readelf.return_value = self.readelf
-        mock_llvm_symbolizer.return_value = self.llvm_symbolizer
+        ndk_stack = ndk_path / "ndk-stack"
+        if Host.current() is Host.Windows64:
+            ndk_stack = ndk_stack.with_suffix(".bat")
 
         symbol_dir = os.path.join(os.path.dirname(os.path.realpath(__file__)), "files")
-        with patch("sys.stdout", new_callable=StringIO) as mock_stdout:
-            ndkstack.main(
-                ["-s", symbol_dir, "-i", os.path.join(symbol_dir, backtrace_file)]
-            )
+        proc = subprocess.run(
+            [
+                ndk_stack,
+                "-s",
+                symbol_dir,
+                "-i",
+                os.path.join(symbol_dir, backtrace_file),
+            ],
+            check=True,
+            capture_output=True,
+            text=True,
+        )
 
         # Read the expected output.
         file_name = os.path.join(symbol_dir, expected_file)
@@ -71,22 +59,16 @@ class SystemTests(unittest.TestCase):
             expected = exp_file.read()
         expected = expected.replace("SYMBOL_DIR", symbol_dir)
         self.maxDiff = None
-        self.assertEqual(expected, mock_stdout.getvalue())
+        self.assertEqual(expected, proc.stdout)
 
-    def test_all_stacks(self):
-        self.system_test(  # pylint:disable=no-value-for-parameter
-            "backtrace.txt", "expected.txt"
-        )
+    def test_all_stacks(self) -> None:
+        self.system_test("backtrace.txt", "expected.txt")
 
-    def test_multiple_crashes(self):
-        self.system_test(  # pylint:disable=no-value-for-parameter
-            "multiple.txt", "expected_multiple.txt"
-        )
+    def test_multiple_crashes(self) -> None:
+        self.system_test("multiple.txt", "expected_multiple.txt")
 
-    def test_hwasan(self):
-        self.system_test(  # pylint:disable=no-value-for-parameter
-            "hwasan.txt", "expected_hwasan.txt"
-        )
+    def test_hwasan(self) -> None:
+        self.system_test("hwasan.txt", "expected_hwasan.txt")
 
 
 if __name__ == "__main__":

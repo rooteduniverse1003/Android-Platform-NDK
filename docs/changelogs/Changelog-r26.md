@@ -21,6 +21,13 @@ directly, see the [build system maintainers guide].
 
 [Issue 1751]: https://github.com/android/ndk/issues/1751
 
+## r26b
+
+* [Issue 1938]: Fixed ndk-stack to use the correct path for llvm-symbolizer and
+  other tools.
+
+[Issue 1938]: https://github.com/android/ndk/issues/1938
+
 ## Changes
 
 * Updated LLVM to clang-r487747c, based on LLVM 17 development.
