@@ -861,6 +861,7 @@ class Mypy(ndk.builds.LintModule):
 @register
 class Pytest(ndk.builds.LintModule):
     name = "pytest"
+    deps = {"ndk-stack", "ndk-stack-shortcut"}
 
     def run(self) -> None:
         if not shutil.which("pytest"):
@@ -1755,7 +1756,13 @@ class NdkStack(ndk.builds.PythonApplication):
     notice = NDK_DIR / "NOTICE"
     package = NDK_DIR / "ndkstack.py"
     main = "ndkstack:main"
-    deps = {"ndk-stack-shortcut"}
+    deps = {
+        # PythonApplication depends on build/tools/ndk_bin_common.sh.
+        "ndk-build",
+        "ndk-stack-shortcut",
+        # PythonApplication depends on Python, which is bundled with Clang.
+        "toolchain",
+    }
 
 
 @register
