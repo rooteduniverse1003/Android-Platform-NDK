@@ -22,5 +22,6 @@ def run_broken(test: TestCase, device: Device) -> tuple[str | None, str | None]:
         return f"{test.build_system}", "https://github.com/android/ndk/issues/1942"
     return None, None
 
+
 def extra_cmake_flags() -> list[str]:
     return ["-DANDROID_SANITIZE=hwaddress", "-DANDROID_STL=c++_shared"]
