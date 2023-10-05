@@ -21,7 +21,7 @@ from typing import List
 import ndk.paths
 from ndk.hosts import Host, get_default_host
 
-CLANG_VERSION = "clang-r487747c"
+CLANG_VERSION = "clang-r487747d"
 
 
 HOST_TRIPLE_MAP = {
