@@ -45,31 +45,4 @@ This is not intended to be a comprehensive list of all outstanding bugs.
   The fix in API 28 is the standardized inhibition of `dlclose`, so you can
   backport the fix to older versions by not calling `dlclose`.
 
-* [Issue 988]: Exception handling when using ASan via wrap.sh can crash. To
-  workaround this issue when using libc++_shared, ensure that your application's
-  libc++_shared.so is in `LD_PRELOAD` in your `wrap.sh` as in the following
-  example:
-
-  ```bash
-  #!/system/bin/sh
-  HERE="$(cd "$(dirname "$0")" && pwd)"
-  export ASAN_OPTIONS=log_to_syslog=false,allow_user_segv_handler=1
-  ASAN_LIB=$(ls $HERE/libclang_rt.asan-*-android.so)
-  if [ -f "$HERE/libc++_shared.so" ]; then
-      # Workaround for https://github.com/android/ndk/issues/988.
-      export LD_PRELOAD="$ASAN_LIB $HERE/libc++_shared.so"
-  else
-      export LD_PRELOAD="$ASAN_LIB"
-  fi
-  "$@"
-   ```
-
-  There is no known workaround for libc++_static.
-
-  Note that because this is a platform bug rather than an NDK bug this cannot be
-  fixed with an NDK update. This workaround will be necessary for code running
-  on devices that do not contain the fix, and the bug has not been fixed even in
-  the latest release of Android.
-
 [Issue 360]: https://github.com/android/ndk/issues/360
-[Issue 988]: https://github.com/android/ndk/issues/988
