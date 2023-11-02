@@ -19,7 +19,7 @@
   },
   "riscv64": {
     "bitness": 64,
-    "default": true,
+    "default": false,
     "deprecated": false,
     "proc": "riscv64",
     "arch": "riscv64",
